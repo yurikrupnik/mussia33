@@ -1,0 +1,62 @@
+name: Tags Sember CI
+on:
+#  tags:
+#    - '*.*.*'
+  push:
+    branches: [ "test" ]
+#  pull_request:
+#    branches: [ "main" ]
+#env:
+#  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+env:
+  NX_CLOUD_DISTRIBUTED_EXECUTION: true
+  #  PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+  NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Derive appropriate SHAs for base and head for `nx run-many` commands
+        uses: nrwl/nx-set-shas@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.19.4'
+          run_install: true
+          check-latest: true
+          cache: true
+      - run: rustup toolchain install stable --profile minimal
+      - run: rustup show
+      - uses: Swatinem/rust-cache@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          version: 7
+          run_install: false
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+      - run: pnpm nx run-many --target=build.yaml --parallel --max-parallel=3 --prod --all --skip-nx-cache

@@ -1,0 +1,25 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": ["es2017", "dom"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@mussia33/node/nest/auth": ["libs/node/nest/auth/src/index.ts"],
+      "@mussia33/node/nest/envs": ["libs/node/nest/envs/src/index.ts"],
+      "@mussia33/node/nest/errors": ["libs/node/nest/errors/src/index.ts"],
+      "@mussia33/node/nest/filters": ["libs/node/nest/filters/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}
