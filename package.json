@@ -20,7 +20,6 @@
     "@nrwl/vite": "^15.8.9",
     "@nrwl/webpack": "15.8.9",
     "@nrwl/workspace": "15.8.9",
-    "@nx-extend/playwright": "^1.2.0",
     "@nx-extend/pulumi": "^0.1.1",
     "@nx-go/nx-go": "^2.7.0",
     "@nxext/solid": "^15.7.0",

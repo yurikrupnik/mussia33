@@ -19,7 +19,6 @@ specifiers:
   '@nrwl/vite': ^15.8.9
   '@nrwl/webpack': 15.8.9
   '@nrwl/workspace': 15.8.9
-  '@nx-extend/playwright': ^1.2.0
   '@nx-extend/pulumi': ^0.1.1
   '@nx-go/nx-go': ^2.7.0
   '@nxext/solid': ^15.7.0
@@ -88,7 +87,6 @@ devDependencies:
   '@nrwl/vite': 15.8.9_vipc23r3tkvb42lmxngcv4fsfa
   '@nrwl/webpack': 15.8.9_as2ufcvi4tszipcvbeehgxpxoa
   '@nrwl/workspace': 15.8.9_tx47fqhk7b5vn64nb7jihe3l7q
-  '@nx-extend/playwright': 1.2.0_2ggp43sojuoew3a6ce55y6wh4a
   '@nx-extend/pulumi': 0.1.1_2ggp43sojuoew3a6ce55y6wh4a
   '@nx-go/nx-go': 2.7.0
   '@nxext/solid': 15.7.0_7ee7b5xb5e33pr4rft3xvxhjsu
@@ -3202,25 +3200,6 @@ packages:
       shelljs: 0.8.5
     dependencies:
       shelljs: 0.8.5
-    dev: true
-
-  /@nx-extend/playwright/1.2.0_2ggp43sojuoew3a6ce55y6wh4a:
-    resolution: {integrity: sha512-j+BtaPJmPv99gAFWyuL8fgCWlsf9on/ozEVKGfIPG/TLbwnCYfqLZkF3itZM6OnlGFziNMrA67khutOH2/2o/Q==}
-    peerDependencies:
-      nx: 15.6.2
-    dependencies:
-      '@nrwl/devkit': 15.6.2_nx@15.8.9+typescript@4.9.5
-      '@nrwl/workspace': 15.6.2_tx47fqhk7b5vn64nb7jihe3l7q
-      '@nx-extend/core': 1.4.0_shelljs@0.8.5
-      nx: 15.8.9
-      shelljs: 0.8.5
-    transitivePeerDependencies:
-      - '@swc-node/register'
-      - '@swc/core'
-      - debug
-      - eslint
-      - prettier
-      - typescript
     dev: true
 
   /@nx-extend/pulumi/0.1.1_2ggp43sojuoew3a6ce55y6wh4a:
