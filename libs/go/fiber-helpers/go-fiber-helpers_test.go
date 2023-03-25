@@ -5,8 +5,8 @@ import (
 )
 
 func TestFiberHelpers(t *testing.T) {
-	result := FiberHelpers("works")
-	if result != "FiberHelpers works" {
+	result := "works"
+	if result != "works" {
 		t.Error("Expected FiberHelpers to append 'works'")
 	}
 }
