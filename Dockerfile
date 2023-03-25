@@ -1,6 +1,6 @@
 
 # Done!
-FROM node:18-alpine AS node
+FROM node:19-alpine AS node
 WORKDIR /app
 #COPY _proto ./app
 ARG DIST_PATH
