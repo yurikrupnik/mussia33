@@ -1,0 +1,29 @@
+#apiVersion: custom-api.example.org/v1alpha1
+#kind: XTopicBucket
+#metadata:
+#  name: my-composite-resource
+#spec:
+#  location: "US"
+#---
+#apiVersion: custom-api.example.org/v1alpha1
+#kind: XTopicBucket
+#metadata:
+#  name: my-second-composite-resource
+#spec:
+#  location: "EU"
+---
+apiVersion: custom-api.example.org/v1alpha1
+kind: TopicBucket
+metadata:
+  name: claimed-topic-with-bucket
+  namespace: test
+spec:
+  location: "US"
+---
+apiVersion: custom-api.example.org/v1alpha1
+kind: TopicBucket
+metadata:
+  name: second-claimed-topic-with-bucket
+  namespace: test2
+spec:
+  location: "EU"

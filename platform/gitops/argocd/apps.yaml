@@ -1,0 +1,164 @@
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: production
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Production project
+  sourceRepos:
+    - '*'
+  destinations:
+    - namespace: '*'
+      server: '*'
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+---
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+ name: myapp-argo-application
+ namespace: argocd
+spec:
+ project: default
+ source:
+   repoURL: https://github.com/yurikrupnik/nx-go-playground.git
+   targetRevision: HEAD
+   path: k8s/base
+ destination:
+   server: https://kubernetes.default.svc
+   namespace: nx-go-playground
+
+ syncPolicy:
+   syncOptions:
+     - CreateNamespace=true
+
+   automated:
+     selfHeal: true
+     prune: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mussia30
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/yurikrupnik/mussia30.git
+    targetRevision: HEAD
+    path: k8s/base
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mussia30
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+
+    automated:
+      selfHeal: true
+      prune: true
+# ---
+#apiVersion: argoproj.io/v1alpha1
+#kind: Application
+#metadata:
+#  name: fiber-mongo-application
+#  namespace: fiber-mongo
+#spec:
+#  project: default
+#  source:
+#    repoURL: https://github.com/yurikrupnik/fiber-mongo.git
+#    targetRevision: HEAD
+#    path: k8s/base
+#  destination:
+#    server: https://kubernetes.default.svc
+#    namespace: nx-go-playground
+#
+#  syncPolicy:
+#    syncOptions:
+#      - CreateNamespace=true
+#
+#    automated:
+#      selfHeal: true
+#      prune: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: go-commands
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/yurikrupnik/go-commands.git
+    targetRevision: HEAD
+    path: k8s/base
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: go-commands
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+
+    automated:
+      selfHeal: true
+      prune: true
+#---
+#apiVersion: argoproj.io/v1alpha1
+#kind: Application
+#metadata:
+#  name: rust-playground
+#  namespace: rust-playground
+#spec:
+#  project: default
+#  source:
+#    repoURL: https://github.com/yurikrupnik/rust-playground.git
+#    targetRevision: HEAD
+#    path: k8s/base
+#  destination:
+#    server: https://kubernetes.default.svc
+#    namespace: rust-playground
+#
+#  syncPolicy:
+#    syncOptions:
+#      - CreateNamespace=true
+#
+#    automated:
+#      selfHeal: true
+#      prune: true
+#---
+#apiVersion: argoproj.io/v1alpha1
+#kind: Application
+#metadata:
+#  name: crossplane
+#  namespace: argocd
+#  finalizers:
+#    - resources-finalizer.argocd.argoproj.io
+#spec:
+#  project: production
+#  source:
+#    chart: crossplane
+#    repoURL: https://charts.crossplane.io/stable
+#    targetRevision: "1.3.0"
+#  destination:
+#    namespace: crossplane-system
+#    server: https://kubernetes.default.svc
+#  syncPolicy:
+#    automated:
+#      selfHeal: true
+#      prune: true
+#      allowEmpty: true
+#    syncOptions:
+#      - CreateNamespace=true
+# ---

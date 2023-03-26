@@ -1,0 +1,42 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: topic-with-bucket
+spec:
+  compositeTypeRef:
+    apiVersion: custom-api.example.org/v1alpha1
+    kind: XTopicBucket
+  resources:
+    - name: crossplane-quickstart-bucket
+      base:
+        apiVersion: storage.gcp.upbound.io/v1beta1
+        kind: Bucket
+        spec:
+          forProvider:
+            location: US
+      patches:
+        - fromFieldPath: "spec.location"
+          toFieldPath: "spec.forProvider.location"
+          transforms:
+            - type: map
+              map:
+                EU: "EU"
+                US: "US"
+    - name: crossplane-quickstart-topic
+      base:
+        apiVersion: pubsub.gcp.upbound.io/v1beta1
+        kind: Topic
+        spec:
+          forProvider:
+            messageStoragePolicy:
+              - allowedPersistenceRegions:
+                  - "us-central1"
+      patches:
+        - fromFieldPath: "spec.location"
+          toFieldPath: "spec.forProvider.messageStoragePolicy[*].allowedPersistenceRegions[*]"
+          transforms:
+            - type: map
+              map:
+                EU: "europe-central2"
+                US: "us-central1"
+

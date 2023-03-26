@@ -1,0 +1,61 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  GREETING: Hello, World!
+  CLUSTER_TYPE: kind
+
+tasks:
+  default:
+    cmds:
+      - echo from Platform "{{.GREETING}}"
+    silent: true
+  kind-local-cluster:up:
+    #    dir: '{{.USER_WORKING_DIR}}'
+    desc: Create kind 4 cores local cluster.
+    aliases:
+      - kind:up
+    dir: platform/cluster
+    summary: Create Kind Cluster
+    preconditions:
+      - test -f cluster.yaml
+    cmds:
+      - kind create cluster --name simulate-staging1 --config cluster.yaml
+  k3d-local-cluster:up:
+    desc: Create k3d single core local cluster.
+    #    dir: '{{.USER_WORKING_DIR}}'
+    dir: platform
+    summary: |
+      Release your project to github
+
+      It will build your project before starting the release.
+      Please make sure that you have set GITHUB_TOKEN before starting.
+#    preconditions:
+#      - test -f cluster.yaml
+    cmds:
+      - ctlptl create cluster k3d --name=k3d-simulate-dev1 --registry=ctlptl-registry
+  kind-local-cluster:down:
+    #    dir: '{{.USER_WORKING_DIR}}'
+    desc: Delete kind 4 cores local cluster.
+    aliases:
+      - kind:down
+    dir: platform/cluster
+    summary: Create Kind Cluster
+    preconditions:
+      - test -f cluster.yaml
+    cmds:
+      - kind delete cluster --name simulate-staging1
+  k3d-local-cluster:down:
+    desc: Delete k3d single core local cluster.
+    #    dir: '{{.USER_WORKING_DIR}}'
+    dir: platform
+    summary: |
+      Release your project to github
+
+      It will build your project before starting the release.
+      Please make sure that you have set GITHUB_TOKEN before starting.
+    #    preconditions:
+    #      - test -f cluster.yaml
+    cmds:
+      - ctlptl delete cluster k3d-simulate-dev1

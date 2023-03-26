@@ -1,0 +1,38 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xtopicbuckets.custom-api.example.org
+spec:
+  group: custom-api.example.org
+  names:
+    kind: XTopicBucket
+    plural: xtopicbuckets
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                location:
+                  type: string
+                  oneOf:
+                    - pattern: '^EU$'
+                    - pattern: '^US$'
+#                    testing starts here
+#                provider:
+#                  type: string
+#                  oneOf:
+#                    - pattern: '^gcp$'
+#                    - pattern: '^aws$'
+#                    testing ends here
+              required:
+#                - provider
+                - location
+  claimNames:
+    kind: TopicBucket
+    plural: topicbuckets

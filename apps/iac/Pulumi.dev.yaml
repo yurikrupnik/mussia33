@@ -1,0 +1,4 @@
+config:
+  gcp:project: mussia33
+  gcp:region: europe-central2
+  gcp:zone: europe-central2-b

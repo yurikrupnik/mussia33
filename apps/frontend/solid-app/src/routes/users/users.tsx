@@ -1,6 +1,6 @@
 import { For, createResource } from "solid-js";
 import axios from "axios";
-import { useMachine } from "../../hooks/useMachine";
+import { useMachine } from "@xstate/solid";
 import { testMachine } from "@mussia33/node/xstate-machines";
 // import { User, UserDocument } from '@nx-go-playground/api/users';
 
