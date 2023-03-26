@@ -64,9 +64,9 @@ on:
     branches: [ "main" ]
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  GOOS: linux
-  GOARCH: amd64
-  CGO_ENABLED: 0
+#  GOOS: linux
+#  GOARCH: amd64
+#  CGO_ENABLED: 0
 jobs:
   lint:
     runs-on: ubuntu-latest
