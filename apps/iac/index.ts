@@ -108,7 +108,6 @@ const iamcredentials = new gcp.projects.Service(
     service: "iamcredentials.googleapis.com",
   }
 );
-
 const workloadIdentity = new WorkloadIdentityResource(
   "WorkloadIdentityResource",
   {
@@ -118,4 +117,28 @@ const workloadIdentity = new WorkloadIdentityResource(
   { dependsOn: [iamcredentials], parent: iamcredentials }
 );
 
+const artifactRegistry = new gcp.projects.Service(
+  "artifactregistry.googleapis.com",
+  {
+    disableDependentServices: true,
+    service: "artifactregistry.googleapis.com",
+  }
+);
+
+const artifactRegistryRepo = new gcp.artifactregistry.Repository(
+  "docker-registry",
+  {
+    mode: "STANDARD_REPOSITORY",
+    project,
+    labels: {},
+    repositoryId: "container-repository",
+    location: region,
+    format: "DOCKER",
+    description: "Example docker repository.",
+  },
+  { parent: artifactRegistry, dependsOn: [artifactRegistry] }
+);
+
+export const dockerRepo = pulumi.interpolate`${region}-docker.pkg.dev/${project}/${artifactRegistryRepo.repositoryId}`;
 export const workloadName = workloadIdentity.workload_identity_provider;
+export const workloadSAEmail = workloadIdentity.saEmail;

@@ -11,6 +11,7 @@ export interface WorkloadIdentityResourceProps {
 
 export class WorkloadIdentityResource extends pulumi.ComponentResource {
   public workload_identity_provider: pulumi.Output<string>;
+  public saEmail: pulumi.Output<string>;
 
   constructor(
     name: string,
@@ -73,6 +74,7 @@ export class WorkloadIdentityResource extends pulumi.ComponentResource {
     );
 
     this.workload_identity_provider = poolProvider.name;
-    // this.registerOutputs({ providerName: poolProvider.name });
+    this.saEmail = sa.email;
+    // this.registerOutputs({ saEmail: sa.email });
   }
 }

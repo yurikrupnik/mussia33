@@ -22,6 +22,20 @@
     },
     "lint": {
       "executor": "@nx-go/nx-go:lint"
+    },
+    "docker-buildx": {
+      "executor": "@nrwl/workspace:run-commands",
+      "outputs": [],
+      "dependsOn": [
+        {
+          "target": "build",
+          "projects": "self",
+          "params": "forward"
+        }
+      ],
+      "options": {
+        "command": "docker buildx build --push --target alpine --build-arg DIST_PATH=dist/apps/go/fiber-app . -t europe-central2-docker.pkg.dev/mussia33/container-repository/fiber-app"
+      }
     }
   },
   "tags": []
