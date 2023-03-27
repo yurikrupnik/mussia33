@@ -33,6 +33,17 @@ export class WorkloadIdentityResource extends pulumi.ComponentResource {
       },
       { parent: this }
     );
+
+    new gcp.projects.IAMBinding(
+      "github-sa-artifact-registry-writer",
+      {
+        project: project,
+        members: [sa.email.apply((email) => `serviceAccount:${email}`)],
+        role: "roles/artifactregistry.writer",
+      },
+      { parent: this }
+    );
+
     const pool = new gcp.iam.WorkloadIdentityPool(
       "example-pool-pulumi",
       {
