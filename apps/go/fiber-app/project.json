@@ -34,7 +34,7 @@
         }
       ],
       "options": {
-        "command": "docker buildx build --push --target alpine --build-arg DIST_PATH=dist/apps/go/fiber-app . -t yurikrupnik/fiber-app"
+        "command": "docker buildx build --push --target alpine --build-arg DIST_PATH=dist/apps/go/fiber-app . -t yurikrupnik/fiber-app -t europe-central2-docker.pkg.dev/mussia33/container-repository/fiber-app"
       }
     }
   },
