@@ -12,7 +12,7 @@ FROM docker.io/node:lts-alpine as node
 RUN apk add --no-cache dumb-init
 ENV NODE_ENV production
 ENV PORT 8080
-RUN test -n "$DIST_PATH" || (echo "DIST_PATH not set" && false)
+#RUN test -n "$DIST_PATH" || (echo "DIST_PATH not set" && false)
 WORKDIR /usr/src/app
 COPY --from=node-deps /usr/src/app/node_modules ./node_modules
 COPY --from=node-deps /usr/src/app/package.json ./package.json
