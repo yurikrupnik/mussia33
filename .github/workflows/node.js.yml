@@ -314,7 +314,8 @@ jobs:
           CGO_ENABLED: 0
           TAG: ${{ steps.vars.outputs.sha_short }}
 #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.REPO_GITHUB_TOKEN }}
+          INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          GITHUB_TOKEN: ${{ secrets.REPO_GITHUB_TOKEN }}
 #        with:
 #          github-token: ${{ secrets.GITHUB_TOKEN }}
   datree:
