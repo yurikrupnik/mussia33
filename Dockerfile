@@ -4,7 +4,7 @@ FROM docker.io/node:lts-alpine as node-deps
 RUN apk add --no-cache libc6-compat
 RUN test -n "$DIST_PATH" || (echo "DIST_PATH not set" && false)
 WORKDIR /usr/src/app
-COPY ./$DIST_PATH/package*.json ./
+COPY ./$DIST_PATH/package*.json .
 RUN npm install --only=production
 
 # Production image, copy all the files and run nest
