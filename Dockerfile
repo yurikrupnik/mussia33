@@ -24,7 +24,7 @@ CMD ["dumb-init", "node", "main.js"]
 
 
 # Done!
-FROM node:18-alpine AS node-old
+FROM docker.io/node:lts-alpine AS node-old
 WORKDIR /app
 #COPY _proto ./app
 ARG DIST_PATH
@@ -33,6 +33,8 @@ ENV NODE_ENV=$NODE_ENV
 COPY ./$DIST_PATH .
 RUN npm install
 ENV PORT=8080
+RUN chown -R node:node .
+USER node
 EXPOSE ${PORT}
 CMD ["node", "main.js"]
 
