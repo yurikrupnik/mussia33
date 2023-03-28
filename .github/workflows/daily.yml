@@ -185,5 +185,4 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
-      - run: pnpm run cypress:install
       - run: pnpm nx run-many --target=e2e --parallel --max-parallel=3 --headless --all --skip-nx-cache

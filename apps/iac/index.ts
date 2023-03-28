@@ -125,6 +125,14 @@ const artifactRegistry = new gcp.projects.Service(
   }
 );
 
+const containerScanning = new gcp.projects.Service(
+  "containerscanning.googleapis.com",
+  {
+    disableDependentServices: true,
+    service: "containerscanning.googleapis.com",
+  }
+);
+
 const artifactRegistryRepo = new gcp.artifactregistry.Repository(
   "docker-registry",
   {
