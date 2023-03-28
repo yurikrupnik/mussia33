@@ -70,7 +70,7 @@
         "platforms": ["linux/amd64"],
         "build-args": ["DIST_PATH=dist/apps/go/fiber-app"],
         "metadata": {
-          "images": ["yurikrupnik/fiber-app", "europe-central2-docker.pkg.dev/mussia33/container-repository/fiber-app"],
+          "images": ["yurikrupnik/fiber-app", "$REGISTRY/fiber-app"],
           "tags": [
             "type=schedule",
             "type=ref,event=branch",

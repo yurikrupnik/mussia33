@@ -313,6 +313,7 @@ jobs:
           CGO_ENABLED: 0
           TAG: ${{ steps.vars.outputs.sha_short }}
           INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY: europe-central2-docker.pkg.dev/mussia33/container-repository
   datree:
     runs-on: ubuntu-latest
     env:
