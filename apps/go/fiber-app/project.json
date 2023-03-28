@@ -75,8 +75,7 @@
             "type=schedule",
             "type=ref,event=branch",
             "type=ref,event=tag",
-            "type=ref,event=pr",
-            "type=sha,prefix=sha-"
+            "type=ref,event=pr"
           ]
         }
       }
