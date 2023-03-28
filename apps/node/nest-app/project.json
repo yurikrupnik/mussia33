@@ -72,7 +72,7 @@
       "options": {
         "push": true,
         "file": "./Dockerfile",
-        "target": "node",
+        "target": "node-old",
         "platforms": ["linux/amd64"],
         "build-args": ["DIST_PATH=dist/apps/node/nest-app"],
         "metadata": {
