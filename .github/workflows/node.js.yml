@@ -151,7 +151,7 @@ jobs:
       - name: Install dependencies
 #        run: pnpm install --no-frozen-lockfile
         run: pnpm install
-      - run: pnpm nx affected --target=build.yaml --parallel --max-parallel=3 --prod
+      - run: pnpm nx affected --target=build --parallel --max-parallel=3 --prod
   test:
     runs-on: ubuntu-latest
     steps:
