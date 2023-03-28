@@ -42,12 +42,13 @@
       "options": {
         "engine": "kaniko",
         "metadata": {
-          "images": ["mussia33/go-fiber-app"],
+          "images": ["yurikrupnik/go-fiber-app"],
           "load": true,
           "tags": [
             "type=schedule",
             "type=ref,event=branch",
             "type=ref,event=tag",
+            "type=ref,event=pr",
             "type=sha,prefix=sha-"
           ]
         }
@@ -69,7 +70,14 @@
         "platforms": ["linux/amd64"],
         "build-args": ["DIST_PATH=dist/apps/go/fiber-app"],
         "metadata": {
-          "images": ["yurikrupnik/fiber-app"]
+          "images": ["yurikrupnik/fiber-app"],
+          "tags": [
+            "type=schedule",
+            "type=ref,event=branch",
+            "type=ref,event=tag",
+            "type=ref,event=pr",
+            "type=sha,prefix=sha-"
+          ]
         }
       }
     }
