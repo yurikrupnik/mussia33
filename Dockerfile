@@ -8,7 +8,7 @@ COPY ./$DIST_PATH/package*.json .
 RUN npm install --only=production
 
 # Production image, copy all the files and run nest
-FROM docker.io/node:lts-alpine as node
+FROM docker.io/node:lts-alpine as node-new
 RUN apk add --no-cache dumb-init
 ENV NODE_ENV production
 ENV PORT 8080
@@ -24,7 +24,7 @@ CMD ["dumb-init", "node", "main.js"]
 
 
 # Done!
-FROM docker.io/node:lts-alpine AS node-old
+FROM docker.io/node:lts-alpine AS node
 WORKDIR /app
 #COPY _proto ./app
 ARG DIST_PATH
