@@ -76,7 +76,7 @@
         "platforms": ["linux/amd64"],
         "build-args": ["DIST_PATH=dist/apps/node/nest-app"],
         "metadata": {
-          "images": ["yurikrupnik/fiber-app", "$REGISTRY/fiber-app"],
+          "images": ["yurikrupnik/nest-app", "$REGISTRY/nest-app"],
           "tags": [
             "type=schedule",
             "type=ref,event=branch",
