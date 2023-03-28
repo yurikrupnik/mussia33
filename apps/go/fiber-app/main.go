@@ -41,7 +41,7 @@ func main() {
 	app.Use(cors.New())
 
 	app.Get("/api/test", updateById[go_models_user.User])
-	app.Get("/api/da", updateById[go_models_user.User])
+	app.Get("/api/health", updateById[go_models_user.User])
 	apiGroup := app.Group("api")
 	//	users.New[users.User](apiGroup, db, userCollection)
 	go_generic_api.New[go_models_user.User](apiGroup, db, userCollection)

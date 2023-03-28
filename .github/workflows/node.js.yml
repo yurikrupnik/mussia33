@@ -1,60 +1,5 @@
 name: Node.js CI
 
-#defaults: &defaults
-##  working_directory: ~/tmp
-##  docker:
-##    - image: circleci/node:11
-##NX: &nx
-#  steps:
-#    - uses: actions/checkout@v3
-#      with:
-#        fetch-depth: 0
-#    - uses: extractions/setup-just@v1
-#      with:
-#        just-version: 0.8 # optional semver specification, otherwise latest
-#    - run: just daily
-#    - name: Derive appropriate SHAs for base and head for `nx affected` commands
-#      uses: nrwl/nx-set-shas@v2
-#    - uses: actions/setup-go@v3
-#      with:
-#        go-version: '1.19.4'
-#        run_install: true
-#        check-latest: true
-#        cache: true
-#    - run: rustup toolchain install stable --profile minimal
-#    - uses: Swatinem/rust-cache@v2
-#    - name: Use Node.js ${{ matrix.node-version }}
-#      uses: actions/setup-node@v3
-#      with:
-#        node-version: 18
-#    - uses: pnpm/action-setup@v2
-#      name: Install pnpm
-#      id: pnpm-install
-#      with:
-#        version: 7
-#        run_install: false
-#    - name: Get pnpm store directory
-#      id: pnpm-cache
-#      shell: bash
-#      run: |
-#        echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-#
-#    - uses: actions/cache@v3
-#      name: Setup pnpm cache
-#      with:
-#        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-#        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-#        restore-keys: |
-#          ${{ runner.os }}-pnpm-store-
-#    - name: Install dependencies
-#    - run: pnpm install --no-frozen-lockfile
-
-#Computer:
-#  steps:
-#    <<: *nx
-#  Price: 3000
-
-
 on:
   push:
     branches: [ "main" ]
@@ -291,9 +236,6 @@ jobs:
         id: metadata
         with:
           images: ghcr.io/${{ github.repository }}
-      - name: Set outputs
-        id: vars
-        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v0'
       - run: gcloud config list
@@ -311,7 +253,6 @@ jobs:
           GOOS: linux
           GOARCH: amd64
           CGO_ENABLED: 0
-          TAG: ${{ steps.vars.outputs.sha_short }}
           INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REGISTRY: europe-central2-docker.pkg.dev/mussia33/container-repository
   datree:

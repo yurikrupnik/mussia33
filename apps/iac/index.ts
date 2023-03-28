@@ -117,6 +117,14 @@ const workloadIdentity = new WorkloadIdentityResource(
   { dependsOn: [iamcredentials], parent: iamcredentials }
 );
 
+const cloudScheduler = new gcp.projects.Service(
+  "cloudscheduler.googleapis.com",
+  {
+    disableDependentServices: true,
+    service: "cloudscheduler.googleapis.com",
+  }
+);
+
 const artifactRegistry = new gcp.projects.Service(
   "artifactregistry.googleapis.com",
   {
