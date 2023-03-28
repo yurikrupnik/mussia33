@@ -33,7 +33,7 @@ func main() {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: go_fiber_helpers.DefaultErrorHandler,
 	})
-	//    router := api.Group(name)
+
 	app.Use(recover.New())
 	app.Use(logger.New())
 	//app.Use(csrf.New()) // todo check it - forbidden post events!

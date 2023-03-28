@@ -1,0 +1,12 @@
+steps:
+  - name: 'gcr.io/cloud-builders/git'
+    args: [ 'clone', 'https://github.com/yurikrupnik/mussia33' ]
+  - name: "bomarconi/pnpm:node-lts-0.4"
+    id: pnpm install
+    entrypoint: pnpm
+    args: ["install"]
+  - name: "bomarconi/pnpm:node-lts-0.4"
+    id: pnpm build
+    entrypoint: pnpm
+    args: [ "nx affected --target=build --parallel --max-parallel=3 --prod" ]
+#    args: [ "run nx run-many --all --target=build" ]

@@ -15,7 +15,7 @@ export class ServicesResource extends pulumi.ComponentResource {
     opts?: pulumi.ResourceOptions
   ) {
     super("mussia33:core:service:", name, {}, opts);
-    servicesResourceProps.services.map((service) => {
+    const promises = servicesResourceProps.services.map((service) => {
       return new gcp.projects.Service(
         service,
         {
@@ -25,5 +25,10 @@ export class ServicesResource extends pulumi.ComponentResource {
         { parent: this, ...opts }
       );
     });
+
+    // TODO! finish it!
+    // this.registerOutputs({
+    //   services: pulumi.all(promises).apply((r) => r.map((s) => s.service)),
+    // });
   }
 }

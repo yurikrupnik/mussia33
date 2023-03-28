@@ -1,6 +1,10 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as gcp from "@pulumi/gcp";
 import { ServicesResource } from "./src/servicesResource";
+import {
+  WorkloadIdentityResource,
+  WorkloadIdentityResourceProps,
+} from "./src/workloadIdentity";
 import { Providers } from "./src/shared";
 
 const config = new pulumi.Config("core");
@@ -78,5 +82,71 @@ const computeServices = new ServicesResource(
   },
   {}
 );
-// Export the DNS name of the bucket
-// export const bucketName = tempBucket.url;
+
+const secretManager = new ServicesResource(
+  "secretManagerServices",
+  {
+    provider: Providers.gcp,
+    services: ["secretmanager.googleapis.com"],
+  },
+  {}
+);
+
+// const iamcredentials = new ServicesResource(
+//   "iamCredentialsServices",
+//   {
+//     provider: Providers.gcp,
+//     services: ["iamcredentials.googleapis.com"],
+//   },
+//   {}
+// );
+
+const iamcredentials = new gcp.projects.Service(
+  "iamcredentials.googleapis.com",
+  {
+    disableDependentServices: true,
+    service: "iamcredentials.googleapis.com",
+  }
+);
+const workloadIdentity = new WorkloadIdentityResource(
+  "WorkloadIdentityResource",
+  {
+    repos: ["yurikrupnik/mussia33"],
+    project,
+  },
+  { dependsOn: [iamcredentials], parent: iamcredentials }
+);
+
+const artifactRegistry = new gcp.projects.Service(
+  "artifactregistry.googleapis.com",
+  {
+    disableDependentServices: true,
+    service: "artifactregistry.googleapis.com",
+  }
+);
+
+// const containerScanning = new gcp.projects.Service(
+//   "containerscanning.googleapis.com",
+//   {
+//     disableDependentServices: true,
+//     service: "containerscanning.googleapis.com",
+//   }
+// );
+
+const artifactRegistryRepo = new gcp.artifactregistry.Repository(
+  "docker-registry",
+  {
+    mode: "STANDARD_REPOSITORY",
+    project,
+    labels: {},
+    repositoryId: "container-repository",
+    location: region,
+    format: "DOCKER",
+    description: "Example docker repository.",
+  },
+  { parent: artifactRegistry, dependsOn: [artifactRegistry] }
+);
+
+export const dockerRepo = pulumi.interpolate`${region}-docker.pkg.dev/${project}/${artifactRegistryRepo.repositoryId}`;
+export const workloadName = workloadIdentity.workload_identity_provider;
+export const workloadSAEmail = workloadIdentity.saEmail;

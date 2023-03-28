@@ -22,6 +22,67 @@
     },
     "lint": {
       "executor": "@nx-go/nx-go:lint"
+    },
+    "docker-buildx": {
+      "executor": "@nrwl/workspace:run-commands",
+      "outputs": [],
+      "dependsOn": [
+        {
+          "target": "build",
+          "projects": "self",
+          "params": "forward"
+        }
+      ],
+      "options": {
+        "command": "docker buildx build --push --target alpine --build-arg DIST_PATH=dist/apps/go/fiber-app . -t yurikrupnik/fiber-app:$TAG -t europe-central2-docker.pkg.dev/mussia33/container-repository/fiber-app:$TAG"
+      }
+    },
+    "container": {
+      "executor": "@nx-tools/nx-container:build",
+      "options": {
+        "engine": "kaniko",
+        "metadata": {
+          "images": ["yurikrupnik/go-fiber-app"],
+          "load": true,
+          "tags": [
+            "type=schedule",
+            "type=ref,event=branch",
+            "type=ref,event=tag",
+            "type=ref,event=pr",
+            "type=sha,prefix=sha-"
+          ]
+        }
+      }
+    },
+    "docker": {
+      "executor": "@nx-tools/nx-container:build",
+      "dependsOn": [
+        {
+          "target": "build",
+          "projects": "self",
+          "params": "forward"
+        }
+      ],
+      "options": {
+        "push": true,
+        "file": "./Dockerfile",
+        "target": "alpine",
+        "platforms": ["linux/amd64"],
+        "build-args": ["DIST_PATH=dist/apps/go/fiber-app"],
+        "metadata": {
+          "images": ["yurikrupnik/fiber-app", "$REGISTRY/fiber-app"],
+          "tags": [
+            "type=schedule",
+            "type=ref,event=branch",
+            "type=ref,event=tag",
+            "type=ref,event=pr",
+            "type=semver,pattern={{version}}",
+            "type=semver,pattern={{major}}.{{minor}}",
+            "type=semver,pattern={{major}}",
+            "type=sha"
+          ]
+        }
+      }
     }
   },
   "tags": []

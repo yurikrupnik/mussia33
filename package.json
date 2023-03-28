@@ -2,7 +2,9 @@
   "name": "mussia33",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "nx": "nx"
+  },
   "private": true,
   "devDependencies": {
     "@monodon/rust": "^1.1.1",
@@ -23,6 +25,8 @@
     "@nrwl/workspace": "15.8.9",
     "@nx-extend/pulumi": "^0.1.1",
     "@nx-go/nx-go": "^2.7.0",
+    "@nx-tools/container-metadata": "^4.0.3",
+    "@nx-tools/nx-container": "^4.0.3",
     "@nxext/solid": "^15.7.0",
     "@types/express": "^4.17.17",
     "@types/jest": "^29.4.0",
