@@ -64,7 +64,6 @@
         }
       ],
       "options": {
-        "engine": "kaniko",
         "push": true,
         "file": "./Dockerfile",
         "target": "alpine",
