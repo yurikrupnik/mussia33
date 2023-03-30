@@ -60,6 +60,7 @@
     "@nestjs/common": "^9.0.0",
     "@nestjs/core": "^9.0.0",
     "@nestjs/platform-express": "^9.0.0",
+    "@pulumi/aws": "^5.33.0",
     "@pulumi/gcp": "^6.52.0",
     "@pulumi/pulumi": "^3.59.1",
     "@solidjs/router": "^0.8.2",
