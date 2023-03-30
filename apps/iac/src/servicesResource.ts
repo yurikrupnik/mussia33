@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as gcp from "@pulumi/gcp";
+import { Service } from "@pulumi/gcp/projects";
 import { Providers } from "@mussia33/node/shared";
 
 export interface ServicesResourceProps {
@@ -9,6 +10,7 @@ export interface ServicesResourceProps {
 }
 
 export class ServicesResource extends pulumi.ComponentResource {
+  readonly firstService: gcp.projects.Service;
   constructor(
     name: string,
     servicesResourceProps: ServicesResourceProps,
@@ -26,9 +28,6 @@ export class ServicesResource extends pulumi.ComponentResource {
       );
     });
 
-    // TODO! finish it!
-    // this.registerOutputs({
-    //   services: pulumi.all(promises).apply((r) => r.map((s) => s.service)),
-    // });
+    this.firstService = promises[0];
   }
 }

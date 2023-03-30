@@ -16,7 +16,8 @@
         "tsConfig": "apps/node/nest-app/tsconfig.app.json",
         "assets": ["apps/node/nest-app/src/assets"],
         "isolatedConfig": true,
-        "webpackConfig": "apps/node/nest-app/webpack.config.js"
+        "webpackConfig": "apps/node/nest-app/webpack.config.js",
+        "generatePackageJson": true
       },
       "configurations": {
         "development": {},
@@ -56,6 +57,36 @@
         "ci": {
           "ci": true,
           "codeCoverage": true
+        }
+      }
+    },
+    "docker": {
+      "executor": "@nx-tools/nx-container:build",
+      "dependsOn": [
+        {
+          "target": "build",
+          "projects": "self",
+          "params": "forward"
+        }
+      ],
+      "options": {
+        "push": true,
+        "file": "./Dockerfile",
+        "target": "node",
+        "platforms": ["linux/amd64"],
+        "build-args": ["DIST_PATH=dist/apps/node/nest-app"],
+        "metadata": {
+          "images": ["yurikrupnik/nest-app", "$REGISTRY/nest-app"],
+          "tags": [
+            "type=schedule",
+            "type=ref,event=branch",
+            "type=ref,event=tag",
+            "type=ref,event=pr",
+            "type=semver,pattern={{version}}",
+            "type=semver,pattern={{major}}.{{minor}}",
+            "type=semver,pattern={{major}}",
+            "type=sha"
+          ]
         }
       }
     }
