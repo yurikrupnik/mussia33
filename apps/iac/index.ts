@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as gcp from "@pulumi/gcp";
 import { ServicesResource } from "./src/servicesResource";
+import { networkResource } from "./src/network";
 import { GcpFunctionResource, GcpFunction } from "./src/gcpFunction";
 import {
   WorkloadIdentityResource,
@@ -294,49 +295,9 @@ const mesh = new gcp.projects.Service("mesh.googleapis.com", {
 });
 
 // networking
-const vpcAccess = new gcp.projects.Service("vpcaccess.googleapis.com", {
-  disableDependentServices: true,
-  service: "vpcaccess.googleapis.com",
-});
-
-const vpcNetwork = new gcp.compute.Network("vpcNetwork", {
-  name: "my-first-vpc",
+new networkResource("network", {
+  region,
   project,
-  description: "My first VPC",
-  mtu: 1460,
-  autoCreateSubnetworks: false,
-});
-
-const ilSubnet = new gcp.compute.Subnetwork("ilSubnet", {
-  ipCidrRange: "10.212.0.0/24",
-  region: "me-west1",
-  network: vpcNetwork.id,
-  name: "me-west1-subnet",
-  description: "Israel subnet",
-});
-
-const euSubnet = new gcp.compute.Subnetwork("euSubnet", {
-  ipCidrRange: "10.186.0.0/24",
-  region: region,
-  network: vpcNetwork.id,
-  name: `${region}-subnet`,
-  description: "Europe subnet",
-});
-
-const defaultFirewall = new gcp.compute.Firewall("default-firewall", {
-  network: vpcNetwork.name,
-  name: "default-firewall",
-  priority: 65534,
-  allows: [
-    {
-      protocol: "icmp",
-    },
-    {
-      protocol: "tcp",
-      ports: ["80", "8080", "1000-2000"],
-    },
-  ],
-  sourceTags: ["web"],
 });
 
 // Serverless VPC Access allows Cloud Functions, Cloud Run (fully managed) services and App Engine standard environment apps to access resources in a VPC network using the internal IP addresses of those resources
