@@ -268,7 +268,12 @@ const iamcredentials = new gcp.projects.Service(
 const workloadIdentity = new WorkloadIdentityResource(
   "WorkloadIdentityResource",
   {
-    repos: ["yurikrupnik/mussia33"],
+    repos: [
+      "yurikrupnik/mussia33",
+      "yurikrupnik/go-commands",
+      "yurikrupnik/first-rust-app",
+      "yurikrupnik/fiber-mongo",
+    ],
     project,
   },
   { dependsOn: [iamcredentials], parent: iamcredentials }
