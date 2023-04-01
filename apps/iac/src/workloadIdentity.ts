@@ -4,6 +4,7 @@ import { Providers } from "@mussia33/node/shared";
 
 export interface WorkloadIdentityResourceProps {
   // services: Array<string>;
+  // services: Array<string>;
   repos: Array<String>;
   project?: string;
   provider?: Providers;
