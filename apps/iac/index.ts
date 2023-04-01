@@ -1,6 +1,8 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as gcp from "@pulumi/gcp";
 import { ServicesResource } from "./src/servicesResource";
+import { networkResource } from "./src/network";
+import { ArtifactoryResource } from "./src/artifactory";
 import { GcpFunctionResource, GcpFunction } from "./src/gcpFunction";
 import {
   WorkloadIdentityResource,
@@ -216,15 +218,6 @@ new gcp.projects.IAMBinding("pubsub-token-creator", {
 //   destination,
 // });
 
-// const iamcredentials = new ServicesResource(
-//   "iamCredentialsServices",
-//   {
-//     provider: Providers.gcp,
-//     services: ["iamcredentials.googleapis.com"],
-//   },
-//   {}
-// );
-
 const iamcredentials = new gcp.projects.Service(
   "iamcredentials.googleapis.com",
   {
@@ -235,7 +228,7 @@ const iamcredentials = new gcp.projects.Service(
 const workloadIdentity = new WorkloadIdentityResource(
   "WorkloadIdentityResource",
   {
-    repos: ["yurikrupnik/mussia33"],
+    repos: ["yurikrupnik/mussia33", "yurikrupnik/first-rust-app"],
     project,
   },
   { dependsOn: [iamcredentials], parent: iamcredentials }
@@ -249,14 +242,6 @@ const cloudScheduler = new gcp.projects.Service(
   }
 );
 
-const artifactRegistry = new gcp.projects.Service(
-  "artifactregistry.googleapis.com",
-  {
-    disableDependentServices: true,
-    service: "artifactregistry.googleapis.com",
-  }
-);
-
 const binaryAuthorization = new gcp.projects.Service(
   "binaryauthorization.googleapis.com",
   {
@@ -265,25 +250,32 @@ const binaryAuthorization = new gcp.projects.Service(
   }
 );
 
-// High price
-// const containerScanning = new gcp.projects.Service(
-//   "containerscanning.googleapis.com",
-//   {
-//     disableDependentServices: true,
-//     service: "containerscanning.googleapis.com",
-//   }
-// );
+// high price
+// const scanning = new gcp.projects.Service("containerscanning.googleapis.com", {
+//   disableDependentServices: true,
+//   service: "containerscanning.googleapis.com",
+// });
 
-const artifactRegistryRepo = new gcp.artifactregistry.Repository(
+const artifactRegistry = new gcp.projects.Service(
+  "artifactregistry.googleapis.com",
+  {
+    disableDependentServices: true,
+    service: "artifactregistry.googleapis.com",
+  }
+);
+
+const dockerRegistry = new ArtifactoryResource(
   "docker-registry",
   {
-    mode: "STANDARD_REPOSITORY",
-    project,
-    labels: {},
-    repositoryId: "container-repository",
-    location: region,
-    format: "DOCKER",
-    description: "Example docker repository.",
+    repositoryArgs: {
+      mode: "STANDARD_REPOSITORY",
+      project,
+      labels: {},
+      repositoryId: "container-repository",
+      location: region,
+      format: "DOCKER",
+      description: "Example docker repository.",
+    },
   },
   { parent: artifactRegistry, dependsOn: [artifactRegistry] }
 );
@@ -294,49 +286,9 @@ const mesh = new gcp.projects.Service("mesh.googleapis.com", {
 });
 
 // networking
-const vpcAccess = new gcp.projects.Service("vpcaccess.googleapis.com", {
-  disableDependentServices: true,
-  service: "vpcaccess.googleapis.com",
-});
-
-const vpcNetwork = new gcp.compute.Network("vpcNetwork", {
-  name: "my-first-vpc",
+new networkResource("network", {
+  region,
   project,
-  description: "My first VPC",
-  mtu: 1460,
-  autoCreateSubnetworks: false,
-});
-
-const ilSubnet = new gcp.compute.Subnetwork("ilSubnet", {
-  ipCidrRange: "10.212.0.0/24",
-  region: "me-west1",
-  network: vpcNetwork.id,
-  name: "me-west1-subnet",
-  description: "Israel subnet",
-});
-
-const euSubnet = new gcp.compute.Subnetwork("euSubnet", {
-  ipCidrRange: "10.186.0.0/24",
-  region: region,
-  network: vpcNetwork.id,
-  name: `${region}-subnet`,
-  description: "Europe subnet",
-});
-
-const defaultFirewall = new gcp.compute.Firewall("default-firewall", {
-  network: vpcNetwork.name,
-  name: "default-firewall",
-  priority: 65534,
-  allows: [
-    {
-      protocol: "icmp",
-    },
-    {
-      protocol: "tcp",
-      ports: ["80", "8080", "1000-2000"],
-    },
-  ],
-  sourceTags: ["web"],
 });
 
 // Serverless VPC Access allows Cloud Functions, Cloud Run (fully managed) services and App Engine standard environment apps to access resources in a VPC network using the internal IP addresses of those resources
@@ -373,6 +325,7 @@ const defaultFirewall = new gcp.compute.Firewall("default-firewall", {
 // });
 // end compute k8s
 // export const connectorId = vpcConnector.id;
-export const dockerRepo = pulumi.interpolate`${region}-docker.pkg.dev/${project}/${artifactRegistryRepo.repositoryId}`;
+// export const dockerRepo = pulumi.interpolate`${region}-docker.pkg.dev/${project}/${dockerRegistry.repositoryId}`;
+export const dockerRepo = dockerRegistry.dockerRepo;
 export const workloadName = workloadIdentity.workload_identity_provider;
 export const workloadSAEmail = workloadIdentity.saEmail;
