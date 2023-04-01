@@ -142,8 +142,8 @@ devDependencies:
     specifier: ^2.10.3
     version: 2.12.1(eslint@8.15.0)
   eslint-plugin-solid:
-    specifier: 0.9.4
-    version: 0.9.4(eslint@8.15.0)(typescript@5.0.2)
+    specifier: 0.12.0
+    version: 0.12.0(eslint@8.15.0)(typescript@5.0.2)
   jest:
     specifier: ^29.4.1
     version: 29.5.0(@types/node@18.15.0)(ts-node@10.9.1)
@@ -7289,8 +7289,8 @@ packages:
       globals: 11.12.0
     dev: true
 
-  /eslint-plugin-solid@0.9.4(eslint@8.15.0)(typescript@5.0.2):
-    resolution: {integrity: sha512-AGS7XnkepV2jiFwBMSg3FW7GKe6uJwgx65nnRC7I6s0dbV7rGpouwj9KDkXV5NJHQENxACeOLUTgjyMi3JeHNw==}
+  /eslint-plugin-solid@0.12.0(eslint@8.15.0)(typescript@5.0.2):
+    resolution: {integrity: sha512-4nnLFJwvw5AGC+yAGHFtPGKFgs8Ou77/PGi8DJVfQgILK0fJWVvY07FKzkjQXtO1x/x7DocXusr+ZWutz8DVDQ==}
     engines: {node: '>=12.0.0'}
     peerDependencies:
       eslint: ^6.0.0 || ^7.0.0 || ^8.0.0
