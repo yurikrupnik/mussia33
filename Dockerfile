@@ -96,7 +96,7 @@ FROM debian:buster-slim AS rust
 WORKDIR /
 ARG DIST_PATH
 RUN test -n "$DIST_PATH" || (echo "DIST_PATH not set" && false)
-COPY $DIST_PATH /bin/app
+COPY $DIST_PATH /usr/local/bin/app
 ENV PORT=8080
 EXPOSE ${PORT}
 CMD app
