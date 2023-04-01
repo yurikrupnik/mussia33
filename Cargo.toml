@@ -1,0 +1,9 @@
+
+[workspace]
+members = [
+  "libs/rust/mongo",
+	"apps/rust/actix_app",
+]
+
+[profile.release]
+lto = true

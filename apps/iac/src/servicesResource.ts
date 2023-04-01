@@ -1,7 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as gcp from "@pulumi/gcp";
-import { Service } from "@pulumi/gcp/projects";
 import { Providers } from "@mussia33/node/shared";
+// import { Service } from "@pulumi/gcp/projects";
 
 export interface ServicesResourceProps {
   services: Array<string>;

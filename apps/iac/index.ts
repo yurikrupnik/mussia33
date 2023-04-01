@@ -16,6 +16,30 @@ const gcpConfig = new pulumi.Config("gcp");
 const region = gcpConfig.get("region");
 const project = gcpConfig.get("project");
 
+const serviceDirectory = new gcp.projects.Service(
+  "servicedirectory.googleapis.com",
+  {
+    disableDependentServices: true,
+    service: "servicedirectory.googleapis.com",
+  }
+);
+new gcp.servicedirectory.Namespace("ServiceDirectoryNamespaceA", {
+  namespaceId: "client1",
+  project,
+  labels: {
+    client: "a",
+  },
+  location: region,
+});
+
+new gcp.servicedirectory.Namespace("ServiceDirectoryNamespaceB", {
+  namespaceId: "client2",
+  project,
+  labels: {
+    client: "b",
+  },
+  location: region,
+});
 // security
 const cloudKMS = new gcp.projects.Service("cloudkms.googleapis.com", {
   disableDependentServices: true,
@@ -169,6 +193,14 @@ new gcp.projects.IAMBinding("pubsub-token-creator", {
   ],
   role: "roles/iam.serviceAccountTokenCreator",
 });
+
+// new gcp.projects.IAMBinding("evenTarcEventReceiver", {
+//   project: project,
+//   members: [
+//     "serviceAccount:361115404307-compute@developer.gserviceaccount.com ",
+//   ],
+//   role: "roles/eventarc.eventReceiver",
+// });
 
 // const _default = new gcp.cloudrun.Service("default", {
 //   location: region,
