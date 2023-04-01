@@ -7,6 +7,7 @@ import {
   WorkloadIdentityResourceProps,
 } from "./src/workloadIdentity";
 import { Providers } from "./src/shared";
+import { CloudRunResourceProps, CloudRunResource } from "./src/cloudRun";
 
 const config = new pulumi.Config("core");
 const nodeCount = config.get("nodeCount");
@@ -267,7 +268,7 @@ const iamcredentials = new gcp.projects.Service(
 const workloadIdentity = new WorkloadIdentityResource(
   "WorkloadIdentityResource",
   {
-    repos: ["yurikrupnik/mussia33"],
+    repos: ["yurikrupnik/mussia33", "yurikrupnik/first-rust-app"],
     project,
   },
   { dependsOn: [iamcredentials], parent: iamcredentials }
@@ -386,6 +387,31 @@ const defaultFirewall = new gcp.compute.Firewall("default-firewall", {
 //   maxInstances: 3,
 //   machineType: "f1-micro", // "e2-micro" default
 // });
+
+// Start cloud run
+const cloudRun = new CloudRunResource("app1", {
+  project,
+  name: "cloud-app1",
+  serviceArgs: {
+    name: "cloud-app1",
+    location: region,
+    labels: {},
+    project,
+    description: "my app",
+    template: {
+      serviceAccount: "",
+      containers: [
+        {
+          name: "as",
+          image:
+            "europe-central2-docker.pkg.dev/mussia33/container-repository/fiber-app@sha256:beaf33fa7bf4c1347ee84687f99d2c2b9a531ace7205245750884d2a350c5c3f",
+        },
+      ],
+      // serviceAccount: 'cloud-run-sa',
+    },
+  },
+});
+// End cloud run
 
 // start compute k8s
 // const cluster = new gcp.container.Cluster("autopilot", {
