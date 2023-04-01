@@ -240,8 +240,8 @@ jobs:
       - id: 'auth'
         uses: 'google-github-actions/auth@v1'
         with:
-          workload_identity_provider: 'projects/361115404307/locations/global/workloadIdentityPools/example-pool-pulumi/providers/github-provider'
-          service_account: 'docker-builder-sa@mussia33.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/361115404307/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'container-builder-sa@mussia33.iam.gserviceaccount.com'
       - run: |-
           gcloud --quiet auth configure-docker europe-central2-docker.pkg.dev
 # End of gcp containers

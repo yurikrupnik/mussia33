@@ -20,16 +20,16 @@ export class WorkloadIdentityResource extends pulumi.ComponentResource {
   ) {
     super("mussia33:core:workloadIdentity:", name, {}, opts);
 
-    const { repos, provider, project } = workloadIdentityResourceProps;
+    const { repos, project } = workloadIdentityResourceProps;
 
     const sa = new gcp.serviceaccount.Account(
-      "github-sa",
+      "container-builder-sa",
       {
         project,
-        accountId: "docker-builder-sa",
+        accountId: "container-builder-sa",
         disabled: false,
-        description: "Github actions service account to create docker images",
-        displayName: "Docker builder",
+        description: "Github actions service account to create containers",
+        displayName: "Container builder",
       },
       { parent: this }
     );
@@ -47,7 +47,9 @@ export class WorkloadIdentityResource extends pulumi.ComponentResource {
     const pool = new gcp.iam.WorkloadIdentityPool(
       "example-pool-pulumi",
       {
-        workloadIdentityPoolId: "example-pool-pulumi",
+        description: "Github Pool",
+        displayName: "Github pool",
+        workloadIdentityPoolId: "github-pool",
         project,
       },
       { parent: this }
