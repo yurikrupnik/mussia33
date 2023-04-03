@@ -240,8 +240,8 @@ jobs:
       - id: 'auth'
         uses: 'google-github-actions/auth@v1'
         with:
-          workload_identity_provider: 'projects/361115404307/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
-          service_account: 'container-builder-sa@mussia33.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/922939596495/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'container-builder-sa@mussia-infra.iam.gserviceaccount.com'
       - run: |-
           gcloud --quiet auth configure-docker europe-central2-docker.pkg.dev
 # End of gcp containers
@@ -252,7 +252,7 @@ jobs:
           GOARCH: amd64
           CGO_ENABLED: 0
           INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REGISTRY: europe-central2-docker.pkg.dev/mussia33/container-repository
+          REGISTRY: europe-central2-docker.pkg.dev/mussia-infra/container-repository
   datree:
     runs-on: ubuntu-latest
     env:

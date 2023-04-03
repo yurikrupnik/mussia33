@@ -1,7 +1,12 @@
+// config:
+//   gcp:project: mussia-devops
+// gcp:region: europe-central2
+// gcp:zone: europe-central2-b
+
 import * as pulumi from "@pulumi/pulumi";
 import * as gcp from "@pulumi/gcp";
 import { ServicesResource } from "./src/servicesResource";
-import { networkResource } from "./src/network";
+import { NetworkResource } from "./src/network";
 import { ArtifactoryResource } from "./src/artifactory";
 import { GcpFunctionResource, GcpFunction } from "./src/gcpFunction";
 import {
@@ -137,15 +142,6 @@ const functions: GcpFunction[] = [
 //   });
 // });
 
-const computeServices = new ServicesResource(
-  "computeServices",
-  {
-    provider: Providers.gcp,
-    services: ["compute.googleapis.com"],
-  },
-  {}
-);
-
 const secretManager = new ServicesResource(
   "secretManagerServices",
   {
@@ -164,13 +160,14 @@ const eventarc = new ServicesResource(
   {}
 );
 
-new gcp.projects.IAMBinding("pubsub-token-creator", {
-  project: project,
-  members: [
-    "serviceAccount:service-361115404307@gcp-sa-pubsub.iam.gserviceaccount.com",
-  ],
-  role: "roles/iam.serviceAccountTokenCreator",
-});
+// get dynamicly pub sub sa
+// new gcp.projects.IAMBinding("pubsub-token-creator", {
+//   project: project,
+//   members: [
+//     "serviceAccount:service-361115404307@gcp-sa-pubsub.iam.gserviceaccount.com",
+//   ],
+//   role: "roles/iam.serviceAccountTokenCreator",
+// });
 
 // const _default = new gcp.cloudrun.Service("default", {
 //   location: region,
@@ -228,7 +225,11 @@ const iamcredentials = new gcp.projects.Service(
 const workloadIdentity = new WorkloadIdentityResource(
   "WorkloadIdentityResource",
   {
-    repos: ["yurikrupnik/mussia33", "yurikrupnik/first-rust-app"],
+    repos: [
+      "yurikrupnik/mussia33",
+      "yurikrupnik/first-rust-app",
+      "yurikrupnik/fiber-mongo",
+    ],
     project,
   },
   { dependsOn: [iamcredentials], parent: iamcredentials }
@@ -286,10 +287,23 @@ const mesh = new gcp.projects.Service("mesh.googleapis.com", {
 });
 
 // networking
-new networkResource("network", {
-  region,
-  project,
-});
+const computeServices = new ServicesResource(
+  "computeServices",
+  {
+    provider: Providers.gcp,
+    services: ["compute.googleapis.com"],
+  },
+  {}
+);
+
+new NetworkResource(
+  "network",
+  {
+    region,
+    project,
+  },
+  { dependsOn: computeServices }
+);
 
 // Serverless VPC Access allows Cloud Functions, Cloud Run (fully managed) services and App Engine standard environment apps to access resources in a VPC network using the internal IP addresses of those resources
 // const vpcConnector = new gcp.vpcaccess.Connector("serverless-connector", {

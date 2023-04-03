@@ -8,7 +8,7 @@ export interface NetworkResourceProps {
   provider?: Providers;
 }
 
-export class networkResource extends pulumi.ComponentResource {
+export class NetworkResource extends pulumi.ComponentResource {
   constructor(
     name: string,
     networkResourceProps: NetworkResourceProps,
@@ -24,7 +24,7 @@ export class networkResource extends pulumi.ComponentResource {
         disableDependentServices: true,
         service: "vpcaccess.googleapis.com",
       },
-      { parent: this }
+      { parent: this, ...opts }
     );
 
     const vpcNetwork = new gcp.compute.Network(
@@ -36,7 +36,7 @@ export class networkResource extends pulumi.ComponentResource {
         mtu: 1460,
         autoCreateSubnetworks: false,
       },
-      { parent: this }
+      { parent: this, ...opts }
     );
 
     const ilSubnet = new gcp.compute.Subnetwork(
@@ -48,7 +48,7 @@ export class networkResource extends pulumi.ComponentResource {
         name: "me-west1-subnet",
         description: "Israel subnet",
       },
-      { parent: this }
+      { parent: this, ...opts }
     );
 
     const euSubnet = new gcp.compute.Subnetwork(
@@ -60,7 +60,7 @@ export class networkResource extends pulumi.ComponentResource {
         name: `${region}-subnet`,
         description: "Europe subnet",
       },
-      { parent: this }
+      { parent: this, ...opts }
     );
 
     const defaultFirewall = new gcp.compute.Firewall(
@@ -80,7 +80,7 @@ export class networkResource extends pulumi.ComponentResource {
         ],
         sourceTags: ["web"],
       },
-      { parent: this }
+      { parent: this, ...opts }
     );
   }
 }
