@@ -160,14 +160,18 @@ const eventarc = new ServicesResource(
   {}
 );
 
-// get dynamicly pub sub sa
-// new gcp.projects.IAMBinding("pubsub-token-creator", {
-//   project: project,
-//   members: [
-//     "serviceAccount:service-361115404307@gcp-sa-pubsub.iam.gserviceaccount.com",
-//   ],
-//   role: "roles/iam.serviceAccountTokenCreator",
-// });
+const _project = gcp.organizations.getProject({});
+// allow eventarc pubsub
+new gcp.projects.IAMBinding("pubsub-token-creator", {
+  project: project,
+  members: [
+    _project.then(
+      (project) =>
+        `serviceAccount:service-${project.number}@gcp-sa-pubsub.iam.gserviceaccount.com`
+    ),
+  ],
+  role: "roles/iam.serviceAccountTokenCreator",
+});
 
 // const _default = new gcp.cloudrun.Service("default", {
 //   location: region,
@@ -188,13 +192,13 @@ const eventarc = new ServicesResource(
 //   ],
 // });
 
-// const deadLetter = new gcp.pubsub.Topic(
-//   "dead-letter",
-//   {
-//     name: "dead-letter",
-//   },
-//   {}
-// );
+const deadLetter = new gcp.pubsub.Topic(
+  "dead-letter",
+  {
+    name: "dead-letter",
+  },
+  {}
+);
 // const subscription = new gcp.pubsub.Subscription("subscription", {
 //   topic: deadLetter.name,
 //   pushConfig: {
