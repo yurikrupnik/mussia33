@@ -1,0 +1,74 @@
+# https://taskfile.dev
+
+version: '3'
+
+includes:
+  cluster: ./platform/cluster
+  crossplane: ./platform/crossplane
+  kubevela: ./platform/kubevela
+  argocd: ./platform/gitops/argocd
+
+vars:
+  GREETING: Hello, World!
+
+tasks:
+  default:
+    cmds:
+      - echo "{{.GREETING}}"
+    silent: true
+
+  tilt:up:
+    cmds:
+      - tilt up
+  tilt:down:
+    cmds:
+      - tilt down
+#  tilt:down:
+
+  setup:crossplane:
+    cmds:
+      - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
+      - kubectl get pods -n crossplane-system
+      - kubectl get deployments -n crossplane-system
+      - task: crossplane:create-secret
+      - task: crossplane:create-gcp-provider
+      - task: crossplane:create-resources
+
+  start:
+    deps:
+      - cluster:single-core:up
+    cmds:
+#     - task: crossplane:install
+#      - task: crossplane:install
+     - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
+     - task: argocd:install
+     - task: argocd:apply
+     - task: argocd:get-secret
+     - task: tilt:up
+#     - task: setup:crossplane
+#      - task: tilt:up
+#     - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
+#     - kubectl get pods -n crossplane-system
+#     - kubectl get deployments -n crossplane-system
+
+#     - task: crossplane:create-secret
+#     - task: crossplane:create-gcp-provider
+#     - task: crossplane:create-resources
+
+#      - kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.44.0/release.yaml
+#      - kubectl apply --filename https://github.com/shipwright-io/build/releases/download/v0.11.0/release.yaml
+#      - kubectl apply --filename https://github.com/shipwright-io/build/releases/download/v0.11.0/sample-strategies.yaml
+#      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
+#      - task: kubevela:install
+#      - task: kubevela:load
+#      - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
+#      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
+#      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
+#      - helm repo add kubevela https://charts.kubevela.net/core
+#      - helm repo update
+#      - helm install --create-namespace -n vela-system kubevela kubevela/vela-core --wait
+#      - task: tilt:up
+  stop:
+    deps:
+      - task: tilt:down
+      - cluster:single-core:down

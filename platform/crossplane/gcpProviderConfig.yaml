@@ -3,7 +3,7 @@ kind: ProviderConfig
 metadata:
   name: default
 spec:
-  projectID: mussia30
+  projectID: mussia-infra
   credentials:
     source: Secret
     secretRef:

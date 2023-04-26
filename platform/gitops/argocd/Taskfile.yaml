@@ -10,11 +10,12 @@ tasks:
     cmds:
       - echo "{{.GREETING}}"
     silent: true
-  new:
+  install:
     cmds:
       - kubectl create namespace argocd
       - kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
   apply:
+    dir: platform/gitops/argocd
     cmds:
       - kubectl apply -f apps.yaml
   get-secret:

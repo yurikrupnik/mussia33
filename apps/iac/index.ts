@@ -4,16 +4,16 @@
 // gcp:zone: europe-central2-b
 
 import * as pulumi from "@pulumi/pulumi";
+// import * as k8s from "@pulumi/kubernetes";
 import * as gcp from "@pulumi/gcp";
+// import * as gcp from "@pulumi/datadog";
 import { ServicesResource } from "./src/servicesResource";
 import { NetworkResource } from "./src/network";
 import { ArtifactoryResource } from "./src/artifactory";
-import { GcpFunctionResource, GcpFunction } from "./src/gcpFunction";
-import {
-  WorkloadIdentityResource,
-  WorkloadIdentityResourceProps,
-} from "./src/workloadIdentity";
-import { Providers } from "./src/shared";
+import { GcpFunction } from "./src/gcpFunction";
+import { WorkloadIdentityResource } from "./src/workloadIdentity";
+import { GkeClusterResource } from "./src/cluster";
+import { Providers } from "../../libs/node/shared/src";
 
 const config = new pulumi.Config("core");
 const nodeCount = config.get("nodeCount");
@@ -23,10 +23,100 @@ const gcpConfig = new pulumi.Config("gcp");
 const region = gcpConfig.get("region");
 const project = gcpConfig.get("project");
 
+import * as k8s from "@pulumi/kubernetes";
+
+let myk8s = new k8s.Provider("myk8s", { context: "test-ci" })
+let myk8s1 = new gcp.Provider("myk8s", { project, region })
+
+// const appLabels = { app: "nginx" };
+// const deployment = new k8s.apps.v1.Deployment("nginx", {
+//   spec: {
+//     selector: { matchLabels: appLabels },
+//     replicas: 1,
+//     template: {
+//       metadata: { labels: appLabels },
+//       spec: { containers: [{ name: "nginx", image: "nginx" }] }
+//     }
+//   }
+// });
+// export const name = deployment.metadata.name;
+
+// import * as datadog from "@pulumi/datadog";
+//
+// const user = new datadog.User("my-policy", {
+//   email: "new@example.com",
+//   disabled: false,
+//   roles: [],
+//   sendUserInvitation: false,
+//   // handle: "new@example.com",
+//   name: "New User",
+// })
+
+// new GkeClusterResource("first-gke-cluster", {
+//   provider: Providers.gcp,
+//
+//   // clusterArgs: {
+//   //   name: "my-cluster-test",
+//   //   project,
+//   //   location: "us-central1"
+//   // }
+// })
+import * as slack from "@pulumi/slack";
+
+// Create a new Slack channel
+// const channel = new slack.Conversation("acc-test", {
+//   topic: "my topic",
+//   isPrivate: false,
+// });
+//
+// // Get the id of the new channel as an output
+// export const channelId = channel.id;
+
+// const exampleRepository = new github.Repository("exampleRepository", {});
+// const exampleTeam = new github.Team("exampleTeam", {});
+// const exampleBranchProtectionV3 = new github.BranchProtectionV3("exampleBranchProtectionV3", {
+//   repository: exampleRepository.name,
+//   branch: "main",
+//   enforceAdmins: true,
+//   requiredStatusChecks: {
+//     strict: false,
+//     checks: ["ci/check:824642007264"],
+//   },
+//   requiredPullRequestReviews: {
+//     dismissStaleReviews: true,
+//     dismissalUsers: ["foo-user"],
+//     // dismissalTeams: [exampleTeam.slug],
+//     // bypassPullRequestAllowances: {
+//     //   users: ["foo-user"],
+//     //   teams: [exampleTeam.slug],
+//     //   apps: ["foo-app"],
+//     // },
+//   },
+//   // restrictions: {
+//   //   users: ["foo-user"],
+//   //   teams: [exampleTeam.slug],
+//   //   apps: ["foo-app"],
+//   // },
+// });
+// const exampleTeamRepository = new github.TeamRepository("exampleTeamRepository", {
+//   teamId: exampleTeam.id,
+//   repository: exampleRepository.name,
+//   permission: "pull",
+// });
+
+const dataflow = new gcp.projects.Service("dataflow.googleapis.com", {
+  disableOnDestroy: false,
+  disableDependentServices: false,
+  service: "dataflow.googleapis.com",
+  project,
+});
+
 // security
 const cloudKMS = new gcp.projects.Service("cloudkms.googleapis.com", {
-  disableDependentServices: true,
+  disableOnDestroy: false,
+  disableDependentServices: false,
   service: "cloudkms.googleapis.com",
+  project,
 });
 
 // const keyRing = new gcp.kms.KeyRing("keyring", {
@@ -142,6 +232,34 @@ const functions: GcpFunction[] = [
 //   });
 // });
 
+// import * as aws from "@pulumi/aws";
+import {Repository, RepositoryArgs} from "@pulumi/aws/ecr";
+//
+// const bucket = new aws.s3.Bucket("bucket", {
+//   acl: "private",
+//   tags: {
+//     Environment: "Dev",
+//     Name: "My bucket",
+//   },
+// });
+//
+// const bucket1 = new aws.s3.Bucket("bucket1", {
+//   // acl: "private",
+//   tags: {
+//     Environment: "Test",
+//     Name: "My Test bucket",
+//   },
+//   versioning: {
+//     enabled: true
+//   },
+//   lifecycleRules: [
+//     { enabled: true, prefix: "te"}
+//   ]
+// });
+// bucket1.
+// export const bucketA = bucket.bucketDomainName;
+// export const bucketA1 = bucket1.bucketDomainName;
+
 const secretManager = new ServicesResource(
   "secretManagerServices",
   {
@@ -197,7 +315,9 @@ const deadLetter = new gcp.pubsub.Topic(
   {
     name: "dead-letter",
   },
-  {}
+  {
+    // provider: Providers.gcp
+  }
 );
 // const subscription = new gcp.pubsub.Subscription("subscription", {
 //   topic: deadLetter.name,
@@ -269,6 +389,9 @@ const artifactRegistry = new gcp.projects.Service(
   }
 );
 
+// let useast1 = new aws.Provider("useast1", { region: "us-east-1" });
+// let myk8s = new kubernetes.Provider("myk8s", { context: "test-ci" });
+
 const dockerRegistry = new ArtifactoryResource(
   "docker-registry",
   {
@@ -282,7 +405,7 @@ const dockerRegistry = new ArtifactoryResource(
       description: "Example docker repository.",
     },
   },
-  { parent: artifactRegistry, dependsOn: [artifactRegistry] }
+  // { parent: artifactRegistry, dependsOn: [artifactRegistry] }
 );
 
 const mesh = new gcp.projects.Service("mesh.googleapis.com", {
@@ -308,7 +431,49 @@ new NetworkResource(
   },
   { dependsOn: computeServices }
 );
+// DB SQL
+const migrationServices = new ServicesResource(
+  "migrationServices",
+  {
+    provider: Providers.gcp,
+    services: ["datamigration.googleapis.com"],
+  },
+  {}
+);
 
+// const instance = new gcp.sql.DatabaseInstance("instance", {
+//   name: "test-instance",
+//   project,
+//   region,
+//   databaseVersion: "MYSQL_8_0",
+//   settings: {
+//     tier: "db-f1-micro",
+//   },
+//   rootPassword: "123456",
+//   // replicaConfiguration: {
+//   //
+//   // },create
+//   // instanceType: "",
+//   deletionProtection: false,
+// });
+//
+// const users = new gcp.sql.User("users", {
+//   name: "my-user",
+//   project,
+//   instance: instance.name,
+//   host: "me.com",
+//   type: "CLOUD_IAM_USER",
+//   password: "111111"
+// });
+//
+// const database = new gcp.sql.Database("database", {instance: instance.name,name: 'first-database'});
+
+// export const databaseSelfLink = database.selfLink;
+// export const firstIpAddress = instance.firstIpAddress;
+// export const ipAddresses = instance.ipAddresses;
+// export const publicIpAddress = instance.publicIpAddress;
+// export const sqlUrl = instance.selfLink;
+// END DB SQL
 // Serverless VPC Access allows Cloud Functions, Cloud Run (fully managed) services and App Engine standard environment apps to access resources in a VPC network using the internal IP addresses of those resources
 // const vpcConnector = new gcp.vpcaccess.Connector("serverless-connector", {
 //   name: "serverless-connector",
@@ -343,7 +508,7 @@ new NetworkResource(
 // });
 // end compute k8s
 // export const connectorId = vpcConnector.id;
-// export const dockerRepo = pulumi.interpolate`${region}-docker.pkg.dev/${project}/${dockerRegistry.repositoryId}`;
+export const dockerRepo1 = pulumi.interpolate`${region}-docker.pkg.dev/${project}/${dockerRegistry.dockerRepo}`;
 export const dockerRepo = dockerRegistry.dockerRepo;
 export const workloadName = workloadIdentity.workload_identity_provider;
 export const workloadSAEmail = workloadIdentity.saEmail;

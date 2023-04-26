@@ -48,16 +48,49 @@ spec:
     name: default
   deletionPolicy: Delete
 ---
-apiVersion: s3.aws.upbound.io/v1beta1
+apiVersion: storage.gcp.upbound.io/v1beta1
 kind: Bucket
 metadata:
-  annotations:
-    crossplane.io/external-name: test-channel-bucket
-    meta.upbound.io/example-id: configservice/v1beta1/awsconfigurationrecorderstatus
+  name: crossplane-bucket-alina
   labels:
-    testing.upbound.io/example-name: b
-  name: test-channel-bucket-yuri
+    docs.crossplane.io/example: provider-gcp
+  annotations:
+    crossplane.io/external-name: alina-temp-bucket
 spec:
   forProvider:
-    forceDestroy: true
-    region: us-west-1
+    location: US
+    storageClass: MULTI_REGIONAL
+    labels:
+      app: alina
+      team: yuri
+  providerConfigRef:
+    name: default
+  deletionPolicy: Delete
+---
+#apiVersion: s3.aws.upbound.io/v1beta1
+#kind: Bucket
+#metadata:
+#  annotations:
+#    crossplane.io/external-name: test-channel-bucket
+#    meta.upbound.io/example-id: configservice/v1beta1/awsconfigurationrecorderstatus
+#  labels:
+#    testing.upbound.io/example-name: b
+#  name: test-channel-bucket-yuri
+#spec:
+#  forProvider:
+#    forceDestroy: true
+#    region: us-west-1
+#---
+#apiVersion: s3.aws.upbound.io/v1beta1
+#kind: Bucket
+#metadata:
+#  annotations:
+#    crossplane.io/external-name: yuri-north-bucket
+#    meta.upbound.io/example-id: configservice/v1beta1/awsconfigurationrecorderstatus
+#  labels:
+#    testing.upbound.io/example-name: b
+#  name: yuri-north-bucket
+#spec:
+#  forProvider:
+#    forceDestroy: true
+#    region: eu-west-3

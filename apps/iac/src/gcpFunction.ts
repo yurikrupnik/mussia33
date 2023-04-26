@@ -52,6 +52,13 @@ export class GcpFunctionResource extends pulumi.ComponentResource {
       { parent: this, ...opts }
     );
 
+    const func1 = new gcp.cloudfunctionsv2.Function("fs1", {
+      name: "func1",
+      labels: {
+
+      },
+
+    })
     // if (member) {
     //   new gcp.cloudfunctions.FunctionIamMember(
     //     `${name}-invoker`,

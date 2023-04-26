@@ -7,9 +7,10 @@ spec:
     - name: express-server
       type: webservice
       properties:
-        image: oamdev/hello-world
+#        image: yurikrupnik/frontend-host
+        image: yurikrupnik/fiber-app:pr-32
         ports:
-         - port: 8000
+         - port: 8080
            expose: true
       traits:
         - type: scaler
@@ -52,3 +53,134 @@ spec:
         type: deploy
         properties:
           policies: ["target-prod", "deploy-ha"]
+#---
+#apiVersion: core.oam.dev/v1beta1
+#kind: Application
+#metadata:
+#  name: job-go-commands
+#spec:
+#  components:
+#    - name: job-go-commands
+#      type: job
+#      properties:
+#        image: yurikrupnik/go-commands
+---
+apiVersion: core.oam.dev/v1beta1
+kind: Application
+metadata:
+  name: tier-app
+spec:
+  components:
+    - name: fiber-mongo
+      type: webservice
+      properties:
+        image: yurikrupnik/fiber-mongo
+        ports:
+          - port: 8080
+            expose: true
+      traits:
+        - type: scaler
+          properties:
+            replicas: 1
+#    - name: nest-app
+#      type: webservice
+#      properties:
+#        image: yurikrupnik/nest-app
+#        ports:
+#          - port: 8080
+#            expose: true
+#      traits:
+#        - type: scaler
+#          properties:
+#            replicas: 1
+#        - type: ingress
+#          properties:
+#            domain: localhost
+#            http:
+#              "/": 80
+#  policies:
+#    - name: target-default
+#      type: topology
+#      properties:
+#        clusters: ["local"]
+#        namespace: "default"
+#    - name: target-prod
+#      type: topology
+#      properties:
+#        clusters: ["local"]
+#        namespace: "prod"
+#    - name: deploy-ha
+#      type: override
+#      properties:
+#        components:
+#          - type: webservice
+#            traits:
+#              - type: scaler
+#                properties:
+#                  replicas: 1
+#  workflow:
+#    steps:
+#      - name: deploy2default
+#        type: deploy
+#        properties:
+#          policies: ["target-default"]
+#      - name: manual-approval
+#        type: suspend
+#      - name: deploy2prod
+#        type: deploy
+#        properties:
+#          policies: ["target-prod", "deploy-ha"]
+#apiVersion: core.oam.dev/v1beta1
+#kind: Application
+#metadata:
+#  name: docker-fiber-app
+#spec:
+#  components:
+#    - name: express-server
+#      type: webservice
+#      properties:
+#        image: yurikrupnik/docker-fiber-app
+#        ports:
+#         - port: 8080
+#           expose: true
+#      traits:
+#        - type: scaler
+#          properties:
+#            replicas: 1
+#        - type: ingress
+#          properties:
+#            domain: localhost
+#            http:
+#              "/": 80
+#  policies:
+#    - name: target-default
+#      type: topology
+#      properties:
+#        clusters: ["local"]
+#        namespace: "default"
+#    - name: target-prod
+#      type: topology
+#      properties:
+#        clusters: ["local"]
+#        namespace: "prod"
+#    - name: deploy-ha
+#      type: override
+#      properties:
+#        components:
+#          - type: webservice
+#            traits:
+#              - type: scaler
+#                properties:
+#                  replicas: 2
+#  workflow:
+#    steps:
+#      - name: deploy2default
+#        type: deploy
+#        properties:
+#          policies: ["target-default"]
+#      - name: manual-approval
+#        type: suspend
+#      - name: deploy2prod
+#        type: deploy
+#        properties:
+#          policies: ["target-prod", "deploy-ha"]
