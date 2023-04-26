@@ -13,3 +13,9 @@ tasks:
   install:
     cmds:
       - vela install -y
+      - vela addon enable ~/.vela/addons/velaux
+#      - vela port-forward addon-velaux -n vela-system 8080:80
+  apply:
+    dir: platform/kubevela
+    cmds:
+      - kubectl apply -f vela.yaml

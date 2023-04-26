@@ -18,6 +18,10 @@ tasks:
       - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
       - kubectl get pods -n crossplane-system
       - kubectl get deployments -n crossplane-system
+  create-secret:
+    cmds:
+      - kubectl create secret generic aws-secret -n crossplane-system --from-file=creds=./aws_creds.txt
+      - kubectl create secret generic gcp-secret -n crossplane-system --from-file=creds=./gcp-credentials.json
   create-gcp-provider:
     dir: platform/crossplane
     cmds:
@@ -38,7 +42,7 @@ tasks:
       - kubectl get bucket
   delete-schemas:
     cmds:
-      - kubectl delete schema --selector testing.upbound.io/example-name=trigge
+      - kubectl delete schema --selector testing.upbound.io/example-name=trigger
   delete-bucket:
     cmds:
       - kubectl delete bucket --selector docs.crossplane.io/example=provider-gcp

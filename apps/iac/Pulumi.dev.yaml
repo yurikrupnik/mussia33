@@ -1,4 +1,8 @@
 config:
+  datadog:apiKey:
+    secure: AAABANNBKJ3Lxm/JX2tqKQF3I0FnlZMQn6ZOYpF0mKlc04JGB+G2LamVaG4ztJijq441RmyFXrXFcNVloSONjtpWvsGB+TPU
+  datadog:appKey:
+    secure: AAABACaLbgx2h+hmRir+WZIzauXiO9wGg78avyzcTg7wkCI8SvuZkvlPYdV6tVWEwJqVkG2Qtkdx74ilhkb0pHeL5nI=
   gcp:project: mussia-infra
   gcp:region: europe-central2
   gcp:zone: europe-central2-b

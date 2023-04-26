@@ -59,3 +59,15 @@ tasks:
     #      - test -f cluster.yaml
     cmds:
       - ctlptl delete cluster k3d-simulate-dev1
+  single-core:up:
+    cmds:
+      - ctlptl create cluster kind
+  single-core:down:
+    cmds:
+      - ctlptl delete cluster kind
+  multi-core:up:
+    cmds:
+      - k3d cluster create multiserver --servers 3
+  multi-core:down:
+    cmds:
+      - k3d cluster delete multiserver
