@@ -11,7 +11,7 @@
     "@nestjs/schematics": "^9.0.0",
     "@nestjs/testing": "^9.0.0",
     "@nrwl/cypress": "15.9.2",
-    "@nrwl/deno": "^0.157.0",
+    "@nrwl/deno": "^15.0.0",
     "@nrwl/esbuild": "15.9.2",
     "@nrwl/eslint-plugin-nx": "15.9.2",
     "@nrwl/jest": "15.9.2",
