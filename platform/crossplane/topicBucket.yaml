@@ -27,3 +27,11 @@ metadata:
   namespace: test2
 spec:
   location: "EU"
+---
+#apiVersion: custom-api.example.org/v1alpha1
+#kind: Cluster
+#metadata:
+#  name: gke-cluster
+#  namespace: gke
+#spec:
+#  location: "EU"

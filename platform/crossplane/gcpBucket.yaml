@@ -66,7 +66,121 @@ spec:
   providerConfigRef:
     name: default
   deletionPolicy: Delete
+#---
+#apiVersion: storage.gcp.upbound.io/v1beta1
+#kind: Bucket
+#metadata:
+#  name: alina-bags
+#  labels:
+#    docs.crossplane.io/example: provider-gcp
+#  annotations:
+#    crossplane.io/external-name: alina-bagss
+#spec:
+#  forProvider:
+#    location: US
+#    storageClass: MULTI_REGIONAL
+#    labels:
+#      app: alina-bags
+#      team: alina
+#  providerConfigRef:
+#    name: default
+#  deletionPolicy: Delete
 ---
+apiVersion: bigquery.gcp.upbound.io/v1beta1
+kind: Dataset
+metadata:
+  annotations:
+    meta.upbound.io/example-id: bigquery/v1beta1/datatransferconfig
+  labels:
+    testing.upbound.io/example-name: alinaa
+  name: "alina-dev"
+spec:
+  forProvider:
+    defaultTableExpirationMs: 3600000
+    description: This is a test description
+    friendlyName: test
+    labels:
+      env: default
+    location: EU
+---
+apiVersion: bigquery.gcp.upbound.io/v1beta1
+kind: Dataset
+metadata:
+  annotations:
+    meta.upbound.io/example-id: bigquery/v1beta1/datatransferconfig
+  labels:
+    testing.upbound.io/example-name: aris
+  name: "aris"
+spec:
+  forProvider:
+    defaultTableExpirationMs: 3600000
+    description: This is a aris description
+    friendlyName: Aris
+    labels:
+      env: default
+    location: EU
+---
+apiVersion: container.gcp.upbound.io/v1beta1
+kind: Cluster
+metadata:
+  annotations:
+    meta.upbound.io/example-id: container/v1beta1/cluster
+  labels:
+    testing.upbound.io/example-name: nodepool
+  name: nodepool
+spec:
+  forProvider:
+    initialNodeCount: 1
+    location: us-central1-a
+    removeDefaultNodePool: true
+---
+apiVersion: helm.crossplane.io/v1beta1
+kind: Release
+metadata:
+  name: wordpress-example
+spec:
+  forProvider:
+    chart:
+      name: wordpress
+      repository: https://charts.bitnami.com/bitnami
+      version: 15.2.5
+    namespace: wordpress
+    set:
+      - name: param1
+        value: value2
+    values:
+      service:
+        type: ClusterIP
+      mariadb:
+        enabled: false
+      externaldb:
+        enabled: false
+  providerConfigRef:
+    name: provider-helm
+---
+apiVersion: helm.crossplane.io/v1beta1
+kind: Release
+metadata:
+  name: nginx-example
+spec:
+  forProvider:
+    chart:
+      name: bitnami/nginx
+      repository: https://charts.bitnami.com/bitnami
+      version: 14.0.0
+    namespace: nginx
+    set:
+      - name: param1
+        value: value2
+    values:
+      service:
+        type: ClusterIP
+      mariadb:
+        enabled: false
+      externaldb:
+        enabled: false
+  providerConfigRef:
+    name: provider-helm
 #apiVersion: s3.aws.upbound.io/v1beta1
 #kind: Bucket
 #metadata:

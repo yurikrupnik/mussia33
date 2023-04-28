@@ -15,6 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@mussia33/cdk8s": ["libs/cdk8s/src/index.ts"],
       "@mussia33/node/nest/auth": ["libs/node/nest/auth/src/index.ts"],
       "@mussia33/node/nest/envs": ["libs/node/nest/envs/src/index.ts"],
       "@mussia33/node/nest/errors": ["libs/node/nest/errors/src/index.ts"],

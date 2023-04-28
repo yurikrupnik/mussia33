@@ -1,0 +1,26 @@
+language: typescript
+app: node ../../dist/libs/cdk8s/src/index.js
+output: ../../k8s/base/cdk8s-output
+
+imports:
+  - k8s
+  - github:argoproj/argo-cd
+  - github:external-secrets/external-secrets
+  - github:GoogleContainerTools/kaniko
+#  - github:kubernetes-sigs/kustomize
+  - github:kubevela/kubevela
+  - github:upbound/provider-gcp
+  - github:upbound/provider-aws
+
+#  - github:robusta-dev/robusta
+
+  - github:crossplane/crossplane
+#  - github:crossplane/crossplane-runtime
+#  - github:dapr/dapr
+  - github:kubevela/kubevela
+#  - github:argoproj/argo-cds
+#  - github:argoproj/argo-workflows
+#  - github:argoproj/argo-rollouts
+#  - github:argoproj/argo-events
+#  - github:argoproj/argocd-image-updater
+#  - github:external-secrets/external-secrets
