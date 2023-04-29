@@ -25,8 +25,8 @@ const project = gcpConfig.get("project");
 
 import * as k8s from "@pulumi/kubernetes";
 
-let myk8s = new k8s.Provider("myk8s", { context: "test-ci" })
-let myk8s1 = new gcp.Provider("myk8s", { project, region })
+// let myk8s = new k8s.Provider("myk8s", { context: "test-ci" });
+// let myk8s1 = new gcp.Provider("myk8s", { project, region });
 
 // const appLabels = { app: "nginx" };
 // const deployment = new k8s.apps.v1.Deployment("nginx", {
@@ -233,7 +233,7 @@ const functions: GcpFunction[] = [
 // });
 
 // import * as aws from "@pulumi/aws";
-import {Repository, RepositoryArgs} from "@pulumi/aws/ecr";
+import { Repository, RepositoryArgs } from "@pulumi/aws/ecr";
 //
 // const bucket = new aws.s3.Bucket("bucket", {
 //   acl: "private",
@@ -339,6 +339,14 @@ const deadLetter = new gcp.pubsub.Topic(
 //   destination,
 // });
 
+const eventarcpublishing = new gcp.projects.Service(
+  "eventarcpublishing.googleapis.com",
+  {
+    disableDependentServices: true,
+    service: "eventarcpublishing.googleapis.com",
+  }
+);
+
 const iamcredentials = new gcp.projects.Service(
   "iamcredentials.googleapis.com",
   {
@@ -404,7 +412,7 @@ const dockerRegistry = new ArtifactoryResource(
       format: "DOCKER",
       description: "Example docker repository.",
     },
-  },
+  }
   // { parent: artifactRegistry, dependsOn: [artifactRegistry] }
 );
 

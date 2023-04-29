@@ -61,9 +61,9 @@
         "file": "./Dockerfile",
         "target": "alpine",
         "platforms": ["linux/amd64"],
-        "build-args": ["DIST_PATH=dist/target/rust/actix_app"],
+        "build-args": ["DIST_PATH=dist/target/rust_actix_app/release/rust_actix_app"],
         "metadata": {
-          "images": ["yurikrupnik/actix-app", "$REGISTRY/actix-app"],
+          "images": ["yurikrupnik/rust_actix_app", "$REGISTRY/rust_actix_app"],
           "tags": [
             "type=schedule",
             "type=ref,event=branch",
