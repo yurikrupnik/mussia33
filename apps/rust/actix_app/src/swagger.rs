@@ -20,8 +20,6 @@ const API_KEY: &str = "utoipa-rocks";
 #[derive(OpenApi)]
 #[openapi(
 paths(
-product::add_product,
-product::get_products,
 todo::get_todos,
 todo::create_todo,
 todo::delete_todo,
@@ -36,13 +34,11 @@ user::get_user,
 user::update_user,
 ),
 components(
-schemas(product::Product, ErrorResponse),
 schemas(todo::Todo, todo::TodoUpdateRequest, ErrorResponse),
 schemas(user::User, user::Id, user::Pagination),
 ),
 tags(
 (name = "todo", description = "Todo management endpoints."),
-(name = "product", description = "Products management endpoints."),
 (name = "user", description = "Users management endpoints."),
 ),
 modifiers(&SecurityAddon)

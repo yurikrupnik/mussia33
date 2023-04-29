@@ -55,12 +55,12 @@ async fn main() -> std::io::Result<()> {
       .configure(todo::configure(store.clone()))
       .service(SwaggerUi::new("/swagger-ui/{_:.*}").urls(vec![
         (
-          Url::new("api1", "/api-docs/openapi1.json"),
-          ApiDoc1::openapi(),
+          Url::new("main", "/api-docs/openapi.json"),
+          ApiDoc::openapi(),
         ),
         (
-          Url::with_primary("api2", "/api-docs/openapi2.json", true),
-          ApiDoc::openapi(),
+          Url::with_primary("api1", "/api-docs/openapi1.json", true),
+          ApiDoc1::openapi(),
         ),
       ]))
   })
