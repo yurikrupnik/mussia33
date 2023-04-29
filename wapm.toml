@@ -1,0 +1,20 @@
+[package]
+name = "krupnikyuri/mongo_api"
+version = "0.0.1"
+description = "Package description for krupnikyuri/mussia33"
+license = "ISC"
+readme = "README.md"
+repository = "https://github.com/yurikrupnik/mussia33/apps/rust/mongo-api"
+
+[[module]]
+name = "mongo_api"
+source = "dist/target/wasm32-wasi/release/mongo_api.wasm"
+abi = "wasi"
+
+[module.interfaces]
+wasi = "0.1.0-unstable"
+
+[[command]]
+name = "mongo_api"
+module = "mongo_api"
+runner = "wasi@unstable_"
