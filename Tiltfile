@@ -13,5 +13,5 @@ local_resource('pnpm', cmd='pnpm install', deps=['package.json'], labels=['pnpm'
 local_resource('setup:crossplane', cmd='task setup:crossplane', deps=['package.json'], labels=['pnpm'])
 # local_resource('k8s-operator', cmd='cargo run --bin k8s_operator', deps=[''], labels=['cargo'])
 # local_resource('cargo-build-k8s_operator', cmd='cargo build --bin k8s_operator', deps=[''], labels=['cargo'])
-# local_resource('proto-generate', cmd='just proto-generate', deps=['_proto/'], labels=['just'])
+local_resource('proto-generate', cmd='just proto-generate', deps=['_proto/'], labels=['just'])
 

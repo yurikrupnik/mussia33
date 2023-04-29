@@ -1,0 +1,14 @@
+
+[workspace]
+members = [
+    "libs/rust/grpc",
+    "libs/rust/mongo",
+	'apps/rust/mongo-api',
+	'apps/rust/master_operator',
+	'apps/rust/actix_app',
+]
+
+[profile.release]
+lto = true
+strip = true
+opt-level = 3

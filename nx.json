@@ -2,6 +2,7 @@
   "implicitDependencies": {
     "go.mod": "*"
   },
+  "plugins": ["@nrwl/deno", "@monodon/rust"],
   "npmScope": "mussia33",
   "targetDefaults": {
     "build": {
@@ -26,6 +27,5 @@
         "accessToken": "NWM5YzA1ZDctNjcxNy00NjVjLWE3ZWItZjJmNDI0MmFkNmJlfHJlYWQtd3JpdGU="
       }
     }
-  },
-  "plugins": ["@nrwl/deno"]
+  }
 }

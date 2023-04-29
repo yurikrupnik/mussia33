@@ -1,0 +1,3 @@
+[submodule "submodules/tauri-app"]
+	path = submodules/tauri-app
+	url = https://github.com/yurikrupnik/tauri-app.git

@@ -1,0 +1,19 @@
+apiVersion: "v1"
+kind: "Namespace"
+metadata:
+  labels:
+    "kubernetes.io/metadata.name": "default"
+  name: shit
+---
+apiVersion: yurikrupnik.dev/v1
+kind: Topology
+metadata:
+  name: yur
+#  namespace: shit
+spec:
+  image: yurissss
+  name: "Moby Dick"
+  info: "all good"
+  nodes:
+    - node1
+    - node2
