@@ -9,7 +9,8 @@ default:
 # https://github.com/stephenh/ts-proto#nestjs-support
 # generate rust structs and ts interfaces
 proto-generate:
-  protoc --rust_out ./libs/rust/grpc/src/generated --plugin=node_modules/ts-proto/protoc-gen-ts_proto --ts_proto_opt=nestJs=true,addGrpcMetadata=true,addNestjsRestParameter=true --ts_proto_out=./libs/node/grpc/src ./_proto/* --ts_proto_opt=esModuleInterop=true
+  protoc --rust_out ./libs/rust/grpc/src/generated ./_proto/*
+#  protoc --rust_out ./libs/rust/grpc/src/generated --plugin=node_modules/ts-proto/protoc-gen-ts_proto --ts_proto_opt=nestJs=true,addGrpcMetadata=true,addNestjsRestParameter=true --ts_proto_out=./libs/node/grpc/src ./_proto/* --ts_proto_opt=esModuleInterop=true
 # daily github actions
 daily:
   echo "daily stuffs"
@@ -22,9 +23,6 @@ cloud:
 # run mongodb in an k8s cluster
 local-cluster-mongodb-docker-compose:
   helm install my-release my-repo/mongodb
-
-run-titl-cluster:
-  tilt up
 
 task1:
   task   -t k8s/Taskfile.yaml up

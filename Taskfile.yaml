@@ -33,7 +33,9 @@ tasks:
       - task: crossplane:create-secret
       - task: crossplane:create-gcp-provider
       - task: crossplane:create-resources
-
+  protoc:
+    cmds:
+      - protoc --rust_out ./libs/rust/grpc/src/generated --plugin=node_modules/ts-proto/protoc-gen-ts_proto --ts_proto_opt=nestJs=true,addGrpcMetadata=true,addNestjsRestParameter=true --ts_proto_out=./libs/node/grpc/src --ts_proto_opt=esModuleInterop=true ./_proto/*
   start:
     deps:
       - cluster:single-core:up

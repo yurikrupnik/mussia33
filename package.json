@@ -7,7 +7,7 @@
   },
   "private": true,
   "devDependencies": {
-    "@monodon/rust": "^1.1.1",
+    "@monodon/rust": "^1.1.2",
     "@nestjs/schematics": "^9.0.0",
     "@nestjs/testing": "^9.0.0",
     "@nrwl/cypress": "15.9.2",
@@ -28,6 +28,7 @@
     "@nx-tools/container-metadata": "^4.0.3",
     "@nx-tools/nx-container": "^4.0.3",
     "@nxext/solid": "^15.7.0",
+    "@nxrs/cargo": "^0.3.3",
     "@types/express": "^4.17.17",
     "@types/jest": "^29.4.0",
     "@types/node": "~18.15.0",
