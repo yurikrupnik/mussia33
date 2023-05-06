@@ -1,8 +1,8 @@
-import { App, Chart, ChartProps, Helm } from 'cdk8s';
+import { App, Chart, ChartProps, Helm } from "cdk8s";
 // import { ConfigMap, Namespace, ServiceAccount } from 'cdk8s-plus-24';
 // import {MyChart}  from './src/deployment';
-import { Construct } from 'constructs';
-import { Application } from '../imports/core.oam.dev';
+import { Construct } from "constructs";
+import { Application, ApplicationV1Beta1 } from "../imports/core.oam.dev";
 // import {  } from "../imports/aws.upbound.io";
 // import { Topic, Schema } from "../imports/sql.gcp.upbound.io";
 // import { Topic, Schema } from "../imports/storage.gcp.upbound.io";
@@ -15,12 +15,12 @@ import { Application } from '../imports/core.oam.dev';
 // works
 // when array of imports in tsconfig.base.json, does not show type but works also
 // import { IntOrString } from '@nx-multi-cloud/imports/k8s';
-import { IntOrString } from '../imports/k8s';
-import { ConfigMap, Namespace, ServiceAccount, Pod } from 'cdk8s-plus-25';
+import { IntOrString } from "../imports/k8s";
+import { ConfigMap, Namespace, ServiceAccount, Pod } from "cdk8s-plus-25";
 // import { doit } from '@nx-multi-cloud/k8s-shit';
 // import { platformCdk8s } from '@mussia30/platform/cdk8s';
 // fails
-import { WebService } from './lib/platform-cdk8s';
+import { WebService } from "./lib/platform-cdk8s";
 // import { Bucket, BucketProps } from "../imports/storage.gcp.upbound.io";
 import { Topic, Schema } from "../imports/pubsub.gcp.upbound.io";
 // import { Bucket as AWSBucket, BucketProps as AWSBucketProps, BucketSpec as AWSBucketSpec, BucketSpecDeletionPolicy } from "../imports/s3.aws.upbound.io";
@@ -183,65 +183,63 @@ export class SecondChart extends Chart {
     //   }
     // });
 
-    const schema = new Schema(this, 'example-schema', {
+    const schema = new Schema(this, "example-schema", {
       spec: {
         forProvider: {
           type: "AVRO",
           definition: JSON.stringify({
-            "type" : "record",
-            "name" : "Avro",
-            "fields" : [
+            type: "record",
+            name: "Avro",
+            fields: [
               {
-                "name" : "StringField",
-                "type" : "string"
+                name: "StringField",
+                type: "string",
               },
               {
-                "name" : "FloatField",
-                "type" : "float"
+                name: "FloatField",
+                type: "float",
               },
               {
-                "name" : "BooleanField",
-                "type" : "boolean"
-              }
-            ]
-          })
-        }
+                name: "BooleanField",
+                type: "boolean",
+              },
+            ],
+          }),
+        },
       },
-      metadata: {
+      metadata: {},
+    });
 
-      }
-    })
-
-    const topic = new Topic(this, 'example-topic', {
-      metadata: {
-
-      },
+    const topic = new Topic(this, "example-topic", {
+      metadata: {},
       spec: {
         forProvider: {
-          schemaSettings: [{
-            encoding: "AVRO",
-            schema: JSON.stringify({
-              "type" : "record",
-              "name" : "Avro",
-              "fields" : [
-                {
-                  "name" : "StringField",
-                  "type" : "string"
-                },
-                {
-                  "name" : "FloatField",
-                  "type" : "float"
-                },
-                {
-                  "name" : "BooleanField",
-                  "type" : "boolean"
-                }
-              ]
-            })
-          }],
-        }
-      }
-    })
+          schemaSettings: [
+            {
+              encoding: "AVRO",
+              schema: JSON.stringify({
+                type: "record",
+                name: "Avro",
+                fields: [
+                  {
+                    name: "StringField",
+                    type: "string",
+                  },
+                  {
+                    name: "FloatField",
+                    type: "float",
+                  },
+                  {
+                    name: "BooleanField",
+                    type: "boolean",
+                  },
+                ],
+              }),
+            },
+          ],
+        },
+      },
+    });
     // TODO resolve - ref https://cdk8s.io/docs/latest/basics/helm/
     // new Helm(this, 'redis', {
     //   chart: 'bitnami/redis',
@@ -261,55 +259,58 @@ export class SecondChart extends Chart {
     // }
     // serviceAccount.permissions.
 
-    // const app11 = new Application(this, "ads", {
-    //   metadata: {
-    //     name: "app11",
-    //     // annotations: ""
-    //     // labels:
-    //     labels: {
-    //       application: "app11"
-    //     },
-    //     annotations: {
-    //       application: "app11"
-    //     },
-    //     namespace: 'app11',
-    //
-    //     // ownerReferences: [
-    //     //   {
-    //     //     // name: "dsas",
-    //     //     // kind: "lds",
-    //     //     // apiVersion: "da",
-    //     //     // controller: true,
-    //     //     // blockOwnerDeletion: false
-    //     //   }
-    //     // ]
-    //   },
-    //   spec: {
-    //     components: [
-    //       {
-    //         name: 'ads',
-    //         type: "webservice",
-    //         traits: [
-    //           {
-    //             name: 'sda',
-    //             properties: {
-    //
-    //             }
-    //           }
-    //         ]
-    //       }
-    //     ]
-    //   }
-    //   // spec: {
-    //   // components:
-    //   // rolloutPlan: []
-    //   // }
-    // })
+    const app11 = new ApplicationV1Beta1(this, "ads", {
+      metadata: {
+        name: "app11",
+        labels: {
+          application: "app11",
+        },
+        annotations: {
+          application: "app11",
+        },
+        namespace: "app11",
+        // ownerReferences: [
+        //   {
+        //     // name: "dsas",
+        //     // kind: "lds",
+        //     // apiVersion: "da",
+        //     // controller: true,
+        //     // blockOwnerDeletion: false
+        //   }
+        // ]
+      },
+      spec: {
+        policies: [],
+        components: [
+          {
+            name: "ads",
+            type: "webservice",
+            // properties: {},
+            // scopes: {
+            //
+            // },
+            // settings: {
+            //
+            // },
+            // traits: [
+            //   {
+            //     name: "sda",
+            //     properties: {},
+            //   },
+            // ],
+          },
+        ],
+      },
+      // spec: {
+      // components:
+      // rolloutPlan: []
+      // }
+    });
   }
 }
 
 // const app = new App({
-  // outdir: `${__dirname}/dist-output`
+// outdir: `${__dirname}/dist-output`
 // });
 const app1 = new App({});
 // new MyChart(app, 'cdk8s-example', {
@@ -327,7 +328,7 @@ const app1 = new App({});
 //   // image: "shit",
 //   // tag: "latest",
 // });
-new SecondChart(app1, 'kustomize-example-app1', {
+new SecondChart(app1, "kustomize-example-app1", {
   // replicas: 1
   // image: "shit",
   // tag: "latest",

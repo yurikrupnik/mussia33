@@ -30,8 +30,8 @@ metadata:
 spec:
   project: default
   source:
-    chart: external-secrets/external-secrets
-    repoURL: https://github.com/external-secrets/external-secrets/
+    chart: external-secrets
+    repoURL: https://charts.external-secrets.io/
     targetRevision: 0.8.1
     helm:
       releaseName: external-secrets
@@ -45,7 +45,54 @@ spec:
       selfHeal: true
       prune: true
       allowEmpty: true
-
+#---
+#apiVersion: argoproj.io/v1alpha1
+#kind: Application
+#metadata:
+#  name: kube-prometheus-stack
+#  namespace: argocd
+#spec:
+#  project: default
+#  source:
+#    chart: kube-prometheus-stack
+#    repoURL: https://prometheus-community.github.io/helm-charts
+#    targetRevision: 45.23.0
+#    helm:
+#      releaseName: kube-prometheus-stack
+#  destination:
+#    server: "https://kubernetes.default.svc"
+#    namespace: kube-prometheus-stack
+#  syncPolicy:
+#    syncOptions:
+#      - CreateNamespace=true
+#    automated:
+#      selfHeal: true
+#      prune: true
+#      allowEmpty: true
+---
+#apiVersion: argoproj.io/v1alpha1
+#kind: Application
+#metadata:
+#  name: prometheus
+#  namespace: argocd
+#spec:
+#  project: default
+#  source:
+#    chart: prometheus
+#    repoURL: https://prometheus-community.github.io/helm-charts
+#    targetRevision: 21.1.2
+#    helm:
+#      releaseName: prometheus
+#  destination:
+#    server: "https://kubernetes.default.svc"
+#    namespace: prometheus
+#  syncPolicy:
+#    syncOptions:
+#      - CreateNamespace=true
+#    automated:
+#      selfHeal: true
+#      prune: true
+#      allowEmpty: true
 #---
 #apiVersion: argoproj.io/v1alpha1
 #kind: Application
@@ -56,10 +103,10 @@ spec:
 # project: default
 # source:
 #   chart: robusta
-#   repoURL: https://robusta-charts.storage.googleapis.com
+#   repoURL: https://robusta-charts.storage.googleapis.com/
 #   targetRevision: 0.10.15
 #   helm:
-#     releaseName: robusta/robusta
+#     releaseName: robusta
 # destination:
 #   server: "https://kubernetes.default.svc"
 #   namespace: robusta
@@ -86,14 +133,21 @@ metadata:
 spec:
   project: default
   source:
-    chart: argo/argo-rollouts
+    chart: argo-rollouts
     repoURL: https://argoproj.github.io/argo-helm
-    targetRevision: 2.26.0
+    targetRevision: 2.26.1
     helm:
-      releaseName: rollouts
+      releaseName: argo-rollouts
   destination:
     server: "https://kubernetes.default.svc"
     namespace: argo-rollouts
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+    automated:
+      selfHeal: true
+      prune: true
+      allowEmpty: true
 #---
 #apiVersion: argoproj.io/v1alpha1
 #kind: Application
@@ -218,7 +272,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: production
+  project: default
   source:
     chart: crossplane
     repoURL: https://charts.crossplane.io/stable
@@ -233,32 +287,103 @@ spec:
       allowEmpty: true
     syncOptions:
       - CreateNamespace=true
-# ---
-# apiVersion: argoproj.io/v1alpha1
-# kind: Application
-# metadata:
-#   name: kubevela
-#   namespace: argocd
-#   finalizers:
-#     - resources-finalizer.argocd.argoproj.io
-# spec:
-#   project: production
-#   source:
-#     chart: kubevela
-#     repoURL: https://charts.kubevela.net/core
-#     targetRevision: "1.8.0"
-#   destination:
-#     namespace: vela-system
-#     server: https://kubernetes.default.svc
-#   syncPolicy:
-#     automated:
-#       selfHeal: true
-#       prune: true
-#       allowEmpty: true
-#     syncOptions:
-#       - CreateNamespace=true
-# ---
 ---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+ name: kubevela
+ namespace: argocd
+ finalizers:
+   - resources-finalizer.argocd.argoproj.io
+spec:
+ project: default
+ source:
+   chart: vela-core
+   repoURL: https://charts.kubevela.net/core
+   targetRevision: "1.8.1"
+ destination:
+   namespace: vela-system
+   server: https://kubernetes.default.svc
+ syncPolicy:
+   automated:
+     selfHeal: true
+     prune: true
+     allowEmpty: true
+   syncOptions:
+     - CreateNamespace=true
+#---
+#apiVersion: argoproj.io/v1alpha1
+#kind: Application
+#metadata:
+#  name: istio-base
+#  namespace: argocd
+#  finalizers:
+#    - resources-finalizer.argocd.argoproj.io
+#spec:
+#  project: default
+#  source:
+#    chart: base
+#    repoURL: https://istio-release.storage.googleapis.com/charts
+#    targetRevision: "1.17.2"
+#  destination:
+#    namespace: istio-system
+#    server: https://kubernetes.default.svc
+#  syncPolicy:
+#    automated:
+#      selfHeal: true
+#      prune: true
+#      allowEmpty: true
+#    syncOptions:
+#      - CreateNamespace=true
+#---
+#apiVersion: argoproj.io/v1alpha1
+#kind: Application
+#metadata:
+#  name: istiod
+#  namespace: argocd
+#  finalizers:
+#    - resources-finalizer.argocd.argoproj.io
+#spec:
+#  project: default
+#  source:
+#    chart: istiod
+#    repoURL: https://istio-release.storage.googleapis.com/charts
+#    targetRevision: "1.17.2"
+#  destination:
+#    namespace: istio-system
+#    server: https://kubernetes.default.svc
+#  syncPolicy:
+#    automated:
+#      selfHeal: true
+#      prune: true
+#      allowEmpty: true
+#    syncOptions:
+#      - CreateNamespace=true
+#---
+#apiVersion: argoproj.io/v1alpha1
+#kind: Application
+#metadata:
+#  name: gateway
+#  namespace: argocd
+#  finalizers:
+#    - resources-finalizer.argocd.argoproj.io
+#spec:
+#  project: default
+#  source:
+#    chart: gateway
+#    repoURL: https://istio-release.storage.googleapis.com/charts
+#    targetRevision: "1.17.2"
+#  destination:
+#    namespace: istio-ingress
+#    server: https://kubernetes.default.svc
+#  syncPolicy:
+#    automated:
+#      selfHeal: true
+#      prune: true
+#      allowEmpty: true
+#    syncOptions:
+#      - CreateNamespace=true
+#---
 # apiVersion: argoproj.io/v1alpha1
 # kind: Application
 # metadata:

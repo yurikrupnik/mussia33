@@ -61,10 +61,10 @@ tasks:
       - ctlptl delete cluster k3d-simulate-dev1
   single-core:up:
     cmds:
-      - ctlptl create cluster kind
+      - ctlptl create cluster k3d
   single-core:down:
     cmds:
-      - ctlptl delete cluster kind
+      - ctlptl delete cluster k3d
   multi-core:up:
     cmds:
       - k3d cluster create multiserver --servers 3
