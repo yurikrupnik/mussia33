@@ -40,26 +40,25 @@ tasks:
     deps:
       - cluster:single-core:up
     cmds:
-     - task: crossplane:install
-#      - task: crossplane:install
+#     - task: crossplane:install
+#     - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
+     - task: argocd:install
      - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
-#     - helm repo add external-secrets https://charts.external-secrets.io
-     - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
-#     - task: argocd:install
-#     - task: argocd:apply
+     - task: argocd:apply
 #     - task: argocd:get-secret
-     - helm install kubeshark kubeshark/kubeshark
-     - task: kubevela:install
+#     - helm install kubeshark kubeshark/kubeshark
+#     - task: kubevela:install
+     - sleep 60
      - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
      - kubectl get pods -n crossplane-system
      - kubectl get deployments -n crossplane-system
      - task: crossplane:create-secret
      - task: crossplane:create-gcp-provider
      - task: crossplane:create-resources
-     - task: kubevela:apply
+#     - task: kubevela:apply
 #     - kubectl port-forward -n kubeshark service/kubeshark-hub 8898:80
 #     - kubectl port-forward -n kubeshark service/kubeshark-front 8899:80
-     - kubectl schemahero install
+#     - kubectl schemahero install
 #     - argocd app sync previews
      - task: tilt:up
 
