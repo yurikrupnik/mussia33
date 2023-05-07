@@ -2,7 +2,7 @@
   "implicitDependencies": {
     "go.mod": "*"
   },
-  "plugins": ["@nrwl/deno", "@monodon/rust"],
+  "plugins": ["@monodon/rust", "@nx/deno"],
   "npmScope": "mussia33",
   "targetDefaults": {
     "build": {
