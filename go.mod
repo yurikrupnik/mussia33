@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/go-playground/validator/v10 v10.13.0
 	github.com/gofiber/fiber/v2 v2.44.0
-	go.mongodb.org/mongo-driver v1.11.4
+	go.mongodb.org/mongo-driver v1.11.6
 )
 
 require (
