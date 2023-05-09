@@ -26,6 +26,9 @@ jobs:
       #          just-version: 0.8 # optional semver specification, otherwise latest
       - name: Derive appropriate SHAs for base and head for `nx run-many` commands
         uses: nrwl/nx-set-shas@v3
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
       - uses: actions/setup-go@v4
         with:
           go-version: '1.19.4'
