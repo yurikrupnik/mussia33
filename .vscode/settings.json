@@ -1,5 +1,5 @@
 {
-  "deno.enablePaths": ["apps/deno/oak-app"],
+  "deno.enablePaths": ["apps/deno/oak-app", "apps/deno/nest-app"],
   "deno.unstable": true,
   "deno.importMap": "./import_map.json"
 }

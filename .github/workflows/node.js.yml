@@ -18,6 +18,9 @@ jobs:
           fetch-depth: 0
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v3
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
       - uses: actions/setup-go@v4
         with:
           go-version: '1.19.4'
@@ -61,6 +64,9 @@ jobs:
           fetch-depth: 0
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v3
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
       - uses: actions/setup-go@v4
         with:
           go-version: '1.19.4'
@@ -105,6 +111,9 @@ jobs:
           fetch-depth: 0
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v3
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
       - uses: actions/setup-go@v4
         with:
           go-version: 1.19.4
@@ -146,6 +155,9 @@ jobs:
           fetch-depth: 0
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v3
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
       - uses: actions/setup-go@v4
         with:
           go-version: '1.19.4'
@@ -192,6 +204,9 @@ jobs:
           fetch-depth: 0
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v3
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
       - uses: actions/setup-go@v4
         with:
           go-version: '1.19.4'

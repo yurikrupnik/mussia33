@@ -1,0 +1,39 @@
+{
+  "name": "deno-nest-app",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/deno/nest-app/src",
+  "targets": {
+    "build": {
+      "executor": "@nx/deno:emit",
+      "outputs": ["dist/apps/deno/nest-app"],
+      "options": {
+        "main": "apps/deno/nest-app/src/main.ts",
+        "outputFile": "dist/apps/deno/nest-app/main.js",
+        "denoConfig": "apps/deno/nest-app/deno.json"
+      }
+    },
+    "serve": {
+      "executor": "@nx/deno:run",
+      "options": {
+        "buildTarget": "deno-nest-app:build",
+        "watch": true
+      }
+    },
+    "test": {
+      "executor": "@nx/deno:test",
+      "outputs": ["coverage/apps/deno/nest-app"],
+      "options": {
+        "coverageDirectory": "coverage/apps/deno/nest-app",
+        "denoConfig": "apps/deno/nest-app/deno.json"
+      }
+    },
+    "lint": {
+      "executor": "@nx/deno:lint",
+      "options": {
+        "denoConfig": "apps/deno/nest-app/deno.json"
+      }
+    }
+  },
+  "tags": []
+}
