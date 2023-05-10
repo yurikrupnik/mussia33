@@ -516,6 +516,26 @@ const migrationServices = new ServicesResource(
 // });
 // end compute k8s
 // export const connectorId = vpcConnector.id;
+
+const containerReaderSa = new gcp.serviceaccount.Account(
+  "container-puller-sa",
+  {
+    project,
+    accountId: "container-puller-sa",
+    disabled: false,
+    description: "Kubernetes containers puller sa",
+    displayName: "Container puller",
+  }
+);
+
+new gcp.projects.IAMBinding("artifact-registry-reader", {
+  project: project,
+  members: [
+    containerReaderSa.email.apply((email) => `serviceAccount:${email}`),
+  ],
+  role: "roles/artifactregistry.reader",
+});
+
 export const dockerRepo1 = pulumi.interpolate`${region}-docker.pkg.dev/${project}/${dockerRegistry.dockerRepo}`;
 export const dockerRepo = dockerRegistry.dockerRepo;
 export const workloadName = workloadIdentity.workload_identity_provider;
