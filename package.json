@@ -8,8 +8,8 @@
   "private": true,
   "devDependencies": {
     "@monodon/rust": "^1.1.2",
-    "@nestjs/schematics": "9.1.0",
-    "@nestjs/testing": "9.4.0",
+    "@nestjs/schematics": "9.2.0",
+    "@nestjs/testing": "9.4.1",
     "@nrwl/cypress": "16.1.1",
     "@nx/deno": "16.1.1",
     "@nrwl/esbuild": "16.1.1",
@@ -58,9 +58,9 @@
     "vite-plugin-solid": "2.7.0"
   },
   "dependencies": {
-    "@nestjs/common": "9.4.0",
-    "@nestjs/core": "9.4.0",
-    "@nestjs/platform-express": "9.4.0",
+    "@nestjs/common": "9.4.1",
+    "@nestjs/core": "9.4.1",
+    "@nestjs/platform-express": "9.4.1",
     "@pulumi/aws": "^5.33.0",
     "@pulumi/datadog": "^4.16.0",
     "@pulumi/gcp": "^6.52.0",
