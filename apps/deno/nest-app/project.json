@@ -34,7 +34,7 @@
         "denoConfig": "apps/deno/nest-app/deno.json"
       }
     },
-    "docker1": {
+    "docker": {
       "executor": "@nx-tools/nx-container:build",
       "dependsOn": [
         {
