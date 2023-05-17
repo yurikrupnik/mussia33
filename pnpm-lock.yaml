@@ -77,7 +77,7 @@ devDependencies:
     version: 9.4.1(@nestjs/common@9.4.1)(@nestjs/core@9.4.1)(@nestjs/platform-express@9.4.1)
   '@nrwl/cypress':
     specifier: 16.1.1
-    version: 16.1.1(cypress@12.11.0)(eslint@8.40.0)(nx@16.1.1)(typescript@5.0.4)
+    version: 16.1.1(cypress@12.12.0)(eslint@8.40.0)(nx@16.1.1)(typescript@5.0.4)
   '@nrwl/esbuild':
     specifier: 16.1.1
     version: 16.1.1(esbuild@0.17.19)(nx@16.1.1)(typescript@5.0.4)
@@ -151,8 +151,8 @@ devDependencies:
     specifier: ^10.4.14
     version: 10.4.14(postcss@8.4.23)
   cypress:
-    specifier: 12.11.0
-    version: 12.11.0
+    specifier: 12.12.0
+    version: 12.12.0
   esbuild:
     specifier: 0.17.19
     version: 0.17.19
@@ -2374,10 +2374,10 @@ packages:
       - debug
     dev: true
 
-  /@nrwl/cypress@16.1.1(cypress@12.11.0)(eslint@8.40.0)(nx@16.1.1)(typescript@5.0.4):
+  /@nrwl/cypress@16.1.1(cypress@12.12.0)(eslint@8.40.0)(nx@16.1.1)(typescript@5.0.4):
     resolution: {integrity: sha512-NNRUamo83PA6gsG1blC8kYU0id06msOKet4L7bzvTc7VP182Q5bZ42ZgxZWNCb+IhfjwLNgoUYQ0uhLrYAmToA==}
     dependencies:
-      '@nx/cypress': 16.1.1(cypress@12.11.0)(eslint@8.40.0)(nx@16.1.1)(typescript@5.0.4)
+      '@nx/cypress': 16.1.1(cypress@12.12.0)(eslint@8.40.0)(nx@16.1.1)(typescript@5.0.4)
     transitivePeerDependencies:
       - '@babel/traverse'
       - '@swc-node/register'
@@ -3188,7 +3188,7 @@ packages:
       tmp: 0.2.1
     dev: true
 
-  /@nx/cypress@16.1.1(cypress@12.11.0)(eslint@8.40.0)(nx@16.1.1)(typescript@5.0.4):
+  /@nx/cypress@16.1.1(cypress@12.12.0)(eslint@8.40.0)(nx@16.1.1)(typescript@5.0.4):
     resolution: {integrity: sha512-ElU9pSCim+0SqPMy3tUKO+6CVTpKap7WU6NGaLCHm2Y2mFNNKrZNKz2sp0T/1rxsv1uiD0h/8+4ABYbpDLBKyw==}
     peerDependencies:
       cypress: '>= 3 < 13'
@@ -3196,12 +3196,12 @@ packages:
       cypress:
         optional: true
     dependencies:
-      '@nrwl/cypress': 16.1.1(cypress@12.11.0)(eslint@8.40.0)(nx@16.1.1)(typescript@5.0.4)
+      '@nrwl/cypress': 16.1.1(cypress@12.12.0)(eslint@8.40.0)(nx@16.1.1)(typescript@5.0.4)
       '@nx/devkit': 16.1.1(nx@16.1.1)
       '@nx/js': 16.1.1(nx@16.1.1)(typescript@5.0.4)
       '@nx/linter': 16.1.1(eslint@8.40.0)(nx@16.1.1)(typescript@5.0.4)
       '@phenomnomnominal/tsquery': 5.0.1(typescript@5.0.4)
-      cypress: 12.11.0
+      cypress: 12.12.0
       detect-port: 1.5.1
       dotenv: 10.0.0
       semver: 7.3.4
@@ -3659,7 +3659,7 @@ packages:
       '@nrwl/workspace': ^15.7.0
       solid-js: ^1.6.0
     dependencies:
-      '@nrwl/cypress': 16.1.1(cypress@12.11.0)(eslint@8.40.0)(nx@16.1.1)(typescript@5.0.4)
+      '@nrwl/cypress': 16.1.1(cypress@12.12.0)(eslint@8.40.0)(nx@16.1.1)(typescript@5.0.4)
       '@nrwl/devkit': 15.7.0(nx@16.1.1)(typescript@5.0.4)
       '@nrwl/linter': 16.1.1(eslint@8.40.0)(nx@16.1.1)(typescript@5.0.4)
       '@nrwl/workspace': 16.1.1
@@ -5565,7 +5565,7 @@ packages:
     resolution: {integrity: sha512-xq+q3SRMOxGivLhBNaUdC64hDTQwejJ+H0T/NB1XMtTVEwNTrfFF3gAxiyW0Bu/xWEGhjVKgUcMhCrUy2+uCWg==}
     dependencies:
       base64-js: 1.5.1
-      ieee754: 1.1.13
+      ieee754: 1.2.1
       isarray: 1.0.0
     dev: false
 
@@ -6238,8 +6238,8 @@ packages:
     resolution: {integrity: sha512-cO1I/zmz4w2dcKHVvpCr7JVRu8/FymG5OEpmvsZYlccYolPBLoVGKUHgNoc4ZGkFeFlWGEDmMyBM+TTqRdW/wg==}
     dev: true
 
-  /cypress@12.11.0:
-    resolution: {integrity: sha512-TJE+CCWI26Hwr5Msb9GpQhFLubdYooW0fmlPwTsfiyxmngqc7+SZGLPeIkj2dTSSZSEtpQVzOzvcnzH0o8G7Vw==}
+  /cypress@12.12.0:
+    resolution: {integrity: sha512-UU5wFQ7SMVCR/hyKok/KmzG6fpZgBHHfrXcHzDmPHWrT+UUetxFzQgt7cxCszlwfozckzwkd22dxMwl/vNkWRw==}
     engines: {node: ^14.0.0 || ^16.0.0 || >=18.0.0}
     hasBin: true
     requiresBuild: true
@@ -7824,7 +7824,6 @@ packages:
 
   /ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
-    dev: true
 
   /ignore@5.2.4:
     resolution: {integrity: sha512-MAb38BcSbH0eHNBxn7ql2NH/kX33OkB3lZ1BNdh7ENeRChHTYsTvWrMubiIAMNS2llXEEgZ1MUOBtXChP3kaFQ==}
