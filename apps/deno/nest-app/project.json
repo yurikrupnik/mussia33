@@ -33,6 +33,36 @@
       "options": {
         "denoConfig": "apps/deno/nest-app/deno.json"
       }
+    },
+    "docker1": {
+      "executor": "@nx-tools/nx-container:build",
+      "dependsOn": [
+        {
+          "target": "build",
+          "projects": "self",
+          "params": "forward"
+        }
+      ],
+      "options": {
+        "push": true,
+        "file": "./Dockerfile",
+        "target": "deno",
+        "platforms": ["linux/amd64"],
+        "build-args": ["DIST_PATH=dist/apps/deno/nest-app"],
+        "metadata": {
+          "images": ["yurikrupnik/deno-nest-app", "$REGISTRY/deno-nest-app"],
+          "tags": [
+            "type=schedule",
+            "type=ref,event=branch",
+            "type=ref,event=tag",
+            "type=ref,event=pr",
+            "type=semver,pattern={{version}}",
+            "type=semver,pattern={{major}}.{{minor}}",
+            "type=semver,pattern={{major}}",
+            "type=sha"
+          ]
+        }
+      }
     }
   },
   "tags": []
