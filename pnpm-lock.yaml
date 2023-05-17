@@ -124,8 +124,8 @@ devDependencies:
     specifier: ^4.0.3
     version: 4.0.3(@nrwl/devkit@15.9.2)(dotenv@16.0.3)
   '@nx/deno':
-    specifier: 16.1.1
-    version: 16.1.1(nx@16.1.1)(typescript@5.0.4)
+    specifier: 16.1.2
+    version: 16.1.2(nx@16.1.1)(typescript@5.0.4)
   '@nxext/solid':
     specifier: ^15.7.0
     version: 15.7.0(@nrwl/cypress@16.1.1)(@nrwl/linter@16.1.1)(@nrwl/workspace@16.1.1)(nx@16.1.1)(rxjs@7.8.0)(solid-js@1.7.3)(typescript@5.0.4)(vite@4.3.7)
@@ -2390,10 +2390,10 @@ packages:
       - typescript
     dev: true
 
-  /@nrwl/deno@16.1.1(nx@16.1.1)(typescript@5.0.4):
-    resolution: {integrity: sha512-yCRpgXMxkOSGosBr8B29L7O3xm0MtZu9zGTYE+T1l5B1x1W1tXnJaXo0S1QgslVlaESGGoaGXEfSV5Qx65eU3Q==}
+  /@nrwl/deno@16.1.2(nx@16.1.1)(typescript@5.0.4):
+    resolution: {integrity: sha512-zho520AF8YmfX12Rjj5+/IOEQyNGHCBlNRBI8bwu+WoQofEZYVaemzQ8xTkV0NzJMXlQXWRah6YxbecbSvr1+g==}
     dependencies:
-      '@nx/deno': 16.1.1(nx@16.1.1)(typescript@5.0.4)
+      '@nx/deno': 16.1.2(nx@16.1.1)(typescript@5.0.4)
     transitivePeerDependencies:
       - '@babel/traverse'
       - '@swc-node/register'
@@ -3216,13 +3216,14 @@ packages:
       - typescript
     dev: true
 
-  /@nx/deno@16.1.1(nx@16.1.1)(typescript@5.0.4):
-    resolution: {integrity: sha512-60uCW/UBbAXk/k1OSF45cyCtiXcwsQRwKJN8aWBCAjNnr1H3RVG0Lfa8uKHxCYYv/s5+H3P7kvHW14Kb4+PbbQ==}
+  /@nx/deno@16.1.2(nx@16.1.1)(typescript@5.0.4):
+    resolution: {integrity: sha512-nsuLDtFJJfZMBSpOV5lQ+Ufi2afPycNyxKTyC+yvFYxJi2RgiuHpn/DlL7i6Nipq0wAtyMstF3NsyalF1zaIlQ==}
     dependencies:
-      '@nrwl/deno': 16.1.1(nx@16.1.1)(typescript@5.0.4)
+      '@nrwl/deno': 16.1.2(nx@16.1.1)(typescript@5.0.4)
       '@nx/devkit': 16.1.1(nx@16.1.1)
       '@nx/js': 16.1.1(nx@16.1.1)(typescript@5.0.4)
       chalk: 4.1.2
+      enquirer: 2.3.6
       fs-extra: 11.1.1
     transitivePeerDependencies:
       - '@babel/traverse'
