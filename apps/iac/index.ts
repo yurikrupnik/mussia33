@@ -13,7 +13,7 @@ import { ArtifactoryResource } from "./src/artifactory";
 import { GcpFunction } from "./src/gcpFunction";
 import { WorkloadIdentityResource } from "./src/workloadIdentity";
 import { GkeClusterResource } from "./src/cluster";
-import { Providers } from "../../libs/node/shared/src";
+import { Providers, Subscriptions } from "../../libs/node/shared/src";
 
 const config = new pulumi.Config("core");
 const nodeCount = config.get("nodeCount");
@@ -319,6 +319,20 @@ const deadLetter = new gcp.pubsub.Topic(
     // provider: Providers.gcp
   }
 );
+
+const userAdded = new gcp.pubsub.Topic("user-added", {
+  name: "user-added",
+});
+
+const sub = new gcp.pubsub.Subscription("exampleSubscription", {
+  topic: userAdded.id,
+  labels: {
+    foo: "bar",
+  },
+  name: Subscriptions.yes,
+  enableMessageOrdering: true,
+});
+
 // const subscription = new gcp.pubsub.Subscription("subscription", {
 //   topic: deadLetter.name,
 //   pushConfig: {

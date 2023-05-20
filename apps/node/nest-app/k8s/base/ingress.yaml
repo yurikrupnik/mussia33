@@ -1,0 +1,46 @@
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: node-nest-app-gateway
+#  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: node-nest-app
+#  namespace: istio-system
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - node-nest-app-gateway
+  http:
+    - match:
+        - uri:
+            exact: /api/projects
+      #        - uri:
+      #            prefix: /static
+      #        - uri:
+      #            exact: /login
+      #        - uri:
+      #            exact: /logout
+      #        - uri:
+      #            prefix: /api/v1/products
+      route:
+        - destination:
+            #            host: argocd-server.argocd.svc.cluster.local
+            host: node-nest-app-service.default.svc.cluster.local
+            #            host: prometheus.istio-system.svc.cluster.local
+            port:
+              number: 3333

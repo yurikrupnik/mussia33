@@ -11,7 +11,6 @@
     "@nestjs/schematics": "9.2.0",
     "@nestjs/testing": "9.4.1",
     "@nrwl/cypress": "16.2.1",
-    "@nx/deno": "16.1.2",
     "@nrwl/esbuild": "16.2.1",
     "@nrwl/eslint-plugin-nx": "16.2.1",
     "@nrwl/jest": "16.2.1",
@@ -27,6 +26,7 @@
     "@nx-go/nx-go": "^2.7.0",
     "@nx-tools/container-metadata": "^4.0.3",
     "@nx-tools/nx-container": "^4.0.3",
+    "@nx/deno": "16.1.2",
     "@nxext/solid": "^15.7.0",
     "@nxrs/cargo": "^0.3.3",
     "@types/express": "^4.17.17",
@@ -58,6 +58,7 @@
     "vite-plugin-solid": "2.7.0"
   },
   "dependencies": {
+    "@google-cloud/pubsub": "^3.6.0",
     "@nestjs/common": "9.4.1",
     "@nestjs/core": "9.4.1",
     "@nestjs/platform-express": "9.4.1",
@@ -81,4 +82,3 @@
     "xstate": "^4.37.1"
   }
 }
-
