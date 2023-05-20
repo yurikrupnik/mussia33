@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-nest-app
+#  namespace: mussia30
+  labels:
+    app: node-nest-app
+    version: v1
+spec:
+  replicas: 1
+
+  template:
+    metadata:
+      name: node-nest-app
+      labels:
+        app: node-nest-app
+        version: v1
+      annotations:
+        "linkerd.io/inject": "enabled"
+        "consul.hashicorp.com/connect-inject": "true"
+        "consul.hashicorp.com/connect-service": "node-nest-app"
+        "consul.hashicorp.com/connect-service-protocol": "http"
+        "consul.hashicorp.com/service-meta-version": "v.1.1"
+        "prometheus.io/scrape": "true"
+        "prometheus.io/port": "9102"
+    spec:
+      serviceAccountName: node-nest-app
+      containers:
+        - name: node-nest-app
+          image: yurikrupnik/node-nest-app:latest
+          imagePullPolicy: IfNotPresent
+          env:
+#            - name: GRPC_TRACE
+#              value: "all"
+            - name: GRPC_VERBOSITY
+              value: "DEBUG"
+            - name: MONGO_URI
+              value: mongodb+srv://yurikrupnik:T4eXKj1RBI4VnszC@cluster0.rdmew.mongodb.net/
+      restartPolicy: Always
+  selector:
+    matchLabels:
+      app: node-nest-app
+      version: v1

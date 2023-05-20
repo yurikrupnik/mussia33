@@ -26,6 +26,14 @@
         "failOnWarnings": true,
         "noDeps": true
       }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "outputs": [],
+      "options": {
+        "command": "cargo watch -x run",
+        "cwd": "apps/rust/mongo-api/"
+      }
     }
   },
   "tags": ["nxrs"]
