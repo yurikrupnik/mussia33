@@ -1,0 +1,56 @@
+
+local_resource(
+  'build-solid-app',
+  dir="../../..",
+  cmd='pnpm nx run frontend-solid-app:build',
+  deps=['.', '../../../libs/node'],
+  resource_deps=["pnpm"],
+  ignore=["k8s"],
+  labels=["pnpm"],
+)
+
+docker_build(
+  "yurikrupnik/frontend-solid-app",
+  "../../..",
+  target="nginx",
+  build_args={"DIST_PATH":"dist/apps/frontend/solid-app"},
+  only=["dist/apps/frontend/solid-app"],
+  # live_update=[
+  #   sync('./dist/apps/users/api', '/app'),
+  #   # sync('../../../dist/apps/users/api', '/app')
+  # ],
+)
+
+load('ext://uibutton', 'cmd_button', 'location', 'text_input')
+cmd_button(name='Test',
+           resource='frontend-host', 
+           argv=['pnpm', 'nx', 'run', 'frontend-host:test'],
+           text='Unit tests',
+           location=location.RESOURCE,
+           icon_name='bug_report')
+
+cmd_button(name='Lint',
+           resource='frontend-host', 
+           argv=['pnpm', 'nx', 'run', 'frontend-host:lint'],
+           text='Linter',
+           location=location.RESOURCE,
+           icon_name='waving_hand')
+
+cmd_button(name='Build',
+           resource='frontend-host', 
+           argv=['pnpm', 'nx', 'run', 'frontend-host:build'],
+           text='Builder',
+           location=location.RESOURCE,
+           icon_name='build')
+
+cmd_button(name='E2E',
+           resource='frontend-host', 
+           argv=['pnpm', 'nx', 'run', 'frontend-host:e2e'],
+           text='E2E',
+           location=location.RESOURCE,
+           icon_name='all_out')
+
+k8s_yaml(kustomize('k8s/base'))
+
+k8s_resource("frontend-solid-app", port_forwards="5031:80")
+

@@ -6,6 +6,7 @@ require (
 	github.com/go-playground/validator/v10 v10.14.0
 	github.com/gofiber/fiber/v2 v2.46.0
 	go.mongodb.org/mongo-driver v1.11.6
+	google.golang.org/protobuf v1.30.0
 )
 
 require (

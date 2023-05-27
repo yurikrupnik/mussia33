@@ -99,7 +99,7 @@ export function toJson_CertificateProps(obj: CertificateProps | undefined): Reco
  */
 export interface CertificateSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CertificateSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface CertificateSpec {
    * @schema CertificateSpec#forProvider
    */
   readonly forProvider: CertificateSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema CertificateSpec#managementPolicy
+   */
+  readonly managementPolicy?: CertificateSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_CertificateSpec(obj: CertificateSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CertificateSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_CertificateSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_CertificateSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CertificateSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_CertificateSpec(obj: CertificateSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CertificateSpecDeletionPolicy
  */
@@ -221,6 +229,20 @@ export function toJson_CertificateSpecForProvider(obj: CertificateSpecForProvide
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema CertificateSpecManagementPolicy
+ */
+export enum CertificateSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -830,7 +852,7 @@ export function toJson_EndpointProps(obj: EndpointProps | undefined): Record<str
  */
 export interface EndpointSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema EndpointSpec#deletionPolicy
    */
@@ -840,6 +862,13 @@ export interface EndpointSpec {
    * @schema EndpointSpec#forProvider
    */
   readonly forProvider: EndpointSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema EndpointSpec#managementPolicy
+   */
+  readonly managementPolicy?: EndpointSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -880,6 +909,7 @@ export function toJson_EndpointSpec(obj: EndpointSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_EndpointSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_EndpointSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_EndpointSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_EndpointSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -891,7 +921,7 @@ export function toJson_EndpointSpec(obj: EndpointSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema EndpointSpecDeletionPolicy
  */
@@ -932,14 +962,14 @@ export interface EndpointSpecForProvider {
    *
    * @schema EndpointSpecForProvider#endpointType
    */
-  readonly endpointType: string;
+  readonly endpointType?: string;
 
   /**
-   * Type of engine for the endpoint. Valid values are aurora, aurora-postgresql, azuredb, db2, docdb, dynamodb, elasticsearch, kafka, kinesis, mariadb, mongodb, mysql, opensearch, oracle, postgres, redshift, s3, sqlserver, sybase. Please note that some of engine names are available only for target endpoint type (e.g. redshift).
+   * Type of engine for the endpoint. Valid values are aurora, aurora-postgresql, azuredb, azure-sql-managed-instance, db2, docdb, dynamodb, elasticsearch, kafka, kinesis, mariadb, mongodb, mysql, opensearch, oracle, postgres, redshift, s3, sqlserver, sybase. Please note that some of engine names are available only for target endpoint type (e.g. redshift).
    *
    * @schema EndpointSpecForProvider#engineName
    */
-  readonly engineName: string;
+  readonly engineName?: string;
 
   /**
    * Additional attributes associated with the connection. For available attributes for a source Endpoint, see Sources for data migration. For available attributes for a target Endpoint, see Targets for data migration.
@@ -1024,7 +1054,7 @@ export interface EndpointSpecForProvider {
   readonly region: string;
 
   /**
-   * Configuration block for S3 settings. See below.
+   * (Deprecated, use the aws_dms_s3_endpoint resource instead) Configuration block for S3 settings. See below. This argument is deprecated and will be removed in a future version; use aws_dms_s3_endpoint instead
    *
    * @schema EndpointSpecForProvider#s3Settings
    */
@@ -1134,6 +1164,20 @@ export function toJson_EndpointSpecForProvider(obj: EndpointSpecForProvider | un
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema EndpointSpecManagementPolicy
+ */
+export enum EndpointSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3122,7 +3166,7 @@ export function toJson_EventSubscriptionProps(obj: EventSubscriptionProps | unde
  */
 export interface EventSubscriptionSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema EventSubscriptionSpec#deletionPolicy
    */
@@ -3132,6 +3176,13 @@ export interface EventSubscriptionSpec {
    * @schema EventSubscriptionSpec#forProvider
    */
   readonly forProvider: EventSubscriptionSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema EventSubscriptionSpec#managementPolicy
+   */
+  readonly managementPolicy?: EventSubscriptionSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3172,6 +3223,7 @@ export function toJson_EventSubscriptionSpec(obj: EventSubscriptionSpec | undefi
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_EventSubscriptionSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_EventSubscriptionSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_EventSubscriptionSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_EventSubscriptionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -3183,7 +3235,7 @@ export function toJson_EventSubscriptionSpec(obj: EventSubscriptionSpec | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema EventSubscriptionSpecDeletionPolicy
  */
@@ -3210,7 +3262,7 @@ export interface EventSubscriptionSpecForProvider {
    *
    * @schema EventSubscriptionSpecForProvider#eventCategories
    */
-  readonly eventCategories: string[];
+  readonly eventCategories?: string[];
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -3284,6 +3336,20 @@ export function toJson_EventSubscriptionSpecForProvider(obj: EventSubscriptionSp
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema EventSubscriptionSpecManagementPolicy
+ */
+export enum EventSubscriptionSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4007,7 +4073,7 @@ export function toJson_ReplicationInstanceProps(obj: ReplicationInstanceProps | 
  */
 export interface ReplicationInstanceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ReplicationInstanceSpec#deletionPolicy
    */
@@ -4017,6 +4083,13 @@ export interface ReplicationInstanceSpec {
    * @schema ReplicationInstanceSpec#forProvider
    */
   readonly forProvider: ReplicationInstanceSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ReplicationInstanceSpec#managementPolicy
+   */
+  readonly managementPolicy?: ReplicationInstanceSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4057,6 +4130,7 @@ export function toJson_ReplicationInstanceSpec(obj: ReplicationInstanceSpec | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ReplicationInstanceSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_ReplicationInstanceSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_ReplicationInstanceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ReplicationInstanceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -4068,7 +4142,7 @@ export function toJson_ReplicationInstanceSpec(obj: ReplicationInstanceSpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ReplicationInstanceSpecDeletionPolicy
  */
@@ -4179,7 +4253,7 @@ export interface ReplicationInstanceSpecForProvider {
    *
    * @schema ReplicationInstanceSpecForProvider#replicationInstanceClass
    */
-  readonly replicationInstanceClass: string;
+  readonly replicationInstanceClass?: string;
 
   /**
    * A subnet group to associate with the replication instance.
@@ -4265,6 +4339,20 @@ export function toJson_ReplicationInstanceSpecForProvider(obj: ReplicationInstan
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ReplicationInstanceSpecManagementPolicy
+ */
+export enum ReplicationInstanceSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5396,7 +5484,7 @@ export function toJson_ReplicationSubnetGroupProps(obj: ReplicationSubnetGroupPr
  */
 export interface ReplicationSubnetGroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ReplicationSubnetGroupSpec#deletionPolicy
    */
@@ -5406,6 +5494,13 @@ export interface ReplicationSubnetGroupSpec {
    * @schema ReplicationSubnetGroupSpec#forProvider
    */
   readonly forProvider: ReplicationSubnetGroupSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ReplicationSubnetGroupSpec#managementPolicy
+   */
+  readonly managementPolicy?: ReplicationSubnetGroupSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5446,6 +5541,7 @@ export function toJson_ReplicationSubnetGroupSpec(obj: ReplicationSubnetGroupSpe
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ReplicationSubnetGroupSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_ReplicationSubnetGroupSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_ReplicationSubnetGroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ReplicationSubnetGroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -5457,7 +5553,7 @@ export function toJson_ReplicationSubnetGroupSpec(obj: ReplicationSubnetGroupSpe
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ReplicationSubnetGroupSpecDeletionPolicy
  */
@@ -5484,7 +5580,7 @@ export interface ReplicationSubnetGroupSpecForProvider {
    *
    * @schema ReplicationSubnetGroupSpecForProvider#replicationSubnetGroupDescription
    */
-  readonly replicationSubnetGroupDescription: string;
+  readonly replicationSubnetGroupDescription?: string;
 
   /**
    * References to Subnet in ec2 to populate subnetIds.
@@ -5534,6 +5630,20 @@ export function toJson_ReplicationSubnetGroupSpecForProvider(obj: ReplicationSub
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ReplicationSubnetGroupSpecManagementPolicy
+ */
+export enum ReplicationSubnetGroupSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6257,7 +6367,7 @@ export function toJson_ReplicationTaskProps(obj: ReplicationTaskProps | undefine
  */
 export interface ReplicationTaskSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ReplicationTaskSpec#deletionPolicy
    */
@@ -6267,6 +6377,13 @@ export interface ReplicationTaskSpec {
    * @schema ReplicationTaskSpec#forProvider
    */
   readonly forProvider: ReplicationTaskSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ReplicationTaskSpec#managementPolicy
+   */
+  readonly managementPolicy?: ReplicationTaskSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6307,6 +6424,7 @@ export function toJson_ReplicationTaskSpec(obj: ReplicationTaskSpec | undefined)
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ReplicationTaskSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_ReplicationTaskSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_ReplicationTaskSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ReplicationTaskSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -6318,7 +6436,7 @@ export function toJson_ReplicationTaskSpec(obj: ReplicationTaskSpec | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ReplicationTaskSpecDeletionPolicy
  */
@@ -6352,7 +6470,7 @@ export interface ReplicationTaskSpecForProvider {
    *
    * @schema ReplicationTaskSpecForProvider#migrationType
    */
-  readonly migrationType: string;
+  readonly migrationType?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -6422,7 +6540,7 @@ export interface ReplicationTaskSpecForProvider {
    *
    * @schema ReplicationTaskSpecForProvider#tableMappings
    */
-  readonly tableMappings: string;
+  readonly tableMappings?: string;
 
   /**
    * Key-value map of resource tags.
@@ -6483,6 +6601,20 @@ export function toJson_ReplicationTaskSpecForProvider(obj: ReplicationTaskSpecFo
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ReplicationTaskSpecManagementPolicy
+ */
+export enum ReplicationTaskSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7511,6 +7643,1688 @@ export enum ReplicationTaskSpecPublishConnectionDetailsToConfigRefPolicyResoluti
  * @schema ReplicationTaskSpecPublishConnectionDetailsToConfigRefPolicyResolve
  */
 export enum ReplicationTaskSpecPublishConnectionDetailsToConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+
+/**
+ * S3Endpoint is the Schema for the S3Endpoints API. Provides a DMS (Data Migration Service) S3 endpoint resource.
+ *
+ * @schema S3Endpoint
+ */
+export class S3Endpoint extends ApiObject {
+  /**
+   * Returns the apiVersion and kind for "S3Endpoint"
+   */
+  public static readonly GVK: GroupVersionKind = {
+    apiVersion: 'dms.aws.upbound.io/v1beta1',
+    kind: 'S3Endpoint',
+  }
+
+  /**
+   * Renders a Kubernetes manifest for "S3Endpoint".
+   *
+   * This can be used to inline resource manifests inside other objects (e.g. as templates).
+   *
+   * @param props initialization props
+   */
+  public static manifest(props: S3EndpointProps): any {
+    return {
+      ...S3Endpoint.GVK,
+      ...toJson_S3EndpointProps(props),
+    };
+  }
+
+  /**
+   * Defines a "S3Endpoint" API object
+   * @param scope the scope in which to define this object
+   * @param id a scope-local name for the object
+   * @param props initialization props
+   */
+  public constructor(scope: Construct, id: string, props: S3EndpointProps) {
+    super(scope, id, {
+      ...S3Endpoint.GVK,
+      ...props,
+    });
+  }
+
+  /**
+   * Renders the object to Kubernetes JSON.
+   */
+  public toJson(): any {
+    const resolved = super.toJson();
+
+    return {
+      ...S3Endpoint.GVK,
+      ...toJson_S3EndpointProps(resolved),
+    };
+  }
+}
+
+/**
+ * S3Endpoint is the Schema for the S3Endpoints API. Provides a DMS (Data Migration Service) S3 endpoint resource.
+ *
+ * @schema S3Endpoint
+ */
+export interface S3EndpointProps {
+  /**
+   * @schema S3Endpoint#metadata
+   */
+  readonly metadata?: ApiObjectMetadata;
+
+  /**
+   * S3EndpointSpec defines the desired state of S3Endpoint
+   *
+   * @schema S3Endpoint#spec
+   */
+  readonly spec: S3EndpointSpec;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointProps' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointProps(obj: S3EndpointProps | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metadata': obj.metadata,
+    'spec': toJson_S3EndpointSpec(obj.spec),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * S3EndpointSpec defines the desired state of S3Endpoint
+ *
+ * @schema S3EndpointSpec
+ */
+export interface S3EndpointSpec {
+  /**
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema S3EndpointSpec#deletionPolicy
+   */
+  readonly deletionPolicy?: S3EndpointSpecDeletionPolicy;
+
+  /**
+   * @schema S3EndpointSpec#forProvider
+   */
+  readonly forProvider: S3EndpointSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema S3EndpointSpec#managementPolicy
+   */
+  readonly managementPolicy?: S3EndpointSpecManagementPolicy;
+
+  /**
+   * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+   *
+   * @schema S3EndpointSpec#providerConfigRef
+   */
+  readonly providerConfigRef?: S3EndpointSpecProviderConfigRef;
+
+  /**
+   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
+   *
+   * @schema S3EndpointSpec#providerRef
+   */
+  readonly providerRef?: S3EndpointSpecProviderRef;
+
+  /**
+   * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+   *
+   * @schema S3EndpointSpec#publishConnectionDetailsTo
+   */
+  readonly publishConnectionDetailsTo?: S3EndpointSpecPublishConnectionDetailsTo;
+
+  /**
+   * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+   *
+   * @schema S3EndpointSpec#writeConnectionSecretToRef
+   */
+  readonly writeConnectionSecretToRef?: S3EndpointSpecWriteConnectionSecretToRef;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpec(obj: S3EndpointSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deletionPolicy': obj.deletionPolicy,
+    'forProvider': toJson_S3EndpointSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
+    'providerConfigRef': toJson_S3EndpointSpecProviderConfigRef(obj.providerConfigRef),
+    'providerRef': toJson_S3EndpointSpecProviderRef(obj.providerRef),
+    'publishConnectionDetailsTo': toJson_S3EndpointSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
+    'writeConnectionSecretToRef': toJson_S3EndpointSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema S3EndpointSpecDeletionPolicy
+ */
+export enum S3EndpointSpecDeletionPolicy {
+  /** Orphan */
+  ORPHAN = "Orphan",
+  /** Delete */
+  DELETE = "Delete",
+}
+
+/**
+ * @schema S3EndpointSpecForProvider
+ */
+export interface S3EndpointSpecForProvider {
+  /**
+   * Whether to add column name information to the .csv output file. Default is false.
+   *
+   * @default false.
+   * @schema S3EndpointSpecForProvider#addColumnName
+   */
+  readonly addColumnName?: boolean;
+
+  /**
+   * Whether to add padding. Default is false. (Ignored for source endpoints.)
+   *
+   * @default false. (Ignored for source endpoints.)
+   * @schema S3EndpointSpecForProvider#addTrailingPaddingCharacter
+   */
+  readonly addTrailingPaddingCharacter?: boolean;
+
+  /**
+   * S3 object prefix.
+   *
+   * @schema S3EndpointSpecForProvider#bucketFolder
+   */
+  readonly bucketFolder?: string;
+
+  /**
+   * S3 bucket name.
+   *
+   * @schema S3EndpointSpecForProvider#bucketName
+   */
+  readonly bucketName?: string;
+
+  /**
+   * Predefined (canned) access control list for objects created in an S3 bucket. Valid values include none, private, public-read, public-read-write, authenticated-read, aws-exec-read, bucket-owner-read, and bucket-owner-full-control. Default is none.
+   *
+   * @default none.
+   * @schema S3EndpointSpecForProvider#cannedAclForObjects
+   */
+  readonly cannedAclForObjects?: string;
+
+  /**
+   * Whether to write insert and update operations to .csv or .parquet output files. Default is false.
+   *
+   * @default false.
+   * @schema S3EndpointSpecForProvider#cdcInsertsAndUpdates
+   */
+  readonly cdcInsertsAndUpdates?: boolean;
+
+  /**
+   * Whether to write insert operations to .csv or .parquet output files. Default is false.
+   *
+   * @default false.
+   * @schema S3EndpointSpecForProvider#cdcInsertsOnly
+   */
+  readonly cdcInsertsOnly?: boolean;
+
+  /**
+   * Maximum length of the interval, defined in seconds, after which to output a file to Amazon S3. (AWS default is 60.)
+   *
+   * @schema S3EndpointSpecForProvider#cdcMaxBatchInterval
+   */
+  readonly cdcMaxBatchInterval?: number;
+
+  /**
+   * Minimum file size condition as defined in kilobytes to output a file to Amazon S3. (AWS default is 32000 KB.)
+   *
+   * @schema S3EndpointSpecForProvider#cdcMinFileSize
+   */
+  readonly cdcMinFileSize?: number;
+
+  /**
+   * Folder path of CDC files. If cdc_path is set, AWS DMS reads CDC files from this path and replicates the data changes to the target endpoint. Supported in AWS DMS versions 3.4.2 and later.
+   *
+   * @schema S3EndpointSpecForProvider#cdcPath
+   */
+  readonly cdcPath?: string;
+
+  /**
+   * ARN for the certificate.
+   *
+   * @schema S3EndpointSpecForProvider#certificateArn
+   */
+  readonly certificateArn?: string;
+
+  /**
+   * Set to compress target files. Valid values are GZIP and NONE. Default is NONE. (Ignored for source endpoints.)
+   *
+   * @default NONE. (Ignored for source endpoints.)
+   * @schema S3EndpointSpecForProvider#compressionType
+   */
+  readonly compressionType?: string;
+
+  /**
+   * Delimiter used to separate columns in the source files. Default is ,.
+   *
+   * @default .
+   * @schema S3EndpointSpecForProvider#csvDelimiter
+   */
+  readonly csvDelimiter?: string;
+
+  /**
+   * Only applies if output files for a CDC load are written in .csv format. If use_csv_no_sup_value is set to true, string to use for all columns not included in the supplemental log. If you do not specify a string value, DMS uses the null value for these columns regardless of use_csv_no_sup_value. (Ignored for source endpoints.)
+   *
+   * @schema S3EndpointSpecForProvider#csvNoSupValue
+   */
+  readonly csvNoSupValue?: string;
+
+  /**
+   * String to as null when writing to the target. (AWS default is NULL.)
+   *
+   * @schema S3EndpointSpecForProvider#csvNullValue
+   */
+  readonly csvNullValue?: string;
+
+  /**
+   * Delimiter used to separate rows in the source files. Default is newline (i.e., \n).
+   *
+   * @default newline (i.e., \n).
+   * @schema S3EndpointSpecForProvider#csvRowDelimiter
+   */
+  readonly csvRowDelimiter?: string;
+
+  /**
+   * Output format for the files that AWS DMS uses to create S3 objects. Valid values are csv and parquet.  (Ignored for source endpoints -- only csv is valid.)
+   *
+   * @schema S3EndpointSpecForProvider#dataFormat
+   */
+  readonly dataFormat?: string;
+
+  /**
+   * Size of one data page in bytes. (AWS default is 1 MiB, i.e., 1048576.)
+   *
+   * @schema S3EndpointSpecForProvider#dataPageSize
+   */
+  readonly dataPageSize?: number;
+
+  /**
+   * Date separating delimiter to use during folder partitioning. Valid values are SLASH, UNDERSCORE, DASH, and NONE. (AWS default is SLASH.) (Ignored for source endpoints.)
+   *
+   * @schema S3EndpointSpecForProvider#datePartitionDelimiter
+   */
+  readonly datePartitionDelimiter?: string;
+
+  /**
+   * Partition S3 bucket folders based on transaction commit dates. Default is false. (Ignored for source endpoints.)
+   *
+   * @default false. (Ignored for source endpoints.)
+   * @schema S3EndpointSpecForProvider#datePartitionEnabled
+   */
+  readonly datePartitionEnabled?: boolean;
+
+  /**
+   * Date format to use during folder partitioning. Use this parameter when date_partition_enabled is set to true. Valid values are YYYYMMDD, YYYYMMDDHH, YYYYMM, MMYYYYDD, and DDMMYYYY. (AWS default is YYYYMMDD.) (Ignored for source endpoints.)
+   *
+   * @schema S3EndpointSpecForProvider#datePartitionSequence
+   */
+  readonly datePartitionSequence?: string;
+
+  /**
+   * Convert the current UTC time to a timezone. The conversion occurs when a date partition folder is created and a CDC filename is generated. The timezone format is Area/Location (e.g., Europe/Paris). Use this when date_partition_enabled is true. (Ignored for source endpoints.)
+   *
+   * @schema S3EndpointSpecForProvider#datePartitionTimezone
+   */
+  readonly datePartitionTimezone?: string;
+
+  /**
+   * Undocumented argument for use as directed by AWS Support.
+   *
+   * @schema S3EndpointSpecForProvider#detachTargetOnLobLookupFailureParquet
+   */
+  readonly detachTargetOnLobLookupFailureParquet?: boolean;
+
+  /**
+   * Maximum size in bytes of an encoded dictionary page of a column. (AWS default is 1 MiB, i.e., 1048576.)
+   *
+   * @schema S3EndpointSpecForProvider#dictPageSizeLimit
+   */
+  readonly dictPageSizeLimit?: number;
+
+  /**
+   * Whether to enable statistics for Parquet pages and row groups. Default is true.
+   *
+   * @default true.
+   * @schema S3EndpointSpecForProvider#enableStatistics
+   */
+  readonly enableStatistics?: boolean;
+
+  /**
+   * Type of encoding to use. Value values are rle_dictionary, plain, and plain_dictionary. (AWS default is rle_dictionary.)
+   *
+   * @schema S3EndpointSpecForProvider#encodingType
+   */
+  readonly encodingType?: string;
+
+  /**
+   * Server-side encryption mode that you want to encrypt your .csv or .parquet object files copied to S3. Valid values are SSE_S3 and SSE_KMS. (AWS default is SSE_S3.) (Ignored for source endpoints -- only SSE_S3 is valid.)
+   *
+   * @schema S3EndpointSpecForProvider#encryptionMode
+   */
+  readonly encryptionMode?: string;
+
+  /**
+   * Type of endpoint. Valid values are source, target.
+   *
+   * @schema S3EndpointSpecForProvider#endpointType
+   */
+  readonly endpointType?: string;
+
+  /**
+   * Bucket owner to prevent sniping. Value is an AWS account ID.
+   *
+   * @schema S3EndpointSpecForProvider#expectedBucketOwner
+   */
+  readonly expectedBucketOwner?: string;
+
+  /**
+   * JSON document that describes how AWS DMS should interpret the data.
+   *
+   * @schema S3EndpointSpecForProvider#externalTableDefinition
+   */
+  readonly externalTableDefinition?: string;
+
+  /**
+   * When this value is set to 1, DMS ignores the first row header in a .csv file. (AWS default is 0.)
+   *
+   * @schema S3EndpointSpecForProvider#ignoreHeaderRows
+   */
+  readonly ignoreHeaderRows?: number;
+
+  /**
+   * Whether to enable a full load to write INSERT operations to the .csv output files only to indicate how the rows were added to the source database. Default is false.
+   *
+   * @default false.
+   * @schema S3EndpointSpecForProvider#includeOpForFullLoad
+   */
+  readonly includeOpForFullLoad?: boolean;
+
+  /**
+   * ARN for the KMS key that will be used to encrypt the connection parameters. If you do not specify a value for kms_key_arn, then AWS DMS will use your default encryption key. AWS KMS creates the default encryption key for your AWS account. Your AWS account has a different default encryption key for each AWS region.
+   *
+   * @schema S3EndpointSpecForProvider#kmsKeyArn
+   */
+  readonly kmsKeyArn?: string;
+
+  /**
+   * Reference to a Key in kms to populate kmsKeyArn.
+   *
+   * @schema S3EndpointSpecForProvider#kmsKeyArnRef
+   */
+  readonly kmsKeyArnRef?: S3EndpointSpecForProviderKmsKeyArnRef;
+
+  /**
+   * Selector for a Key in kms to populate kmsKeyArn.
+   *
+   * @schema S3EndpointSpecForProvider#kmsKeyArnSelector
+   */
+  readonly kmsKeyArnSelector?: S3EndpointSpecForProviderKmsKeyArnSelector;
+
+  /**
+   * Maximum size (in KB) of any .csv file to be created while migrating to an S3 target during full load. Valid values are from 1 to 1048576. (AWS default is 1 GB, i.e., 1048576.)
+   *
+   * @schema S3EndpointSpecForProvider#maxFileSize
+   */
+  readonly maxFileSize?: number;
+
+  /**
+   * - Specifies the precision of any TIMESTAMP column values written to an S3 object file in .parquet format. Default is false. (Ignored for source endpoints.)
+   *
+   * @default false. (Ignored for source endpoints.)
+   * @schema S3EndpointSpecForProvider#parquetTimestampInMillisecond
+   */
+  readonly parquetTimestampInMillisecond?: boolean;
+
+  /**
+   * Version of the .parquet file format. Valid values are parquet-1-0 and parquet-2-0. (AWS default is parquet-1-0.) (Ignored for source endpoints.)
+   *
+   * @schema S3EndpointSpecForProvider#parquetVersion
+   */
+  readonly parquetVersion?: string;
+
+  /**
+   * Whether DMS saves the transaction order for a CDC load on the S3 target specified by cdc_path. Default is false. (Ignored for source endpoints.)
+   *
+   * @default false. (Ignored for source endpoints.)
+   * @schema S3EndpointSpecForProvider#preserveTransactions
+   */
+  readonly preserveTransactions?: boolean;
+
+  /**
+   * Region is the region you'd like your resource to be created in.
+   *
+   * @schema S3EndpointSpecForProvider#region
+   */
+  readonly region: string;
+
+  /**
+   * For an S3 source, whether each leading double quotation mark has to be followed by an ending double quotation mark. Default is true.
+   *
+   * @default true.
+   * @schema S3EndpointSpecForProvider#rfc4180
+   */
+  readonly rfc4180?: boolean;
+
+  /**
+   * Number of rows in a row group. (AWS default is 10000.)
+   *
+   * @schema S3EndpointSpecForProvider#rowGroupLength
+   */
+  readonly rowGroupLength?: number;
+
+  /**
+   * When encryption_mode is SSE_KMS, ARN for the AWS KMS key. (Ignored for source endpoints -- only SSE_S3 encryption_mode is valid.)
+   *
+   * @schema S3EndpointSpecForProvider#serverSideEncryptionKmsKeyId
+   */
+  readonly serverSideEncryptionKmsKeyId?: string;
+
+  /**
+   * Reference to a Key in kms to populate serverSideEncryptionKmsKeyId.
+   *
+   * @schema S3EndpointSpecForProvider#serverSideEncryptionKmsKeyIdRef
+   */
+  readonly serverSideEncryptionKmsKeyIdRef?: S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRef;
+
+  /**
+   * Selector for a Key in kms to populate serverSideEncryptionKmsKeyId.
+   *
+   * @schema S3EndpointSpecForProvider#serverSideEncryptionKmsKeyIdSelector
+   */
+  readonly serverSideEncryptionKmsKeyIdSelector?: S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelector;
+
+  /**
+   * ARN of the IAM role with permissions to the S3 Bucket.
+   *
+   * @schema S3EndpointSpecForProvider#serviceAccessRoleArn
+   */
+  readonly serviceAccessRoleArn?: string;
+
+  /**
+   * Reference to a Role in iam to populate serviceAccessRoleArn.
+   *
+   * @schema S3EndpointSpecForProvider#serviceAccessRoleArnRef
+   */
+  readonly serviceAccessRoleArnRef?: S3EndpointSpecForProviderServiceAccessRoleArnRef;
+
+  /**
+   * Selector for a Role in iam to populate serviceAccessRoleArn.
+   *
+   * @schema S3EndpointSpecForProvider#serviceAccessRoleArnSelector
+   */
+  readonly serviceAccessRoleArnSelector?: S3EndpointSpecForProviderServiceAccessRoleArnSelector;
+
+  /**
+   * SSL mode to use for the connection. Valid values are none, require, verify-ca, verify-full. (AWS default is none.)
+   *
+   * @schema S3EndpointSpecForProvider#sslMode
+   */
+  readonly sslMode?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema S3EndpointSpecForProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Column to add with timestamp information to the endpoint data for an Amazon S3 target.
+   *
+   * @schema S3EndpointSpecForProvider#timestampColumnName
+   */
+  readonly timestampColumnName?: string;
+
+  /**
+   * Whether to use csv_no_sup_value for columns not included in the supplemental log. (Ignored for source endpoints.)
+   *
+   * @schema S3EndpointSpecForProvider#useCsvNoSupValue
+   */
+  readonly useCsvNoSupValue?: boolean;
+
+  /**
+   * When set to true, uses the task start time as the timestamp column value instead of the time data is written to target. For full load, when set to true, each row of the timestamp column contains the task start time. For CDC loads, each row of the timestamp column contains the transaction commit time.When set to false, the full load timestamp in the timestamp column increments with the time data arrives at the target. Default is false.
+   *
+   * @default false.
+   * @schema S3EndpointSpecForProvider#useTaskStartTimeForFullLoadTimestamp
+   */
+  readonly useTaskStartTimeForFullLoadTimestamp?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecForProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecForProvider(obj: S3EndpointSpecForProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'addColumnName': obj.addColumnName,
+    'addTrailingPaddingCharacter': obj.addTrailingPaddingCharacter,
+    'bucketFolder': obj.bucketFolder,
+    'bucketName': obj.bucketName,
+    'cannedAclForObjects': obj.cannedAclForObjects,
+    'cdcInsertsAndUpdates': obj.cdcInsertsAndUpdates,
+    'cdcInsertsOnly': obj.cdcInsertsOnly,
+    'cdcMaxBatchInterval': obj.cdcMaxBatchInterval,
+    'cdcMinFileSize': obj.cdcMinFileSize,
+    'cdcPath': obj.cdcPath,
+    'certificateArn': obj.certificateArn,
+    'compressionType': obj.compressionType,
+    'csvDelimiter': obj.csvDelimiter,
+    'csvNoSupValue': obj.csvNoSupValue,
+    'csvNullValue': obj.csvNullValue,
+    'csvRowDelimiter': obj.csvRowDelimiter,
+    'dataFormat': obj.dataFormat,
+    'dataPageSize': obj.dataPageSize,
+    'datePartitionDelimiter': obj.datePartitionDelimiter,
+    'datePartitionEnabled': obj.datePartitionEnabled,
+    'datePartitionSequence': obj.datePartitionSequence,
+    'datePartitionTimezone': obj.datePartitionTimezone,
+    'detachTargetOnLobLookupFailureParquet': obj.detachTargetOnLobLookupFailureParquet,
+    'dictPageSizeLimit': obj.dictPageSizeLimit,
+    'enableStatistics': obj.enableStatistics,
+    'encodingType': obj.encodingType,
+    'encryptionMode': obj.encryptionMode,
+    'endpointType': obj.endpointType,
+    'expectedBucketOwner': obj.expectedBucketOwner,
+    'externalTableDefinition': obj.externalTableDefinition,
+    'ignoreHeaderRows': obj.ignoreHeaderRows,
+    'includeOpForFullLoad': obj.includeOpForFullLoad,
+    'kmsKeyArn': obj.kmsKeyArn,
+    'kmsKeyArnRef': toJson_S3EndpointSpecForProviderKmsKeyArnRef(obj.kmsKeyArnRef),
+    'kmsKeyArnSelector': toJson_S3EndpointSpecForProviderKmsKeyArnSelector(obj.kmsKeyArnSelector),
+    'maxFileSize': obj.maxFileSize,
+    'parquetTimestampInMillisecond': obj.parquetTimestampInMillisecond,
+    'parquetVersion': obj.parquetVersion,
+    'preserveTransactions': obj.preserveTransactions,
+    'region': obj.region,
+    'rfc4180': obj.rfc4180,
+    'rowGroupLength': obj.rowGroupLength,
+    'serverSideEncryptionKmsKeyId': obj.serverSideEncryptionKmsKeyId,
+    'serverSideEncryptionKmsKeyIdRef': toJson_S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRef(obj.serverSideEncryptionKmsKeyIdRef),
+    'serverSideEncryptionKmsKeyIdSelector': toJson_S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelector(obj.serverSideEncryptionKmsKeyIdSelector),
+    'serviceAccessRoleArn': obj.serviceAccessRoleArn,
+    'serviceAccessRoleArnRef': toJson_S3EndpointSpecForProviderServiceAccessRoleArnRef(obj.serviceAccessRoleArnRef),
+    'serviceAccessRoleArnSelector': toJson_S3EndpointSpecForProviderServiceAccessRoleArnSelector(obj.serviceAccessRoleArnSelector),
+    'sslMode': obj.sslMode,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'timestampColumnName': obj.timestampColumnName,
+    'useCsvNoSupValue': obj.useCsvNoSupValue,
+    'useTaskStartTimeForFullLoadTimestamp': obj.useTaskStartTimeForFullLoadTimestamp,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema S3EndpointSpecManagementPolicy
+ */
+export enum S3EndpointSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
+
+/**
+ * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+ *
+ * @schema S3EndpointSpecProviderConfigRef
+ */
+export interface S3EndpointSpecProviderConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema S3EndpointSpecProviderConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema S3EndpointSpecProviderConfigRef#policy
+   */
+  readonly policy?: S3EndpointSpecProviderConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecProviderConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecProviderConfigRef(obj: S3EndpointSpecProviderConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_S3EndpointSpecProviderConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
+ *
+ * @schema S3EndpointSpecProviderRef
+ */
+export interface S3EndpointSpecProviderRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema S3EndpointSpecProviderRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema S3EndpointSpecProviderRef#policy
+   */
+  readonly policy?: S3EndpointSpecProviderRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecProviderRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecProviderRef(obj: S3EndpointSpecProviderRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_S3EndpointSpecProviderRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+ *
+ * @schema S3EndpointSpecPublishConnectionDetailsTo
+ */
+export interface S3EndpointSpecPublishConnectionDetailsTo {
+  /**
+   * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+   *
+   * @schema S3EndpointSpecPublishConnectionDetailsTo#configRef
+   */
+  readonly configRef?: S3EndpointSpecPublishConnectionDetailsToConfigRef;
+
+  /**
+   * Metadata is the metadata for connection secret.
+   *
+   * @schema S3EndpointSpecPublishConnectionDetailsTo#metadata
+   */
+  readonly metadata?: S3EndpointSpecPublishConnectionDetailsToMetadata;
+
+  /**
+   * Name is the name of the connection secret.
+   *
+   * @schema S3EndpointSpecPublishConnectionDetailsTo#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecPublishConnectionDetailsTo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecPublishConnectionDetailsTo(obj: S3EndpointSpecPublishConnectionDetailsTo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configRef': toJson_S3EndpointSpecPublishConnectionDetailsToConfigRef(obj.configRef),
+    'metadata': toJson_S3EndpointSpecPublishConnectionDetailsToMetadata(obj.metadata),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+ *
+ * @schema S3EndpointSpecWriteConnectionSecretToRef
+ */
+export interface S3EndpointSpecWriteConnectionSecretToRef {
+  /**
+   * Name of the secret.
+   *
+   * @schema S3EndpointSpecWriteConnectionSecretToRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the secret.
+   *
+   * @schema S3EndpointSpecWriteConnectionSecretToRef#namespace
+   */
+  readonly namespace: string;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecWriteConnectionSecretToRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecWriteConnectionSecretToRef(obj: S3EndpointSpecWriteConnectionSecretToRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a Key in kms to populate kmsKeyArn.
+ *
+ * @schema S3EndpointSpecForProviderKmsKeyArnRef
+ */
+export interface S3EndpointSpecForProviderKmsKeyArnRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema S3EndpointSpecForProviderKmsKeyArnRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema S3EndpointSpecForProviderKmsKeyArnRef#policy
+   */
+  readonly policy?: S3EndpointSpecForProviderKmsKeyArnRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecForProviderKmsKeyArnRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecForProviderKmsKeyArnRef(obj: S3EndpointSpecForProviderKmsKeyArnRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_S3EndpointSpecForProviderKmsKeyArnRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a Key in kms to populate kmsKeyArn.
+ *
+ * @schema S3EndpointSpecForProviderKmsKeyArnSelector
+ */
+export interface S3EndpointSpecForProviderKmsKeyArnSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema S3EndpointSpecForProviderKmsKeyArnSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema S3EndpointSpecForProviderKmsKeyArnSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema S3EndpointSpecForProviderKmsKeyArnSelector#policy
+   */
+  readonly policy?: S3EndpointSpecForProviderKmsKeyArnSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecForProviderKmsKeyArnSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecForProviderKmsKeyArnSelector(obj: S3EndpointSpecForProviderKmsKeyArnSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_S3EndpointSpecForProviderKmsKeyArnSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a Key in kms to populate serverSideEncryptionKmsKeyId.
+ *
+ * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRef
+ */
+export interface S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRef#policy
+   */
+  readonly policy?: S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRef(obj: S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a Key in kms to populate serverSideEncryptionKmsKeyId.
+ *
+ * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelector
+ */
+export interface S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelector#policy
+   */
+  readonly policy?: S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelector(obj: S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a Role in iam to populate serviceAccessRoleArn.
+ *
+ * @schema S3EndpointSpecForProviderServiceAccessRoleArnRef
+ */
+export interface S3EndpointSpecForProviderServiceAccessRoleArnRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema S3EndpointSpecForProviderServiceAccessRoleArnRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema S3EndpointSpecForProviderServiceAccessRoleArnRef#policy
+   */
+  readonly policy?: S3EndpointSpecForProviderServiceAccessRoleArnRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecForProviderServiceAccessRoleArnRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecForProviderServiceAccessRoleArnRef(obj: S3EndpointSpecForProviderServiceAccessRoleArnRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_S3EndpointSpecForProviderServiceAccessRoleArnRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a Role in iam to populate serviceAccessRoleArn.
+ *
+ * @schema S3EndpointSpecForProviderServiceAccessRoleArnSelector
+ */
+export interface S3EndpointSpecForProviderServiceAccessRoleArnSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema S3EndpointSpecForProviderServiceAccessRoleArnSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema S3EndpointSpecForProviderServiceAccessRoleArnSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema S3EndpointSpecForProviderServiceAccessRoleArnSelector#policy
+   */
+  readonly policy?: S3EndpointSpecForProviderServiceAccessRoleArnSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecForProviderServiceAccessRoleArnSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecForProviderServiceAccessRoleArnSelector(obj: S3EndpointSpecForProviderServiceAccessRoleArnSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_S3EndpointSpecForProviderServiceAccessRoleArnSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema S3EndpointSpecProviderConfigRefPolicy
+ */
+export interface S3EndpointSpecProviderConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema S3EndpointSpecProviderConfigRefPolicy#resolution
+   */
+  readonly resolution?: S3EndpointSpecProviderConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema S3EndpointSpecProviderConfigRefPolicy#resolve
+   */
+  readonly resolve?: S3EndpointSpecProviderConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecProviderConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecProviderConfigRefPolicy(obj: S3EndpointSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema S3EndpointSpecProviderRefPolicy
+ */
+export interface S3EndpointSpecProviderRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema S3EndpointSpecProviderRefPolicy#resolution
+   */
+  readonly resolution?: S3EndpointSpecProviderRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema S3EndpointSpecProviderRefPolicy#resolve
+   */
+  readonly resolve?: S3EndpointSpecProviderRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecProviderRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecProviderRefPolicy(obj: S3EndpointSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+ *
+ * @schema S3EndpointSpecPublishConnectionDetailsToConfigRef
+ */
+export interface S3EndpointSpecPublishConnectionDetailsToConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema S3EndpointSpecPublishConnectionDetailsToConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema S3EndpointSpecPublishConnectionDetailsToConfigRef#policy
+   */
+  readonly policy?: S3EndpointSpecPublishConnectionDetailsToConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecPublishConnectionDetailsToConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecPublishConnectionDetailsToConfigRef(obj: S3EndpointSpecPublishConnectionDetailsToConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_S3EndpointSpecPublishConnectionDetailsToConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Metadata is the metadata for connection secret.
+ *
+ * @schema S3EndpointSpecPublishConnectionDetailsToMetadata
+ */
+export interface S3EndpointSpecPublishConnectionDetailsToMetadata {
+  /**
+   * Annotations are the annotations to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.annotations". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema S3EndpointSpecPublishConnectionDetailsToMetadata#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Labels are the labels/tags to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.labels". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema S3EndpointSpecPublishConnectionDetailsToMetadata#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Type is the SecretType for the connection secret. - Only valid for Kubernetes Secret Stores.
+   *
+   * @schema S3EndpointSpecPublishConnectionDetailsToMetadata#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecPublishConnectionDetailsToMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecPublishConnectionDetailsToMetadata(obj: S3EndpointSpecPublishConnectionDetailsToMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema S3EndpointSpecForProviderKmsKeyArnRefPolicy
+ */
+export interface S3EndpointSpecForProviderKmsKeyArnRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema S3EndpointSpecForProviderKmsKeyArnRefPolicy#resolution
+   */
+  readonly resolution?: S3EndpointSpecForProviderKmsKeyArnRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema S3EndpointSpecForProviderKmsKeyArnRefPolicy#resolve
+   */
+  readonly resolve?: S3EndpointSpecForProviderKmsKeyArnRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecForProviderKmsKeyArnRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecForProviderKmsKeyArnRefPolicy(obj: S3EndpointSpecForProviderKmsKeyArnRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema S3EndpointSpecForProviderKmsKeyArnSelectorPolicy
+ */
+export interface S3EndpointSpecForProviderKmsKeyArnSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema S3EndpointSpecForProviderKmsKeyArnSelectorPolicy#resolution
+   */
+  readonly resolution?: S3EndpointSpecForProviderKmsKeyArnSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema S3EndpointSpecForProviderKmsKeyArnSelectorPolicy#resolve
+   */
+  readonly resolve?: S3EndpointSpecForProviderKmsKeyArnSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecForProviderKmsKeyArnSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecForProviderKmsKeyArnSelectorPolicy(obj: S3EndpointSpecForProviderKmsKeyArnSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRefPolicy
+ */
+export interface S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRefPolicy#resolution
+   */
+  readonly resolution?: S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRefPolicy#resolve
+   */
+  readonly resolve?: S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRefPolicy(obj: S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelectorPolicy
+ */
+export interface S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelectorPolicy#resolution
+   */
+  readonly resolution?: S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelectorPolicy#resolve
+   */
+  readonly resolve?: S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelectorPolicy(obj: S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema S3EndpointSpecForProviderServiceAccessRoleArnRefPolicy
+ */
+export interface S3EndpointSpecForProviderServiceAccessRoleArnRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema S3EndpointSpecForProviderServiceAccessRoleArnRefPolicy#resolution
+   */
+  readonly resolution?: S3EndpointSpecForProviderServiceAccessRoleArnRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema S3EndpointSpecForProviderServiceAccessRoleArnRefPolicy#resolve
+   */
+  readonly resolve?: S3EndpointSpecForProviderServiceAccessRoleArnRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecForProviderServiceAccessRoleArnRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecForProviderServiceAccessRoleArnRefPolicy(obj: S3EndpointSpecForProviderServiceAccessRoleArnRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema S3EndpointSpecForProviderServiceAccessRoleArnSelectorPolicy
+ */
+export interface S3EndpointSpecForProviderServiceAccessRoleArnSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema S3EndpointSpecForProviderServiceAccessRoleArnSelectorPolicy#resolution
+   */
+  readonly resolution?: S3EndpointSpecForProviderServiceAccessRoleArnSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema S3EndpointSpecForProviderServiceAccessRoleArnSelectorPolicy#resolve
+   */
+  readonly resolve?: S3EndpointSpecForProviderServiceAccessRoleArnSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecForProviderServiceAccessRoleArnSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecForProviderServiceAccessRoleArnSelectorPolicy(obj: S3EndpointSpecForProviderServiceAccessRoleArnSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema S3EndpointSpecProviderConfigRefPolicyResolution
+ */
+export enum S3EndpointSpecProviderConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema S3EndpointSpecProviderConfigRefPolicyResolve
+ */
+export enum S3EndpointSpecProviderConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema S3EndpointSpecProviderRefPolicyResolution
+ */
+export enum S3EndpointSpecProviderRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema S3EndpointSpecProviderRefPolicyResolve
+ */
+export enum S3EndpointSpecProviderRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Policies for referencing.
+ *
+ * @schema S3EndpointSpecPublishConnectionDetailsToConfigRefPolicy
+ */
+export interface S3EndpointSpecPublishConnectionDetailsToConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema S3EndpointSpecPublishConnectionDetailsToConfigRefPolicy#resolution
+   */
+  readonly resolution?: S3EndpointSpecPublishConnectionDetailsToConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema S3EndpointSpecPublishConnectionDetailsToConfigRefPolicy#resolve
+   */
+  readonly resolve?: S3EndpointSpecPublishConnectionDetailsToConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'S3EndpointSpecPublishConnectionDetailsToConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_S3EndpointSpecPublishConnectionDetailsToConfigRefPolicy(obj: S3EndpointSpecPublishConnectionDetailsToConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema S3EndpointSpecForProviderKmsKeyArnRefPolicyResolution
+ */
+export enum S3EndpointSpecForProviderKmsKeyArnRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema S3EndpointSpecForProviderKmsKeyArnRefPolicyResolve
+ */
+export enum S3EndpointSpecForProviderKmsKeyArnRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema S3EndpointSpecForProviderKmsKeyArnSelectorPolicyResolution
+ */
+export enum S3EndpointSpecForProviderKmsKeyArnSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema S3EndpointSpecForProviderKmsKeyArnSelectorPolicyResolve
+ */
+export enum S3EndpointSpecForProviderKmsKeyArnSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRefPolicyResolution
+ */
+export enum S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRefPolicyResolve
+ */
+export enum S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelectorPolicyResolution
+ */
+export enum S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelectorPolicyResolve
+ */
+export enum S3EndpointSpecForProviderServerSideEncryptionKmsKeyIdSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema S3EndpointSpecForProviderServiceAccessRoleArnRefPolicyResolution
+ */
+export enum S3EndpointSpecForProviderServiceAccessRoleArnRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema S3EndpointSpecForProviderServiceAccessRoleArnRefPolicyResolve
+ */
+export enum S3EndpointSpecForProviderServiceAccessRoleArnRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema S3EndpointSpecForProviderServiceAccessRoleArnSelectorPolicyResolution
+ */
+export enum S3EndpointSpecForProviderServiceAccessRoleArnSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema S3EndpointSpecForProviderServiceAccessRoleArnSelectorPolicyResolve
+ */
+export enum S3EndpointSpecForProviderServiceAccessRoleArnSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema S3EndpointSpecPublishConnectionDetailsToConfigRefPolicyResolution
+ */
+export enum S3EndpointSpecPublishConnectionDetailsToConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema S3EndpointSpecPublishConnectionDetailsToConfigRefPolicyResolve
+ */
+export enum S3EndpointSpecPublishConnectionDetailsToConfigRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

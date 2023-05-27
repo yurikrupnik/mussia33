@@ -99,7 +99,7 @@ export function toJson_DeliveryStreamProps(obj: DeliveryStreamProps | undefined)
  */
 export interface DeliveryStreamSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DeliveryStreamSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface DeliveryStreamSpec {
    * @schema DeliveryStreamSpec#forProvider
    */
   readonly forProvider: DeliveryStreamSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema DeliveryStreamSpec#managementPolicy
+   */
+  readonly managementPolicy?: DeliveryStreamSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_DeliveryStreamSpec(obj: DeliveryStreamSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DeliveryStreamSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_DeliveryStreamSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_DeliveryStreamSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DeliveryStreamSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_DeliveryStreamSpec(obj: DeliveryStreamSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DeliveryStreamSpecDeletionPolicy
  */
@@ -183,11 +191,11 @@ export interface DeliveryStreamSpecForProvider {
   readonly arn?: string;
 
   /**
-   * –  This is the destination to where the data is delivered. The only options are s3 (Deprecated, use extended_s3 instead), extended_s3, redshift, elasticsearch, splunk, and http_endpoint.
+   * –  This is the destination to where the data is delivered. The only options are s3 (Deprecated, use extended_s3 instead), extended_s3, redshift, elasticsearch, splunk, http_endpoint and opensearch.
    *
    * @schema DeliveryStreamSpecForProvider#destination
    */
-  readonly destination: string;
+  readonly destination?: string;
 
   /**
    * @schema DeliveryStreamSpecForProvider#destinationId
@@ -227,7 +235,14 @@ export interface DeliveryStreamSpecForProvider {
    *
    * @schema DeliveryStreamSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
+
+  /**
+   * Configuration options if opensearch is the destination. More details are given below.
+   *
+   * @schema DeliveryStreamSpecForProvider#opensearchConfiguration
+   */
+  readonly opensearchConfiguration?: DeliveryStreamSpecForProviderOpensearchConfiguration[];
 
   /**
    * Configuration options if redshift is the destination. Using redshift_configuration requires the user to also specify a s3_configuration block. More details are given below.
@@ -296,6 +311,7 @@ export function toJson_DeliveryStreamSpecForProvider(obj: DeliveryStreamSpecForP
     'httpEndpointConfiguration': obj.httpEndpointConfiguration?.map(y => toJson_DeliveryStreamSpecForProviderHttpEndpointConfiguration(y)),
     'kinesisSourceConfiguration': obj.kinesisSourceConfiguration?.map(y => toJson_DeliveryStreamSpecForProviderKinesisSourceConfiguration(y)),
     'name': obj.name,
+    'opensearchConfiguration': obj.opensearchConfiguration?.map(y => toJson_DeliveryStreamSpecForProviderOpensearchConfiguration(y)),
     'redshiftConfiguration': obj.redshiftConfiguration?.map(y => toJson_DeliveryStreamSpecForProviderRedshiftConfiguration(y)),
     'region': obj.region,
     's3Configuration': obj.s3Configuration?.map(y => toJson_DeliveryStreamSpecForProviderS3Configuration(y)),
@@ -308,6 +324,20 @@ export function toJson_DeliveryStreamSpecForProvider(obj: DeliveryStreamSpecForP
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema DeliveryStreamSpecManagementPolicy
+ */
+export enum DeliveryStreamSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -935,6 +965,161 @@ export function toJson_DeliveryStreamSpecForProviderKinesisSourceConfiguration(o
   const result = {
     'kinesisStreamArn': obj.kinesisStreamArn,
     'roleArn': obj.roleArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecForProviderOpensearchConfiguration
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfiguration {
+  /**
+   * Buffer incoming data for the specified period of time, in seconds between 60 to 900, before delivering it to the destination.  The default value is 300s.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#bufferingInterval
+   */
+  readonly bufferingInterval?: number;
+
+  /**
+   * Buffer incoming data to the specified size, in MBs between 1 to 100, before delivering it to the destination.  The default value is 5MB.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#bufferingSize
+   */
+  readonly bufferingSize?: number;
+
+  /**
+   * The CloudWatch Logging Options for the delivery stream. More details are given below
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#cloudwatchLoggingOptions
+   */
+  readonly cloudwatchLoggingOptions?: DeliveryStreamSpecForProviderOpensearchConfigurationCloudwatchLoggingOptions[];
+
+  /**
+   * The endpoint to use when communicating with the cluster. Conflicts with domain_arn.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#clusterEndpoint
+   */
+  readonly clusterEndpoint?: string;
+
+  /**
+   * The ARN of the Amazon ES domain.  The pattern needs to be arn:.*.  Conflicts with cluster_endpoint.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#domainArn
+   */
+  readonly domainArn?: string;
+
+  /**
+   * Reference to a Domain in opensearch to populate domainArn.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#domainArnRef
+   */
+  readonly domainArnRef?: DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRef;
+
+  /**
+   * Selector for a Domain in opensearch to populate domainArn.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#domainArnSelector
+   */
+  readonly domainArnSelector?: DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelector;
+
+  /**
+   * The Elasticsearch index name.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#indexName
+   */
+  readonly indexName: string;
+
+  /**
+   * The Elasticsearch index rotation period.  Index rotation appends a timestamp to the IndexName to facilitate expiration of old data.  Valid values are NoRotation, OneHour, OneDay, OneWeek, and OneMonth.  The default value is OneDay.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#indexRotationPeriod
+   */
+  readonly indexRotationPeriod?: string;
+
+  /**
+   * The data processing configuration.  More details are given below.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#processingConfiguration
+   */
+  readonly processingConfiguration?: DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfiguration[];
+
+  /**
+   * The length of time during which Firehose retries delivery after a failure, starting from the initial request and including the first attempt. The default value is 3600 seconds (60 minutes). Firehose does not retry if the value of DurationInSeconds is 0 (zero) or if the first delivery attempt takes longer than the current value.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#retryDuration
+   */
+  readonly retryDuration?: number;
+
+  /**
+   * The ARN of the AWS credentials.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#roleArn
+   */
+  readonly roleArn?: string;
+
+  /**
+   * Reference to a Role in iam to populate roleArn.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#roleArnRef
+   */
+  readonly roleArnRef?: DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRef;
+
+  /**
+   * Selector for a Role in iam to populate roleArn.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#roleArnSelector
+   */
+  readonly roleArnSelector?: DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelector;
+
+  /**
+   * The Amazon S3 backup mode.  Valid values are Disabled and Enabled.  Default value is Disabled.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#s3BackupMode
+   */
+  readonly s3BackupMode?: string;
+
+  /**
+   * The Elasticsearch type name with maximum length of 100 characters.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#typeName
+   */
+  readonly typeName?: string;
+
+  /**
+   * The VPC configuration for the delivery stream to connect to Elastic Search associated with the VPC. More details are given below
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#vpcConfig
+   */
+  readonly vpcConfig?: DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfig[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfiguration(obj: DeliveryStreamSpecForProviderOpensearchConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bufferingInterval': obj.bufferingInterval,
+    'bufferingSize': obj.bufferingSize,
+    'cloudwatchLoggingOptions': obj.cloudwatchLoggingOptions?.map(y => toJson_DeliveryStreamSpecForProviderOpensearchConfigurationCloudwatchLoggingOptions(y)),
+    'clusterEndpoint': obj.clusterEndpoint,
+    'domainArn': obj.domainArn,
+    'domainArnRef': toJson_DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRef(obj.domainArnRef),
+    'domainArnSelector': toJson_DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelector(obj.domainArnSelector),
+    'indexName': obj.indexName,
+    'indexRotationPeriod': obj.indexRotationPeriod,
+    'processingConfiguration': obj.processingConfiguration?.map(y => toJson_DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfiguration(y)),
+    'retryDuration': obj.retryDuration,
+    'roleArn': obj.roleArn,
+    'roleArnRef': toJson_DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRef(obj.roleArnRef),
+    'roleArnSelector': toJson_DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelector(obj.roleArnSelector),
+    's3BackupMode': obj.s3BackupMode,
+    'typeName': obj.typeName,
+    'vpcConfig': obj.vpcConfig?.map(y => toJson_DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfig(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2448,6 +2633,309 @@ export function toJson_DeliveryStreamSpecForProviderHttpEndpointConfigurationRol
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationCloudwatchLoggingOptions
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationCloudwatchLoggingOptions {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationCloudwatchLoggingOptions#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The CloudWatch group name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationCloudwatchLoggingOptions#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * The CloudWatch log stream name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationCloudwatchLoggingOptions#logStreamName
+   */
+  readonly logStreamName?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationCloudwatchLoggingOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationCloudwatchLoggingOptions(obj: DeliveryStreamSpecForProviderOpensearchConfigurationCloudwatchLoggingOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logGroupName': obj.logGroupName,
+    'logStreamName': obj.logStreamName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a Domain in opensearch to populate domainArn.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRef
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRef#policy
+   */
+  readonly policy?: DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRef(obj: DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a Domain in opensearch to populate domainArn.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelector
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelector#policy
+   */
+  readonly policy?: DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelector(obj: DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfiguration
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfiguration {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Array of data processors. More details are given below
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfiguration#processors
+   */
+  readonly processors?: DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessors[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfiguration(obj: DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'processors': obj.processors?.map(y => toJson_DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessors(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a Role in iam to populate roleArn.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRef
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRef#policy
+   */
+  readonly policy?: DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRef(obj: DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a Role in iam to populate roleArn.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelector
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelector#policy
+   */
+  readonly policy?: DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelector(obj: DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfig
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfig {
+  /**
+   * The ARN of the AWS credentials.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfig#roleArn
+   */
+  readonly roleArn?: string;
+
+  /**
+   * Reference to a Role in iam to populate roleArn.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfig#roleArnRef
+   */
+  readonly roleArnRef?: DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRef;
+
+  /**
+   * Selector for a Role in iam to populate roleArn.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfig#roleArnSelector
+   */
+  readonly roleArnSelector?: DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelector;
+
+  /**
+   * A list of security group IDs to associate with Kinesis Firehose.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfig#securityGroupIds
+   */
+  readonly securityGroupIds: string[];
+
+  /**
+   * A list of subnet IDs to associate with Kinesis Firehose.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfig#subnetIds
+   */
+  readonly subnetIds: string[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfig(obj: DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'roleArn': obj.roleArn,
+    'roleArnRef': toJson_DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRef(obj.roleArnRef),
+    'roleArnSelector': toJson_DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelector(obj.roleArnSelector),
+    'securityGroupIds': obj.securityGroupIds?.map(y => y),
+    'subnetIds': obj.subnetIds?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema DeliveryStreamSpecForProviderRedshiftConfigurationCloudwatchLoggingOptions
  */
 export interface DeliveryStreamSpecForProviderRedshiftConfigurationCloudwatchLoggingOptions {
@@ -3941,6 +4429,271 @@ export function toJson_DeliveryStreamSpecForProviderHttpEndpointConfigurationRol
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Policies for referencing.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRefPolicy
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRefPolicy#resolution
+   */
+  readonly resolution?: DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRefPolicy#resolve
+   */
+  readonly resolve?: DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRefPolicy(obj: DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelectorPolicy
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelectorPolicy#resolution
+   */
+  readonly resolution?: DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelectorPolicy#resolve
+   */
+  readonly resolve?: DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelectorPolicy(obj: DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessors
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessors {
+  /**
+   * Array of processor parameters. More details are given below
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessors#parameters
+   */
+  readonly parameters?: DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters[];
+
+  /**
+   * The type of processor. Valid Values: RecordDeAggregation, Lambda, MetadataExtraction, AppendDelimiterToRecord. Validation is done against AWS SDK constants; so that values not explicitly listed may also work.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessors#type
+   */
+  readonly type: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessors' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessors(obj: DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessors | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'parameters': obj.parameters?.map(y => toJson_DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRefPolicy
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRefPolicy#resolution
+   */
+  readonly resolution?: DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRefPolicy#resolve
+   */
+  readonly resolve?: DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRefPolicy(obj: DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelectorPolicy
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelectorPolicy#resolution
+   */
+  readonly resolution?: DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelectorPolicy#resolve
+   */
+  readonly resolve?: DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelectorPolicy(obj: DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a Role in iam to populate roleArn.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRef
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRef#policy
+   */
+  readonly policy?: DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRef(obj: DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a Role in iam to populate roleArn.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelector
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelector#policy
+   */
+  readonly policy?: DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelector(obj: DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema DeliveryStreamSpecForProviderRedshiftConfigurationProcessingConfigurationProcessors
  */
 export interface DeliveryStreamSpecForProviderRedshiftConfigurationProcessingConfigurationProcessors {
@@ -5118,6 +5871,211 @@ export enum DeliveryStreamSpecForProviderHttpEndpointConfigurationRoleArnSelecto
 }
 
 /**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRefPolicyResolution
+ */
+export enum DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRefPolicyResolve
+ */
+export enum DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelectorPolicyResolution
+ */
+export enum DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelectorPolicyResolve
+ */
+export enum DeliveryStreamSpecForProviderOpensearchConfigurationDomainArnSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters {
+  /**
+   * Parameter name. Valid Values: LambdaArn, NumberOfRetries, MetadataExtractionQuery, JsonParsingEngine, RoleArn, BufferSizeInMBs, BufferIntervalInSeconds, SubRecordType, Delimiter. Validation is done against AWS SDK constants; so that values not explicitly listed may also work.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters#parameterName
+   */
+  readonly parameterName: string;
+
+  /**
+   * Parameter value. Must be between 1 and 512 length (inclusive). When providing a Lambda ARN, you should specify the resource version as well.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters#parameterValue
+   */
+  readonly parameterValue: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters(obj: DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'parameterName': obj.parameterName,
+    'parameterValue': obj.parameterValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRefPolicyResolution
+ */
+export enum DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRefPolicyResolve
+ */
+export enum DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelectorPolicyResolution
+ */
+export enum DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelectorPolicyResolve
+ */
+export enum DeliveryStreamSpecForProviderOpensearchConfigurationRoleArnSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Policies for referencing.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRefPolicy
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRefPolicy#resolution
+   */
+  readonly resolution?: DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRefPolicy#resolve
+   */
+  readonly resolve?: DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRefPolicy(obj: DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelectorPolicy
+ */
+export interface DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelectorPolicy#resolution
+   */
+  readonly resolution?: DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelectorPolicy#resolve
+   */
+  readonly resolve?: DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelectorPolicy(obj: DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema DeliveryStreamSpecForProviderRedshiftConfigurationProcessingConfigurationProcessorsParameters
  */
 export interface DeliveryStreamSpecForProviderRedshiftConfigurationProcessingConfigurationProcessorsParameters {
@@ -5911,6 +6869,54 @@ export function toJson_DeliveryStreamSpecForProviderExtendedS3ConfigurationDataF
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRefPolicyResolution
+ */
+export enum DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRefPolicyResolve
+ */
+export enum DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelectorPolicyResolution
+ */
+export enum DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelectorPolicyResolve
+ */
+export enum DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfigRoleArnSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
 
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.

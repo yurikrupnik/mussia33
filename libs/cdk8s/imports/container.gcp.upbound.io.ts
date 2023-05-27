@@ -99,7 +99,7 @@ export function toJson_ClusterProps(obj: ClusterProps | undefined): Record<strin
  */
 export interface ClusterSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ClusterSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface ClusterSpec {
    * @schema ClusterSpec#forProvider
    */
   readonly forProvider: ClusterSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ClusterSpec#managementPolicy
+   */
+  readonly managementPolicy?: ClusterSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_ClusterSpec(obj: ClusterSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ClusterSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_ClusterSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_ClusterSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ClusterSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_ClusterSpec(obj: ClusterSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ClusterSpecDeletionPolicy
  */
@@ -651,6 +659,20 @@ export function toJson_ClusterSpecForProvider(obj: ClusterSpecForProvider | unde
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ClusterSpecManagementPolicy
+ */
+export enum ClusterSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1211,6 +1233,11 @@ export interface ClusterSpecForProviderIpAllocationPolicy {
   readonly clusterSecondaryRangeName?: string;
 
   /**
+   * @schema ClusterSpecForProviderIpAllocationPolicy#podCidrOverprovisionConfig
+   */
+  readonly podCidrOverprovisionConfig?: ClusterSpecForProviderIpAllocationPolicyPodCidrOverprovisionConfig[];
+
+  /**
    * The IP address range of the services IPs in this cluster. Set to blank to have a range chosen with the default size. Set to /netmask (e.g. /14) to have a range chosen with a specific netmask. Set to a CIDR notation (e.g. 10.96.0.0/14) from the RFC-1918 private networks (e.g. 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) to pick a specific range to use.
    *
    * @schema ClusterSpecForProviderIpAllocationPolicy#servicesIpv4CidrBlock
@@ -1224,6 +1251,13 @@ export interface ClusterSpecForProviderIpAllocationPolicy {
    */
   readonly servicesSecondaryRangeName?: string;
 
+  /**
+   * The IP Stack Type of the cluster. Default value is IPV4. Possible values are IPV4 and IPV4_IPV6.
+   *
+   * @schema ClusterSpecForProviderIpAllocationPolicy#stackType
+   */
+  readonly stackType?: string;
+
 }
 
 /**
@@ -1235,8 +1269,10 @@ export function toJson_ClusterSpecForProviderIpAllocationPolicy(obj: ClusterSpec
   const result = {
     'clusterIpv4CidrBlock': obj.clusterIpv4CidrBlock,
     'clusterSecondaryRangeName': obj.clusterSecondaryRangeName,
+    'podCidrOverprovisionConfig': obj.podCidrOverprovisionConfig?.map(y => toJson_ClusterSpecForProviderIpAllocationPolicyPodCidrOverprovisionConfig(y)),
     'servicesIpv4CidrBlock': obj.servicesIpv4CidrBlock,
     'servicesSecondaryRangeName': obj.servicesSecondaryRangeName,
+    'stackType': obj.stackType,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1560,6 +1596,13 @@ export function toJson_ClusterSpecForProviderNetworkSelector(obj: ClusterSpecFor
  */
 export interface ClusterSpecForProviderNodeConfig {
   /**
+   * Specifies options for controlling advanced machine features. Structure is documented below.
+   *
+   * @schema ClusterSpecForProviderNodeConfig#advancedMachineFeatures
+   */
+  readonly advancedMachineFeatures?: ClusterSpecForProviderNodeConfigAdvancedMachineFeatures[];
+
+  /**
    * The Customer Managed Encryption Key used to encrypt the boot disk attached to each node in the node pool. This should be of the form projects/[KEY_PROJECT_ID]/locations/[LOCATION]/keyRings/[RING_NAME]/cryptoKeys/[KEY_NAME]. For more information about protecting resources with Cloud KMS Keys please see: https://cloud.google.com/compute/docs/disks/customer-managed-encryption
    *
    * @schema ClusterSpecForProviderNodeConfig#bootDiskKmsKey
@@ -1580,6 +1623,13 @@ export interface ClusterSpecForProviderNodeConfig {
    * @schema ClusterSpecForProviderNodeConfig#diskType
    */
   readonly diskType?: string;
+
+  /**
+   * Parameters for the ephemeral storage filesystem. If unspecified, ephemeral storage is backed by the boot disk. Structure is documented below.
+   *
+   * @schema ClusterSpecForProviderNodeConfig#ephemeralStorageLocalSsdConfig
+   */
+  readonly ephemeralStorageLocalSsdConfig?: ClusterSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig[];
 
   /**
    * Parameters for the Google Container Filesystem (GCFS). If unspecified, GCFS will not be enabled on the node pool. When enabling this feature you must specify image_type = "COS_CONTAINERD" and node_version from GKE versions 1.19 or later to use it. For GKE versions 1.19, 1.20, and 1.21, the recommended minimum node_version would be 1.19.15-gke.1300, 1.20.11-gke.1300, and 1.21.5-gke.1300 respectively. A machine_type that has more than 16 GiB of memory is also recommended. GCFS must be enabled in order to use image streaming. Structure is documented below.
@@ -1629,6 +1679,13 @@ export interface ClusterSpecForProviderNodeConfig {
    * @schema ClusterSpecForProviderNodeConfig#linuxNodeConfig
    */
   readonly linuxNodeConfig?: ClusterSpecForProviderNodeConfigLinuxNodeConfig[];
+
+  /**
+   * Parameters for the local NVMe SSDs. Structure is documented below.
+   *
+   * @schema ClusterSpecForProviderNodeConfig#localNvmeSsdBlockConfig
+   */
+  readonly localNvmeSsdBlockConfig?: ClusterSpecForProviderNodeConfigLocalNvmeSsdBlockConfig[];
 
   /**
    * The amount of local SSD disks that will be attached to each cluster node. Defaults to 0.
@@ -1769,9 +1826,11 @@ export interface ClusterSpecForProviderNodeConfig {
 export function toJson_ClusterSpecForProviderNodeConfig(obj: ClusterSpecForProviderNodeConfig | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'advancedMachineFeatures': obj.advancedMachineFeatures?.map(y => toJson_ClusterSpecForProviderNodeConfigAdvancedMachineFeatures(y)),
     'bootDiskKmsKey': obj.bootDiskKmsKey,
     'diskSizeGb': obj.diskSizeGb,
     'diskType': obj.diskType,
+    'ephemeralStorageLocalSsdConfig': obj.ephemeralStorageLocalSsdConfig?.map(y => toJson_ClusterSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig(y)),
     'gcfsConfig': obj.gcfsConfig?.map(y => toJson_ClusterSpecForProviderNodeConfigGcfsConfig(y)),
     'guestAccelerator': obj.guestAccelerator?.map(y => toJson_ClusterSpecForProviderNodeConfigGuestAccelerator(y)),
     'gvnic': obj.gvnic?.map(y => toJson_ClusterSpecForProviderNodeConfigGvnic(y)),
@@ -1779,6 +1838,7 @@ export function toJson_ClusterSpecForProviderNodeConfig(obj: ClusterSpecForProvi
     'kubeletConfig': obj.kubeletConfig?.map(y => toJson_ClusterSpecForProviderNodeConfigKubeletConfig(y)),
     'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'linuxNodeConfig': obj.linuxNodeConfig?.map(y => toJson_ClusterSpecForProviderNodeConfigLinuxNodeConfig(y)),
+    'localNvmeSsdBlockConfig': obj.localNvmeSsdBlockConfig?.map(y => toJson_ClusterSpecForProviderNodeConfigLocalNvmeSsdBlockConfig(y)),
     'localSsdCount': obj.localSsdCount,
     'loggingVariant': obj.loggingVariant,
     'machineType': obj.machineType,
@@ -2701,6 +2761,33 @@ export function toJson_ClusterSpecForProviderClusterAutoscalingResourceLimits(ob
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ClusterSpecForProviderIpAllocationPolicyPodCidrOverprovisionConfig
+ */
+export interface ClusterSpecForProviderIpAllocationPolicyPodCidrOverprovisionConfig {
+  /**
+   * The status of the Istio addon, which makes it easy to set up Istio for services in a cluster. It is disabled by default. Set disabled = false to enable.
+   *
+   * @schema ClusterSpecForProviderIpAllocationPolicyPodCidrOverprovisionConfig#disabled
+   */
+  readonly disabled: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderIpAllocationPolicyPodCidrOverprovisionConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderIpAllocationPolicyPodCidrOverprovisionConfig(obj: ClusterSpecForProviderIpAllocationPolicyPodCidrOverprovisionConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'disabled': obj.disabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ClusterSpecForProviderMaintenancePolicyDailyMaintenanceWindow
  */
 export interface ClusterSpecForProviderMaintenancePolicyDailyMaintenanceWindow {
@@ -2971,6 +3058,61 @@ export function toJson_ClusterSpecForProviderNetworkSelectorPolicy(obj: ClusterS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ClusterSpecForProviderNodeConfigAdvancedMachineFeatures
+ */
+export interface ClusterSpecForProviderNodeConfigAdvancedMachineFeatures {
+  /**
+   * The number of threads per physical core. To disable simultaneous multithreading (SMT) set this to 1. If unset, the maximum number of threads supported per core by the underlying processor is assumed.
+   *
+   * @schema ClusterSpecForProviderNodeConfigAdvancedMachineFeatures#threadsPerCore
+   */
+  readonly threadsPerCore: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderNodeConfigAdvancedMachineFeatures' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderNodeConfigAdvancedMachineFeatures(obj: ClusterSpecForProviderNodeConfigAdvancedMachineFeatures | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'threadsPerCore': obj.threadsPerCore,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig
+ */
+export interface ClusterSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig {
+  /**
+   * The amount of local SSD disks that will be attached to each cluster node. Defaults to 0.
+   *
+   * @default 0.
+   * @schema ClusterSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig#localSsdCount
+   */
+  readonly localSsdCount: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig(obj: ClusterSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'localSsdCount': obj.localSsdCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ClusterSpecForProviderNodeConfigGcfsConfig
  */
 export interface ClusterSpecForProviderNodeConfigGcfsConfig {
@@ -3148,6 +3290,34 @@ export function toJson_ClusterSpecForProviderNodeConfigLinuxNodeConfig(obj: Clus
   if (obj === undefined) { return undefined; }
   const result = {
     'sysctls': ((obj.sysctls) === undefined) ? undefined : (Object.entries(obj.sysctls).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecForProviderNodeConfigLocalNvmeSsdBlockConfig
+ */
+export interface ClusterSpecForProviderNodeConfigLocalNvmeSsdBlockConfig {
+  /**
+   * The amount of local SSD disks that will be attached to each cluster node. Defaults to 0.
+   *
+   * @default 0.
+   * @schema ClusterSpecForProviderNodeConfigLocalNvmeSsdBlockConfig#localSsdCount
+   */
+  readonly localSsdCount: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderNodeConfigLocalNvmeSsdBlockConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderNodeConfigLocalNvmeSsdBlockConfig(obj: ClusterSpecForProviderNodeConfigLocalNvmeSsdBlockConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'localSsdCount': obj.localSsdCount,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4296,7 +4466,7 @@ export function toJson_NodePoolProps(obj: NodePoolProps | undefined): Record<str
  */
 export interface NodePoolSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema NodePoolSpec#deletionPolicy
    */
@@ -4306,6 +4476,13 @@ export interface NodePoolSpec {
    * @schema NodePoolSpec#forProvider
    */
   readonly forProvider: NodePoolSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema NodePoolSpec#managementPolicy
+   */
+  readonly managementPolicy?: NodePoolSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4346,6 +4523,7 @@ export function toJson_NodePoolSpec(obj: NodePoolSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_NodePoolSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_NodePoolSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_NodePoolSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_NodePoolSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -4357,7 +4535,7 @@ export function toJson_NodePoolSpec(obj: NodePoolSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema NodePoolSpecDeletionPolicy
  */
@@ -4514,6 +4692,20 @@ export function toJson_NodePoolSpecForProvider(obj: NodePoolSpecForProvider | un
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema NodePoolSpecManagementPolicy
+ */
+export enum NodePoolSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4866,6 +5058,11 @@ export interface NodePoolSpecForProviderNetworkConfig {
   readonly enablePrivateNodes?: boolean;
 
   /**
+   * @schema NodePoolSpecForProviderNetworkConfig#podCidrOverprovisionConfig
+   */
+  readonly podCidrOverprovisionConfig?: NodePoolSpecForProviderNetworkConfigPodCidrOverprovisionConfig[];
+
+  /**
    * The IP address range for pod IPs in this node pool. Only applicable if createPodRange is true. Set to blank to have a range chosen with the default size. Set to /netmask (e.g. /14) to have a range chosen with a specific netmask. Set to a CIDR notation (e.g. 10.96.0.0/14) to pick a specific range to use.
    *
    * @schema NodePoolSpecForProviderNetworkConfig#podIpv4CidrBlock
@@ -4890,6 +5087,7 @@ export function toJson_NodePoolSpecForProviderNetworkConfig(obj: NodePoolSpecFor
   const result = {
     'createPodRange': obj.createPodRange,
     'enablePrivateNodes': obj.enablePrivateNodes,
+    'podCidrOverprovisionConfig': obj.podCidrOverprovisionConfig?.map(y => toJson_NodePoolSpecForProviderNetworkConfigPodCidrOverprovisionConfig(y)),
     'podIpv4CidrBlock': obj.podIpv4CidrBlock,
     'podRange': obj.podRange,
   };
@@ -4902,6 +5100,11 @@ export function toJson_NodePoolSpecForProviderNetworkConfig(obj: NodePoolSpecFor
  * @schema NodePoolSpecForProviderNodeConfig
  */
 export interface NodePoolSpecForProviderNodeConfig {
+  /**
+   * @schema NodePoolSpecForProviderNodeConfig#advancedMachineFeatures
+   */
+  readonly advancedMachineFeatures?: NodePoolSpecForProviderNodeConfigAdvancedMachineFeatures[];
+
   /**
    * @schema NodePoolSpecForProviderNodeConfig#bootDiskKmsKey
    */
@@ -4916,6 +5119,11 @@ export interface NodePoolSpecForProviderNodeConfig {
    * @schema NodePoolSpecForProviderNodeConfig#diskType
    */
   readonly diskType?: string;
+
+  /**
+   * @schema NodePoolSpecForProviderNodeConfig#ephemeralStorageLocalSsdConfig
+   */
+  readonly ephemeralStorageLocalSsdConfig?: NodePoolSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig[];
 
   /**
    * @schema NodePoolSpecForProviderNodeConfig#gcfsConfig
@@ -4953,6 +5161,11 @@ export interface NodePoolSpecForProviderNodeConfig {
    * @schema NodePoolSpecForProviderNodeConfig#linuxNodeConfig
    */
   readonly linuxNodeConfig?: NodePoolSpecForProviderNodeConfigLinuxNodeConfig[];
+
+  /**
+   * @schema NodePoolSpecForProviderNodeConfig#localNvmeSsdBlockConfig
+   */
+  readonly localNvmeSsdBlockConfig?: NodePoolSpecForProviderNodeConfigLocalNvmeSsdBlockConfig[];
 
   /**
    * @schema NodePoolSpecForProviderNodeConfig#localSsdCount
@@ -5057,9 +5270,11 @@ export interface NodePoolSpecForProviderNodeConfig {
 export function toJson_NodePoolSpecForProviderNodeConfig(obj: NodePoolSpecForProviderNodeConfig | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'advancedMachineFeatures': obj.advancedMachineFeatures?.map(y => toJson_NodePoolSpecForProviderNodeConfigAdvancedMachineFeatures(y)),
     'bootDiskKmsKey': obj.bootDiskKmsKey,
     'diskSizeGb': obj.diskSizeGb,
     'diskType': obj.diskType,
+    'ephemeralStorageLocalSsdConfig': obj.ephemeralStorageLocalSsdConfig?.map(y => toJson_NodePoolSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig(y)),
     'gcfsConfig': obj.gcfsConfig?.map(y => toJson_NodePoolSpecForProviderNodeConfigGcfsConfig(y)),
     'guestAccelerator': obj.guestAccelerator?.map(y => toJson_NodePoolSpecForProviderNodeConfigGuestAccelerator(y)),
     'gvnic': obj.gvnic?.map(y => toJson_NodePoolSpecForProviderNodeConfigGvnic(y)),
@@ -5067,6 +5282,7 @@ export function toJson_NodePoolSpecForProviderNodeConfig(obj: NodePoolSpecForPro
     'kubeletConfig': obj.kubeletConfig?.map(y => toJson_NodePoolSpecForProviderNodeConfigKubeletConfig(y)),
     'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'linuxNodeConfig': obj.linuxNodeConfig?.map(y => toJson_NodePoolSpecForProviderNodeConfigLinuxNodeConfig(y)),
+    'localNvmeSsdBlockConfig': obj.localNvmeSsdBlockConfig?.map(y => toJson_NodePoolSpecForProviderNodeConfigLocalNvmeSsdBlockConfig(y)),
     'localSsdCount': obj.localSsdCount,
     'loggingVariant': obj.loggingVariant,
     'machineType': obj.machineType,
@@ -5400,6 +5616,81 @@ export function toJson_NodePoolSpecForProviderClusterSelectorPolicy(obj: NodePoo
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema NodePoolSpecForProviderNetworkConfigPodCidrOverprovisionConfig
+ */
+export interface NodePoolSpecForProviderNetworkConfigPodCidrOverprovisionConfig {
+  /**
+   * @schema NodePoolSpecForProviderNetworkConfigPodCidrOverprovisionConfig#disabled
+   */
+  readonly disabled: boolean;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecForProviderNetworkConfigPodCidrOverprovisionConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecForProviderNetworkConfigPodCidrOverprovisionConfig(obj: NodePoolSpecForProviderNetworkConfigPodCidrOverprovisionConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'disabled': obj.disabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecForProviderNodeConfigAdvancedMachineFeatures
+ */
+export interface NodePoolSpecForProviderNodeConfigAdvancedMachineFeatures {
+  /**
+   * @schema NodePoolSpecForProviderNodeConfigAdvancedMachineFeatures#threadsPerCore
+   */
+  readonly threadsPerCore: number;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecForProviderNodeConfigAdvancedMachineFeatures' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecForProviderNodeConfigAdvancedMachineFeatures(obj: NodePoolSpecForProviderNodeConfigAdvancedMachineFeatures | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'threadsPerCore': obj.threadsPerCore,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig
+ */
+export interface NodePoolSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig {
+  /**
+   * @schema NodePoolSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig#localSsdCount
+   */
+  readonly localSsdCount: number;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig(obj: NodePoolSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'localSsdCount': obj.localSsdCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema NodePoolSpecForProviderNodeConfigGcfsConfig
  */
 export interface NodePoolSpecForProviderNodeConfigGcfsConfig {
@@ -5556,6 +5847,31 @@ export function toJson_NodePoolSpecForProviderNodeConfigLinuxNodeConfig(obj: Nod
   if (obj === undefined) { return undefined; }
   const result = {
     'sysctls': ((obj.sysctls) === undefined) ? undefined : (Object.entries(obj.sysctls).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecForProviderNodeConfigLocalNvmeSsdBlockConfig
+ */
+export interface NodePoolSpecForProviderNodeConfigLocalNvmeSsdBlockConfig {
+  /**
+   * @schema NodePoolSpecForProviderNodeConfigLocalNvmeSsdBlockConfig#localSsdCount
+   */
+  readonly localSsdCount: number;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecForProviderNodeConfigLocalNvmeSsdBlockConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecForProviderNodeConfigLocalNvmeSsdBlockConfig(obj: NodePoolSpecForProviderNodeConfigLocalNvmeSsdBlockConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'localSsdCount': obj.localSsdCount,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6259,7 +6575,7 @@ export function toJson_RegistryProps(obj: RegistryProps | undefined): Record<str
  */
 export interface RegistrySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RegistrySpec#deletionPolicy
    */
@@ -6269,6 +6585,13 @@ export interface RegistrySpec {
    * @schema RegistrySpec#forProvider
    */
   readonly forProvider: RegistrySpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema RegistrySpec#managementPolicy
+   */
+  readonly managementPolicy?: RegistrySpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6309,6 +6632,7 @@ export function toJson_RegistrySpec(obj: RegistrySpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RegistrySpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_RegistrySpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_RegistrySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RegistrySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -6320,7 +6644,7 @@ export function toJson_RegistrySpec(obj: RegistrySpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RegistrySpecDeletionPolicy
  */
@@ -6365,6 +6689,20 @@ export function toJson_RegistrySpecForProvider(obj: RegistrySpecForProvider | un
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema RegistrySpecManagementPolicy
+ */
+export enum RegistrySpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

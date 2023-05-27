@@ -119,6 +119,34 @@ export interface ProviderConfigSpec {
    */
   readonly endpoint?: ProviderConfigSpecEndpoint;
 
+  /**
+   * Whether to enable the request to use path-style addressing, i.e., https://s3.amazonaws.com/BUCKET/KEY.
+   *
+   * @schema ProviderConfigSpec#s3_use_path_style
+   */
+  readonly s3UsePathStyle?: boolean;
+
+  /**
+   * Whether to skip credentials validation via the STS API. This can be useful for testing and for AWS API implementations that do not have STS available.
+   *
+   * @schema ProviderConfigSpec#skip_credentials_validation
+   */
+  readonly skipCredentialsValidation?: boolean;
+
+  /**
+   * Whether to skip the AWS Metadata API check Useful for AWS API implementations that do not have a metadata API endpoint.
+   *
+   * @schema ProviderConfigSpec#skip_metadata_api_check
+   */
+  readonly skipMetadataApiCheck?: boolean;
+
+  /**
+   * Whether to skip requesting the account ID. Useful for AWS API implementations that do not have the IAM, STS API, or metadata API
+   *
+   * @schema ProviderConfigSpec#skip_requesting_account_id
+   */
+  readonly skipRequestingAccountId?: boolean;
+
 }
 
 /**
@@ -131,6 +159,10 @@ export function toJson_ProviderConfigSpec(obj: ProviderConfigSpec | undefined): 
     'assumeRoleChain': obj.assumeRoleChain?.map(y => toJson_ProviderConfigSpecAssumeRoleChain(y)),
     'credentials': toJson_ProviderConfigSpecCredentials(obj.credentials),
     'endpoint': toJson_ProviderConfigSpecEndpoint(obj.endpoint),
+    's3_use_path_style': obj.s3UsePathStyle,
+    'skip_credentials_validation': obj.skipCredentialsValidation,
+    'skip_metadata_api_check': obj.skipMetadataApiCheck,
+    'skip_requesting_account_id': obj.skipRequestingAccountId,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -284,6 +316,13 @@ export interface ProviderConfigSpecEndpoint {
   readonly partitionId?: string;
 
   /**
+   * Specifies the list of services you want endpoint to be used for
+   *
+   * @schema ProviderConfigSpecEndpoint#services
+   */
+  readonly services?: string[];
+
+  /**
    * The signing method that should be used for signing the requests to the endpoint.
    *
    * @schema ProviderConfigSpecEndpoint#signingMethod
@@ -329,6 +368,7 @@ export function toJson_ProviderConfigSpecEndpoint(obj: ProviderConfigSpecEndpoin
   const result = {
     'hostnameImmutable': obj.hostnameImmutable,
     'partitionId': obj.partitionId,
+    'services': obj.services?.map(y => y),
     'signingMethod': obj.signingMethod,
     'signingName': obj.signingName,
     'signingRegion': obj.signingRegion,
@@ -1079,15 +1119,22 @@ export interface StoreConfigSpec {
   readonly kubernetes?: StoreConfigSpecKubernetes;
 
   /**
+   * Plugin configures External secret store as a plugin.
+   *
+   * @schema StoreConfigSpec#plugin
+   */
+  readonly plugin?: StoreConfigSpecPlugin;
+
+  /**
    * Type configures which secret store to be used. Only the configuration block for this store will be used and others will be ignored if provided. Default is Kubernetes.
    *
    * @default Kubernetes.
    * @schema StoreConfigSpec#type
    */
-  readonly type?: string;
+  readonly type?: StoreConfigSpecType;
 
   /**
-   * Vault configures a Vault secret store.
+   * Vault configures a Vault secret store. Deprecated: This API is scheduled to be removed in a future release. Vault should be used as a plugin going forward. See https://github.com/crossplane-contrib/ess-plugin-vault for more information.
    *
    * @schema StoreConfigSpec#vault
    */
@@ -1104,6 +1151,7 @@ export function toJson_StoreConfigSpec(obj: StoreConfigSpec | undefined): Record
   const result = {
     'defaultScope': obj.defaultScope,
     'kubernetes': toJson_StoreConfigSpecKubernetes(obj.kubernetes),
+    'plugin': toJson_StoreConfigSpecPlugin(obj.plugin),
     'type': obj.type,
     'vault': toJson_StoreConfigSpecVault(obj.vault),
   };
@@ -1142,7 +1190,59 @@ export function toJson_StoreConfigSpecKubernetes(obj: StoreConfigSpecKubernetes 
 /* eslint-enable max-len, quote-props */
 
 /**
- * Vault configures a Vault secret store.
+ * Plugin configures External secret store as a plugin.
+ *
+ * @schema StoreConfigSpecPlugin
+ */
+export interface StoreConfigSpecPlugin {
+  /**
+   * ConfigRef contains store config reference info.
+   *
+   * @schema StoreConfigSpecPlugin#configRef
+   */
+  readonly configRef?: StoreConfigSpecPluginConfigRef;
+
+  /**
+   * Endpoint is the endpoint of the gRPC server.
+   *
+   * @schema StoreConfigSpecPlugin#endpoint
+   */
+  readonly endpoint?: string;
+
+}
+
+/**
+ * Converts an object of type 'StoreConfigSpecPlugin' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StoreConfigSpecPlugin(obj: StoreConfigSpecPlugin | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configRef': toJson_StoreConfigSpecPluginConfigRef(obj.configRef),
+    'endpoint': obj.endpoint,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Type configures which secret store to be used. Only the configuration block for this store will be used and others will be ignored if provided. Default is Kubernetes.
+ *
+ * @default Kubernetes.
+ * @schema StoreConfigSpecType
+ */
+export enum StoreConfigSpecType {
+  /** Kubernetes */
+  KUBERNETES = "Kubernetes",
+  /** Vault */
+  VAULT = "Vault",
+  /** Plugin */
+  PLUGIN = "Plugin",
+}
+
+/**
+ * Vault configures a Vault secret store. Deprecated: This API is scheduled to be removed in a future release. Vault should be used as a plugin going forward. See https://github.com/crossplane-contrib/ess-plugin-vault for more information.
  *
  * @schema StoreConfigSpecVault
  */
@@ -1249,6 +1349,51 @@ export function toJson_StoreConfigSpecKubernetesAuth(obj: StoreConfigSpecKuberne
     'fs': toJson_StoreConfigSpecKubernetesAuthFs(obj.fs),
     'secretRef': toJson_StoreConfigSpecKubernetesAuthSecretRef(obj.secretRef),
     'source': obj.source,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ConfigRef contains store config reference info.
+ *
+ * @schema StoreConfigSpecPluginConfigRef
+ */
+export interface StoreConfigSpecPluginConfigRef {
+  /**
+   * APIVersion of the referenced config.
+   *
+   * @schema StoreConfigSpecPluginConfigRef#apiVersion
+   */
+  readonly apiVersion: string;
+
+  /**
+   * Kind of the referenced config.
+   *
+   * @schema StoreConfigSpecPluginConfigRef#kind
+   */
+  readonly kind: string;
+
+  /**
+   * Name of the referenced config.
+   *
+   * @schema StoreConfigSpecPluginConfigRef#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'StoreConfigSpecPluginConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StoreConfigSpecPluginConfigRef(obj: StoreConfigSpecPluginConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'apiVersion': obj.apiVersion,
+    'kind': obj.kind,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});

@@ -1,5 +1,4 @@
 import { App, Chart, ChartProps, Helm } from "cdk8s";
-// import { ConfigMap, Namespace, ServiceAccount } from 'cdk8s-plus-24';
 // import {MyChart}  from './src/deployment';
 import { Construct } from "constructs";
 import { Application, ApplicationV1Beta1 } from "../imports/core.oam.dev";
@@ -306,6 +305,8 @@ export class SecondChart extends Chart {
       // rolloutPlan: []
       // }
     });
+    // const kustomization = new Manifest(this, "my-kustomization");
+    // kustomization.synth();
   }
 }
 

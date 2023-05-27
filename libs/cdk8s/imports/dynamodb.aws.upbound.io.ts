@@ -99,7 +99,7 @@ export function toJson_ContributorInsightsProps(obj: ContributorInsightsProps | 
  */
 export interface ContributorInsightsSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ContributorInsightsSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface ContributorInsightsSpec {
    * @schema ContributorInsightsSpec#forProvider
    */
   readonly forProvider: ContributorInsightsSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ContributorInsightsSpec#managementPolicy
+   */
+  readonly managementPolicy?: ContributorInsightsSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_ContributorInsightsSpec(obj: ContributorInsightsSpec | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ContributorInsightsSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_ContributorInsightsSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_ContributorInsightsSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ContributorInsightsSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_ContributorInsightsSpec(obj: ContributorInsightsSpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ContributorInsightsSpecDeletionPolicy
  */
@@ -229,6 +237,20 @@ export function toJson_ContributorInsightsSpecForProvider(obj: ContributorInsigh
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ContributorInsightsSpecManagementPolicy
+ */
+export enum ContributorInsightsSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -952,7 +974,7 @@ export function toJson_GlobalTableProps(obj: GlobalTableProps | undefined): Reco
  */
 export interface GlobalTableSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema GlobalTableSpec#deletionPolicy
    */
@@ -962,6 +984,13 @@ export interface GlobalTableSpec {
    * @schema GlobalTableSpec#forProvider
    */
   readonly forProvider: GlobalTableSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema GlobalTableSpec#managementPolicy
+   */
+  readonly managementPolicy?: GlobalTableSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1002,6 +1031,7 @@ export function toJson_GlobalTableSpec(obj: GlobalTableSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_GlobalTableSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_GlobalTableSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_GlobalTableSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_GlobalTableSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -1013,7 +1043,7 @@ export function toJson_GlobalTableSpec(obj: GlobalTableSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema GlobalTableSpecDeletionPolicy
  */
@@ -1040,7 +1070,7 @@ export interface GlobalTableSpecForProvider {
    *
    * @schema GlobalTableSpecForProvider#replica
    */
-  readonly replica: GlobalTableSpecForProviderReplica[];
+  readonly replica?: GlobalTableSpecForProviderReplica[];
 
 }
 
@@ -1058,6 +1088,20 @@ export function toJson_GlobalTableSpecForProvider(obj: GlobalTableSpecForProvide
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema GlobalTableSpecManagementPolicy
+ */
+export enum GlobalTableSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1604,7 +1648,7 @@ export function toJson_KinesisStreamingDestinationProps(obj: KinesisStreamingDes
  */
 export interface KinesisStreamingDestinationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema KinesisStreamingDestinationSpec#deletionPolicy
    */
@@ -1614,6 +1658,13 @@ export interface KinesisStreamingDestinationSpec {
    * @schema KinesisStreamingDestinationSpec#forProvider
    */
   readonly forProvider: KinesisStreamingDestinationSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema KinesisStreamingDestinationSpec#managementPolicy
+   */
+  readonly managementPolicy?: KinesisStreamingDestinationSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1654,6 +1705,7 @@ export function toJson_KinesisStreamingDestinationSpec(obj: KinesisStreamingDest
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_KinesisStreamingDestinationSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_KinesisStreamingDestinationSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_KinesisStreamingDestinationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_KinesisStreamingDestinationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -1665,7 +1717,7 @@ export function toJson_KinesisStreamingDestinationSpec(obj: KinesisStreamingDest
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema KinesisStreamingDestinationSpecDeletionPolicy
  */
@@ -1750,6 +1802,20 @@ export function toJson_KinesisStreamingDestinationSpecForProvider(obj: KinesisSt
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema KinesisStreamingDestinationSpecManagementPolicy
+ */
+export enum KinesisStreamingDestinationSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2677,7 +2743,7 @@ export function toJson_TableProps(obj: TableProps | undefined): Record<string, a
  */
 export interface TableSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema TableSpec#deletionPolicy
    */
@@ -2687,6 +2753,13 @@ export interface TableSpec {
    * @schema TableSpec#forProvider
    */
   readonly forProvider: TableSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema TableSpec#managementPolicy
+   */
+  readonly managementPolicy?: TableSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2727,6 +2800,7 @@ export function toJson_TableSpec(obj: TableSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_TableSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_TableSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_TableSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_TableSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -2738,7 +2812,7 @@ export function toJson_TableSpec(obj: TableSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema TableSpecDeletionPolicy
  */
@@ -2767,6 +2841,14 @@ export interface TableSpecForProvider {
    * @schema TableSpecForProvider#billingMode
    */
   readonly billingMode?: string;
+
+  /**
+   * Enables deletion protection for table. Defaults to false.
+   *
+   * @default false.
+   * @schema TableSpecForProvider#deletionProtectionEnabled
+   */
+  readonly deletionProtectionEnabled?: boolean;
 
   /**
    * Describe a GSI for the table; subject to the normal limits on the number of GSIs, projected attributes, etc. See below.
@@ -2867,7 +2949,7 @@ export interface TableSpecForProvider {
   readonly streamViewType?: string;
 
   /**
-   * Storage class of the table. Valid values are STANDARD and STANDARD_INFREQUENT_ACCESS.
+   * Storage class of the table. Valid values are STANDARD and STANDARD_INFREQUENT_ACCESS. Default value is STANDARD.
    *
    * @schema TableSpecForProvider#tableClass
    */
@@ -2905,6 +2987,7 @@ export function toJson_TableSpecForProvider(obj: TableSpecForProvider | undefine
   const result = {
     'attribute': obj.attribute?.map(y => toJson_TableSpecForProviderAttribute(y)),
     'billingMode': obj.billingMode,
+    'deletionProtectionEnabled': obj.deletionProtectionEnabled,
     'globalSecondaryIndex': obj.globalSecondaryIndex?.map(y => toJson_TableSpecForProviderGlobalSecondaryIndex(y)),
     'hashKey': obj.hashKey,
     'localSecondaryIndex': obj.localSecondaryIndex?.map(y => toJson_TableSpecForProviderLocalSecondaryIndex(y)),
@@ -2928,6 +3011,20 @@ export function toJson_TableSpecForProvider(obj: TableSpecForProvider | undefine
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema TableSpecManagementPolicy
+ */
+export enum TableSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3758,7 +3855,7 @@ export function toJson_TableItemProps(obj: TableItemProps | undefined): Record<s
  */
 export interface TableItemSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema TableItemSpec#deletionPolicy
    */
@@ -3768,6 +3865,13 @@ export interface TableItemSpec {
    * @schema TableItemSpec#forProvider
    */
   readonly forProvider: TableItemSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema TableItemSpec#managementPolicy
+   */
+  readonly managementPolicy?: TableItemSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3808,6 +3912,7 @@ export function toJson_TableItemSpec(obj: TableItemSpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_TableItemSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_TableItemSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_TableItemSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_TableItemSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -3819,7 +3924,7 @@ export function toJson_TableItemSpec(obj: TableItemSpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema TableItemSpecDeletionPolicy
  */
@@ -3839,14 +3944,14 @@ export interface TableItemSpecForProvider {
    *
    * @schema TableItemSpecForProvider#hashKey
    */
-  readonly hashKey: string;
+  readonly hashKey?: string;
 
   /**
    * JSON representation of a map of attribute name/value pairs, one for each attribute. Only the primary key attributes are required; you can optionally provide other attribute name-value pairs for the item.
    *
    * @schema TableItemSpecForProvider#item
    */
-  readonly item: string;
+  readonly item?: string;
 
   /**
    * Range key to use for lookups and identification of the item. Required if there is range key defined in the table.
@@ -3904,6 +4009,20 @@ export function toJson_TableItemSpecForProvider(obj: TableItemSpecForProvider | 
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema TableItemSpecManagementPolicy
+ */
+export enum TableItemSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4532,6 +4651,1126 @@ export enum TableItemSpecPublishConnectionDetailsToConfigRefPolicyResolve {
 
 
 /**
+ * TableReplica is the Schema for the TableReplicas API. Provides a DynamoDB table replica resource
+ *
+ * @schema TableReplica
+ */
+export class TableReplica extends ApiObject {
+  /**
+   * Returns the apiVersion and kind for "TableReplica"
+   */
+  public static readonly GVK: GroupVersionKind = {
+    apiVersion: 'dynamodb.aws.upbound.io/v1beta1',
+    kind: 'TableReplica',
+  }
+
+  /**
+   * Renders a Kubernetes manifest for "TableReplica".
+   *
+   * This can be used to inline resource manifests inside other objects (e.g. as templates).
+   *
+   * @param props initialization props
+   */
+  public static manifest(props: TableReplicaProps): any {
+    return {
+      ...TableReplica.GVK,
+      ...toJson_TableReplicaProps(props),
+    };
+  }
+
+  /**
+   * Defines a "TableReplica" API object
+   * @param scope the scope in which to define this object
+   * @param id a scope-local name for the object
+   * @param props initialization props
+   */
+  public constructor(scope: Construct, id: string, props: TableReplicaProps) {
+    super(scope, id, {
+      ...TableReplica.GVK,
+      ...props,
+    });
+  }
+
+  /**
+   * Renders the object to Kubernetes JSON.
+   */
+  public toJson(): any {
+    const resolved = super.toJson();
+
+    return {
+      ...TableReplica.GVK,
+      ...toJson_TableReplicaProps(resolved),
+    };
+  }
+}
+
+/**
+ * TableReplica is the Schema for the TableReplicas API. Provides a DynamoDB table replica resource
+ *
+ * @schema TableReplica
+ */
+export interface TableReplicaProps {
+  /**
+   * @schema TableReplica#metadata
+   */
+  readonly metadata?: ApiObjectMetadata;
+
+  /**
+   * TableReplicaSpec defines the desired state of TableReplica
+   *
+   * @schema TableReplica#spec
+   */
+  readonly spec: TableReplicaSpec;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaProps' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaProps(obj: TableReplicaProps | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metadata': obj.metadata,
+    'spec': toJson_TableReplicaSpec(obj.spec),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * TableReplicaSpec defines the desired state of TableReplica
+ *
+ * @schema TableReplicaSpec
+ */
+export interface TableReplicaSpec {
+  /**
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema TableReplicaSpec#deletionPolicy
+   */
+  readonly deletionPolicy?: TableReplicaSpecDeletionPolicy;
+
+  /**
+   * @schema TableReplicaSpec#forProvider
+   */
+  readonly forProvider: TableReplicaSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema TableReplicaSpec#managementPolicy
+   */
+  readonly managementPolicy?: TableReplicaSpecManagementPolicy;
+
+  /**
+   * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+   *
+   * @schema TableReplicaSpec#providerConfigRef
+   */
+  readonly providerConfigRef?: TableReplicaSpecProviderConfigRef;
+
+  /**
+   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
+   *
+   * @schema TableReplicaSpec#providerRef
+   */
+  readonly providerRef?: TableReplicaSpecProviderRef;
+
+  /**
+   * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+   *
+   * @schema TableReplicaSpec#publishConnectionDetailsTo
+   */
+  readonly publishConnectionDetailsTo?: TableReplicaSpecPublishConnectionDetailsTo;
+
+  /**
+   * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+   *
+   * @schema TableReplicaSpec#writeConnectionSecretToRef
+   */
+  readonly writeConnectionSecretToRef?: TableReplicaSpecWriteConnectionSecretToRef;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpec(obj: TableReplicaSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deletionPolicy': obj.deletionPolicy,
+    'forProvider': toJson_TableReplicaSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
+    'providerConfigRef': toJson_TableReplicaSpecProviderConfigRef(obj.providerConfigRef),
+    'providerRef': toJson_TableReplicaSpecProviderRef(obj.providerRef),
+    'publishConnectionDetailsTo': toJson_TableReplicaSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
+    'writeConnectionSecretToRef': toJson_TableReplicaSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema TableReplicaSpecDeletionPolicy
+ */
+export enum TableReplicaSpecDeletionPolicy {
+  /** Orphan */
+  ORPHAN = "Orphan",
+  /** Delete */
+  DELETE = "Delete",
+}
+
+/**
+ * @schema TableReplicaSpecForProvider
+ */
+export interface TableReplicaSpecForProvider {
+  /**
+   * ARN of the main or global table which this resource will replicate.
+   *
+   * @schema TableReplicaSpecForProvider#globalTableArn
+   */
+  readonly globalTableArn?: string;
+
+  /**
+   * Reference to a Table in dynamodb to populate globalTableArn.
+   *
+   * @schema TableReplicaSpecForProvider#globalTableArnRef
+   */
+  readonly globalTableArnRef?: TableReplicaSpecForProviderGlobalTableArnRef;
+
+  /**
+   * Selector for a Table in dynamodb to populate globalTableArn.
+   *
+   * @schema TableReplicaSpecForProvider#globalTableArnSelector
+   */
+  readonly globalTableArnSelector?: TableReplicaSpecForProviderGlobalTableArnSelector;
+
+  /**
+   * ARN of the CMK that should be used for the AWS KMS encryption. This argument should only be used if the key is different from the default KMS-managed DynamoDB key, alias/aws/dynamodb. Note: This attribute will not be populated with the ARN of default keys.
+   *
+   * @schema TableReplicaSpecForProvider#kmsKeyArn
+   */
+  readonly kmsKeyArn?: string;
+
+  /**
+   * Reference to a Key in kms to populate kmsKeyArn.
+   *
+   * @schema TableReplicaSpecForProvider#kmsKeyArnRef
+   */
+  readonly kmsKeyArnRef?: TableReplicaSpecForProviderKmsKeyArnRef;
+
+  /**
+   * Selector for a Key in kms to populate kmsKeyArn.
+   *
+   * @schema TableReplicaSpecForProvider#kmsKeyArnSelector
+   */
+  readonly kmsKeyArnSelector?: TableReplicaSpecForProviderKmsKeyArnSelector;
+
+  /**
+   * Whether to enable Point In Time Recovery for the replica. Default is false.
+   *
+   * @default false.
+   * @schema TableReplicaSpecForProvider#pointInTimeRecovery
+   */
+  readonly pointInTimeRecovery?: boolean;
+
+  /**
+   * Region is the region you'd like your resource to be created in.
+   *
+   * @schema TableReplicaSpecForProvider#region
+   */
+  readonly region: string;
+
+  /**
+   * Storage class of the table replica. Valid values are STANDARD and STANDARD_INFREQUENT_ACCESS. If not used, the table replica will use the same class as the global table.
+   *
+   * @schema TableReplicaSpecForProvider#tableClassOverride
+   */
+  readonly tableClassOverride?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema TableReplicaSpecForProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecForProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecForProvider(obj: TableReplicaSpecForProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'globalTableArn': obj.globalTableArn,
+    'globalTableArnRef': toJson_TableReplicaSpecForProviderGlobalTableArnRef(obj.globalTableArnRef),
+    'globalTableArnSelector': toJson_TableReplicaSpecForProviderGlobalTableArnSelector(obj.globalTableArnSelector),
+    'kmsKeyArn': obj.kmsKeyArn,
+    'kmsKeyArnRef': toJson_TableReplicaSpecForProviderKmsKeyArnRef(obj.kmsKeyArnRef),
+    'kmsKeyArnSelector': toJson_TableReplicaSpecForProviderKmsKeyArnSelector(obj.kmsKeyArnSelector),
+    'pointInTimeRecovery': obj.pointInTimeRecovery,
+    'region': obj.region,
+    'tableClassOverride': obj.tableClassOverride,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema TableReplicaSpecManagementPolicy
+ */
+export enum TableReplicaSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
+
+/**
+ * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+ *
+ * @schema TableReplicaSpecProviderConfigRef
+ */
+export interface TableReplicaSpecProviderConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema TableReplicaSpecProviderConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema TableReplicaSpecProviderConfigRef#policy
+   */
+  readonly policy?: TableReplicaSpecProviderConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecProviderConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecProviderConfigRef(obj: TableReplicaSpecProviderConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_TableReplicaSpecProviderConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
+ *
+ * @schema TableReplicaSpecProviderRef
+ */
+export interface TableReplicaSpecProviderRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema TableReplicaSpecProviderRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema TableReplicaSpecProviderRef#policy
+   */
+  readonly policy?: TableReplicaSpecProviderRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecProviderRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecProviderRef(obj: TableReplicaSpecProviderRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_TableReplicaSpecProviderRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+ *
+ * @schema TableReplicaSpecPublishConnectionDetailsTo
+ */
+export interface TableReplicaSpecPublishConnectionDetailsTo {
+  /**
+   * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+   *
+   * @schema TableReplicaSpecPublishConnectionDetailsTo#configRef
+   */
+  readonly configRef?: TableReplicaSpecPublishConnectionDetailsToConfigRef;
+
+  /**
+   * Metadata is the metadata for connection secret.
+   *
+   * @schema TableReplicaSpecPublishConnectionDetailsTo#metadata
+   */
+  readonly metadata?: TableReplicaSpecPublishConnectionDetailsToMetadata;
+
+  /**
+   * Name is the name of the connection secret.
+   *
+   * @schema TableReplicaSpecPublishConnectionDetailsTo#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecPublishConnectionDetailsTo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecPublishConnectionDetailsTo(obj: TableReplicaSpecPublishConnectionDetailsTo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configRef': toJson_TableReplicaSpecPublishConnectionDetailsToConfigRef(obj.configRef),
+    'metadata': toJson_TableReplicaSpecPublishConnectionDetailsToMetadata(obj.metadata),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+ *
+ * @schema TableReplicaSpecWriteConnectionSecretToRef
+ */
+export interface TableReplicaSpecWriteConnectionSecretToRef {
+  /**
+   * Name of the secret.
+   *
+   * @schema TableReplicaSpecWriteConnectionSecretToRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the secret.
+   *
+   * @schema TableReplicaSpecWriteConnectionSecretToRef#namespace
+   */
+  readonly namespace: string;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecWriteConnectionSecretToRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecWriteConnectionSecretToRef(obj: TableReplicaSpecWriteConnectionSecretToRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a Table in dynamodb to populate globalTableArn.
+ *
+ * @schema TableReplicaSpecForProviderGlobalTableArnRef
+ */
+export interface TableReplicaSpecForProviderGlobalTableArnRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema TableReplicaSpecForProviderGlobalTableArnRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema TableReplicaSpecForProviderGlobalTableArnRef#policy
+   */
+  readonly policy?: TableReplicaSpecForProviderGlobalTableArnRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecForProviderGlobalTableArnRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecForProviderGlobalTableArnRef(obj: TableReplicaSpecForProviderGlobalTableArnRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_TableReplicaSpecForProviderGlobalTableArnRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a Table in dynamodb to populate globalTableArn.
+ *
+ * @schema TableReplicaSpecForProviderGlobalTableArnSelector
+ */
+export interface TableReplicaSpecForProviderGlobalTableArnSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema TableReplicaSpecForProviderGlobalTableArnSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema TableReplicaSpecForProviderGlobalTableArnSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema TableReplicaSpecForProviderGlobalTableArnSelector#policy
+   */
+  readonly policy?: TableReplicaSpecForProviderGlobalTableArnSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecForProviderGlobalTableArnSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecForProviderGlobalTableArnSelector(obj: TableReplicaSpecForProviderGlobalTableArnSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_TableReplicaSpecForProviderGlobalTableArnSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a Key in kms to populate kmsKeyArn.
+ *
+ * @schema TableReplicaSpecForProviderKmsKeyArnRef
+ */
+export interface TableReplicaSpecForProviderKmsKeyArnRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema TableReplicaSpecForProviderKmsKeyArnRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema TableReplicaSpecForProviderKmsKeyArnRef#policy
+   */
+  readonly policy?: TableReplicaSpecForProviderKmsKeyArnRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecForProviderKmsKeyArnRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecForProviderKmsKeyArnRef(obj: TableReplicaSpecForProviderKmsKeyArnRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_TableReplicaSpecForProviderKmsKeyArnRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a Key in kms to populate kmsKeyArn.
+ *
+ * @schema TableReplicaSpecForProviderKmsKeyArnSelector
+ */
+export interface TableReplicaSpecForProviderKmsKeyArnSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema TableReplicaSpecForProviderKmsKeyArnSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema TableReplicaSpecForProviderKmsKeyArnSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema TableReplicaSpecForProviderKmsKeyArnSelector#policy
+   */
+  readonly policy?: TableReplicaSpecForProviderKmsKeyArnSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecForProviderKmsKeyArnSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecForProviderKmsKeyArnSelector(obj: TableReplicaSpecForProviderKmsKeyArnSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_TableReplicaSpecForProviderKmsKeyArnSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema TableReplicaSpecProviderConfigRefPolicy
+ */
+export interface TableReplicaSpecProviderConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema TableReplicaSpecProviderConfigRefPolicy#resolution
+   */
+  readonly resolution?: TableReplicaSpecProviderConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema TableReplicaSpecProviderConfigRefPolicy#resolve
+   */
+  readonly resolve?: TableReplicaSpecProviderConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecProviderConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecProviderConfigRefPolicy(obj: TableReplicaSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema TableReplicaSpecProviderRefPolicy
+ */
+export interface TableReplicaSpecProviderRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema TableReplicaSpecProviderRefPolicy#resolution
+   */
+  readonly resolution?: TableReplicaSpecProviderRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema TableReplicaSpecProviderRefPolicy#resolve
+   */
+  readonly resolve?: TableReplicaSpecProviderRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecProviderRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecProviderRefPolicy(obj: TableReplicaSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+ *
+ * @schema TableReplicaSpecPublishConnectionDetailsToConfigRef
+ */
+export interface TableReplicaSpecPublishConnectionDetailsToConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema TableReplicaSpecPublishConnectionDetailsToConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema TableReplicaSpecPublishConnectionDetailsToConfigRef#policy
+   */
+  readonly policy?: TableReplicaSpecPublishConnectionDetailsToConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecPublishConnectionDetailsToConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecPublishConnectionDetailsToConfigRef(obj: TableReplicaSpecPublishConnectionDetailsToConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_TableReplicaSpecPublishConnectionDetailsToConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Metadata is the metadata for connection secret.
+ *
+ * @schema TableReplicaSpecPublishConnectionDetailsToMetadata
+ */
+export interface TableReplicaSpecPublishConnectionDetailsToMetadata {
+  /**
+   * Annotations are the annotations to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.annotations". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema TableReplicaSpecPublishConnectionDetailsToMetadata#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Labels are the labels/tags to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.labels". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema TableReplicaSpecPublishConnectionDetailsToMetadata#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Type is the SecretType for the connection secret. - Only valid for Kubernetes Secret Stores.
+   *
+   * @schema TableReplicaSpecPublishConnectionDetailsToMetadata#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecPublishConnectionDetailsToMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecPublishConnectionDetailsToMetadata(obj: TableReplicaSpecPublishConnectionDetailsToMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema TableReplicaSpecForProviderGlobalTableArnRefPolicy
+ */
+export interface TableReplicaSpecForProviderGlobalTableArnRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema TableReplicaSpecForProviderGlobalTableArnRefPolicy#resolution
+   */
+  readonly resolution?: TableReplicaSpecForProviderGlobalTableArnRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema TableReplicaSpecForProviderGlobalTableArnRefPolicy#resolve
+   */
+  readonly resolve?: TableReplicaSpecForProviderGlobalTableArnRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecForProviderGlobalTableArnRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecForProviderGlobalTableArnRefPolicy(obj: TableReplicaSpecForProviderGlobalTableArnRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema TableReplicaSpecForProviderGlobalTableArnSelectorPolicy
+ */
+export interface TableReplicaSpecForProviderGlobalTableArnSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema TableReplicaSpecForProviderGlobalTableArnSelectorPolicy#resolution
+   */
+  readonly resolution?: TableReplicaSpecForProviderGlobalTableArnSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema TableReplicaSpecForProviderGlobalTableArnSelectorPolicy#resolve
+   */
+  readonly resolve?: TableReplicaSpecForProviderGlobalTableArnSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecForProviderGlobalTableArnSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecForProviderGlobalTableArnSelectorPolicy(obj: TableReplicaSpecForProviderGlobalTableArnSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema TableReplicaSpecForProviderKmsKeyArnRefPolicy
+ */
+export interface TableReplicaSpecForProviderKmsKeyArnRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema TableReplicaSpecForProviderKmsKeyArnRefPolicy#resolution
+   */
+  readonly resolution?: TableReplicaSpecForProviderKmsKeyArnRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema TableReplicaSpecForProviderKmsKeyArnRefPolicy#resolve
+   */
+  readonly resolve?: TableReplicaSpecForProviderKmsKeyArnRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecForProviderKmsKeyArnRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecForProviderKmsKeyArnRefPolicy(obj: TableReplicaSpecForProviderKmsKeyArnRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema TableReplicaSpecForProviderKmsKeyArnSelectorPolicy
+ */
+export interface TableReplicaSpecForProviderKmsKeyArnSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema TableReplicaSpecForProviderKmsKeyArnSelectorPolicy#resolution
+   */
+  readonly resolution?: TableReplicaSpecForProviderKmsKeyArnSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema TableReplicaSpecForProviderKmsKeyArnSelectorPolicy#resolve
+   */
+  readonly resolve?: TableReplicaSpecForProviderKmsKeyArnSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecForProviderKmsKeyArnSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecForProviderKmsKeyArnSelectorPolicy(obj: TableReplicaSpecForProviderKmsKeyArnSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema TableReplicaSpecProviderConfigRefPolicyResolution
+ */
+export enum TableReplicaSpecProviderConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema TableReplicaSpecProviderConfigRefPolicyResolve
+ */
+export enum TableReplicaSpecProviderConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema TableReplicaSpecProviderRefPolicyResolution
+ */
+export enum TableReplicaSpecProviderRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema TableReplicaSpecProviderRefPolicyResolve
+ */
+export enum TableReplicaSpecProviderRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Policies for referencing.
+ *
+ * @schema TableReplicaSpecPublishConnectionDetailsToConfigRefPolicy
+ */
+export interface TableReplicaSpecPublishConnectionDetailsToConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema TableReplicaSpecPublishConnectionDetailsToConfigRefPolicy#resolution
+   */
+  readonly resolution?: TableReplicaSpecPublishConnectionDetailsToConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema TableReplicaSpecPublishConnectionDetailsToConfigRefPolicy#resolve
+   */
+  readonly resolve?: TableReplicaSpecPublishConnectionDetailsToConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'TableReplicaSpecPublishConnectionDetailsToConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableReplicaSpecPublishConnectionDetailsToConfigRefPolicy(obj: TableReplicaSpecPublishConnectionDetailsToConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema TableReplicaSpecForProviderGlobalTableArnRefPolicyResolution
+ */
+export enum TableReplicaSpecForProviderGlobalTableArnRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema TableReplicaSpecForProviderGlobalTableArnRefPolicyResolve
+ */
+export enum TableReplicaSpecForProviderGlobalTableArnRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema TableReplicaSpecForProviderGlobalTableArnSelectorPolicyResolution
+ */
+export enum TableReplicaSpecForProviderGlobalTableArnSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema TableReplicaSpecForProviderGlobalTableArnSelectorPolicyResolve
+ */
+export enum TableReplicaSpecForProviderGlobalTableArnSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema TableReplicaSpecForProviderKmsKeyArnRefPolicyResolution
+ */
+export enum TableReplicaSpecForProviderKmsKeyArnRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema TableReplicaSpecForProviderKmsKeyArnRefPolicyResolve
+ */
+export enum TableReplicaSpecForProviderKmsKeyArnRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema TableReplicaSpecForProviderKmsKeyArnSelectorPolicyResolution
+ */
+export enum TableReplicaSpecForProviderKmsKeyArnSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema TableReplicaSpecForProviderKmsKeyArnSelectorPolicyResolve
+ */
+export enum TableReplicaSpecForProviderKmsKeyArnSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema TableReplicaSpecPublishConnectionDetailsToConfigRefPolicyResolution
+ */
+export enum TableReplicaSpecPublishConnectionDetailsToConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema TableReplicaSpecPublishConnectionDetailsToConfigRefPolicyResolve
+ */
+export enum TableReplicaSpecPublishConnectionDetailsToConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+
+/**
  * Tag is the Schema for the Tags API. Manages an individual DynamoDB resource tag
  *
  * @schema Tag
@@ -4627,7 +5866,7 @@ export function toJson_TagProps(obj: TagProps | undefined): Record<string, any> 
  */
 export interface TagSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema TagSpec#deletionPolicy
    */
@@ -4637,6 +5876,13 @@ export interface TagSpec {
    * @schema TagSpec#forProvider
    */
   readonly forProvider: TagSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema TagSpec#managementPolicy
+   */
+  readonly managementPolicy?: TagSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4677,6 +5923,7 @@ export function toJson_TagSpec(obj: TagSpec | undefined): Record<string, any> | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_TagSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_TagSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_TagSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_TagSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -4688,7 +5935,7 @@ export function toJson_TagSpec(obj: TagSpec | undefined): Record<string, any> | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema TagSpecDeletionPolicy
  */
@@ -4729,7 +5976,7 @@ export interface TagSpecForProvider {
    *
    * @schema TagSpecForProvider#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4749,6 +5996,20 @@ export function toJson_TagSpecForProvider(obj: TagSpecForProvider | undefined): 
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema TagSpecManagementPolicy
+ */
+export enum TagSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

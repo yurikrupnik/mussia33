@@ -99,7 +99,7 @@ export function toJson_LanguageModelProps(obj: LanguageModelProps | undefined): 
  */
 export interface LanguageModelSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema LanguageModelSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface LanguageModelSpec {
    * @schema LanguageModelSpec#forProvider
    */
   readonly forProvider: LanguageModelSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema LanguageModelSpec#managementPolicy
+   */
+  readonly managementPolicy?: LanguageModelSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_LanguageModelSpec(obj: LanguageModelSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_LanguageModelSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_LanguageModelSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_LanguageModelSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_LanguageModelSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_LanguageModelSpec(obj: LanguageModelSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema LanguageModelSpecDeletionPolicy
  */
@@ -180,21 +188,21 @@ export interface LanguageModelSpecForProvider {
    *
    * @schema LanguageModelSpecForProvider#baseModelName
    */
-  readonly baseModelName: string;
+  readonly baseModelName?: string;
 
   /**
    * The input data config for the LanguageModel. See Input Data Config for more details.
    *
    * @schema LanguageModelSpecForProvider#inputDataConfig
    */
-  readonly inputDataConfig: LanguageModelSpecForProviderInputDataConfig[];
+  readonly inputDataConfig?: LanguageModelSpecForProviderInputDataConfig[];
 
   /**
    * The language code you selected for your language model. Refer to the supported languages page for accepted codes.
    *
    * @schema LanguageModelSpecForProvider#languageCode
    */
-  readonly languageCode: string;
+  readonly languageCode?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -229,6 +237,20 @@ export function toJson_LanguageModelSpecForProvider(obj: LanguageModelSpecForPro
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema LanguageModelSpecManagementPolicy
+ */
+export enum LanguageModelSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1011,7 +1033,7 @@ export function toJson_VocabularyProps(obj: VocabularyProps | undefined): Record
  */
 export interface VocabularySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VocabularySpec#deletionPolicy
    */
@@ -1021,6 +1043,13 @@ export interface VocabularySpec {
    * @schema VocabularySpec#forProvider
    */
   readonly forProvider: VocabularySpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema VocabularySpec#managementPolicy
+   */
+  readonly managementPolicy?: VocabularySpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1061,6 +1090,7 @@ export function toJson_VocabularySpec(obj: VocabularySpec | undefined): Record<s
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VocabularySpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_VocabularySpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_VocabularySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VocabularySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -1072,7 +1102,7 @@ export function toJson_VocabularySpec(obj: VocabularySpec | undefined): Record<s
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VocabularySpecDeletionPolicy
  */
@@ -1092,7 +1122,7 @@ export interface VocabularySpecForProvider {
    *
    * @schema VocabularySpecForProvider#languageCode
    */
-  readonly languageCode: string;
+  readonly languageCode?: string;
 
   /**
    * - A list of terms to include in the vocabulary. Conflicts with vocabulary_file_uri
@@ -1141,6 +1171,20 @@ export function toJson_VocabularySpecForProvider(obj: VocabularySpecForProvider 
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema VocabularySpecManagementPolicy
+ */
+export enum VocabularySpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1660,7 +1704,7 @@ export function toJson_VocabularyFilterProps(obj: VocabularyFilterProps | undefi
  */
 export interface VocabularyFilterSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VocabularyFilterSpec#deletionPolicy
    */
@@ -1670,6 +1714,13 @@ export interface VocabularyFilterSpec {
    * @schema VocabularyFilterSpec#forProvider
    */
   readonly forProvider: VocabularyFilterSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema VocabularyFilterSpec#managementPolicy
+   */
+  readonly managementPolicy?: VocabularyFilterSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1710,6 +1761,7 @@ export function toJson_VocabularyFilterSpec(obj: VocabularyFilterSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VocabularyFilterSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_VocabularyFilterSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_VocabularyFilterSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VocabularyFilterSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -1721,7 +1773,7 @@ export function toJson_VocabularyFilterSpec(obj: VocabularyFilterSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VocabularyFilterSpecDeletionPolicy
  */
@@ -1741,7 +1793,7 @@ export interface VocabularyFilterSpecForProvider {
    *
    * @schema VocabularyFilterSpecForProvider#languageCode
    */
-  readonly languageCode: string;
+  readonly languageCode?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -1758,14 +1810,14 @@ export interface VocabularyFilterSpecForProvider {
   readonly tags?: { [key: string]: string };
 
   /**
-   * The Amazon S3 location (URI) of the text file that contains your custom VocabularyFilter. Conflicts with words.
+   * The Amazon S3 location (URI) of the text file that contains your custom VocabularyFilter. Conflicts with words argument.
    *
    * @schema VocabularyFilterSpecForProvider#vocabularyFilterFileUri
    */
   readonly vocabularyFilterFileUri?: string;
 
   /**
-   * - A list of terms to include in the vocabulary. Conflicts with vocabulary_file_uri
+   * - A list of terms to include in the vocabulary. Conflicts with vocabulary_filter_file_uri argument.
    *
    * @schema VocabularyFilterSpecForProvider#words
    */
@@ -1790,6 +1842,20 @@ export function toJson_VocabularyFilterSpecForProvider(obj: VocabularyFilterSpec
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema VocabularyFilterSpecManagementPolicy
+ */
+export enum VocabularyFilterSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

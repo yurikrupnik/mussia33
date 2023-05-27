@@ -99,7 +99,7 @@ export function toJson_ChannelProps(obj: ChannelProps | undefined): Record<strin
  */
 export interface ChannelSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ChannelSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface ChannelSpec {
    * @schema ChannelSpec#forProvider
    */
   readonly forProvider: ChannelSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ChannelSpec#managementPolicy
+   */
+  readonly managementPolicy?: ChannelSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_ChannelSpec(obj: ChannelSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ChannelSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_ChannelSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_ChannelSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ChannelSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_ChannelSpec(obj: ChannelSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ChannelSpecDeletionPolicy
  */
@@ -187,35 +195,35 @@ export interface ChannelSpecForProvider {
    *
    * @schema ChannelSpecForProvider#channelClass
    */
-  readonly channelClass: string;
+  readonly channelClass?: string;
 
   /**
    * Destinations for channel. See Destinations for more details.
    *
    * @schema ChannelSpecForProvider#destinations
    */
-  readonly destinations: ChannelSpecForProviderDestinations[];
+  readonly destinations?: ChannelSpecForProviderDestinations[];
 
   /**
    * Encoder settings. See Encoder Settings for more details.
    *
    * @schema ChannelSpecForProvider#encoderSettings
    */
-  readonly encoderSettings: ChannelSpecForProviderEncoderSettings[];
+  readonly encoderSettings?: ChannelSpecForProviderEncoderSettings[];
 
   /**
    * Input attachments for the channel. See Input Attachments for more details.
    *
    * @schema ChannelSpecForProvider#inputAttachments
    */
-  readonly inputAttachments: ChannelSpecForProviderInputAttachments[];
+  readonly inputAttachments?: ChannelSpecForProviderInputAttachments[];
 
   /**
    * Specification of network and file inputs for the channel.
    *
    * @schema ChannelSpecForProvider#inputSpecification
    */
-  readonly inputSpecification: ChannelSpecForProviderInputSpecification[];
+  readonly inputSpecification?: ChannelSpecForProviderInputSpecification[];
 
   /**
    * The log level to write to Cloudwatch logs.
@@ -236,7 +244,7 @@ export interface ChannelSpecForProvider {
    *
    * @schema ChannelSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -317,6 +325,20 @@ export function toJson_ChannelSpecForProvider(obj: ChannelSpecForProvider | unde
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ChannelSpecManagementPolicy
+ */
+export enum ChannelSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2207,6 +2229,13 @@ export interface ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSett
    */
   readonly h264Settings?: ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings[];
 
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettings#h265Settings
+   */
+  readonly h265Settings?: ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings[];
+
 }
 
 /**
@@ -2218,6 +2247,7 @@ export function toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCod
   const result = {
     'frameCaptureSettings': obj.frameCaptureSettings?.map(y => toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsFrameCaptureSettings(y)),
     'h264Settings': obj.h264Settings?.map(y => toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings(y)),
+    'h265Settings': obj.h265Settings?.map(y => toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3511,9 +3541,9 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSet
   readonly acquisitionPointId?: string;
 
   /**
-   * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#audioOnlyTimecodecControl
+   * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#audioOnlyTimecodeControl
    */
-  readonly audioOnlyTimecodecControl?: string;
+  readonly audioOnlyTimecodeControl?: string;
 
   /**
    * Setting to allow self signed or verified RTMP certificates.
@@ -3541,7 +3571,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSet
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#eventId
    */
-  readonly eventId?: number;
+  readonly eventId?: string;
 
   /**
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#eventIdMode
@@ -3624,7 +3654,7 @@ export function toJson_ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGr
   if (obj === undefined) { return undefined; }
   const result = {
     'acquisitionPointId': obj.acquisitionPointId,
-    'audioOnlyTimecodecControl': obj.audioOnlyTimecodecControl,
+    'audioOnlyTimecodeControl': obj.audioOnlyTimecodeControl,
     'certificateMode': obj.certificateMode,
     'connectionRetryInterval': obj.connectionRetryInterval,
     'destination': obj.destination?.map(y => toJson_ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettingsDestination(y)),
@@ -4208,6 +4238,261 @@ export function toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCod
     'subgopLength': obj.subgopLength,
     'syntax': obj.syntax,
     'temporalAq': obj.temporalAq,
+    'timecodeInsertion': obj.timecodeInsertion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings
+ */
+export interface ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings {
+  /**
+   * Enables or disables adaptive quantization.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#adaptiveQuantization
+   */
+  readonly adaptiveQuantization?: string;
+
+  /**
+   * Indicates that AFD values will be written into the output stream.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#afdSignaling
+   */
+  readonly afdSignaling?: string;
+
+  /**
+   * Whether or not EML should insert an Alternative Transfer Function SEI message.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#alternativeTransferFunction
+   */
+  readonly alternativeTransferFunction?: string;
+
+  /**
+   * Average bitrate in bits/second.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#bitrate
+   */
+  readonly bitrate: number;
+
+  /**
+   * Size of buffer in bits.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#bufSize
+   */
+  readonly bufSize?: number;
+
+  /**
+   * Includes color space metadata in the output.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#colorMetadata
+   */
+  readonly colorMetadata?: string;
+
+  /**
+   * Define the color metadata for the output. H265 Color Space Settings for more details.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#colorSpaceSettings
+   */
+  readonly colorSpaceSettings?: ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings[];
+
+  /**
+   * Filters to apply to an encode. See H264 Filter Settings for more details.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#filterSettings
+   */
+  readonly filterSettings?: ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettings[];
+
+  /**
+   * Four bit AFD value to write on all frames of video in the output stream.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#fixedAfd
+   */
+  readonly fixedAfd?: string;
+
+  /**
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#flickerAq
+   */
+  readonly flickerAq?: string;
+
+  /**
+   * Framerate denominator.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#framerateDenominator
+   */
+  readonly framerateDenominator: number;
+
+  /**
+   * Framerate numerator.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#framerateNumerator
+   */
+  readonly framerateNumerator: number;
+
+  /**
+   * Frequency of closed GOPs.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#gopClosedCadence
+   */
+  readonly gopClosedCadence?: number;
+
+  /**
+   * GOP size in units of either frames of seconds per gop_size_units.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#gopSize
+   */
+  readonly gopSize?: number;
+
+  /**
+   * Indicates if the gop_size is specified in frames or seconds.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#gopSizeUnits
+   */
+  readonly gopSizeUnits?: string;
+
+  /**
+   * H264 level.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#level
+   */
+  readonly level?: string;
+
+  /**
+   * Amount of lookahead.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#lookAheadRateControl
+   */
+  readonly lookAheadRateControl?: string;
+
+  /**
+   * Set the maximum bitrate in order to accommodate expected spikes in the complexity of the video.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#maxBitrate
+   */
+  readonly maxBitrate?: number;
+
+  /**
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#minIInterval
+   */
+  readonly minIInterval?: number;
+
+  /**
+   * Pixel Aspect Ratio denominator.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#parDenominator
+   */
+  readonly parDenominator?: number;
+
+  /**
+   * Pixel Aspect Ratio numerator.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#parNumerator
+   */
+  readonly parNumerator?: number;
+
+  /**
+   * AAC profile.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#profile
+   */
+  readonly profile?: string;
+
+  /**
+   * Controls the target quality for the video encode.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#qvbrQualityLevel
+   */
+  readonly qvbrQualityLevel?: number;
+
+  /**
+   * The rate control mode.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#rateControlMode
+   */
+  readonly rateControlMode?: string;
+
+  /**
+   * Sets the scan type of the output.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#scanType
+   */
+  readonly scanType?: string;
+
+  /**
+   * Scene change detection.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#sceneChangeDetect
+   */
+  readonly sceneChangeDetect?: string;
+
+  /**
+   * Number of slices per picture.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#slices
+   */
+  readonly slices?: number;
+
+  /**
+   * Set the H265 tier in the output.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#tier
+   */
+  readonly tier?: string;
+
+  /**
+   * Apply a burned in timecode. See H265 Timecode Burnin Settings for more details.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#timecodeBurninSettings
+   */
+  readonly timecodeBurninSettings?: ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings[];
+
+  /**
+   * Determines how timecodes should be inserted into the video elementary stream.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#timecodeInsertion
+   */
+  readonly timecodeInsertion?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings(obj: ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'adaptiveQuantization': obj.adaptiveQuantization,
+    'afdSignaling': obj.afdSignaling,
+    'alternativeTransferFunction': obj.alternativeTransferFunction,
+    'bitrate': obj.bitrate,
+    'bufSize': obj.bufSize,
+    'colorMetadata': obj.colorMetadata,
+    'colorSpaceSettings': obj.colorSpaceSettings?.map(y => toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings(y)),
+    'filterSettings': obj.filterSettings?.map(y => toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettings(y)),
+    'fixedAfd': obj.fixedAfd,
+    'flickerAq': obj.flickerAq,
+    'framerateDenominator': obj.framerateDenominator,
+    'framerateNumerator': obj.framerateNumerator,
+    'gopClosedCadence': obj.gopClosedCadence,
+    'gopSize': obj.gopSize,
+    'gopSizeUnits': obj.gopSizeUnits,
+    'level': obj.level,
+    'lookAheadRateControl': obj.lookAheadRateControl,
+    'maxBitrate': obj.maxBitrate,
+    'minIInterval': obj.minIInterval,
+    'parDenominator': obj.parDenominator,
+    'parNumerator': obj.parNumerator,
+    'profile': obj.profile,
+    'qvbrQualityLevel': obj.qvbrQualityLevel,
+    'rateControlMode': obj.rateControlMode,
+    'scanType': obj.scanType,
+    'sceneChangeDetect': obj.sceneChangeDetect,
+    'slices': obj.slices,
+    'tier': obj.tier,
+    'timecodeBurninSettings': obj.timecodeBurninSettings?.map(y => toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings(y)),
     'timecodeInsertion': obj.timecodeInsertion,
   };
   // filter undefined values
@@ -5076,9 +5361,11 @@ export function toJson_ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsO
  */
 export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings {
   /**
-   * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings#certficateMode
+   * Setting to allow self signed or verified RTMP certificates.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings#certificateMode
    */
-  readonly certficateMode?: string;
+  readonly certificateMode?: string;
 
   /**
    * Number of seconds to wait before retrying connection to the flash media server if the connection is lost.
@@ -5110,7 +5397,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputS
 export function toJson_ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings(obj: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
-    'certficateMode': obj.certficateMode,
+    'certificateMode': obj.certificateMode,
     'connectionRetryInterval': obj.connectionRetryInterval,
     'destination': obj.destination?.map(y => toJson_ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettingsDestination(y)),
     'numRetries': obj.numRetries,
@@ -5192,6 +5479,135 @@ export function toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCod
   if (obj === undefined) { return undefined; }
   const result = {
     'temporalFilterSettings': obj.temporalFilterSettings?.map(y => toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettingsTemporalFilterSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings
+ */
+export interface ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings {
+  /**
+   * Sets the colorspace metadata to be passed through.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings#colorSpacePassthroughSettings
+   */
+  readonly colorSpacePassthroughSettings?: any[];
+
+  /**
+   * Set the colorspace to Dolby Vision81.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings#dolbyVision81Settings
+   */
+  readonly dolbyVision81Settings?: any[];
+
+  /**
+   * Set the colorspace to be HDR10. See H265 HDR10 Settings for more details.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings#hdr10Settings
+   */
+  readonly hdr10Settings?: ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings[];
+
+  /**
+   * Set the colorspace to Rec. 601.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings#rec601Settings
+   */
+  readonly rec601Settings?: any[];
+
+  /**
+   * Set the colorspace to Rec. 709.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings#rec709Settings
+   */
+  readonly rec709Settings?: any[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings(obj: ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'colorSpacePassthroughSettings': obj.colorSpacePassthroughSettings?.map(y => y),
+    'dolbyVision81Settings': obj.dolbyVision81Settings?.map(y => y),
+    'hdr10Settings': obj.hdr10Settings?.map(y => toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings(y)),
+    'rec601Settings': obj.rec601Settings?.map(y => y),
+    'rec709Settings': obj.rec709Settings?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettings
+ */
+export interface ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettings {
+  /**
+   * Temporal filter settings. See Temporal Filter Settings
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettings#temporalFilterSettings
+   */
+  readonly temporalFilterSettings?: ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettings(obj: ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'temporalFilterSettings': obj.temporalFilterSettings?.map(y => toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings
+ */
+export interface ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings {
+  /**
+   * Set a prefix on the burned in timecode.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Sets the size of the burned in timecode.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings#timecodeBurninFontSize
+   */
+  readonly timecodeBurninFontSize?: string;
+
+  /**
+   * Sets the position of the burned in timecode.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings#timecodeBurninPosition
+   */
+  readonly timecodeBurninPosition?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings(obj: ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'prefix': obj.prefix,
+    'timecodeBurninFontSize': obj.timecodeBurninFontSize,
+    'timecodeBurninPosition': obj.timecodeBurninPosition,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6203,6 +6619,76 @@ export interface ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSett
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettingsTemporalFilterSettings(obj: ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettingsTemporalFilterSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'postFilterSharpening': obj.postFilterSharpening,
+    'strength': obj.strength,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings
+ */
+export interface ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings {
+  /**
+   * Sets the MaxCLL value for HDR10.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings#maxCll
+   */
+  readonly maxCll?: number;
+
+  /**
+   * Sets the MaxFALL value for HDR10.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings#maxFall
+   */
+  readonly maxFall?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings(obj: ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxCll': obj.maxCll,
+    'maxFall': obj.maxFall,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings
+ */
+export interface ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings {
+  /**
+   * Post filter sharpening.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings#postFilterSharpening
+   */
+  readonly postFilterSharpening?: string;
+
+  /**
+   * Filter strength.
+   *
+   * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings#strength
+   */
+  readonly strength?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings(obj: ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'postFilterSharpening': obj.postFilterSharpening,
@@ -7610,7 +8096,7 @@ export function toJson_InputProps(obj: InputProps | undefined): Record<string, a
  */
 export interface InputSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema InputSpec#deletionPolicy
    */
@@ -7620,6 +8106,13 @@ export interface InputSpec {
    * @schema InputSpec#forProvider
    */
   readonly forProvider: InputSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema InputSpec#managementPolicy
+   */
+  readonly managementPolicy?: InputSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7660,6 +8153,7 @@ export function toJson_InputSpec(obj: InputSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_InputSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_InputSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_InputSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_InputSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -7671,7 +8165,7 @@ export function toJson_InputSpec(obj: InputSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema InputSpecDeletionPolicy
  */
@@ -7719,7 +8213,7 @@ export interface InputSpecForProvider {
    *
    * @schema InputSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -7768,7 +8262,7 @@ export interface InputSpecForProvider {
    *
    * @schema InputSpecForProvider#type
    */
-  readonly type: string;
+  readonly type?: string;
 
   /**
    * Settings for a private VPC Input. See VPC for more details.
@@ -7804,6 +8298,20 @@ export function toJson_InputSpecForProvider(obj: InputSpecForProvider | undefine
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema InputSpecManagementPolicy
+ */
+export enum InputSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -8686,7 +9194,7 @@ export function toJson_InputSecurityGroupProps(obj: InputSecurityGroupProps | un
  */
 export interface InputSecurityGroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema InputSecurityGroupSpec#deletionPolicy
    */
@@ -8696,6 +9204,13 @@ export interface InputSecurityGroupSpec {
    * @schema InputSecurityGroupSpec#forProvider
    */
   readonly forProvider: InputSecurityGroupSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema InputSecurityGroupSpec#managementPolicy
+   */
+  readonly managementPolicy?: InputSecurityGroupSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -8736,6 +9251,7 @@ export function toJson_InputSecurityGroupSpec(obj: InputSecurityGroupSpec | unde
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_InputSecurityGroupSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_InputSecurityGroupSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_InputSecurityGroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_InputSecurityGroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -8747,7 +9263,7 @@ export function toJson_InputSecurityGroupSpec(obj: InputSecurityGroupSpec | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema InputSecurityGroupSpecDeletionPolicy
  */
@@ -8781,7 +9297,7 @@ export interface InputSecurityGroupSpecForProvider {
    *
    * @schema InputSecurityGroupSpecForProvider#whitelistRules
    */
-  readonly whitelistRules: InputSecurityGroupSpecForProviderWhitelistRules[];
+  readonly whitelistRules?: InputSecurityGroupSpecForProviderWhitelistRules[];
 
 }
 
@@ -8800,6 +9316,20 @@ export function toJson_InputSecurityGroupSpecForProvider(obj: InputSecurityGroup
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema InputSecurityGroupSpecManagementPolicy
+ */
+export enum InputSecurityGroupSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -9346,7 +9876,7 @@ export function toJson_MultiplexProps(obj: MultiplexProps | undefined): Record<s
  */
 export interface MultiplexSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MultiplexSpec#deletionPolicy
    */
@@ -9356,6 +9886,13 @@ export interface MultiplexSpec {
    * @schema MultiplexSpec#forProvider
    */
   readonly forProvider: MultiplexSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema MultiplexSpec#managementPolicy
+   */
+  readonly managementPolicy?: MultiplexSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -9396,6 +9933,7 @@ export function toJson_MultiplexSpec(obj: MultiplexSpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MultiplexSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_MultiplexSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_MultiplexSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MultiplexSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -9407,7 +9945,7 @@ export function toJson_MultiplexSpec(obj: MultiplexSpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MultiplexSpecDeletionPolicy
  */
@@ -9427,7 +9965,7 @@ export interface MultiplexSpecForProvider {
    *
    * @schema MultiplexSpecForProvider#availabilityZones
    */
-  readonly availabilityZones: string[];
+  readonly availabilityZones?: string[];
 
   /**
    * Multiplex settings. See Multiplex Settings for more details.
@@ -9441,7 +9979,7 @@ export interface MultiplexSpecForProvider {
    *
    * @schema MultiplexSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -9485,6 +10023,20 @@ export function toJson_MultiplexSpecForProvider(obj: MultiplexSpecForProvider | 
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema MultiplexSpecManagementPolicy
+ */
+export enum MultiplexSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

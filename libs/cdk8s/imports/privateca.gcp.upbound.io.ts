@@ -99,7 +99,7 @@ export function toJson_CaPoolProps(obj: CaPoolProps | undefined): Record<string,
  */
 export interface CaPoolSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CaPoolSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface CaPoolSpec {
    * @schema CaPoolSpec#forProvider
    */
   readonly forProvider: CaPoolSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema CaPoolSpec#managementPolicy
+   */
+  readonly managementPolicy?: CaPoolSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_CaPoolSpec(obj: CaPoolSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CaPoolSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_CaPoolSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_CaPoolSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CaPoolSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_CaPoolSpec(obj: CaPoolSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CaPoolSpecDeletionPolicy
  */
@@ -211,11 +219,11 @@ export interface CaPoolSpecForProvider {
   readonly publishingOptions?: CaPoolSpecForProviderPublishingOptions[];
 
   /**
-   * The Tier of this CaPool. Possible values are ENTERPRISE and DEVOPS.
+   * The Tier of this CaPool. Possible values are: ENTERPRISE, DEVOPS.
    *
    * @schema CaPoolSpecForProvider#tier
    */
-  readonly tier: string;
+  readonly tier?: string;
 
 }
 
@@ -237,6 +245,20 @@ export function toJson_CaPoolSpecForProvider(obj: CaPoolSpecForProvider | undefi
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema CaPoolSpecManagementPolicy
+ */
+export enum CaPoolSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -747,6 +769,13 @@ export interface CaPoolSpecForProviderIssuancePolicyBaselineValues {
   readonly keyUsage: CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsage[];
 
   /**
+   * Describes the X.509 name constraints extension. Structure is documented below.
+   *
+   * @schema CaPoolSpecForProviderIssuancePolicyBaselineValues#nameConstraints
+   */
+  readonly nameConstraints?: CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints[];
+
+  /**
    * Describes the X.509 certificate policy object identifiers, per https://tools.ietf.org/html/rfc5280#section-4.2.1.4. Structure is documented below.
    *
    * @schema CaPoolSpecForProviderIssuancePolicyBaselineValues#policyIds
@@ -766,6 +795,7 @@ export function toJson_CaPoolSpecForProviderIssuancePolicyBaselineValues(obj: Ca
     'aiaOcspServers': obj.aiaOcspServers?.map(y => y),
     'caOptions': obj.caOptions?.map(y => toJson_CaPoolSpecForProviderIssuancePolicyBaselineValuesCaOptions(y)),
     'keyUsage': obj.keyUsage?.map(y => toJson_CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsage(y)),
+    'nameConstraints': obj.nameConstraints?.map(y => toJson_CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints(y)),
     'policyIds': obj.policyIds?.map(y => toJson_CaPoolSpecForProviderIssuancePolicyBaselineValuesPolicyIds(y)),
   };
   // filter undefined values
@@ -906,7 +936,7 @@ export function toJson_CaPoolSpecPublishConnectionDetailsToConfigRefPolicy(obj: 
  */
 export interface CaPoolSpecForProviderIssuancePolicyAllowedKeyTypesEllipticCurve {
   /**
-   * The algorithm used. Possible values are ECDSA_P256, ECDSA_P384, and EDDSA_25519.
+   * The algorithm used. Possible values are: ECDSA_P256, ECDSA_P384, EDDSA_25519.
    *
    * @schema CaPoolSpecForProviderIssuancePolicyAllowedKeyTypesEllipticCurve#signatureAlgorithm
    */
@@ -968,7 +998,7 @@ export function toJson_CaPoolSpecForProviderIssuancePolicyAllowedKeyTypesRsa(obj
  */
 export interface CaPoolSpecForProviderIssuancePolicyBaselineValuesAdditionalExtensions {
   /**
-   * Indicates whether or not this extension is critical (i.e., if the client does not know how to handle this extension, the client should consider this to be an error).
+   * Indicates whether or not the name constraints are marked critical.
    *
    * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesAdditionalExtensions#critical
    */
@@ -1094,6 +1124,97 @@ export function toJson_CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsage
     'baseKeyUsage': obj.baseKeyUsage?.map(y => toJson_CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage(y)),
     'extendedKeyUsage': obj.extendedKeyUsage?.map(y => toJson_CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsageExtendedKeyUsage(y)),
     'unknownExtendedKeyUsages': obj.unknownExtendedKeyUsages?.map(y => toJson_CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsageUnknownExtendedKeyUsages(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints
+ */
+export interface CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints {
+  /**
+   * Indicates whether or not the name constraints are marked critical.
+   *
+   * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints#critical
+   */
+  readonly critical: boolean;
+
+  /**
+   * Contains excluded DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, example.com, www.example.com, www.sub.example.com would satisfy example.com while example1.com does not.
+   *
+   * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints#excludedDnsNames
+   */
+  readonly excludedDnsNames?: string[];
+
+  /**
+   * Contains the excluded email addresses. The value can be a particular email address, a hostname to indicate all email addresses on that host or a domain with a leading period (e.g. .example.com) to indicate all email addresses in that domain.
+   *
+   * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints#excludedEmailAddresses
+   */
+  readonly excludedEmailAddresses?: string[];
+
+  /**
+   * Contains the excluded IP ranges. For IPv4 addresses, the ranges are expressed using CIDR notation as specified in RFC 4632. For IPv6 addresses, the ranges are expressed in similar encoding as IPv4 addresses.
+   *
+   * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints#excludedIpRanges
+   */
+  readonly excludedIpRanges?: string[];
+
+  /**
+   * Contains the excluded URIs that apply to the host part of the name. The value can be a hostname or a domain with a leading period (like .example.com)
+   *
+   * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints#excludedUris
+   */
+  readonly excludedUris?: string[];
+
+  /**
+   * Contains permitted DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, example.com, www.example.com, www.sub.example.com would satisfy example.com while example1.com does not.
+   *
+   * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints#permittedDnsNames
+   */
+  readonly permittedDnsNames?: string[];
+
+  /**
+   * Contains the permitted email addresses. The value can be a particular email address, a hostname to indicate all email addresses on that host or a domain with a leading period (e.g. .example.com) to indicate all email addresses in that domain.
+   *
+   * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints#permittedEmailAddresses
+   */
+  readonly permittedEmailAddresses?: string[];
+
+  /**
+   * Contains the permitted IP ranges. For IPv4 addresses, the ranges are expressed using CIDR notation as specified in RFC 4632. For IPv6 addresses, the ranges are expressed in similar encoding as IPv4 addresses.
+   *
+   * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints#permittedIpRanges
+   */
+  readonly permittedIpRanges?: string[];
+
+  /**
+   * Contains the permitted URIs that apply to the host part of the name. The value can be a hostname or a domain with a leading period (like .example.com)
+   *
+   * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints#permittedUris
+   */
+  readonly permittedUris?: string[];
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints(obj: CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'critical': obj.critical,
+    'excludedDnsNames': obj.excludedDnsNames?.map(y => y),
+    'excludedEmailAddresses': obj.excludedEmailAddresses?.map(y => y),
+    'excludedIpRanges': obj.excludedIpRanges?.map(y => y),
+    'excludedUris': obj.excludedUris?.map(y => y),
+    'permittedDnsNames': obj.permittedDnsNames?.map(y => y),
+    'permittedEmailAddresses': obj.permittedEmailAddresses?.map(y => y),
+    'permittedIpRanges': obj.permittedIpRanges?.map(y => y),
+    'permittedUris': obj.permittedUris?.map(y => y),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1511,7 +1632,7 @@ export function toJson_CaPoolIamMemberProps(obj: CaPoolIamMemberProps | undefine
  */
 export interface CaPoolIamMemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CaPoolIamMemberSpec#deletionPolicy
    */
@@ -1521,6 +1642,13 @@ export interface CaPoolIamMemberSpec {
    * @schema CaPoolIamMemberSpec#forProvider
    */
   readonly forProvider: CaPoolIamMemberSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema CaPoolIamMemberSpec#managementPolicy
+   */
+  readonly managementPolicy?: CaPoolIamMemberSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1561,6 +1689,7 @@ export function toJson_CaPoolIamMemberSpec(obj: CaPoolIamMemberSpec | undefined)
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CaPoolIamMemberSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_CaPoolIamMemberSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_CaPoolIamMemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CaPoolIamMemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -1572,7 +1701,7 @@ export function toJson_CaPoolIamMemberSpec(obj: CaPoolIamMemberSpec | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CaPoolIamMemberSpecDeletionPolicy
  */
@@ -1619,7 +1748,7 @@ export interface CaPoolIamMemberSpecForProvider {
   /**
    * @schema CaPoolIamMemberSpecForProvider#member
    */
-  readonly member: string;
+  readonly member?: string;
 
   /**
    * @schema CaPoolIamMemberSpecForProvider#project
@@ -1629,7 +1758,7 @@ export interface CaPoolIamMemberSpecForProvider {
   /**
    * @schema CaPoolIamMemberSpecForProvider#role
    */
-  readonly role: string;
+  readonly role?: string;
 
 }
 
@@ -1653,6 +1782,20 @@ export function toJson_CaPoolIamMemberSpecForProvider(obj: CaPoolIamMemberSpecFo
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema CaPoolIamMemberSpecManagementPolicy
+ */
+export enum CaPoolIamMemberSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2413,7 +2556,7 @@ export function toJson_CertificateProps(obj: CertificateProps | undefined): Reco
  */
 export interface CertificateSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CertificateSpec#deletionPolicy
    */
@@ -2423,6 +2566,13 @@ export interface CertificateSpec {
    * @schema CertificateSpec#forProvider
    */
   readonly forProvider: CertificateSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema CertificateSpec#managementPolicy
+   */
+  readonly managementPolicy?: CertificateSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2463,6 +2613,7 @@ export function toJson_CertificateSpec(obj: CertificateSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CertificateSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_CertificateSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_CertificateSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CertificateSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -2474,7 +2625,7 @@ export function toJson_CertificateSpec(obj: CertificateSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CertificateSpecDeletionPolicy
  */
@@ -2623,6 +2774,20 @@ export function toJson_CertificateSpecForProvider(obj: CertificateSpecForProvide
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema CertificateSpecManagementPolicy
+ */
+export enum CertificateSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3378,7 +3543,7 @@ export function toJson_CertificateSpecForProviderCertificateTemplateSelectorPoli
  */
 export interface CertificateSpecForProviderConfigPublicKey {
   /**
-   * The format of the public key. Currently, only PEM format is supported. Possible values are KEY_TYPE_UNSPECIFIED and PEM.
+   * The format of the public key. Currently, only PEM format is supported. Possible values are: KEY_TYPE_UNSPECIFIED, PEM.
    *
    * @schema CertificateSpecForProviderConfigPublicKey#format
    */
@@ -3413,14 +3578,14 @@ export function toJson_CertificateSpecForProviderConfigPublicKey(obj: Certificat
  */
 export interface CertificateSpecForProviderConfigSubjectConfig {
   /**
-   * Contains distinguished name fields such as the location and organization. Structure is documented below.
+   * (Output) Contains distinguished name fields such as the location and organization. Structure is documented below.
    *
    * @schema CertificateSpecForProviderConfigSubjectConfig#subject
    */
   readonly subject: CertificateSpecForProviderConfigSubjectConfigSubject[];
 
   /**
-   * The subject alternative name fields. Structure is documented below.
+   * (Output) The subject alternative name fields. Structure is documented below.
    *
    * @schema CertificateSpecForProviderConfigSubjectConfig#subjectAltName
    */
@@ -3448,35 +3613,42 @@ export function toJson_CertificateSpecForProviderConfigSubjectConfig(obj: Certif
  */
 export interface CertificateSpecForProviderConfigX509Config {
   /**
-   * Describes custom X.509 extensions. Structure is documented below.
+   * (Output) Describes custom X.509 extensions. Structure is documented below.
    *
    * @schema CertificateSpecForProviderConfigX509Config#additionalExtensions
    */
   readonly additionalExtensions?: CertificateSpecForProviderConfigX509ConfigAdditionalExtensions[];
 
   /**
-   * Describes Online Certificate Status Protocol (OCSP) endpoint addresses that appear in the "Authority Information Access" extension in the certificate.
+   * (Output) Describes Online Certificate Status Protocol (OCSP) endpoint addresses that appear in the "Authority Information Access" extension in the certificate.
    *
    * @schema CertificateSpecForProviderConfigX509Config#aiaOcspServers
    */
   readonly aiaOcspServers?: string[];
 
   /**
-   * Describes values that are relevant in a CA certificate. Structure is documented below.
+   * (Output) Describes values that are relevant in a CA certificate. Structure is documented below.
    *
    * @schema CertificateSpecForProviderConfigX509Config#caOptions
    */
   readonly caOptions?: CertificateSpecForProviderConfigX509ConfigCaOptions[];
 
   /**
-   * Indicates the intended use for keys that correspond to a certificate. Structure is documented below.
+   * (Output) Indicates the intended use for keys that correspond to a certificate. Structure is documented below.
    *
    * @schema CertificateSpecForProviderConfigX509Config#keyUsage
    */
   readonly keyUsage: CertificateSpecForProviderConfigX509ConfigKeyUsage[];
 
   /**
-   * Describes the X.509 certificate policy object identifiers, per https://tools.ietf.org/html/rfc5280#section-4.2.1.4. Structure is documented below.
+   * (Output) Describes the X.509 name constraints extension. Structure is documented below.
+   *
+   * @schema CertificateSpecForProviderConfigX509Config#nameConstraints
+   */
+  readonly nameConstraints?: CertificateSpecForProviderConfigX509ConfigNameConstraints[];
+
+  /**
+   * (Output) Describes the X.509 certificate policy object identifiers, per https://tools.ietf.org/html/rfc5280#section-4.2.1.4. Structure is documented below.
    *
    * @schema CertificateSpecForProviderConfigX509Config#policyIds
    */
@@ -3495,6 +3667,7 @@ export function toJson_CertificateSpecForProviderConfigX509Config(obj: Certifica
     'aiaOcspServers': obj.aiaOcspServers?.map(y => y),
     'caOptions': obj.caOptions?.map(y => toJson_CertificateSpecForProviderConfigX509ConfigCaOptions(y)),
     'keyUsage': obj.keyUsage?.map(y => toJson_CertificateSpecForProviderConfigX509ConfigKeyUsage(y)),
+    'nameConstraints': obj.nameConstraints?.map(y => toJson_CertificateSpecForProviderConfigX509ConfigNameConstraints(y)),
     'policyIds': obj.policyIds?.map(y => toJson_CertificateSpecForProviderConfigX509ConfigPolicyIds(y)),
   };
   // filter undefined values
@@ -3941,7 +4114,7 @@ export function toJson_CertificateSpecForProviderConfigSubjectConfigSubjectAltNa
  */
 export interface CertificateSpecForProviderConfigX509ConfigAdditionalExtensions {
   /**
-   * Required. Indicates whether or not this extension is critical (i.e., if the client does not know how to handle this extension, the client should consider this to be an error).
+   * Indicates whether or not the name constraints are marked critical.
    *
    * @schema CertificateSpecForProviderConfigX509ConfigAdditionalExtensions#critical
    */
@@ -3955,7 +4128,7 @@ export interface CertificateSpecForProviderConfigX509ConfigAdditionalExtensions 
   readonly objectId: CertificateSpecForProviderConfigX509ConfigAdditionalExtensionsObjectId[];
 
   /**
-   * The value of this X.509 extension.
+   * (Output) The value of this X.509 extension.
    *
    * @schema CertificateSpecForProviderConfigX509ConfigAdditionalExtensions#value
    */
@@ -4067,6 +4240,97 @@ export function toJson_CertificateSpecForProviderConfigX509ConfigKeyUsage(obj: C
     'baseKeyUsage': obj.baseKeyUsage?.map(y => toJson_CertificateSpecForProviderConfigX509ConfigKeyUsageBaseKeyUsage(y)),
     'extendedKeyUsage': obj.extendedKeyUsage?.map(y => toJson_CertificateSpecForProviderConfigX509ConfigKeyUsageExtendedKeyUsage(y)),
     'unknownExtendedKeyUsages': obj.unknownExtendedKeyUsages?.map(y => toJson_CertificateSpecForProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateSpecForProviderConfigX509ConfigNameConstraints
+ */
+export interface CertificateSpecForProviderConfigX509ConfigNameConstraints {
+  /**
+   * Indicates whether or not the name constraints are marked critical.
+   *
+   * @schema CertificateSpecForProviderConfigX509ConfigNameConstraints#critical
+   */
+  readonly critical: boolean;
+
+  /**
+   * Contains excluded DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, example.com, www.example.com, www.sub.example.com would satisfy example.com while example1.com does not.
+   *
+   * @schema CertificateSpecForProviderConfigX509ConfigNameConstraints#excludedDnsNames
+   */
+  readonly excludedDnsNames?: string[];
+
+  /**
+   * Contains the excluded email addresses. The value can be a particular email address, a hostname to indicate all email addresses on that host or a domain with a leading period (e.g. .example.com) to indicate all email addresses in that domain.
+   *
+   * @schema CertificateSpecForProviderConfigX509ConfigNameConstraints#excludedEmailAddresses
+   */
+  readonly excludedEmailAddresses?: string[];
+
+  /**
+   * Contains the excluded IP ranges. For IPv4 addresses, the ranges are expressed using CIDR notation as specified in RFC 4632. For IPv6 addresses, the ranges are expressed in similar encoding as IPv4 addresses.
+   *
+   * @schema CertificateSpecForProviderConfigX509ConfigNameConstraints#excludedIpRanges
+   */
+  readonly excludedIpRanges?: string[];
+
+  /**
+   * Contains the excluded URIs that apply to the host part of the name. The value can be a hostname or a domain with a leading period (like .example.com)
+   *
+   * @schema CertificateSpecForProviderConfigX509ConfigNameConstraints#excludedUris
+   */
+  readonly excludedUris?: string[];
+
+  /**
+   * Contains permitted DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, example.com, www.example.com, www.sub.example.com would satisfy example.com while example1.com does not.
+   *
+   * @schema CertificateSpecForProviderConfigX509ConfigNameConstraints#permittedDnsNames
+   */
+  readonly permittedDnsNames?: string[];
+
+  /**
+   * Contains the permitted email addresses. The value can be a particular email address, a hostname to indicate all email addresses on that host or a domain with a leading period (e.g. .example.com) to indicate all email addresses in that domain.
+   *
+   * @schema CertificateSpecForProviderConfigX509ConfigNameConstraints#permittedEmailAddresses
+   */
+  readonly permittedEmailAddresses?: string[];
+
+  /**
+   * Contains the permitted IP ranges. For IPv4 addresses, the ranges are expressed using CIDR notation as specified in RFC 4632. For IPv6 addresses, the ranges are expressed in similar encoding as IPv4 addresses.
+   *
+   * @schema CertificateSpecForProviderConfigX509ConfigNameConstraints#permittedIpRanges
+   */
+  readonly permittedIpRanges?: string[];
+
+  /**
+   * Contains the permitted URIs that apply to the host part of the name. The value can be a hostname or a domain with a leading period (like .example.com)
+   *
+   * @schema CertificateSpecForProviderConfigX509ConfigNameConstraints#permittedUris
+   */
+  readonly permittedUris?: string[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecForProviderConfigX509ConfigNameConstraints' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecForProviderConfigX509ConfigNameConstraints(obj: CertificateSpecForProviderConfigX509ConfigNameConstraints | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'critical': obj.critical,
+    'excludedDnsNames': obj.excludedDnsNames?.map(y => y),
+    'excludedEmailAddresses': obj.excludedEmailAddresses?.map(y => y),
+    'excludedIpRanges': obj.excludedIpRanges?.map(y => y),
+    'excludedUris': obj.excludedUris?.map(y => y),
+    'permittedDnsNames': obj.permittedDnsNames?.map(y => y),
+    'permittedEmailAddresses': obj.permittedEmailAddresses?.map(y => y),
+    'permittedIpRanges': obj.permittedIpRanges?.map(y => y),
+    'permittedUris': obj.permittedUris?.map(y => y),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4204,63 +4468,63 @@ export function toJson_CertificateSpecForProviderConfigX509ConfigAdditionalExten
  */
 export interface CertificateSpecForProviderConfigX509ConfigKeyUsageBaseKeyUsage {
   /**
-   * The key may be used to sign certificates.
+   * (Output) The key may be used to sign certificates.
    *
    * @schema CertificateSpecForProviderConfigX509ConfigKeyUsageBaseKeyUsage#certSign
    */
   readonly certSign?: boolean;
 
   /**
-   * The key may be used for cryptographic commitments. Note that this may also be referred to as "non-repudiation".
+   * (Output) The key may be used for cryptographic commitments. Note that this may also be referred to as "non-repudiation".
    *
    * @schema CertificateSpecForProviderConfigX509ConfigKeyUsageBaseKeyUsage#contentCommitment
    */
   readonly contentCommitment?: boolean;
 
   /**
-   * The key may be used sign certificate revocation lists.
+   * (Output) The key may be used sign certificate revocation lists.
    *
    * @schema CertificateSpecForProviderConfigX509ConfigKeyUsageBaseKeyUsage#crlSign
    */
   readonly crlSign?: boolean;
 
   /**
-   * The key may be used to encipher data.
+   * (Output) The key may be used to encipher data.
    *
    * @schema CertificateSpecForProviderConfigX509ConfigKeyUsageBaseKeyUsage#dataEncipherment
    */
   readonly dataEncipherment?: boolean;
 
   /**
-   * The key may be used to decipher only.
+   * (Output) The key may be used to decipher only.
    *
    * @schema CertificateSpecForProviderConfigX509ConfigKeyUsageBaseKeyUsage#decipherOnly
    */
   readonly decipherOnly?: boolean;
 
   /**
-   * The key may be used for digital signatures.
+   * (Output) The key may be used for digital signatures.
    *
    * @schema CertificateSpecForProviderConfigX509ConfigKeyUsageBaseKeyUsage#digitalSignature
    */
   readonly digitalSignature?: boolean;
 
   /**
-   * The key may be used to encipher only.
+   * (Output) The key may be used to encipher only.
    *
    * @schema CertificateSpecForProviderConfigX509ConfigKeyUsageBaseKeyUsage#encipherOnly
    */
   readonly encipherOnly?: boolean;
 
   /**
-   * The key may be used in a key agreement protocol.
+   * (Output) The key may be used in a key agreement protocol.
    *
    * @schema CertificateSpecForProviderConfigX509ConfigKeyUsageBaseKeyUsage#keyAgreement
    */
   readonly keyAgreement?: boolean;
 
   /**
-   * The key may be used to encipher other keys.
+   * (Output) The key may be used to encipher other keys.
    *
    * @schema CertificateSpecForProviderConfigX509ConfigKeyUsageBaseKeyUsage#keyEncipherment
    */
@@ -4481,7 +4745,7 @@ export function toJson_CertificateAuthorityProps(obj: CertificateAuthorityProps 
  */
 export interface CertificateAuthoritySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CertificateAuthoritySpec#deletionPolicy
    */
@@ -4491,6 +4755,13 @@ export interface CertificateAuthoritySpec {
    * @schema CertificateAuthoritySpec#forProvider
    */
   readonly forProvider: CertificateAuthoritySpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema CertificateAuthoritySpec#managementPolicy
+   */
+  readonly managementPolicy?: CertificateAuthoritySpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4531,6 +4802,7 @@ export function toJson_CertificateAuthoritySpec(obj: CertificateAuthoritySpec | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CertificateAuthoritySpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_CertificateAuthoritySpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_CertificateAuthoritySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CertificateAuthoritySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -4542,7 +4814,7 @@ export function toJson_CertificateAuthoritySpec(obj: CertificateAuthoritySpec | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CertificateAuthoritySpecDeletionPolicy
  */
@@ -4562,7 +4834,7 @@ export interface CertificateAuthoritySpecForProvider {
    *
    * @schema CertificateAuthoritySpecForProvider#config
    */
-  readonly config: CertificateAuthoritySpecForProviderConfig[];
+  readonly config?: CertificateAuthoritySpecForProviderConfig[];
 
   /**
    * @schema CertificateAuthoritySpecForProvider#deletionProtection
@@ -4596,7 +4868,7 @@ export interface CertificateAuthoritySpecForProvider {
    *
    * @schema CertificateAuthoritySpecForProvider#keySpec
    */
-  readonly keySpec: CertificateAuthoritySpecForProviderKeySpec[];
+  readonly keySpec?: CertificateAuthoritySpecForProviderKeySpec[];
 
   /**
    * Labels with user-defined metadata. An object containing a list of "key": value pairs. Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
@@ -4670,7 +4942,7 @@ export interface CertificateAuthoritySpecForProvider {
   readonly subordinateConfig?: CertificateAuthoritySpecForProviderSubordinateConfig[];
 
   /**
-   * The Type of this CertificateAuthority. ~> Note: For SUBORDINATE Certificate Authorities, they need to be activated before they can issue certificates. Default value is SELF_SIGNED. Possible values are SELF_SIGNED and SUBORDINATE.
+   * The Type of this CertificateAuthority. ~> Note: For SUBORDINATE Certificate Authorities, they need to be activated before they can issue certificates. Default value is SELF_SIGNED. Possible values are: SELF_SIGNED, SUBORDINATE.
    *
    * @schema CertificateAuthoritySpecForProvider#type
    */
@@ -4707,6 +4979,20 @@ export function toJson_CertificateAuthoritySpecForProvider(obj: CertificateAutho
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema CertificateAuthoritySpecManagementPolicy
+ */
+export enum CertificateAuthoritySpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4904,7 +5190,7 @@ export function toJson_CertificateAuthoritySpecForProviderConfig(obj: Certificat
  */
 export interface CertificateAuthoritySpecForProviderKeySpec {
   /**
-   * The algorithm to use for creating a managed Cloud KMS key for a for a simplified experience. All managed keys will be have their ProtectionLevel as HSM. Possible values are SIGN_HASH_ALGORITHM_UNSPECIFIED, RSA_PSS_2048_SHA256, RSA_PSS_3072_SHA256, RSA_PSS_4096_SHA256, RSA_PKCS1_2048_SHA256, RSA_PKCS1_3072_SHA256, RSA_PKCS1_4096_SHA256, EC_P256_SHA256, and EC_P384_SHA384.
+   * The algorithm to use for creating a managed Cloud KMS key for a for a simplified experience. All managed keys will be have their ProtectionLevel as HSM. Possible values are: SIGN_HASH_ALGORITHM_UNSPECIFIED, RSA_PSS_2048_SHA256, RSA_PSS_3072_SHA256, RSA_PSS_4096_SHA256, RSA_PKCS1_2048_SHA256, RSA_PKCS1_3072_SHA256, RSA_PKCS1_4096_SHA256, EC_P256_SHA256, EC_P384_SHA384.
    *
    * @schema CertificateAuthoritySpecForProviderKeySpec#algorithm
    */
@@ -5291,6 +5577,13 @@ export interface CertificateAuthoritySpecForProviderConfigX509Config {
   readonly keyUsage: CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsage[];
 
   /**
+   * Describes the X.509 name constraints extension. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecForProviderConfigX509Config#nameConstraints
+   */
+  readonly nameConstraints?: CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints[];
+
+  /**
    * Describes the X.509 certificate policy object identifiers, per https://tools.ietf.org/html/rfc5280#section-4.2.1.4. Structure is documented below.
    *
    * @schema CertificateAuthoritySpecForProviderConfigX509Config#policyIds
@@ -5310,6 +5603,7 @@ export function toJson_CertificateAuthoritySpecForProviderConfigX509Config(obj: 
     'aiaOcspServers': obj.aiaOcspServers?.map(y => y),
     'caOptions': obj.caOptions?.map(y => toJson_CertificateAuthoritySpecForProviderConfigX509ConfigCaOptions(y)),
     'keyUsage': obj.keyUsage?.map(y => toJson_CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsage(y)),
+    'nameConstraints': obj.nameConstraints?.map(y => toJson_CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints(y)),
     'policyIds': obj.policyIds?.map(y => toJson_CertificateAuthoritySpecForProviderConfigX509ConfigPolicyIds(y)),
   };
   // filter undefined values
@@ -5724,7 +6018,7 @@ export function toJson_CertificateAuthoritySpecForProviderConfigSubjectConfigSub
  */
 export interface CertificateAuthoritySpecForProviderConfigX509ConfigAdditionalExtensions {
   /**
-   * Indicates whether or not this extension is critical (i.e., if the client does not know how to handle this extension, the client should consider this to be an error).
+   * Indicates whether or not the name constraints are marked critical.
    *
    * @schema CertificateAuthoritySpecForProviderConfigX509ConfigAdditionalExtensions#critical
    */
@@ -5850,6 +6144,97 @@ export function toJson_CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsa
     'baseKeyUsage': obj.baseKeyUsage?.map(y => toJson_CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsageBaseKeyUsage(y)),
     'extendedKeyUsage': obj.extendedKeyUsage?.map(y => toJson_CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsageExtendedKeyUsage(y)),
     'unknownExtendedKeyUsages': obj.unknownExtendedKeyUsages?.map(y => toJson_CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints
+ */
+export interface CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints {
+  /**
+   * Indicates whether or not the name constraints are marked critical.
+   *
+   * @schema CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints#critical
+   */
+  readonly critical: boolean;
+
+  /**
+   * Contains excluded DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, example.com, www.example.com, www.sub.example.com would satisfy example.com while example1.com does not.
+   *
+   * @schema CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints#excludedDnsNames
+   */
+  readonly excludedDnsNames?: string[];
+
+  /**
+   * Contains the excluded email addresses. The value can be a particular email address, a hostname to indicate all email addresses on that host or a domain with a leading period (e.g. .example.com) to indicate all email addresses in that domain.
+   *
+   * @schema CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints#excludedEmailAddresses
+   */
+  readonly excludedEmailAddresses?: string[];
+
+  /**
+   * Contains the excluded IP ranges. For IPv4 addresses, the ranges are expressed using CIDR notation as specified in RFC 4632. For IPv6 addresses, the ranges are expressed in similar encoding as IPv4 addresses.
+   *
+   * @schema CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints#excludedIpRanges
+   */
+  readonly excludedIpRanges?: string[];
+
+  /**
+   * Contains the excluded URIs that apply to the host part of the name. The value can be a hostname or a domain with a leading period (like .example.com)
+   *
+   * @schema CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints#excludedUris
+   */
+  readonly excludedUris?: string[];
+
+  /**
+   * Contains permitted DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, example.com, www.example.com, www.sub.example.com would satisfy example.com while example1.com does not.
+   *
+   * @schema CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints#permittedDnsNames
+   */
+  readonly permittedDnsNames?: string[];
+
+  /**
+   * Contains the permitted email addresses. The value can be a particular email address, a hostname to indicate all email addresses on that host or a domain with a leading period (e.g. .example.com) to indicate all email addresses in that domain.
+   *
+   * @schema CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints#permittedEmailAddresses
+   */
+  readonly permittedEmailAddresses?: string[];
+
+  /**
+   * Contains the permitted IP ranges. For IPv4 addresses, the ranges are expressed using CIDR notation as specified in RFC 4632. For IPv6 addresses, the ranges are expressed in similar encoding as IPv4 addresses.
+   *
+   * @schema CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints#permittedIpRanges
+   */
+  readonly permittedIpRanges?: string[];
+
+  /**
+   * Contains the permitted URIs that apply to the host part of the name. The value can be a hostname or a domain with a leading period (like .example.com)
+   *
+   * @schema CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints#permittedUris
+   */
+  readonly permittedUris?: string[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints(obj: CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'critical': obj.critical,
+    'excludedDnsNames': obj.excludedDnsNames?.map(y => y),
+    'excludedEmailAddresses': obj.excludedEmailAddresses?.map(y => y),
+    'excludedIpRanges': obj.excludedIpRanges?.map(y => y),
+    'excludedUris': obj.excludedUris?.map(y => y),
+    'permittedDnsNames': obj.permittedDnsNames?.map(y => y),
+    'permittedEmailAddresses': obj.permittedEmailAddresses?.map(y => y),
+    'permittedIpRanges': obj.permittedIpRanges?.map(y => y),
+    'permittedUris': obj.permittedUris?.map(y => y),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6386,7 +6771,7 @@ export function toJson_CertificateTemplateProps(obj: CertificateTemplateProps | 
  */
 export interface CertificateTemplateSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CertificateTemplateSpec#deletionPolicy
    */
@@ -6396,6 +6781,13 @@ export interface CertificateTemplateSpec {
    * @schema CertificateTemplateSpec#forProvider
    */
   readonly forProvider: CertificateTemplateSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema CertificateTemplateSpec#managementPolicy
+   */
+  readonly managementPolicy?: CertificateTemplateSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6436,6 +6828,7 @@ export function toJson_CertificateTemplateSpec(obj: CertificateTemplateSpec | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CertificateTemplateSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_CertificateTemplateSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_CertificateTemplateSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CertificateTemplateSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -6447,7 +6840,7 @@ export function toJson_CertificateTemplateSpec(obj: CertificateTemplateSpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CertificateTemplateSpecDeletionPolicy
  */
@@ -6532,6 +6925,20 @@ export function toJson_CertificateTemplateSpecForProvider(obj: CertificateTempla
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema CertificateTemplateSpecManagementPolicy
+ */
+export enum CertificateTemplateSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7626,7 +8033,7 @@ export function toJson_CertificateTemplateIamMemberProps(obj: CertificateTemplat
  */
 export interface CertificateTemplateIamMemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CertificateTemplateIamMemberSpec#deletionPolicy
    */
@@ -7636,6 +8043,13 @@ export interface CertificateTemplateIamMemberSpec {
    * @schema CertificateTemplateIamMemberSpec#forProvider
    */
   readonly forProvider: CertificateTemplateIamMemberSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema CertificateTemplateIamMemberSpec#managementPolicy
+   */
+  readonly managementPolicy?: CertificateTemplateIamMemberSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7676,6 +8090,7 @@ export function toJson_CertificateTemplateIamMemberSpec(obj: CertificateTemplate
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CertificateTemplateIamMemberSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_CertificateTemplateIamMemberSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_CertificateTemplateIamMemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CertificateTemplateIamMemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -7687,7 +8102,7 @@ export function toJson_CertificateTemplateIamMemberSpec(obj: CertificateTemplate
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CertificateTemplateIamMemberSpecDeletionPolicy
  */
@@ -7734,7 +8149,7 @@ export interface CertificateTemplateIamMemberSpecForProvider {
   /**
    * @schema CertificateTemplateIamMemberSpecForProvider#member
    */
-  readonly member: string;
+  readonly member?: string;
 
   /**
    * @schema CertificateTemplateIamMemberSpecForProvider#project
@@ -7744,7 +8159,7 @@ export interface CertificateTemplateIamMemberSpecForProvider {
   /**
    * @schema CertificateTemplateIamMemberSpecForProvider#role
    */
-  readonly role: string;
+  readonly role?: string;
 
 }
 
@@ -7768,6 +8183,20 @@ export function toJson_CertificateTemplateIamMemberSpecForProvider(obj: Certific
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema CertificateTemplateIamMemberSpecManagementPolicy
+ */
+export enum CertificateTemplateIamMemberSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

@@ -99,7 +99,7 @@ export function toJson_TriggerProps(obj: TriggerProps | undefined): Record<strin
  */
 export interface TriggerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema TriggerSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface TriggerSpec {
    * @schema TriggerSpec#forProvider
    */
   readonly forProvider: TriggerSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema TriggerSpec#managementPolicy
+   */
+  readonly managementPolicy?: TriggerSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_TriggerSpec(obj: TriggerSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_TriggerSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_TriggerSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_TriggerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_TriggerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_TriggerSpec(obj: TriggerSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema TriggerSpecDeletionPolicy
  */
@@ -246,7 +254,7 @@ export interface TriggerSpecForProvider {
   readonly ignoredFiles?: string[];
 
   /**
-   * Build logs will be sent back to GitHub as part of the checkrun result.  Values can be INCLUDE_BUILD_LOGS_UNSPECIFIED or INCLUDE_BUILD_LOGS_WITH_STATUS Possible values are INCLUDE_BUILD_LOGS_UNSPECIFIED and INCLUDE_BUILD_LOGS_WITH_STATUS.
+   * Build logs will be sent back to GitHub as part of the checkrun result.  Values can be INCLUDE_BUILD_LOGS_UNSPECIFIED or INCLUDE_BUILD_LOGS_WITH_STATUS Possible values are: INCLUDE_BUILD_LOGS_UNSPECIFIED, INCLUDE_BUILD_LOGS_WITH_STATUS.
    *
    * @schema TriggerSpecForProvider#includeBuildLogs
    */
@@ -381,6 +389,20 @@ export function toJson_TriggerSpecForProvider(obj: TriggerSpecForProvider | unde
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema TriggerSpecManagementPolicy
+ */
+export enum TriggerSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -758,7 +780,7 @@ export interface TriggerSpecForProviderGitFileSource {
   readonly path: string;
 
   /**
-   * The type of the repo, since it may not be explicit from the repo field (e.g from a URL). Values can be UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET_SERVER Possible values are UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, and BITBUCKET_SERVER.
+   * The type of the repo, since it may not be explicit from the repo field (e.g from a URL). Values can be UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET_SERVER Possible values are: UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET_SERVER.
    *
    * @schema TriggerSpecForProviderGitFileSource#repoType
    */
@@ -1009,7 +1031,7 @@ export interface TriggerSpecForProviderSourceToBuild {
   readonly ref: string;
 
   /**
-   * The type of the repo, since it may not be explicit from the repo field (e.g from a URL). Values can be UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET_SERVER Possible values are UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, and BITBUCKET_SERVER.
+   * The type of the repo, since it may not be explicit from the repo field (e.g from a URL). Values can be UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET_SERVER Possible values are: UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET_SERVER.
    *
    * @schema TriggerSpecForProviderSourceToBuild#repoType
    */
@@ -1327,7 +1349,7 @@ export interface TriggerSpecForProviderBitbucketServerTriggerConfigPullRequest {
   readonly branch: string;
 
   /**
-   * Configure builds to run whether a repository owner or collaborator need to comment /gcbrun. Possible values are COMMENTS_DISABLED, COMMENTS_ENABLED, and COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY.
+   * Configure builds to run whether a repository owner or collaborator need to comment /gcbrun. Possible values are: COMMENTS_DISABLED, COMMENTS_ENABLED, COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY.
    *
    * @schema TriggerSpecForProviderBitbucketServerTriggerConfigPullRequest#commentControl
    */
@@ -1489,28 +1511,28 @@ export interface TriggerSpecForProviderBuildOptions {
   readonly env?: string[];
 
   /**
-   * Option to define build log streaming behavior to Google Cloud Storage. Possible values are STREAM_DEFAULT, STREAM_ON, and STREAM_OFF.
+   * Option to define build log streaming behavior to Google Cloud Storage. Possible values are: STREAM_DEFAULT, STREAM_ON, STREAM_OFF.
    *
    * @schema TriggerSpecForProviderBuildOptions#logStreamingOption
    */
   readonly logStreamingOption?: string;
 
   /**
-   * Option to specify the logging mode, which determines if and where build logs are stored. Possible values are LOGGING_UNSPECIFIED, LEGACY, GCS_ONLY, STACKDRIVER_ONLY, CLOUD_LOGGING_ONLY, and NONE.
+   * Option to specify the logging mode, which determines if and where build logs are stored. Possible values are: LOGGING_UNSPECIFIED, LEGACY, GCS_ONLY, STACKDRIVER_ONLY, CLOUD_LOGGING_ONLY, NONE.
    *
    * @schema TriggerSpecForProviderBuildOptions#logging
    */
   readonly logging?: string;
 
   /**
-   * Compute Engine machine type on which to run the build. Possible values are UNSPECIFIED, N1_HIGHCPU_8, N1_HIGHCPU_32, E2_HIGHCPU_8, and E2_HIGHCPU_32.
+   * Compute Engine machine type on which to run the build. Possible values are: UNSPECIFIED, N1_HIGHCPU_8, N1_HIGHCPU_32, E2_HIGHCPU_8, E2_HIGHCPU_32.
    *
    * @schema TriggerSpecForProviderBuildOptions#machineType
    */
   readonly machineType?: string;
 
   /**
-   * Requested verifiability options. Possible values are NOT_VERIFIED and VERIFIED.
+   * Requested verifiability options. Possible values are: NOT_VERIFIED, VERIFIED.
    *
    * @schema TriggerSpecForProviderBuildOptions#requestedVerifyOption
    */
@@ -1524,14 +1546,14 @@ export interface TriggerSpecForProviderBuildOptions {
   readonly secretEnv?: string[];
 
   /**
-   * Requested hash for SourceProvenance. Each value may be one of NONE, SHA256, and MD5.
+   * Requested hash for SourceProvenance. Each value may be one of: NONE, SHA256, MD5.
    *
    * @schema TriggerSpecForProviderBuildOptions#sourceProvenanceHash
    */
   readonly sourceProvenanceHash?: string[];
 
   /**
-   * Option to specify behavior when there is an error in the substitution checks. NOTE this is always set to ALLOW_LOOSE for triggered builds and cannot be overridden in the build configuration file. Possible values are MUST_MATCH and ALLOW_LOOSE.
+   * Option to specify behavior when there is an error in the substitution checks. NOTE this is always set to ALLOW_LOOSE for triggered builds and cannot be overridden in the build configuration file. Possible values are: MUST_MATCH, ALLOW_LOOSE.
    *
    * @schema TriggerSpecForProviderBuildOptions#substitutionOption
    */
@@ -1775,7 +1797,7 @@ export interface TriggerSpecForProviderGithubPullRequest {
   readonly branch: string;
 
   /**
-   * Configure builds to run whether a repository owner or collaborator need to comment /gcbrun. Possible values are COMMENTS_DISABLED, COMMENTS_ENABLED, and COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY.
+   * Configure builds to run whether a repository owner or collaborator need to comment /gcbrun. Possible values are: COMMENTS_DISABLED, COMMENTS_ENABLED, COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY.
    *
    * @schema TriggerSpecForProviderGithubPullRequest#commentControl
    */
@@ -2851,7 +2873,7 @@ export function toJson_WorkerPoolProps(obj: WorkerPoolProps | undefined): Record
  */
 export interface WorkerPoolSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema WorkerPoolSpec#deletionPolicy
    */
@@ -2861,6 +2883,13 @@ export interface WorkerPoolSpec {
    * @schema WorkerPoolSpec#forProvider
    */
   readonly forProvider: WorkerPoolSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema WorkerPoolSpec#managementPolicy
+   */
+  readonly managementPolicy?: WorkerPoolSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2901,6 +2930,7 @@ export function toJson_WorkerPoolSpec(obj: WorkerPoolSpec | undefined): Record<s
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_WorkerPoolSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_WorkerPoolSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_WorkerPoolSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_WorkerPoolSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -2912,7 +2942,7 @@ export function toJson_WorkerPoolSpec(obj: WorkerPoolSpec | undefined): Record<s
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema WorkerPoolSpecDeletionPolicy
  */
@@ -2987,6 +3017,20 @@ export function toJson_WorkerPoolSpecForProvider(obj: WorkerPoolSpecForProvider 
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema WorkerPoolSpecManagementPolicy
+ */
+export enum WorkerPoolSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

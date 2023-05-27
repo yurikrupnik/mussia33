@@ -7,6 +7,7 @@ includes:
   crossplane: ./platform/crossplane
   kubevela: ./platform/kubevela
   argocd: ./platform/gitops/argocd
+  compose: ./scripts
 
 vars:
   GREETING: Hello, World!
@@ -16,6 +17,9 @@ tasks:
     cmds:
       - echo "{{.GREETING}}"
     silent: true
+  wrk:
+    cmds:
+      - wrk -t8 -c256 -d30s http://127.0.0.1:8082/api/users
 
   tilt:up:
     cmds:
@@ -35,10 +39,26 @@ tasks:
       - task: crossplane:create-resources
   protoc:
     cmds:
-      - protoc --rust_out ./libs/rust/grpc/src/generated --plugin=node_modules/ts-proto/protoc-gen-ts_proto --ts_proto_opt=nestJs=true,addGrpcMetadata=true,addNestjsRestParameter=true --ts_proto_out=./libs/node/grpc/src --ts_proto_opt=esModuleInterop=true ./_proto/*
+      - protoc --rust_out ./libs/rust/grpc/src/generated --go_out ./libs/go/ --plugin=node_modules/ts-proto/protoc-gen-ts_proto --ts_proto_opt=nestJs=true,addGrpcMetadata=true,addNestjsRestParameter=true --ts_proto_out=./libs/node/grpc/src ./_proto/*.proto --ts_proto_opt=esModuleInterop=true
   image-pull-secret:
     cmds:
       - kubectl create secret docker-registry my-registry-secret --docker-server=europe-central2-docker.pkg.dev --docker-username=_json_key --docker-password="$(cat mussia-infra-a6504e8e275d.json)" --docker-email=container-puller-sa@mussia-infra.iam.gserviceaccount.com
+  minikube-start:
+    cmds:
+      - minikube start
+      - minikube addons enable gcp-auth
+#      - task: argocd:install
+#      - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
+#      - task: argocd:apply
+      - tilt up
+  minikube-stop:
+    cmds:
+      - tilt down
+      - minikube stop
+  minikube-delete:
+    cmds:
+      - tilt down
+      - minikube delete
   start:
     deps:
       - cluster:single-core:up

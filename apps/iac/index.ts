@@ -23,7 +23,7 @@ const gcpConfig = new pulumi.Config("gcp");
 const region = gcpConfig.get("region");
 const project = gcpConfig.get("project");
 
-import * as k8s from "@pulumi/kubernetes";
+// import * as k8s from "@pulumi/kubernetes";
 
 // let myk8s = new k8s.Provider("myk8s", { context: "test-ci" });
 // let myk8s1 = new gcp.Provider("myk8s", { project, region });
@@ -35,10 +35,11 @@ import * as k8s from "@pulumi/kubernetes";
 //     replicas: 1,
 //     template: {
 //       metadata: { labels: appLabels },
-//       spec: { containers: [{ name: "nginx", image: "nginx" }] }
-//     }
-//   }
+//       spec: { containers: [{ name: "nginx", image: "nginx" }] },
+//     },
+//   },
 // });
+
 // export const name = deployment.metadata.name;
 
 // import * as datadog from "@pulumi/datadog";

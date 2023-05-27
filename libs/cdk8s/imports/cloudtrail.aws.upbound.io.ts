@@ -99,7 +99,7 @@ export function toJson_EventDataStoreProps(obj: EventDataStoreProps | undefined)
  */
 export interface EventDataStoreSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema EventDataStoreSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface EventDataStoreSpec {
    * @schema EventDataStoreSpec#forProvider
    */
   readonly forProvider: EventDataStoreSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema EventDataStoreSpec#managementPolicy
+   */
+  readonly managementPolicy?: EventDataStoreSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_EventDataStoreSpec(obj: EventDataStoreSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_EventDataStoreSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_EventDataStoreSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_EventDataStoreSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_EventDataStoreSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_EventDataStoreSpec(obj: EventDataStoreSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema EventDataStoreSpecDeletionPolicy
  */
@@ -183,6 +191,27 @@ export interface EventDataStoreSpecForProvider {
   readonly advancedEventSelector?: EventDataStoreSpecForProviderAdvancedEventSelector[];
 
   /**
+   * Specifies the AWS KMS key ID to use to encrypt the events delivered by CloudTrail. The value can be an alias name prefixed by alias/, a fully specified ARN to an alias, a fully specified ARN to a key, or a globally unique identifier.
+   *
+   * @schema EventDataStoreSpecForProvider#kmsKeyId
+   */
+  readonly kmsKeyId?: string;
+
+  /**
+   * Reference to a Key in kms to populate kmsKeyId.
+   *
+   * @schema EventDataStoreSpecForProvider#kmsKeyIdRef
+   */
+  readonly kmsKeyIdRef?: EventDataStoreSpecForProviderKmsKeyIdRef;
+
+  /**
+   * Selector for a Key in kms to populate kmsKeyId.
+   *
+   * @schema EventDataStoreSpecForProvider#kmsKeyIdSelector
+   */
+  readonly kmsKeyIdSelector?: EventDataStoreSpecForProviderKmsKeyIdSelector;
+
+  /**
    * Specifies whether the event data store includes events from all regions, or only from the region in which the event data store is created. Default: true.
    *
    * @schema EventDataStoreSpecForProvider#multiRegionEnabled
@@ -194,7 +223,7 @@ export interface EventDataStoreSpecForProvider {
    *
    * @schema EventDataStoreSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Specifies whether an event data store collects events logged for an organization in AWS Organizations. Default: false.
@@ -241,6 +270,9 @@ export function toJson_EventDataStoreSpecForProvider(obj: EventDataStoreSpecForP
   if (obj === undefined) { return undefined; }
   const result = {
     'advancedEventSelector': obj.advancedEventSelector?.map(y => toJson_EventDataStoreSpecForProviderAdvancedEventSelector(y)),
+    'kmsKeyId': obj.kmsKeyId,
+    'kmsKeyIdRef': toJson_EventDataStoreSpecForProviderKmsKeyIdRef(obj.kmsKeyIdRef),
+    'kmsKeyIdSelector': toJson_EventDataStoreSpecForProviderKmsKeyIdSelector(obj.kmsKeyIdSelector),
     'multiRegionEnabled': obj.multiRegionEnabled,
     'name': obj.name,
     'organizationEnabled': obj.organizationEnabled,
@@ -253,6 +285,20 @@ export function toJson_EventDataStoreSpecForProvider(obj: EventDataStoreSpecForP
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema EventDataStoreSpecManagementPolicy
+ */
+export enum EventDataStoreSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -439,6 +485,88 @@ export function toJson_EventDataStoreSpecForProviderAdvancedEventSelector(obj: E
   const result = {
     'fieldSelector': obj.fieldSelector?.map(y => toJson_EventDataStoreSpecForProviderAdvancedEventSelectorFieldSelector(y)),
     'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a Key in kms to populate kmsKeyId.
+ *
+ * @schema EventDataStoreSpecForProviderKmsKeyIdRef
+ */
+export interface EventDataStoreSpecForProviderKmsKeyIdRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema EventDataStoreSpecForProviderKmsKeyIdRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema EventDataStoreSpecForProviderKmsKeyIdRef#policy
+   */
+  readonly policy?: EventDataStoreSpecForProviderKmsKeyIdRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'EventDataStoreSpecForProviderKmsKeyIdRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EventDataStoreSpecForProviderKmsKeyIdRef(obj: EventDataStoreSpecForProviderKmsKeyIdRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_EventDataStoreSpecForProviderKmsKeyIdRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a Key in kms to populate kmsKeyId.
+ *
+ * @schema EventDataStoreSpecForProviderKmsKeyIdSelector
+ */
+export interface EventDataStoreSpecForProviderKmsKeyIdSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema EventDataStoreSpecForProviderKmsKeyIdSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema EventDataStoreSpecForProviderKmsKeyIdSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema EventDataStoreSpecForProviderKmsKeyIdSelector#policy
+   */
+  readonly policy?: EventDataStoreSpecForProviderKmsKeyIdSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'EventDataStoreSpecForProviderKmsKeyIdSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EventDataStoreSpecForProviderKmsKeyIdSelector(obj: EventDataStoreSpecForProviderKmsKeyIdSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_EventDataStoreSpecForProviderKmsKeyIdSelectorPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -677,6 +805,80 @@ export function toJson_EventDataStoreSpecForProviderAdvancedEventSelectorFieldSe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Policies for referencing.
+ *
+ * @schema EventDataStoreSpecForProviderKmsKeyIdRefPolicy
+ */
+export interface EventDataStoreSpecForProviderKmsKeyIdRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema EventDataStoreSpecForProviderKmsKeyIdRefPolicy#resolution
+   */
+  readonly resolution?: EventDataStoreSpecForProviderKmsKeyIdRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema EventDataStoreSpecForProviderKmsKeyIdRefPolicy#resolve
+   */
+  readonly resolve?: EventDataStoreSpecForProviderKmsKeyIdRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'EventDataStoreSpecForProviderKmsKeyIdRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EventDataStoreSpecForProviderKmsKeyIdRefPolicy(obj: EventDataStoreSpecForProviderKmsKeyIdRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema EventDataStoreSpecForProviderKmsKeyIdSelectorPolicy
+ */
+export interface EventDataStoreSpecForProviderKmsKeyIdSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema EventDataStoreSpecForProviderKmsKeyIdSelectorPolicy#resolution
+   */
+  readonly resolution?: EventDataStoreSpecForProviderKmsKeyIdSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema EventDataStoreSpecForProviderKmsKeyIdSelectorPolicy#resolve
+   */
+  readonly resolve?: EventDataStoreSpecForProviderKmsKeyIdSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'EventDataStoreSpecForProviderKmsKeyIdSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EventDataStoreSpecForProviderKmsKeyIdSelectorPolicy(obj: EventDataStoreSpecForProviderKmsKeyIdSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema EventDataStoreSpecProviderConfigRefPolicyResolution
@@ -760,6 +962,54 @@ export function toJson_EventDataStoreSpecPublishConnectionDetailsToConfigRefPoli
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema EventDataStoreSpecForProviderKmsKeyIdRefPolicyResolution
+ */
+export enum EventDataStoreSpecForProviderKmsKeyIdRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema EventDataStoreSpecForProviderKmsKeyIdRefPolicyResolve
+ */
+export enum EventDataStoreSpecForProviderKmsKeyIdRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema EventDataStoreSpecForProviderKmsKeyIdSelectorPolicyResolution
+ */
+export enum EventDataStoreSpecForProviderKmsKeyIdSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema EventDataStoreSpecForProviderKmsKeyIdSelectorPolicyResolve
+ */
+export enum EventDataStoreSpecForProviderKmsKeyIdSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
 
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
@@ -882,7 +1132,7 @@ export function toJson_TrailProps(obj: TrailProps | undefined): Record<string, a
  */
 export interface TrailSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema TrailSpec#deletionPolicy
    */
@@ -892,6 +1142,13 @@ export interface TrailSpec {
    * @schema TrailSpec#forProvider
    */
   readonly forProvider: TrailSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema TrailSpec#managementPolicy
+   */
+  readonly managementPolicy?: TrailSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -932,6 +1189,7 @@ export function toJson_TrailSpec(obj: TrailSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_TrailSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_TrailSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_TrailSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_TrailSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -943,7 +1201,7 @@ export function toJson_TrailSpec(obj: TrailSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema TrailSpecDeletionPolicy
  */
@@ -1153,6 +1411,20 @@ export function toJson_TrailSpecForProvider(obj: TrailSpecForProvider | undefine
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema TrailSpecManagementPolicy
+ */
+export enum TrailSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

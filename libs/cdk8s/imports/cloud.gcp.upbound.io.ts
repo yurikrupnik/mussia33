@@ -99,7 +99,7 @@ export function toJson_IdsEndpointProps(obj: IdsEndpointProps | undefined): Reco
  */
 export interface IdsEndpointSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema IdsEndpointSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface IdsEndpointSpec {
    * @schema IdsEndpointSpec#forProvider
    */
   readonly forProvider: IdsEndpointSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema IdsEndpointSpec#managementPolicy
+   */
+  readonly managementPolicy?: IdsEndpointSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_IdsEndpointSpec(obj: IdsEndpointSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_IdsEndpointSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_IdsEndpointSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_IdsEndpointSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_IdsEndpointSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_IdsEndpointSpec(obj: IdsEndpointSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema IdsEndpointSpecDeletionPolicy
  */
@@ -187,14 +195,14 @@ export interface IdsEndpointSpecForProvider {
    *
    * @schema IdsEndpointSpecForProvider#location
    */
-  readonly location: string;
+  readonly location?: string;
 
   /**
    * Name of the endpoint in the format projects/{project_id}/locations/{locationId}/endpoints/{endpointId}.
    *
    * @schema IdsEndpointSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Name of the VPC network that is connected to the IDS endpoint. This can either contain the VPC network name itself (like "src-net") or the full URL to the network (like "projects/{project_id}/global/networks/src-net").
@@ -225,11 +233,11 @@ export interface IdsEndpointSpecForProvider {
   readonly project?: string;
 
   /**
-   * The minimum alert severity level that is reported by the endpoint. Possible values are INFORMATIONAL, LOW, MEDIUM, HIGH, and CRITICAL.
+   * The minimum alert severity level that is reported by the endpoint. Possible values are: INFORMATIONAL, LOW, MEDIUM, HIGH, CRITICAL.
    *
    * @schema IdsEndpointSpecForProvider#severity
    */
-  readonly severity: string;
+  readonly severity?: string;
 
   /**
    * Configuration for threat IDs excluded from generating alerts. Limit: 99 IDs.
@@ -261,6 +269,20 @@ export function toJson_IdsEndpointSpecForProvider(obj: IdsEndpointSpecForProvide
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema IdsEndpointSpecManagementPolicy
+ */
+export enum IdsEndpointSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

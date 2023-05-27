@@ -26,15 +26,15 @@
 const _PROTOBUF_VERSION_CHECK: () = ::protobuf::VERSION_3_2_0;
 
 #[derive(PartialEq,Clone,Default,Debug)]
-// @@protoc_insertion_point(message:proto.Request)
+// @@protoc_insertion_point(message:maths.Request)
 pub struct Request {
     // message fields
-    // @@protoc_insertion_point(field:proto.Request.a)
+    // @@protoc_insertion_point(field:maths.Request.a)
     pub a: i64,
-    // @@protoc_insertion_point(field:proto.Request.b)
+    // @@protoc_insertion_point(field:maths.Request.b)
     pub b: i64,
     // special fields
-    // @@protoc_insertion_point(special_field:proto.Request.special_fields)
+    // @@protoc_insertion_point(special_field:maths.Request.special_fields)
     pub special_fields: ::protobuf::SpecialFields,
 }
 
@@ -166,13 +166,13 @@ impl ::protobuf::reflect::ProtobufValue for Request {
 }
 
 #[derive(PartialEq,Clone,Default,Debug)]
-// @@protoc_insertion_point(message:proto.Response)
+// @@protoc_insertion_point(message:maths.Response)
 pub struct Response {
     // message fields
-    // @@protoc_insertion_point(field:proto.Response.result)
+    // @@protoc_insertion_point(field:maths.Response.result)
     pub result: i64,
     // special fields
-    // @@protoc_insertion_point(special_field:proto.Response.special_fields)
+    // @@protoc_insertion_point(special_field:maths.Response.special_fields)
     pub special_fields: ::protobuf::SpecialFields,
 }
 
@@ -288,14 +288,14 @@ impl ::protobuf::reflect::ProtobufValue for Response {
 }
 
 static file_descriptor_proto_data: &'static [u8] = b"\
-    \n\x14_proto/service.proto\x12\x05proto\"%\n\x07Request\x12\x0c\n\x01a\
+    \n\x14_proto/service.proto\x12\x05maths\"%\n\x07Request\x12\x0c\n\x01a\
     \x18\x01\x20\x01(\x03R\x01a\x12\x0c\n\x01b\x18\x02\x20\x01(\x03R\x01b\"\
     \"\n\x08Response\x12\x16\n\x06result\x18\x01\x20\x01(\x03R\x06result2a\n\
-    \nAddService\x12&\n\x03Add\x12\x0e.proto.Request\x1a\x0f.proto.Response\
-    \x12+\n\x08Multiply\x12\x0e.proto.Request\x1a\x0f.proto.ResponseB\x0fZ\r\
-    proto;serviceJ\x8c\x03\n\x06\x12\x04\0\0\x12\x01\n\x08\n\x01\x0c\x12\x03\
-    \0\0\x12\n\x08\n\x01\x02\x12\x03\x02\0\x0e\n\x08\n\x01\x08\x12\x03\x04\0\
-    $\n\t\n\x02\x08\x0b\x12\x03\x04\0$\n\n\n\x02\x04\0\x12\x04\x06\0\t\x01\n\
+    \nAddService\x12&\n\x03Add\x12\x0e.maths.Request\x1a\x0f.maths.Response\
+    \x12+\n\x08Multiply\x12\x0e.maths.Request\x1a\x0f.maths.ResponseB\x0cZ\n\
+    grpc/mathsJ\x8c\x03\n\x06\x12\x04\0\0\x12\x01\n\x08\n\x01\x0c\x12\x03\0\
+    \0\x12\n\x08\n\x01\x02\x12\x03\x02\0\x0e\n\x08\n\x01\x08\x12\x03\x04\0!\
+    \n\t\n\x02\x08\x0b\x12\x03\x04\0!\n\n\n\x02\x04\0\x12\x04\x06\0\t\x01\n\
     \n\n\x03\x04\0\x01\x12\x03\x06\x08\x0f\n\x0b\n\x04\x04\0\x02\0\x12\x03\
     \x07\x02\x0e\n\x0c\n\x05\x04\0\x02\0\x05\x12\x03\x07\x02\x07\n\x0c\n\x05\
     \x04\0\x02\0\x01\x12\x03\x07\x08\t\n\x0c\n\x05\x04\0\x02\0\x03\x12\x03\

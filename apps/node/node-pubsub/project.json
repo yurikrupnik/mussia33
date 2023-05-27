@@ -1,0 +1,74 @@
+{
+  "name": "node-node-pubsub",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/node/node-pubsub/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": [
+        "{options.outputPath}"
+      ],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/node/node-pubsub",
+        "main": "apps/node/node-pubsub/src/main.ts",
+        "tsConfig": "apps/node/node-pubsub/tsconfig.app.json",
+        "assets": [
+          "apps/node/node-pubsub/src/assets"
+        ],
+        "isolatedConfig": true,
+        "webpackConfig": "apps/node/node-pubsub/webpack.config.js"
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "node-node-pubsub:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "node-node-pubsub:build:development"
+        },
+        "production": {
+          "buildTarget": "node-node-pubsub:build:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": [
+        "{options.outputFile}"
+      ],
+      "options": {
+        "lintFilePatterns": [
+          "apps/node/node-pubsub/**/*.ts"
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": [
+        "{workspaceRoot}/coverage/{projectRoot}"
+      ],
+      "options": {
+        "jestConfig": "apps/node/node-pubsub/jest.config.ts",
+        "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "codeCoverage": true
+        }
+      }
+    }
+  },
+  "tags": []
+}

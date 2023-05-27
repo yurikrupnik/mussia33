@@ -99,7 +99,7 @@ export function toJson_CloudFormationStackProps(obj: CloudFormationStackProps | 
  */
 export interface CloudFormationStackSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CloudFormationStackSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface CloudFormationStackSpec {
    * @schema CloudFormationStackSpec#forProvider
    */
   readonly forProvider: CloudFormationStackSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema CloudFormationStackSpec#managementPolicy
+   */
+  readonly managementPolicy?: CloudFormationStackSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_CloudFormationStackSpec(obj: CloudFormationStackSpec | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CloudFormationStackSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_CloudFormationStackSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_CloudFormationStackSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CloudFormationStackSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_CloudFormationStackSpec(obj: CloudFormationStackSpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CloudFormationStackSpecDeletionPolicy
  */
@@ -180,21 +188,21 @@ export interface CloudFormationStackSpecForProvider {
    *
    * @schema CloudFormationStackSpecForProvider#applicationId
    */
-  readonly applicationId: string;
+  readonly applicationId?: string;
 
   /**
    * A list of capabilities. Valid values are CAPABILITY_IAM, CAPABILITY_NAMED_IAM, CAPABILITY_RESOURCE_POLICY, or CAPABILITY_AUTO_EXPAND
    *
    * @schema CloudFormationStackSpecForProvider#capabilities
    */
-  readonly capabilities: string[];
+  readonly capabilities?: string[];
 
   /**
    * The name of the stack to create. The resource deployed in AWS will be prefixed with serverlessrepo-
    *
    * @schema CloudFormationStackSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * A map of Parameter structures that specify input parameters for the stack.
@@ -245,6 +253,20 @@ export function toJson_CloudFormationStackSpecForProvider(obj: CloudFormationSta
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema CloudFormationStackSpecManagementPolicy
+ */
+export enum CloudFormationStackSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

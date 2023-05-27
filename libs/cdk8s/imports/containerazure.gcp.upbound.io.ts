@@ -99,7 +99,7 @@ export function toJson_ClientProps(obj: ClientProps | undefined): Record<string,
  */
 export interface ClientSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ClientSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface ClientSpec {
    * @schema ClientSpec#forProvider
    */
   readonly forProvider: ClientSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ClientSpec#managementPolicy
+   */
+  readonly managementPolicy?: ClientSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_ClientSpec(obj: ClientSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ClientSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_ClientSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_ClientSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ClientSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_ClientSpec(obj: ClientSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ClientSpecDeletionPolicy
  */
@@ -180,7 +188,7 @@ export interface ClientSpecForProvider {
    *
    * @schema ClientSpecForProvider#applicationId
    */
-  readonly applicationId: string;
+  readonly applicationId?: string;
 
   /**
    * The location for the resource
@@ -201,7 +209,7 @@ export interface ClientSpecForProvider {
    *
    * @schema ClientSpecForProvider#tenantId
    */
-  readonly tenantId: string;
+  readonly tenantId?: string;
 
 }
 
@@ -221,6 +229,20 @@ export function toJson_ClientSpecForProvider(obj: ClientSpecForProvider | undefi
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ClientSpecManagementPolicy
+ */
+export enum ClientSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -740,7 +762,7 @@ export function toJson_ClusterProps(obj: ClusterProps | undefined): Record<strin
  */
 export interface ClusterSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ClusterSpec#deletionPolicy
    */
@@ -750,6 +772,13 @@ export interface ClusterSpec {
    * @schema ClusterSpec#forProvider
    */
   readonly forProvider: ClusterSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ClusterSpec#managementPolicy
+   */
+  readonly managementPolicy?: ClusterSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -790,6 +819,7 @@ export function toJson_ClusterSpec(obj: ClusterSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ClusterSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_ClusterSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_ClusterSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ClusterSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -801,7 +831,7 @@ export function toJson_ClusterSpec(obj: ClusterSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ClusterSpecDeletionPolicy
  */
@@ -828,14 +858,14 @@ export interface ClusterSpecForProvider {
    *
    * @schema ClusterSpecForProvider#authorization
    */
-  readonly authorization: ClusterSpecForProviderAuthorization[];
+  readonly authorization?: ClusterSpecForProviderAuthorization[];
 
   /**
    * The Azure region where the cluster runs. Each Google Cloud region supports a subset of nearby Azure regions. You can call to list all supported Azure regions within a given Google Cloud region.
    *
    * @schema ClusterSpecForProvider#azureRegion
    */
-  readonly azureRegion: string;
+  readonly azureRegion?: string;
 
   /**
    * Azure authentication configuration for management of Azure resources
@@ -856,7 +886,7 @@ export interface ClusterSpecForProvider {
    *
    * @schema ClusterSpecForProvider#controlPlane
    */
-  readonly controlPlane: ClusterSpecForProviderControlPlane[];
+  readonly controlPlane?: ClusterSpecForProviderControlPlane[];
 
   /**
    * Optional. A human readable description of this cluster. Cannot be longer than 255 UTF-8 encoded bytes.
@@ -870,7 +900,7 @@ export interface ClusterSpecForProvider {
    *
    * @schema ClusterSpecForProvider#fleet
    */
-  readonly fleet: ClusterSpecForProviderFleet[];
+  readonly fleet?: ClusterSpecForProviderFleet[];
 
   /**
    * The location for the resource
@@ -884,7 +914,7 @@ export interface ClusterSpecForProvider {
    *
    * @schema ClusterSpecForProvider#networking
    */
-  readonly networking: ClusterSpecForProviderNetworking[];
+  readonly networking?: ClusterSpecForProviderNetworking[];
 
   /**
    * The project for the resource
@@ -898,7 +928,7 @@ export interface ClusterSpecForProvider {
    *
    * @schema ClusterSpecForProvider#resourceGroupId
    */
-  readonly resourceGroupId: string;
+  readonly resourceGroupId?: string;
 
 }
 
@@ -926,6 +956,20 @@ export function toJson_ClusterSpecForProvider(obj: ClusterSpecForProvider | unde
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ClusterSpecManagementPolicy
+ */
+export enum ClusterSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1881,7 +1925,7 @@ export function toJson_NodePoolProps(obj: NodePoolProps | undefined): Record<str
  */
 export interface NodePoolSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema NodePoolSpec#deletionPolicy
    */
@@ -1891,6 +1935,13 @@ export interface NodePoolSpec {
    * @schema NodePoolSpec#forProvider
    */
   readonly forProvider: NodePoolSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema NodePoolSpec#managementPolicy
+   */
+  readonly managementPolicy?: NodePoolSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1931,6 +1982,7 @@ export function toJson_NodePoolSpec(obj: NodePoolSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_NodePoolSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_NodePoolSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_NodePoolSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_NodePoolSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -1942,7 +1994,7 @@ export function toJson_NodePoolSpec(obj: NodePoolSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema NodePoolSpecDeletionPolicy
  */
@@ -1969,7 +2021,7 @@ export interface NodePoolSpecForProvider {
    *
    * @schema NodePoolSpecForProvider#autoscaling
    */
-  readonly autoscaling: NodePoolSpecForProviderAutoscaling[];
+  readonly autoscaling?: NodePoolSpecForProviderAutoscaling[];
 
   /**
    * Optional. The Azure availability zone of the nodes in this nodepool. When unspecified, it defaults to 1.
@@ -2004,7 +2056,7 @@ export interface NodePoolSpecForProvider {
    *
    * @schema NodePoolSpecForProvider#config
    */
-  readonly config: NodePoolSpecForProviderConfig[];
+  readonly config?: NodePoolSpecForProviderConfig[];
 
   /**
    * The location for the resource
@@ -2018,7 +2070,7 @@ export interface NodePoolSpecForProvider {
    *
    * @schema NodePoolSpecForProvider#maxPodsConstraint
    */
-  readonly maxPodsConstraint: NodePoolSpecForProviderMaxPodsConstraint[];
+  readonly maxPodsConstraint?: NodePoolSpecForProviderMaxPodsConstraint[];
 
   /**
    * The project for the resource
@@ -2032,14 +2084,14 @@ export interface NodePoolSpecForProvider {
    *
    * @schema NodePoolSpecForProvider#subnetId
    */
-  readonly subnetId: string;
+  readonly subnetId?: string;
 
   /**
    * The Kubernetes version (e.g. 1.19.10-gke.1000) running on this node pool.
    *
    * @schema NodePoolSpecForProvider#version
    */
-  readonly version: string;
+  readonly version?: string;
 
 }
 
@@ -2067,6 +2119,20 @@ export function toJson_NodePoolSpecForProvider(obj: NodePoolSpecForProvider | un
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema NodePoolSpecManagementPolicy
+ */
+export enum NodePoolSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

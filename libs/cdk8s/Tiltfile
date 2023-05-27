@@ -1,0 +1,36 @@
+local_resource(
+  'import-cdk8s',
+  dir="../..",
+  cmd='pnpm nx run cdk8s:import',
+  deps=['./cdk8s.yaml'],
+  resource_deps=["pnpm"],
+  labels=["cdk8s"],
+)
+
+local_resource(
+  'git-add',
+  dir="./imports",
+  cmd='git add .',
+  deps=['./imports'],
+  resource_deps=["import-cdk8s"],
+  labels=["cdk8s"],
+)
+
+
+local_resource(
+  'build-cdk8s',
+  dir="../..",
+  cmd='pnpm nx run cdk8s:build',
+  deps=['.'],
+  resource_deps=["pnpm", "import-cdk8s"],
+  labels=["cdk8s"],
+)
+
+local_resource(
+  'synth-cdk8s',
+  dir="../..",
+  cmd='pnpm nx run cdk8s:synth',
+  deps=['.'],
+  resource_deps=["pnpm", "build-cdk8s"],
+  labels=["cdk8s"],
+)

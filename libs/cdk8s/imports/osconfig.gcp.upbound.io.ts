@@ -99,7 +99,7 @@ export function toJson_OsPolicyAssignmentProps(obj: OsPolicyAssignmentProps | un
  */
 export interface OsPolicyAssignmentSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema OsPolicyAssignmentSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface OsPolicyAssignmentSpec {
    * @schema OsPolicyAssignmentSpec#forProvider
    */
   readonly forProvider: OsPolicyAssignmentSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema OsPolicyAssignmentSpec#managementPolicy
+   */
+  readonly managementPolicy?: OsPolicyAssignmentSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_OsPolicyAssignmentSpec(obj: OsPolicyAssignmentSpec | unde
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_OsPolicyAssignmentSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_OsPolicyAssignmentSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_OsPolicyAssignmentSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_OsPolicyAssignmentSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_OsPolicyAssignmentSpec(obj: OsPolicyAssignmentSpec | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema OsPolicyAssignmentSpecDeletionPolicy
  */
@@ -187,7 +195,7 @@ export interface OsPolicyAssignmentSpecForProvider {
    *
    * @schema OsPolicyAssignmentSpecForProvider#instanceFilter
    */
-  readonly instanceFilter: OsPolicyAssignmentSpecForProviderInstanceFilter[];
+  readonly instanceFilter?: OsPolicyAssignmentSpecForProviderInstanceFilter[];
 
   /**
    * The location for the resource
@@ -201,7 +209,7 @@ export interface OsPolicyAssignmentSpecForProvider {
    *
    * @schema OsPolicyAssignmentSpecForProvider#osPolicies
    */
-  readonly osPolicies: OsPolicyAssignmentSpecForProviderOsPolicies[];
+  readonly osPolicies?: OsPolicyAssignmentSpecForProviderOsPolicies[];
 
   /**
    * The project for the resource
@@ -215,7 +223,7 @@ export interface OsPolicyAssignmentSpecForProvider {
    *
    * @schema OsPolicyAssignmentSpecForProvider#rollout
    */
-  readonly rollout: OsPolicyAssignmentSpecForProviderRollout[];
+  readonly rollout?: OsPolicyAssignmentSpecForProviderRollout[];
 
   /**
    * Set to true to skip awaiting rollout during resource creation and update.
@@ -245,6 +253,20 @@ export function toJson_OsPolicyAssignmentSpecForProvider(obj: OsPolicyAssignment
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema OsPolicyAssignmentSpecManagementPolicy
+ */
+export enum OsPolicyAssignmentSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2689,7 +2711,7 @@ export function toJson_PatchDeploymentProps(obj: PatchDeploymentProps | undefine
  */
 export interface PatchDeploymentSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PatchDeploymentSpec#deletionPolicy
    */
@@ -2699,6 +2721,13 @@ export interface PatchDeploymentSpec {
    * @schema PatchDeploymentSpec#forProvider
    */
   readonly forProvider: PatchDeploymentSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema PatchDeploymentSpec#managementPolicy
+   */
+  readonly managementPolicy?: PatchDeploymentSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2739,6 +2768,7 @@ export function toJson_PatchDeploymentSpec(obj: PatchDeploymentSpec | undefined)
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PatchDeploymentSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_PatchDeploymentSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_PatchDeploymentSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PatchDeploymentSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -2750,7 +2780,7 @@ export function toJson_PatchDeploymentSpec(obj: PatchDeploymentSpec | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PatchDeploymentSpecDeletionPolicy
  */
@@ -2784,7 +2814,7 @@ export interface PatchDeploymentSpecForProvider {
    *
    * @schema PatchDeploymentSpecForProvider#instanceFilter
    */
-  readonly instanceFilter: PatchDeploymentSpecForProviderInstanceFilter[];
+  readonly instanceFilter?: PatchDeploymentSpecForProviderInstanceFilter[];
 
   /**
    * Schedule a one-time execution. Structure is documented below.
@@ -2843,6 +2873,20 @@ export function toJson_PatchDeploymentSpecForProvider(obj: PatchDeploymentSpecFo
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema PatchDeploymentSpecManagementPolicy
+ */
+export enum PatchDeploymentSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3126,7 +3170,7 @@ export interface PatchDeploymentSpecForProviderPatchConfig {
   readonly preStep?: PatchDeploymentSpecForProviderPatchConfigPreStep[];
 
   /**
-   * Post-patch reboot settings. Possible values are DEFAULT, ALWAYS, and NEVER.
+   * Post-patch reboot settings. Possible values are: DEFAULT, ALWAYS, NEVER.
    *
    * @schema PatchDeploymentSpecForProviderPatchConfig#rebootConfig
    */
@@ -3257,7 +3301,7 @@ export interface PatchDeploymentSpecForProviderRollout {
   readonly disruptionBudget: PatchDeploymentSpecForProviderRolloutDisruptionBudget[];
 
   /**
-   * Mode of the patch rollout. Possible values are ZONE_BY_ZONE and CONCURRENT_ZONES.
+   * Mode of the patch rollout. Possible values are: ZONE_BY_ZONE, CONCURRENT_ZONES.
    *
    * @schema PatchDeploymentSpecForProviderRollout#mode
    */
@@ -3482,7 +3526,7 @@ export interface PatchDeploymentSpecForProviderPatchConfigApt {
   readonly exclusivePackages?: string[];
 
   /**
-   * By changing the type to DIST, the patching is performed using apt-get dist-upgrade instead. Possible values are DIST and UPGRADE.
+   * By changing the type to DIST, the patching is performed using apt-get dist-upgrade instead. Possible values are: DIST, UPGRADE.
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigApt#type
    */
@@ -3608,7 +3652,7 @@ export function toJson_PatchDeploymentSpecForProviderPatchConfigPreStep(obj: Pat
  */
 export interface PatchDeploymentSpecForProviderPatchConfigWindowsUpdate {
   /**
-   * Only apply updates of these windows update classifications. If empty, all updates are applied. Each value may be one of CRITICAL, SECURITY, DEFINITION, DRIVER, FEATURE_PACK, SERVICE_PACK, TOOL, UPDATE_ROLLUP, and UPDATE.
+   * Only apply updates of these windows update classifications. If empty, all updates are applied. Each value may be one of: CRITICAL, SECURITY, DEFINITION, DRIVER, FEATURE_PACK, SERVICE_PACK, TOOL, UPDATE_ROLLUP, UPDATE.
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigWindowsUpdate#classifications
    */
@@ -3890,7 +3934,7 @@ export function toJson_PatchDeploymentSpecForProviderRecurringScheduleTimeZone(o
  */
 export interface PatchDeploymentSpecForProviderRecurringScheduleWeekly {
   /**
-   * IANA Time Zone Database time zone, e.g. "America/New_York". Possible values are MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, and SUNDAY.
+   * IANA Time Zone Database time zone, e.g. "America/New_York". Possible values are: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.
    *
    * @schema PatchDeploymentSpecForProviderRecurringScheduleWeekly#dayOfWeek
    */
@@ -4052,7 +4096,7 @@ export interface PatchDeploymentSpecForProviderPatchConfigPostStepLinuxExecStepC
   readonly gcsObject?: PatchDeploymentSpecForProviderPatchConfigPostStepLinuxExecStepConfigGcsObject[];
 
   /**
-   * The script interpreter to use to run the script. If no interpreter is specified the script will be executed directly, which will likely only succeed for scripts with shebang lines. Possible values are SHELL and POWERSHELL.
+   * The script interpreter to use to run the script. If no interpreter is specified the script will be executed directly, which will likely only succeed for scripts with shebang lines. Possible values are: SHELL, POWERSHELL.
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigPostStepLinuxExecStepConfig#interpreter
    */
@@ -4104,7 +4148,7 @@ export interface PatchDeploymentSpecForProviderPatchConfigPostStepWindowsExecSte
   readonly gcsObject?: PatchDeploymentSpecForProviderPatchConfigPostStepWindowsExecStepConfigGcsObject[];
 
   /**
-   * The script interpreter to use to run the script. If no interpreter is specified the script will be executed directly, which will likely only succeed for scripts with shebang lines. Possible values are SHELL and POWERSHELL.
+   * The script interpreter to use to run the script. If no interpreter is specified the script will be executed directly, which will likely only succeed for scripts with shebang lines. Possible values are: SHELL, POWERSHELL.
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigPostStepWindowsExecStepConfig#interpreter
    */
@@ -4156,7 +4200,7 @@ export interface PatchDeploymentSpecForProviderPatchConfigPreStepLinuxExecStepCo
   readonly gcsObject?: PatchDeploymentSpecForProviderPatchConfigPreStepLinuxExecStepConfigGcsObject[];
 
   /**
-   * The script interpreter to use to run the script. If no interpreter is specified the script will be executed directly, which will likely only succeed for scripts with shebang lines. Possible values are SHELL and POWERSHELL.
+   * The script interpreter to use to run the script. If no interpreter is specified the script will be executed directly, which will likely only succeed for scripts with shebang lines. Possible values are: SHELL, POWERSHELL.
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigPreStepLinuxExecStepConfig#interpreter
    */
@@ -4208,7 +4252,7 @@ export interface PatchDeploymentSpecForProviderPatchConfigPreStepWindowsExecStep
   readonly gcsObject?: PatchDeploymentSpecForProviderPatchConfigPreStepWindowsExecStepConfigGcsObject[];
 
   /**
-   * The script interpreter to use to run the script. If no interpreter is specified the script will be executed directly, which will likely only succeed for scripts with shebang lines. Possible values are SHELL and POWERSHELL.
+   * The script interpreter to use to run the script. If no interpreter is specified the script will be executed directly, which will likely only succeed for scripts with shebang lines. Possible values are: SHELL, POWERSHELL.
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigPreStepWindowsExecStepConfig#interpreter
    */
@@ -4245,7 +4289,7 @@ export function toJson_PatchDeploymentSpecForProviderPatchConfigPreStepWindowsEx
  */
 export interface PatchDeploymentSpecForProviderRecurringScheduleMonthlyWeekDayOfMonth {
   /**
-   * IANA Time Zone Database time zone, e.g. "America/New_York". Possible values are MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, and SUNDAY.
+   * IANA Time Zone Database time zone, e.g. "America/New_York". Possible values are: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.
    *
    * @schema PatchDeploymentSpecForProviderRecurringScheduleMonthlyWeekDayOfMonth#dayOfWeek
    */

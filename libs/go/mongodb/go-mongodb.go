@@ -11,7 +11,6 @@ import (
 )
 
 // todo remove!!!!
-// var mongoUrl string = "mongodb+srv://yurikrupnik:T4eXKj1RBI4VnszC@cluster0.rdmew.mongodb.net/?retryWrites=true&w=majority"
 var mongoUrl string = "mongodb://localhost:27017"
 
 // todo add back for env vars

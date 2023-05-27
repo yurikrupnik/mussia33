@@ -99,7 +99,7 @@ export function toJson_DeidentifyTemplateProps(obj: DeidentifyTemplateProps | un
  */
 export interface DeidentifyTemplateSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DeidentifyTemplateSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface DeidentifyTemplateSpec {
    * @schema DeidentifyTemplateSpec#forProvider
    */
   readonly forProvider: DeidentifyTemplateSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema DeidentifyTemplateSpec#managementPolicy
+   */
+  readonly managementPolicy?: DeidentifyTemplateSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_DeidentifyTemplateSpec(obj: DeidentifyTemplateSpec | unde
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DeidentifyTemplateSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_DeidentifyTemplateSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_DeidentifyTemplateSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DeidentifyTemplateSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_DeidentifyTemplateSpec(obj: DeidentifyTemplateSpec | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DeidentifyTemplateSpecDeletionPolicy
  */
@@ -180,7 +188,7 @@ export interface DeidentifyTemplateSpecForProvider {
    *
    * @schema DeidentifyTemplateSpecForProvider#deidentifyConfig
    */
-  readonly deidentifyConfig: DeidentifyTemplateSpecForProviderDeidentifyConfig[];
+  readonly deidentifyConfig?: DeidentifyTemplateSpecForProviderDeidentifyConfig[];
 
   /**
    * A description of the template.
@@ -201,7 +209,7 @@ export interface DeidentifyTemplateSpecForProvider {
    *
    * @schema DeidentifyTemplateSpecForProvider#parent
    */
-  readonly parent: string;
+  readonly parent?: string;
 
 }
 
@@ -221,6 +229,20 @@ export function toJson_DeidentifyTemplateSpecForProvider(obj: DeidentifyTemplate
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema DeidentifyTemplateSpecManagementPolicy
+ */
+export enum DeidentifyTemplateSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -383,6 +405,13 @@ export function toJson_DeidentifyTemplateSpecWriteConnectionSecretToRef(obj: Dei
  */
 export interface DeidentifyTemplateSpecForProviderDeidentifyConfig {
   /**
+   * Treat the dataset as an image and redact. Structure is documented below.
+   *
+   * @schema DeidentifyTemplateSpecForProviderDeidentifyConfig#imageTransformations
+   */
+  readonly imageTransformations?: DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformations[];
+
+  /**
    * Treat the dataset as free-form text and apply the same free text transformation everywhere Structure is documented below.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfig#infoTypeTransformations
@@ -405,6 +434,7 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfig {
 export function toJson_DeidentifyTemplateSpecForProviderDeidentifyConfig(obj: DeidentifyTemplateSpecForProviderDeidentifyConfig | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'imageTransformations': obj.imageTransformations?.map(y => toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformations(y)),
     'infoTypeTransformations': obj.infoTypeTransformations?.map(y => toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformations(y)),
     'recordTransformations': obj.recordTransformations?.map(y => toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformations(y)),
   };
@@ -570,6 +600,33 @@ export function toJson_DeidentifyTemplateSpecPublishConnectionDetailsToMetadata(
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformations
+ */
+export interface DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformations {
+  /**
+   * For determination of how redaction of images should occur. Structure is documented below.
+   *
+   * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformations#transforms
+   */
+  readonly transforms: DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransforms[];
+
+}
+
+/**
+ * Converts an object of type 'DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformations' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformations(obj: DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformations | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'transforms': obj.transforms?.map(y => toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransforms(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformations
  */
 export interface DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformations {
@@ -717,6 +774,57 @@ export function toJson_DeidentifyTemplateSpecPublishConnectionDetailsToConfigRef
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransforms
+ */
+export interface DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransforms {
+  /**
+   * Apply transformation to all findings not specified in other ImageTransformation's selectedInfoTypes.
+   *
+   * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransforms#allInfoTypes
+   */
+  readonly allInfoTypes?: any[];
+
+  /**
+   * Apply transformation to all text that doesn't match an infoType.
+   *
+   * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransforms#allText
+   */
+  readonly allText?: any[];
+
+  /**
+   * The color to use when redacting content from an image. If not specified, the default is black. Structure is documented below.
+   *
+   * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransforms#redactionColor
+   */
+  readonly redactionColor?: DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsRedactionColor[];
+
+  /**
+   * Apply transformation to the selected infoTypes. Structure is documented below.
+   *
+   * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransforms#selectedInfoTypes
+   */
+  readonly selectedInfoTypes?: DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypes[];
+
+}
+
+/**
+ * Converts an object of type 'DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransforms' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransforms(obj: DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransforms | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allInfoTypes': obj.allInfoTypes?.map(y => y),
+    'allText': obj.allText?.map(y => y),
+    'redactionColor': obj.redactionColor?.map(y => toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsRedactionColor(y)),
+    'selectedInfoTypes': obj.selectedInfoTypes?.map(y => toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypes(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformations
  */
 export interface DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformations {
@@ -846,6 +954,76 @@ export enum DeidentifyTemplateSpecPublishConnectionDetailsToConfigRefPolicyResol
 }
 
 /**
+ * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsRedactionColor
+ */
+export interface DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsRedactionColor {
+  /**
+   * The amount of blue in the color as a value in the interval [0, 1].
+   *
+   * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsRedactionColor#blue
+   */
+  readonly blue?: number;
+
+  /**
+   * The amount of green in the color as a value in the interval [0, 1].
+   *
+   * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsRedactionColor#green
+   */
+  readonly green?: number;
+
+  /**
+   * The amount of red in the color as a value in the interval [0, 1].
+   *
+   * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsRedactionColor#red
+   */
+  readonly red?: number;
+
+}
+
+/**
+ * Converts an object of type 'DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsRedactionColor' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsRedactionColor(obj: DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsRedactionColor | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'blue': obj.blue,
+    'green': obj.green,
+    'red': obj.red,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypes
+ */
+export interface DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypes {
+  /**
+   * InfoTypes to apply the transformation to. Leaving this empty will apply the transformation to apply to all findings that correspond to infoTypes that were requested in InspectConfig. Structure is documented below.
+   *
+   * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypes#infoTypes
+   */
+  readonly infoTypes: DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypesInfoTypes[];
+
+}
+
+/**
+ * Converts an object of type 'DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypes(obj: DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'infoTypes': obj.infoTypes?.map(y => toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypesInfoTypes(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsInfoTypes
  */
 export interface DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsInfoTypes {
@@ -855,6 +1033,13 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransf
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsInfoTypes#name
    */
   readonly name: string;
+
+  /**
+   * Optional version name for this InfoType.
+   *
+   * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsInfoTypes#version
+   */
+  readonly version?: string;
 
 }
 
@@ -866,6 +1051,7 @@ export function toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigInfoType
   if (obj === undefined) { return undefined; }
   const result = {
     'name': obj.name,
+    'version': obj.version,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -905,6 +1091,13 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransf
   readonly replaceConfig?: DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceConfig[];
 
   /**
+   * Replace with a value randomly drawn (with replacement) from a dictionary. Structure is documented below.
+   *
+   * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformation#replaceDictionaryConfig
+   */
+  readonly replaceDictionaryConfig?: DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceDictionaryConfig[];
+
+  /**
    * Replace each matching finding with the name of the info type.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformation#replaceWithInfoTypeConfig
@@ -924,6 +1117,7 @@ export function toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigInfoType
     'cryptoDeterministicConfig': obj.cryptoDeterministicConfig?.map(y => toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationCryptoDeterministicConfig(y)),
     'cryptoReplaceFfxFpeConfig': obj.cryptoReplaceFfxFpeConfig?.map(y => toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationCryptoReplaceFfxFpeConfig(y)),
     'replaceConfig': obj.replaceConfig?.map(y => toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceConfig(y)),
+    'replaceDictionaryConfig': obj.replaceDictionaryConfig?.map(y => toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceDictionaryConfig(y)),
     'replaceWithInfoTypeConfig': obj.replaceWithInfoTypeConfig,
   };
   // filter undefined values
@@ -1120,6 +1314,41 @@ export function toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTr
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypesInfoTypes
+ */
+export interface DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypesInfoTypes {
+  /**
+   * Name of the key. This is an arbitrary string used to differentiate different keys. A unique key is generated per name: two separate TransientCryptoKey protos share the same generated key if their names are the same. When the data crypto key is generated, this name is not used in any way (repeating the api call will result in a different key being generated).
+   *
+   * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypesInfoTypes#name
+   */
+  readonly name: string;
+
+  /**
+   * Optional version name for this InfoType.
+   *
+   * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypesInfoTypes#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypesInfoTypes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypesInfoTypes(obj: DeidentifyTemplateSpecForProviderDeidentifyConfigImageTransformationsTransformsSelectedInfoTypesInfoTypes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationCharacterMaskConfig
  */
 export interface DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationCharacterMaskConfig {
@@ -1216,7 +1445,7 @@ export function toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigInfoType
  */
 export interface DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationCryptoReplaceFfxFpeConfig {
   /**
-   * Common alphabets. Possible values are FFX_COMMON_NATIVE_ALPHABET_UNSPECIFIED, NUMERIC, HEXADECIMAL, UPPER_CASE_ALPHA_NUMERIC, and ALPHA_NUMERIC.
+   * Common alphabets. Possible values are: FFX_COMMON_NATIVE_ALPHABET_UNSPECIFIED, NUMERIC, HEXADECIMAL, UPPER_CASE_ALPHA_NUMERIC, ALPHA_NUMERIC.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationCryptoReplaceFfxFpeConfig#commonAlphabet
    */
@@ -1306,6 +1535,33 @@ export function toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigInfoType
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceDictionaryConfig
+ */
+export interface DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceDictionaryConfig {
+  /**
+   * A list of words to select from for random replacement. The limits page contains details about the size limits of dictionaries. Structure is documented below.
+   *
+   * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceDictionaryConfig#wordList
+   */
+  readonly wordList: DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceDictionaryConfigWordList[];
+
+}
+
+/**
+ * Converts an object of type 'DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceDictionaryConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceDictionaryConfig(obj: DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceDictionaryConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'wordList': obj.wordList?.map(y => toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceDictionaryConfigWordList(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsConditionExpressions
  */
 export interface DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsConditionExpressions {
@@ -1317,7 +1573,7 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransfor
   readonly conditions?: DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsConditionExpressionsConditions[];
 
   /**
-   * The operator to apply to the result of conditions. Default and currently only supported value is AND. Default value is AND. Possible values are AND.
+   * The operator to apply to the result of conditions. Default and currently only supported value is AND. Default value is AND. Possible values are: AND.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsConditionExpressions#logicalOperator
    */
@@ -1491,7 +1747,7 @@ export function toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTr
  */
 export interface DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationCryptoReplaceFfxFpeConfig {
   /**
-   * Common alphabets. Possible values are FFX_COMMON_NATIVE_ALPHABET_UNSPECIFIED, NUMERIC, HEXADECIMAL, UPPER_CASE_ALPHA_NUMERIC, and ALPHA_NUMERIC.
+   * Common alphabets. Possible values are: FFX_COMMON_NATIVE_ALPHABET_UNSPECIFIED, NUMERIC, HEXADECIMAL, UPPER_CASE_ALPHA_NUMERIC, ALPHA_NUMERIC.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationCryptoReplaceFfxFpeConfig#commonAlphabet
    */
@@ -1706,7 +1962,7 @@ export function toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTr
  */
 export interface DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationTimePartConfig {
   /**
-   * The part of the time to keep. Possible values are YEAR, MONTH, DAY_OF_MONTH, DAY_OF_WEEK, WEEK_OF_YEAR, and HOUR_OF_DAY.
+   * The part of the time to keep. Possible values are: YEAR, MONTH, DAY_OF_MONTH, DAY_OF_WEEK, WEEK_OF_YEAR, HOUR_OF_DAY.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationTimePartConfig#partToExtract
    */
@@ -1740,7 +1996,7 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransfor
   readonly conditions?: DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsRecordSuppressionsConditionExpressionsConditions[];
 
   /**
-   * The operator to apply to the result of conditions. Default and currently only supported value is AND. Default value is AND. Possible values are AND.
+   * The operator to apply to the result of conditions. Default and currently only supported value is AND. Default value is AND. Possible values are: AND.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsRecordSuppressionsConditionExpressions#logicalOperator
    */
@@ -1775,7 +2031,7 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransf
   readonly charactersToSkip?: string;
 
   /**
-   * Common characters to not transform when masking. Useful to avoid removing punctuation. Possible values are NUMERIC, ALPHA_UPPER_CASE, ALPHA_LOWER_CASE, PUNCTUATION, and WHITESPACE.
+   * Common characters to not transform when masking. Useful to avoid removing punctuation. Possible values are: NUMERIC, ALPHA_UPPER_CASE, ALPHA_LOWER_CASE, PUNCTUATION, WHITESPACE.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationCharacterMaskConfigCharactersToIgnore#commonCharactersToIgnore
    */
@@ -2027,7 +2283,7 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransf
   readonly dateValue?: DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceConfigNewValueDateValue[];
 
   /**
-   * Represents a day of the week. Possible values are MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, and SUNDAY.
+   * Represents a day of the week. Possible values are: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceConfigNewValue#dayOfWeekValue
    */
@@ -2085,6 +2341,33 @@ export function toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigInfoType
     'stringValue': obj.stringValue,
     'timeValue': obj.timeValue?.map(y => toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceConfigNewValueTimeValue(y)),
     'timestampValue': obj.timestampValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceDictionaryConfigWordList
+ */
+export interface DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceDictionaryConfigWordList {
+  /**
+   * Words or phrases defining the dictionary. The dictionary must contain at least one phrase and every phrase must contain at least 2 characters that are letters or digits.
+   *
+   * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceDictionaryConfigWordList#words
+   */
+  readonly words: string[];
+
+}
+
+/**
+ * Converts an object of type 'DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceDictionaryConfigWordList' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceDictionaryConfigWordList(obj: DeidentifyTemplateSpecForProviderDeidentifyConfigInfoTypeTransformationsTransformationsPrimitiveTransformationReplaceDictionaryConfigWordList | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'words': obj.words?.map(y => y),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2173,7 +2456,7 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransfor
   readonly charactersToSkip?: string;
 
   /**
-   * Common characters to not transform when masking. Useful to avoid removing punctuation. Possible values are NUMERIC, ALPHA_UPPER_CASE, ALPHA_LOWER_CASE, PUNCTUATION, and WHITESPACE.
+   * Common characters to not transform when masking. Useful to avoid removing punctuation. Possible values are: NUMERIC, ALPHA_UPPER_CASE, ALPHA_LOWER_CASE, PUNCTUATION, WHITESPACE.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationCharacterMaskConfigCharactersToIgnore#commonCharactersToIgnore
    */
@@ -2538,7 +2821,7 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransfor
   readonly dateValue?: DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationFixedSizeBucketingConfigLowerBoundDateValue[];
 
   /**
-   * Represents a day of the week. Possible values are MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, and SUNDAY.
+   * Represents a day of the week. Possible values are: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationFixedSizeBucketingConfigLowerBound#dayOfWeekValue
    */
@@ -2621,7 +2904,7 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransfor
   readonly dateValue?: DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationFixedSizeBucketingConfigUpperBoundDateValue[];
 
   /**
-   * Represents a day of the week. Possible values are MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, and SUNDAY.
+   * Represents a day of the week. Possible values are: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationFixedSizeBucketingConfigUpperBound#dayOfWeekValue
    */
@@ -2704,7 +2987,7 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransfor
   readonly dateValue?: DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationReplaceConfigNewValueDateValue[];
 
   /**
-   * Represents a day of the week. Possible values are MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, and SUNDAY.
+   * Represents a day of the week. Possible values are: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationReplaceConfigNewValue#dayOfWeekValue
    */
@@ -3106,7 +3389,7 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransfor
   readonly field: DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsConditionExpressionsConditionsConditionsField[];
 
   /**
-   * Operator used to compare the field or infoType to the value. Possible values are EQUAL_TO, NOT_EQUAL_TO, GREATER_THAN, LESS_THAN, GREATER_THAN_OR_EQUALS, LESS_THAN_OR_EQUALS, and EXISTS.
+   * Operator used to compare the field or infoType to the value. Possible values are: EQUAL_TO, NOT_EQUAL_TO, GREATER_THAN, LESS_THAN, GREATER_THAN_OR_EQUALS, LESS_THAN_OR_EQUALS, EXISTS.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsConditionExpressionsConditionsConditions#operator
    */
@@ -3156,7 +3439,7 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransfor
   readonly dateValue?: DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationBucketingConfigBucketsMaxDateValue[];
 
   /**
-   * Represents a day of the week. Possible values are MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, and SUNDAY.
+   * Represents a day of the week. Possible values are: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationBucketingConfigBucketsMax#dayOfWeekValue
    */
@@ -3239,7 +3522,7 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransfor
   readonly dateValue?: DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationBucketingConfigBucketsMinDateValue[];
 
   /**
-   * Represents a day of the week. Possible values are MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, and SUNDAY.
+   * Represents a day of the week. Possible values are: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationBucketingConfigBucketsMin#dayOfWeekValue
    */
@@ -3322,7 +3605,7 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransfor
   readonly dateValue?: DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationBucketingConfigBucketsReplacementValueDateValue[];
 
   /**
-   * Represents a day of the week. Possible values are MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, and SUNDAY.
+   * Represents a day of the week. Possible values are: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsPrimitiveTransformationBucketingConfigBucketsReplacementValue#dayOfWeekValue
    */
@@ -4036,7 +4319,7 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransfor
   readonly field: DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsRecordSuppressionsConditionExpressionsConditionsConditionsField[];
 
   /**
-   * Operator used to compare the field or infoType to the value. Possible values are EQUAL_TO, NOT_EQUAL_TO, GREATER_THAN, LESS_THAN, GREATER_THAN_OR_EQUALS, LESS_THAN_OR_EQUALS, and EXISTS.
+   * Operator used to compare the field or infoType to the value. Possible values are: EQUAL_TO, NOT_EQUAL_TO, GREATER_THAN, LESS_THAN, GREATER_THAN_OR_EQUALS, LESS_THAN_OR_EQUALS, EXISTS.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsRecordSuppressionsConditionExpressionsConditionsConditions#operator
    */
@@ -4113,7 +4396,7 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransfor
   readonly dateValue?: DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsConditionExpressionsConditionsConditionsValueDateValue[];
 
   /**
-   * Represents a day of the week. Possible values are MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, and SUNDAY.
+   * Represents a day of the week. Possible values are: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsFieldTransformationsConditionExpressionsConditionsConditionsValue#dayOfWeekValue
    */
@@ -4505,7 +4788,7 @@ export interface DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransfor
   readonly dateValue?: DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsRecordSuppressionsConditionExpressionsConditionsConditionsValueDateValue[];
 
   /**
-   * Represents a day of the week. Possible values are MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, and SUNDAY.
+   * Represents a day of the week. Possible values are: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.
    *
    * @schema DeidentifyTemplateSpecForProviderDeidentifyConfigRecordTransformationsRecordSuppressionsConditionExpressionsConditionsConditionsValue#dayOfWeekValue
    */
@@ -4854,7 +5137,7 @@ export function toJson_InspectTemplateProps(obj: InspectTemplateProps | undefine
  */
 export interface InspectTemplateSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema InspectTemplateSpec#deletionPolicy
    */
@@ -4864,6 +5147,13 @@ export interface InspectTemplateSpec {
    * @schema InspectTemplateSpec#forProvider
    */
   readonly forProvider: InspectTemplateSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema InspectTemplateSpec#managementPolicy
+   */
+  readonly managementPolicy?: InspectTemplateSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4904,6 +5194,7 @@ export function toJson_InspectTemplateSpec(obj: InspectTemplateSpec | undefined)
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_InspectTemplateSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_InspectTemplateSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_InspectTemplateSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_InspectTemplateSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -4915,7 +5206,7 @@ export function toJson_InspectTemplateSpec(obj: InspectTemplateSpec | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema InspectTemplateSpecDeletionPolicy
  */
@@ -4956,7 +5247,7 @@ export interface InspectTemplateSpecForProvider {
    *
    * @schema InspectTemplateSpecForProvider#parent
    */
-  readonly parent: string;
+  readonly parent?: string;
 
 }
 
@@ -4976,6 +5267,20 @@ export function toJson_InspectTemplateSpecForProvider(obj: InspectTemplateSpecFo
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema InspectTemplateSpecManagementPolicy
+ */
+export enum InspectTemplateSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5138,7 +5443,7 @@ export function toJson_InspectTemplateSpecWriteConnectionSecretToRef(obj: Inspec
  */
 export interface InspectTemplateSpecForProviderInspectConfig {
   /**
-   * List of options defining data content to scan. If empty, text, images, and other content will be included. Each value may be one of CONTENT_TEXT and CONTENT_IMAGE.
+   * List of options defining data content to scan. If empty, text, images, and other content will be included. Each value may be one of: CONTENT_TEXT, CONTENT_IMAGE.
    *
    * @schema InspectTemplateSpecForProviderInspectConfig#contentOptions
    */
@@ -5180,7 +5485,7 @@ export interface InspectTemplateSpecForProviderInspectConfig {
   readonly limits?: InspectTemplateSpecForProviderInspectConfigLimits[];
 
   /**
-   * Only returns findings equal or above this threshold. See https://cloud.google.com/dlp/docs/likelihood for more info Default value is POSSIBLE. Possible values are VERY_UNLIKELY, UNLIKELY, POSSIBLE, LIKELY, and VERY_LIKELY.
+   * Only returns findings equal or above this threshold. See https://cloud.google.com/dlp/docs/likelihood for more info Default value is POSSIBLE. Possible values are: VERY_UNLIKELY, UNLIKELY, POSSIBLE, LIKELY, VERY_LIKELY.
    *
    * @schema InspectTemplateSpecForProviderInspectConfig#minLikelihood
    */
@@ -5384,7 +5689,7 @@ export interface InspectTemplateSpecForProviderInspectConfigCustomInfoTypes {
   readonly dictionary?: InspectTemplateSpecForProviderInspectConfigCustomInfoTypesDictionary[];
 
   /**
-   * If set to EXCLUSION_TYPE_EXCLUDE this infoType will not cause a finding to be returned. It still can be used for rules matching. Possible values are EXCLUSION_TYPE_EXCLUDE.
+   * If set to EXCLUSION_TYPE_EXCLUDE this infoType will not cause a finding to be returned. It still can be used for rules matching. Possible values are: EXCLUSION_TYPE_EXCLUDE.
    *
    * @schema InspectTemplateSpecForProviderInspectConfigCustomInfoTypes#exclusionType
    */
@@ -5398,7 +5703,7 @@ export interface InspectTemplateSpecForProviderInspectConfigCustomInfoTypes {
   readonly infoType: InspectTemplateSpecForProviderInspectConfigCustomInfoTypesInfoType[];
 
   /**
-   * Likelihood to return for this CustomInfoType. This base value can be altered by a detection rule if the finding meets the criteria specified by the rule. Default value is VERY_LIKELY. Possible values are VERY_UNLIKELY, UNLIKELY, POSSIBLE, LIKELY, and VERY_LIKELY.
+   * Likelihood to return for this CustomInfoType. This base value can be altered by a detection rule if the finding meets the criteria specified by the rule. Default value is VERY_LIKELY. Possible values are: VERY_UNLIKELY, UNLIKELY, POSSIBLE, LIKELY, VERY_LIKELY.
    *
    * @schema InspectTemplateSpecForProviderInspectConfigCustomInfoTypes#likelihood
    */
@@ -5418,6 +5723,13 @@ export interface InspectTemplateSpecForProviderInspectConfigCustomInfoTypes {
    */
   readonly storedType?: InspectTemplateSpecForProviderInspectConfigCustomInfoTypesStoredType[];
 
+  /**
+   * Message for detecting output from deidentification transformations that support reversing.
+   *
+   * @schema InspectTemplateSpecForProviderInspectConfigCustomInfoTypes#surrogateType
+   */
+  readonly surrogateType?: any[];
+
 }
 
 /**
@@ -5433,6 +5745,7 @@ export function toJson_InspectTemplateSpecForProviderInspectConfigCustomInfoType
     'likelihood': obj.likelihood,
     'regex': obj.regex?.map(y => toJson_InspectTemplateSpecForProviderInspectConfigCustomInfoTypesRegex(y)),
     'storedType': obj.storedType?.map(y => toJson_InspectTemplateSpecForProviderInspectConfigCustomInfoTypesStoredType(y)),
+    'surrogateType': obj.surrogateType?.map(y => y),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5683,6 +5996,13 @@ export interface InspectTemplateSpecForProviderInspectConfigCustomInfoTypesInfoT
    */
   readonly name: string;
 
+  /**
+   * Version of the information type to use. By default, the version is set to stable
+   *
+   * @schema InspectTemplateSpecForProviderInspectConfigCustomInfoTypesInfoType#version
+   */
+  readonly version?: string;
+
 }
 
 /**
@@ -5693,6 +6013,7 @@ export function toJson_InspectTemplateSpecForProviderInspectConfigCustomInfoType
   if (obj === undefined) { return undefined; }
   const result = {
     'name': obj.name,
+    'version': obj.version,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5807,6 +6128,13 @@ export interface InspectTemplateSpecForProviderInspectConfigRuleSetInfoTypes {
    */
   readonly name: string;
 
+  /**
+   * Version of the information type to use. By default, the version is set to stable
+   *
+   * @schema InspectTemplateSpecForProviderInspectConfigRuleSetInfoTypes#version
+   */
+  readonly version?: string;
+
 }
 
 /**
@@ -5817,6 +6145,7 @@ export function toJson_InspectTemplateSpecForProviderInspectConfigRuleSetInfoTyp
   if (obj === undefined) { return undefined; }
   const result = {
     'name': obj.name,
+    'version': obj.version,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5947,6 +6276,13 @@ export interface InspectTemplateSpecForProviderInspectConfigLimitsMaxFindingsPer
    */
   readonly name: string;
 
+  /**
+   * Version of the information type to use. By default, the version is set to stable
+   *
+   * @schema InspectTemplateSpecForProviderInspectConfigLimitsMaxFindingsPerInfoTypeInfoType#version
+   */
+  readonly version?: string;
+
 }
 
 /**
@@ -5957,6 +6293,7 @@ export function toJson_InspectTemplateSpecForProviderInspectConfigLimitsMaxFindi
   if (obj === undefined) { return undefined; }
   const result = {
     'name': obj.name,
+    'version': obj.version,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5975,6 +6312,13 @@ export interface InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusio
   readonly dictionary?: InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleDictionary[];
 
   /**
+   * Drop if the hotword rule is contained in the proximate context. For tabular data, the context includes the column name. Structure is documented below.
+   *
+   * @schema InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRule#excludeByHotword
+   */
+  readonly excludeByHotword?: InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotword[];
+
+  /**
    * When true, excludes type information of the findings.
    *
    * @schema InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRule#excludeInfoTypes
@@ -5982,7 +6326,7 @@ export interface InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusio
   readonly excludeInfoTypes?: InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypes[];
 
   /**
-   * How the rule is applied. See the documentation for more information: https://cloud.google.com/dlp/docs/reference/rest/v2/InspectConfig#MatchingType Possible values are MATCHING_TYPE_FULL_MATCH, MATCHING_TYPE_PARTIAL_MATCH, and MATCHING_TYPE_INVERSE_MATCH.
+   * How the rule is applied. See the documentation for more information: https://cloud.google.com/dlp/docs/reference/rest/v2/InspectConfig#MatchingType Possible values are: MATCHING_TYPE_FULL_MATCH, MATCHING_TYPE_PARTIAL_MATCH, MATCHING_TYPE_INVERSE_MATCH.
    *
    * @schema InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRule#matchingType
    */
@@ -6005,6 +6349,7 @@ export function toJson_InspectTemplateSpecForProviderInspectConfigRuleSetRulesEx
   if (obj === undefined) { return undefined; }
   const result = {
     'dictionary': obj.dictionary?.map(y => toJson_InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleDictionary(y)),
+    'excludeByHotword': obj.excludeByHotword?.map(y => toJson_InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotword(y)),
     'excludeInfoTypes': obj.excludeInfoTypes?.map(y => toJson_InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypes(y)),
     'matchingType': obj.matchingType,
     'regex': obj.regex?.map(y => toJson_InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleRegex(y)),
@@ -6086,6 +6431,41 @@ export function toJson_InspectTemplateSpecForProviderInspectConfigRuleSetRulesEx
   const result = {
     'cloudStoragePath': obj.cloudStoragePath?.map(y => toJson_InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleDictionaryCloudStoragePath(y)),
     'wordList': obj.wordList?.map(y => toJson_InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleDictionaryWordList(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotword
+ */
+export interface InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotword {
+  /**
+   * Regular expression pattern defining what qualifies as a hotword. Structure is documented below.
+   *
+   * @schema InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotword#hotwordRegex
+   */
+  readonly hotwordRegex: InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex[];
+
+  /**
+   * Proximity of the finding within which the entire hotword must reside. The total length of the window cannot exceed 1000 characters. Note that the finding itself will be included in the window, so that hotwords may be used to match substrings of the finding itself. For example, the certainty of a phone number regex (\d{3}) \d{3}-\d{4} could be adjusted upwards if the area code is known to be the local area code of a company office using the hotword regex (xxx), where xxx is the area code in question. Structure is documented below.
+   *
+   * @schema InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotword#proximity
+   */
+  readonly proximity: InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity[];
+
+}
+
+/**
+ * Converts an object of type 'InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotword' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotword(obj: InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotword | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hotwordRegex': obj.hotwordRegex?.map(y => toJson_InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex(y)),
+    'proximity': obj.proximity?.map(y => toJson_InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6194,7 +6574,7 @@ export function toJson_InspectTemplateSpecForProviderInspectConfigRuleSetRulesHo
  */
 export interface InspectTemplateSpecForProviderInspectConfigRuleSetRulesHotwordRuleLikelihoodAdjustment {
   /**
-   * Set the likelihood of a finding to a fixed value. Either this or relative_likelihood can be set. Possible values are VERY_UNLIKELY, UNLIKELY, POSSIBLE, LIKELY, and VERY_LIKELY.
+   * Set the likelihood of a finding to a fixed value. Either this or relative_likelihood can be set. Possible values are: VERY_UNLIKELY, UNLIKELY, POSSIBLE, LIKELY, VERY_LIKELY.
    *
    * @schema InspectTemplateSpecForProviderInspectConfigRuleSetRulesHotwordRuleLikelihoodAdjustment#fixedLikelihood
    */
@@ -6314,6 +6694,76 @@ export function toJson_InspectTemplateSpecForProviderInspectConfigRuleSetRulesEx
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex
+ */
+export interface InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex {
+  /**
+   * The index of the submatch to extract as findings. When not specified, the entire match is returned. No more than 3 may be included.
+   *
+   * @schema InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex#groupIndexes
+   */
+  readonly groupIndexes?: number[];
+
+  /**
+   * Pattern defining the regular expression. Its syntax (https://github.com/google/re2/wiki/Syntax) can be found under the google/re2 repository on GitHub.
+   *
+   * @schema InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex#pattern
+   */
+  readonly pattern: string;
+
+}
+
+/**
+ * Converts an object of type 'InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex(obj: InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'groupIndexes': obj.groupIndexes?.map(y => y),
+    'pattern': obj.pattern,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity
+ */
+export interface InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity {
+  /**
+   * Number of characters after the finding to consider. Either this or window_before must be specified
+   *
+   * @schema InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity#windowAfter
+   */
+  readonly windowAfter?: number;
+
+  /**
+   * Number of characters before the finding to consider. Either this or window_after must be specified
+   *
+   * @schema InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity#windowBefore
+   */
+  readonly windowBefore?: number;
+
+}
+
+/**
+ * Converts an object of type 'InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity(obj: InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'windowAfter': obj.windowAfter,
+    'windowBefore': obj.windowBefore,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypesInfoTypes
  */
 export interface InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypesInfoTypes {
@@ -6323,6 +6773,13 @@ export interface InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusio
    * @schema InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypesInfoTypes#name
    */
   readonly name: string;
+
+  /**
+   * Version of the information type to use. By default, the version is set to stable
+   *
+   * @schema InspectTemplateSpecForProviderInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypesInfoTypes#version
+   */
+  readonly version?: string;
 
 }
 
@@ -6334,6 +6791,7 @@ export function toJson_InspectTemplateSpecForProviderInspectConfigRuleSetRulesEx
   if (obj === undefined) { return undefined; }
   const result = {
     'name': obj.name,
+    'version': obj.version,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6437,7 +6895,7 @@ export function toJson_JobTriggerProps(obj: JobTriggerProps | undefined): Record
  */
 export interface JobTriggerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema JobTriggerSpec#deletionPolicy
    */
@@ -6447,6 +6905,13 @@ export interface JobTriggerSpec {
    * @schema JobTriggerSpec#forProvider
    */
   readonly forProvider: JobTriggerSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema JobTriggerSpec#managementPolicy
+   */
+  readonly managementPolicy?: JobTriggerSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6487,6 +6952,7 @@ export function toJson_JobTriggerSpec(obj: JobTriggerSpec | undefined): Record<s
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_JobTriggerSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_JobTriggerSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_JobTriggerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_JobTriggerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -6498,7 +6964,7 @@ export function toJson_JobTriggerSpec(obj: JobTriggerSpec | undefined): Record<s
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema JobTriggerSpecDeletionPolicy
  */
@@ -6539,10 +7005,10 @@ export interface JobTriggerSpecForProvider {
    *
    * @schema JobTriggerSpecForProvider#parent
    */
-  readonly parent: string;
+  readonly parent?: string;
 
   /**
-   * Whether the trigger is currently active. Default value is HEALTHY. Possible values are PAUSED, HEALTHY, and CANCELLED.
+   * Whether the trigger is currently active. Default value is HEALTHY. Possible values are: PAUSED, HEALTHY, CANCELLED.
    *
    * @schema JobTriggerSpecForProvider#status
    */
@@ -6553,7 +7019,7 @@ export interface JobTriggerSpecForProvider {
    *
    * @schema JobTriggerSpecForProvider#triggers
    */
-  readonly triggers: JobTriggerSpecForProviderTriggers[];
+  readonly triggers?: JobTriggerSpecForProviderTriggers[];
 
 }
 
@@ -6575,6 +7041,20 @@ export function toJson_JobTriggerSpecForProvider(obj: JobTriggerSpecForProvider 
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema JobTriggerSpecManagementPolicy
+ */
+export enum JobTriggerSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6744,6 +7224,13 @@ export interface JobTriggerSpecForProviderInspectJob {
   readonly actions: JobTriggerSpecForProviderInspectJobActions[];
 
   /**
+   * The core content of the template. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJob#inspectConfig
+   */
+  readonly inspectConfig?: JobTriggerSpecForProviderInspectJobInspectConfig[];
+
+  /**
    * The name of the template to run when this job is triggered.
    *
    * @schema JobTriggerSpecForProviderInspectJob#inspectTemplateName
@@ -6767,6 +7254,7 @@ export function toJson_JobTriggerSpecForProviderInspectJob(obj: JobTriggerSpecFo
   if (obj === undefined) { return undefined; }
   const result = {
     'actions': obj.actions?.map(y => toJson_JobTriggerSpecForProviderInspectJobActions(y)),
+    'inspectConfig': obj.inspectConfig?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfig(y)),
     'inspectTemplateName': obj.inspectTemplateName,
     'storageConfig': obj.storageConfig?.map(y => toJson_JobTriggerSpecForProviderInspectJobStorageConfig(y)),
   };
@@ -6779,6 +7267,13 @@ export function toJson_JobTriggerSpecForProviderInspectJob(obj: JobTriggerSpecFo
  * @schema JobTriggerSpecForProviderTriggers
  */
 export interface JobTriggerSpecForProviderTriggers {
+  /**
+   * For use with hybrid jobs. Jobs must be manually created and finished.
+   *
+   * @schema JobTriggerSpecForProviderTriggers#manual
+   */
+  readonly manual?: any[];
+
   /**
    * Schedule for triggered jobs Structure is documented below.
    *
@@ -6795,6 +7290,7 @@ export interface JobTriggerSpecForProviderTriggers {
 export function toJson_JobTriggerSpecForProviderTriggers(obj: JobTriggerSpecForProviderTriggers | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'manual': obj.manual?.map(y => y),
     'schedule': obj.schedule?.map(y => toJson_JobTriggerSpecForProviderTriggersSchedule(y)),
   };
   // filter undefined values
@@ -6963,6 +7459,20 @@ export function toJson_JobTriggerSpecPublishConnectionDetailsToMetadata(obj: Job
  */
 export interface JobTriggerSpecForProviderInspectJobActions {
   /**
+   * Create a de-identified copy of the requested table or files. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActions#deidentify
+   */
+  readonly deidentify?: JobTriggerSpecForProviderInspectJobActionsDeidentify[];
+
+  /**
+   * Sends an email when the job completes. The email goes to IAM project owners and technical Essential Contacts.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActions#jobNotificationEmails
+   */
+  readonly jobNotificationEmails?: any[];
+
+  /**
    * Publish a message into a given Pub/Sub topic when the job completes. Structure is documented below.
    *
    * @schema JobTriggerSpecForProviderInspectJobActions#pubSub
@@ -6999,10 +7509,87 @@ export interface JobTriggerSpecForProviderInspectJobActions {
 export function toJson_JobTriggerSpecForProviderInspectJobActions(obj: JobTriggerSpecForProviderInspectJobActions | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'deidentify': obj.deidentify?.map(y => toJson_JobTriggerSpecForProviderInspectJobActionsDeidentify(y)),
+    'jobNotificationEmails': obj.jobNotificationEmails?.map(y => y),
     'pubSub': obj.pubSub?.map(y => toJson_JobTriggerSpecForProviderInspectJobActionsPubSub(y)),
     'publishFindingsToCloudDataCatalog': obj.publishFindingsToCloudDataCatalog?.map(y => y),
     'publishSummaryToCscc': obj.publishSummaryToCscc?.map(y => y),
     'saveFindings': obj.saveFindings?.map(y => toJson_JobTriggerSpecForProviderInspectJobActionsSaveFindings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfig
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfig {
+  /**
+   * Custom info types to be used. See https://cloud.google.com/dlp/docs/creating-custom-infotypes to learn more. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfig#customInfoTypes
+   */
+  readonly customInfoTypes?: JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypes[];
+
+  /**
+   * When true, excludes type information of the findings.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfig#excludeInfoTypes
+   */
+  readonly excludeInfoTypes?: boolean;
+
+  /**
+   * When true, a contextual quote from the data that triggered a finding is included in the response.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfig#includeQuote
+   */
+  readonly includeQuote?: boolean;
+
+  /**
+   * List of infoTypes this rule set is applied to. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfig#infoTypes
+   */
+  readonly infoTypes?: JobTriggerSpecForProviderInspectJobInspectConfigInfoTypes[];
+
+  /**
+   * Configuration to control the number of findings returned. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfig#limits
+   */
+  readonly limits?: JobTriggerSpecForProviderInspectJobInspectConfigLimits[];
+
+  /**
+   * Only returns findings equal or above this threshold. See https://cloud.google.com/dlp/docs/likelihood for more info Default value is POSSIBLE. Possible values are: VERY_UNLIKELY, UNLIKELY, POSSIBLE, LIKELY, VERY_LIKELY.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfig#minLikelihood
+   */
+  readonly minLikelihood?: string;
+
+  /**
+   * Set of rules to apply to the findings for this InspectConfig. Exclusion rules, contained in the set are executed in the end, other rules are executed in the order they are specified for each info type. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfig#ruleSet
+   */
+  readonly ruleSet?: JobTriggerSpecForProviderInspectJobInspectConfigRuleSet[];
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfig(obj: JobTriggerSpecForProviderInspectJobInspectConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customInfoTypes': obj.customInfoTypes?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypes(y)),
+    'excludeInfoTypes': obj.excludeInfoTypes,
+    'includeQuote': obj.includeQuote,
+    'infoTypes': obj.infoTypes?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigInfoTypes(y)),
+    'limits': obj.limits?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigLimits(y)),
+    'minLikelihood': obj.minLikelihood,
+    'ruleSet': obj.ruleSet?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSet(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7035,6 +7622,13 @@ export interface JobTriggerSpecForProviderInspectJobStorageConfig {
   readonly datastoreOptions?: JobTriggerSpecForProviderInspectJobStorageConfigDatastoreOptions[];
 
   /**
+   * Configuration to control jobs where the content being inspected is outside of Google Cloud Platform. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobStorageConfig#hybridOptions
+   */
+  readonly hybridOptions?: JobTriggerSpecForProviderInspectJobStorageConfigHybridOptions[];
+
+  /**
    * Information on where to inspect Structure is documented below.
    *
    * @schema JobTriggerSpecForProviderInspectJobStorageConfig#timespanConfig
@@ -7053,6 +7647,7 @@ export function toJson_JobTriggerSpecForProviderInspectJobStorageConfig(obj: Job
     'bigQueryOptions': obj.bigQueryOptions?.map(y => toJson_JobTriggerSpecForProviderInspectJobStorageConfigBigQueryOptions(y)),
     'cloudStorageOptions': obj.cloudStorageOptions?.map(y => toJson_JobTriggerSpecForProviderInspectJobStorageConfigCloudStorageOptions(y)),
     'datastoreOptions': obj.datastoreOptions?.map(y => toJson_JobTriggerSpecForProviderInspectJobStorageConfigDatastoreOptions(y)),
+    'hybridOptions': obj.hybridOptions?.map(y => toJson_JobTriggerSpecForProviderInspectJobStorageConfigHybridOptions(y)),
     'timespanConfig': obj.timespanConfig?.map(y => toJson_JobTriggerSpecForProviderInspectJobStorageConfigTimespanConfig(y)),
   };
   // filter undefined values
@@ -7173,6 +7768,57 @@ export function toJson_JobTriggerSpecPublishConnectionDetailsToConfigRefPolicy(o
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentify
+ */
+export interface JobTriggerSpecForProviderInspectJobActionsDeidentify {
+  /**
+   * User settable Cloud Storage bucket and folders to store de-identified files. This field must be set for cloud storage deidentification. The output Cloud Storage bucket must be different from the input bucket. De-identified files will overwrite files in the output path. Form of: gs://bucket/folder/ or gs://bucket
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentify#cloudStorageOutput
+   */
+  readonly cloudStorageOutput: string;
+
+  /**
+   * List of user-specified file type groups to transform. If specified, only the files with these filetypes will be transformed. If empty, all supported files will be transformed. Supported types may be automatically added over time. If a file type is set in this field that isn't supported by the Deidentify action then the job will fail and will not be successfully created/started. Each value may be one of: IMAGE, TEXT_FILE, CSV, TSV.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentify#fileTypesToTransform
+   */
+  readonly fileTypesToTransform?: string[];
+
+  /**
+   * User specified deidentify templates and configs for structured, unstructured, and image files. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentify#transformationConfig
+   */
+  readonly transformationConfig?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationConfig[];
+
+  /**
+   * Config for storing transformation details. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentify#transformationDetailsStorageConfig
+   */
+  readonly transformationDetailsStorageConfig?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfig[];
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobActionsDeidentify' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobActionsDeidentify(obj: JobTriggerSpecForProviderInspectJobActionsDeidentify | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cloudStorageOutput': obj.cloudStorageOutput,
+    'fileTypesToTransform': obj.fileTypesToTransform?.map(y => y),
+    'transformationConfig': obj.transformationConfig?.map(y => toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationConfig(y)),
+    'transformationDetailsStorageConfig': obj.transformationDetailsStorageConfig?.map(y => toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema JobTriggerSpecForProviderInspectJobActionsPubSub
  */
 export interface JobTriggerSpecForProviderInspectJobActionsPubSub {
@@ -7227,11 +7873,199 @@ export function toJson_JobTriggerSpecForProviderInspectJobActionsSaveFindings(ob
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypes
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypes {
+  /**
+   * Dictionary which defines the rule. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypes#dictionary
+   */
+  readonly dictionary?: JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionary[];
+
+  /**
+   * If set to EXCLUSION_TYPE_EXCLUDE this infoType will not cause a finding to be returned. It still can be used for rules matching. Possible values are: EXCLUSION_TYPE_EXCLUDE.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypes#exclusionType
+   */
+  readonly exclusionType?: string;
+
+  /**
+   * Type of information the findings limit applies to. Only one limit per infoType should be provided. If InfoTypeLimit does not have an infoType, the DLP API applies the limit against all infoTypes that are found but not specified in another InfoTypeLimit. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypes#infoType
+   */
+  readonly infoType: JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesInfoType[];
+
+  /**
+   * Likelihood to return for this CustomInfoType. This base value can be altered by a detection rule if the finding meets the criteria specified by the rule. Default value is VERY_LIKELY. Possible values are: VERY_UNLIKELY, UNLIKELY, POSSIBLE, LIKELY, VERY_LIKELY.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypes#likelihood
+   */
+  readonly likelihood?: string;
+
+  /**
+   * Regular expression which defines the rule. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypes#regex
+   */
+  readonly regex?: JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesRegex[];
+
+  /**
+   * A reference to a StoredInfoType to use with scanning. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypes#storedType
+   */
+  readonly storedType?: JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesStoredType[];
+
+  /**
+   * Message for detecting output from deidentification transformations that support reversing.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypes#surrogateType
+   */
+  readonly surrogateType?: any[];
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypes(obj: JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dictionary': obj.dictionary?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionary(y)),
+    'exclusionType': obj.exclusionType,
+    'infoType': obj.infoType?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesInfoType(y)),
+    'likelihood': obj.likelihood,
+    'regex': obj.regex?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesRegex(y)),
+    'storedType': obj.storedType?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesStoredType(y)),
+    'surrogateType': obj.surrogateType?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigInfoTypes
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigInfoTypes {
+  /**
+   * Specification of the field containing the timestamp of scanned items. Used for data sources like Datastore and BigQuery. For BigQuery: Required to filter out rows based on the given start and end times. If not specified and the table was modified between the given start and end times, the entire table will be scanned. The valid data types of the timestamp field are: INTEGER, DATE, TIMESTAMP, or DATETIME BigQuery column. For Datastore. Valid data types of the timestamp field are: TIMESTAMP. Datastore entity will be scanned if the timestamp property does not exist or its value is empty or invalid.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigInfoTypes#name
+   */
+  readonly name: string;
+
+  /**
+   * Version of the information type to use. By default, the version is set to stable
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigInfoTypes#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigInfoTypes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigInfoTypes(obj: JobTriggerSpecForProviderInspectJobInspectConfigInfoTypes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigLimits
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigLimits {
+  /**
+   * Configuration of findings limit given for specified infoTypes. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigLimits#maxFindingsPerInfoType
+   */
+  readonly maxFindingsPerInfoType?: JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoType[];
+
+  /**
+   * Max number of findings that will be returned for each item scanned. The maximum returned is 2000.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigLimits#maxFindingsPerItem
+   */
+  readonly maxFindingsPerItem?: number;
+
+  /**
+   * Max number of findings that will be returned per request/job. The maximum returned is 2000.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigLimits#maxFindingsPerRequest
+   */
+  readonly maxFindingsPerRequest?: number;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigLimits' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigLimits(obj: JobTriggerSpecForProviderInspectJobInspectConfigLimits | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxFindingsPerInfoType': obj.maxFindingsPerInfoType?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoType(y)),
+    'maxFindingsPerItem': obj.maxFindingsPerItem,
+    'maxFindingsPerRequest': obj.maxFindingsPerRequest,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSet
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSet {
+  /**
+   * List of infoTypes this rule set is applied to. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSet#infoTypes
+   */
+  readonly infoTypes?: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetInfoTypes[];
+
+  /**
+   * Set of rules to be applied to infoTypes. The rules are applied in order. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSet#rules
+   */
+  readonly rules: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRules[];
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSet' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSet(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSet | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'infoTypes': obj.infoTypes?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetInfoTypes(y)),
+    'rules': obj.rules?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRules(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema JobTriggerSpecForProviderInspectJobStorageConfigBigQueryOptions
  */
 export interface JobTriggerSpecForProviderInspectJobStorageConfigBigQueryOptions {
   /**
-   * Specifies the BigQuery fields that will be returned with findings. If not specified, no identifying fields will be returned for findings. Structure is documented below.
+   * The columns that are the primary keys for table objects included in ContentItem. A copy of this cell's value will stored alongside alongside each finding so that the finding can be traced to the specific row it came from. No more than 3 may be provided. Structure is documented below.
    *
    * @schema JobTriggerSpecForProviderInspectJobStorageConfigBigQueryOptions#identifyingFields
    */
@@ -7253,7 +8087,7 @@ export interface JobTriggerSpecForProviderInspectJobStorageConfigBigQueryOptions
   readonly rowsLimitPercent?: number;
 
   /**
-   * How to sample bytes if not all bytes are scanned. Meaningful only when used in conjunction with bytesLimitPerFile. If not specified, scanning would start from the top. Possible values are TOP and RANDOM_START.
+   * How to sample bytes if not all bytes are scanned. Meaningful only when used in conjunction with bytesLimitPerFile. If not specified, scanning would start from the top. Possible values are: TOP, RANDOM_START.
    *
    * @schema JobTriggerSpecForProviderInspectJobStorageConfigBigQueryOptions#sampleMethod
    */
@@ -7312,7 +8146,7 @@ export interface JobTriggerSpecForProviderInspectJobStorageConfigCloudStorageOpt
   readonly fileSet: JobTriggerSpecForProviderInspectJobStorageConfigCloudStorageOptionsFileSet[];
 
   /**
-   * List of file type groups to include in the scan. If empty, all files are scanned and available data format processors are applied. In addition, the binary content of the selected files is always scanned as well. Images are scanned only as binary if the specified region does not support image inspection and no fileTypes were specified. Each value may be one of BINARY_FILE, TEXT_FILE, IMAGE, WORD, PDF, AVRO, CSV, and TSV.
+   * List of file type groups to include in the scan. If empty, all files are scanned and available data format processors are applied. In addition, the binary content of the selected files is always scanned as well. Images are scanned only as binary if the specified region does not support image inspection and no fileTypes were specified. Each value may be one of: BINARY_FILE, TEXT_FILE, IMAGE, WORD, PDF, AVRO, CSV, TSV.
    *
    * @schema JobTriggerSpecForProviderInspectJobStorageConfigCloudStorageOptions#fileTypes
    */
@@ -7326,7 +8160,7 @@ export interface JobTriggerSpecForProviderInspectJobStorageConfigCloudStorageOpt
   readonly filesLimitPercent?: number;
 
   /**
-   * How to sample bytes if not all bytes are scanned. Meaningful only when used in conjunction with bytesLimitPerFile. If not specified, scanning would start from the top. Possible values are TOP and RANDOM_START.
+   * How to sample bytes if not all bytes are scanned. Meaningful only when used in conjunction with bytesLimitPerFile. If not specified, scanning would start from the top. Possible values are: TOP, RANDOM_START.
    *
    * @schema JobTriggerSpecForProviderInspectJobStorageConfigCloudStorageOptions#sampleMethod
    */
@@ -7382,6 +8216,57 @@ export function toJson_JobTriggerSpecForProviderInspectJobStorageConfigDatastore
   const result = {
     'kind': obj.kind?.map(y => toJson_JobTriggerSpecForProviderInspectJobStorageConfigDatastoreOptionsKind(y)),
     'partitionId': obj.partitionId?.map(y => toJson_JobTriggerSpecForProviderInspectJobStorageConfigDatastoreOptionsPartitionId(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobStorageConfigHybridOptions
+ */
+export interface JobTriggerSpecForProviderInspectJobStorageConfigHybridOptions {
+  /**
+   * A description of the job trigger.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobStorageConfigHybridOptions#description
+   */
+  readonly description?: string;
+
+  /**
+   * To organize findings, these labels will be added to each finding. Label keys must be between 1 and 63 characters long and must conform to the following regular expression: [a-z]([-a-z0-9]*[a-z0-9])?. Label values must be between 0 and 63 characters long and must conform to the regular expression ([a-z]([-a-z0-9]*[a-z0-9])?)?. No more than 10 labels can be associated with a given finding. Examples:
+   *
+   * @schema JobTriggerSpecForProviderInspectJobStorageConfigHybridOptions#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * These are labels that each inspection request must include within their 'finding_labels' map. Request may contain others, but any missing one of these will be rejected. Label keys must be between 1 and 63 characters long and must conform to the following regular expression: [a-z]([-a-z0-9]*[a-z0-9])?. No more than 10 keys can be required.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobStorageConfigHybridOptions#requiredFindingLabelKeys
+   */
+  readonly requiredFindingLabelKeys?: string[];
+
+  /**
+   * If the container is a table, additional information to make findings meaningful such as the columns that are primary keys. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobStorageConfigHybridOptions#tableOptions
+   */
+  readonly tableOptions?: JobTriggerSpecForProviderInspectJobStorageConfigHybridOptionsTableOptions[];
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobStorageConfigHybridOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobStorageConfigHybridOptions(obj: JobTriggerSpecForProviderInspectJobStorageConfigHybridOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'requiredFindingLabelKeys': obj.requiredFindingLabelKeys?.map(y => y),
+    'tableOptions': obj.tableOptions?.map(y => toJson_JobTriggerSpecForProviderInspectJobStorageConfigHybridOptionsTableOptions(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7464,18 +8349,88 @@ export enum JobTriggerSpecPublishConnectionDetailsToConfigRefPolicyResolve {
 }
 
 /**
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationConfig
+ */
+export interface JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationConfig {
+  /**
+   * If this template is specified, it will serve as the default de-identify template.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationConfig#deidentifyTemplate
+   */
+  readonly deidentifyTemplate?: string;
+
+  /**
+   * If this template is specified, it will serve as the de-identify template for images.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationConfig#imageRedactTemplate
+   */
+  readonly imageRedactTemplate?: string;
+
+  /**
+   * If this template is specified, it will serve as the de-identify template for structured content such as delimited files and tables.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationConfig#structuredDeidentifyTemplate
+   */
+  readonly structuredDeidentifyTemplate?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationConfig(obj: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deidentifyTemplate': obj.deidentifyTemplate,
+    'imageRedactTemplate': obj.imageRedactTemplate,
+    'structuredDeidentifyTemplate': obj.structuredDeidentifyTemplate,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfig
+ */
+export interface JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfig {
+  /**
+   * The BigQuery table in which to store the output. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfig#table
+   */
+  readonly table: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTable[];
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfig(obj: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'table': obj.table?.map(y => toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTable(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema JobTriggerSpecForProviderInspectJobActionsSaveFindingsOutputConfig
  */
 export interface JobTriggerSpecForProviderInspectJobActionsSaveFindingsOutputConfig {
   /**
-   * Schema used for writing the findings for Inspect jobs. This field is only used for Inspect and must be unspecified for Risk jobs. Columns are derived from the Finding object. If appending to an existing table, any columns from the predefined schema that are missing will be added. No columns in the existing table will be deleted. If unspecified, then all available columns will be used for a new table or an (existing) table with no schema, and no changes will be made to an existing table that has a schema. Only for use with external storage. Possible values are BASIC_COLUMNS, GCS_COLUMNS, DATASTORE_COLUMNS, BIG_QUERY_COLUMNS, and ALL_COLUMNS.
+   * Schema used for writing the findings for Inspect jobs. This field is only used for Inspect and must be unspecified for Risk jobs. Columns are derived from the Finding object. If appending to an existing table, any columns from the predefined schema that are missing will be added. No columns in the existing table will be deleted. If unspecified, then all available columns will be used for a new table or an (existing) table with no schema, and no changes will be made to an existing table that has a schema. Only for use with external storage. Possible values are: BASIC_COLUMNS, GCS_COLUMNS, DATASTORE_COLUMNS, BIG_QUERY_COLUMNS, ALL_COLUMNS.
    *
    * @schema JobTriggerSpecForProviderInspectJobActionsSaveFindingsOutputConfig#outputSchema
    */
   readonly outputSchema?: string;
 
   /**
-   * Information on the location of the target BigQuery Table. Structure is documented below.
+   * The BigQuery table in which to store the output. Structure is documented below.
    *
    * @schema JobTriggerSpecForProviderInspectJobActionsSaveFindingsOutputConfig#table
    */
@@ -7492,6 +8447,243 @@ export function toJson_JobTriggerSpecForProviderInspectJobActionsSaveFindingsOut
   const result = {
     'outputSchema': obj.outputSchema,
     'table': obj.table?.map(y => toJson_JobTriggerSpecForProviderInspectJobActionsSaveFindingsOutputConfigTable(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionary
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionary {
+  /**
+   * Newline-delimited file of words in Cloud Storage. Only a single file is accepted. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionary#cloudStoragePath
+   */
+  readonly cloudStoragePath?: JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionaryCloudStoragePath[];
+
+  /**
+   * List of words or phrases to search for. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionary#wordList
+   */
+  readonly wordList?: JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionaryWordList[];
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionary' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionary(obj: JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionary | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cloudStoragePath': obj.cloudStoragePath?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionaryCloudStoragePath(y)),
+    'wordList': obj.wordList?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionaryWordList(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesInfoType
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesInfoType {
+  /**
+   * Specification of the field containing the timestamp of scanned items. Used for data sources like Datastore and BigQuery. For BigQuery: Required to filter out rows based on the given start and end times. If not specified and the table was modified between the given start and end times, the entire table will be scanned. The valid data types of the timestamp field are: INTEGER, DATE, TIMESTAMP, or DATETIME BigQuery column. For Datastore. Valid data types of the timestamp field are: TIMESTAMP. Datastore entity will be scanned if the timestamp property does not exist or its value is empty or invalid.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesInfoType#name
+   */
+  readonly name: string;
+
+  /**
+   * Version of the information type to use. By default, the version is set to stable
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesInfoType#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesInfoType' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesInfoType(obj: JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesInfoType | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesRegex
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesRegex {
+  /**
+   * The index of the submatch to extract as findings. When not specified, the entire match is returned. No more than 3 may be included.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesRegex#groupIndexes
+   */
+  readonly groupIndexes?: number[];
+
+  /**
+   * Pattern defining the regular expression. Its syntax (https://github.com/google/re2/wiki/Syntax) can be found under the google/re2 repository on GitHub.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesRegex#pattern
+   */
+  readonly pattern: string;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesRegex' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesRegex(obj: JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesRegex | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'groupIndexes': obj.groupIndexes?.map(y => y),
+    'pattern': obj.pattern,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesStoredType
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesStoredType {
+  /**
+   * Specification of the field containing the timestamp of scanned items. Used for data sources like Datastore and BigQuery. For BigQuery: Required to filter out rows based on the given start and end times. If not specified and the table was modified between the given start and end times, the entire table will be scanned. The valid data types of the timestamp field are: INTEGER, DATE, TIMESTAMP, or DATETIME BigQuery column. For Datastore. Valid data types of the timestamp field are: TIMESTAMP. Datastore entity will be scanned if the timestamp property does not exist or its value is empty or invalid.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesStoredType#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesStoredType' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesStoredType(obj: JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesStoredType | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoType
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoType {
+  /**
+   * Type of information the findings limit applies to. Only one limit per infoType should be provided. If InfoTypeLimit does not have an infoType, the DLP API applies the limit against all infoTypes that are found but not specified in another InfoTypeLimit. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoType#infoType
+   */
+  readonly infoType?: JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoTypeInfoType[];
+
+  /**
+   * Max findings limit for the given infoType.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoType#maxFindings
+   */
+  readonly maxFindings?: number;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoType' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoType(obj: JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoType | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'infoType': obj.infoType?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoTypeInfoType(y)),
+    'maxFindings': obj.maxFindings,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetInfoTypes
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSetInfoTypes {
+  /**
+   * Specification of the field containing the timestamp of scanned items. Used for data sources like Datastore and BigQuery. For BigQuery: Required to filter out rows based on the given start and end times. If not specified and the table was modified between the given start and end times, the entire table will be scanned. The valid data types of the timestamp field are: INTEGER, DATE, TIMESTAMP, or DATETIME BigQuery column. For Datastore. Valid data types of the timestamp field are: TIMESTAMP. Datastore entity will be scanned if the timestamp property does not exist or its value is empty or invalid.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetInfoTypes#name
+   */
+  readonly name: string;
+
+  /**
+   * Version of the information type to use. By default, the version is set to stable
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetInfoTypes#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSetInfoTypes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetInfoTypes(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetInfoTypes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRules
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRules {
+  /**
+   * The rule that specifies conditions when findings of infoTypes specified in InspectionRuleSet are removed from results. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRules#exclusionRule
+   */
+  readonly exclusionRule?: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRule[];
+
+  /**
+   * Hotword-based detection rule. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRules#hotwordRule
+   */
+  readonly hotwordRule?: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRule[];
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRules' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRules(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRules | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exclusionRule': obj.exclusionRule?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRule(y)),
+    'hotwordRule': obj.hotwordRule?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRule(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7530,21 +8722,21 @@ export function toJson_JobTriggerSpecForProviderInspectJobStorageConfigBigQueryO
  */
 export interface JobTriggerSpecForProviderInspectJobStorageConfigBigQueryOptionsTableReference {
   /**
-   * The dataset ID of the table.
+   * The ID of the dataset containing this table.
    *
    * @schema JobTriggerSpecForProviderInspectJobStorageConfigBigQueryOptionsTableReference#datasetId
    */
   readonly datasetId: string;
 
   /**
-   * The Google Cloud Platform project ID of the project containing the table.
+   * The ID of the project containing this table.
    *
    * @schema JobTriggerSpecForProviderInspectJobStorageConfigBigQueryOptionsTableReference#projectId
    */
   readonly projectId: string;
 
   /**
-   * The name of the table.
+   * The ID of the table. The ID must contain only letters (a-z, A-Z), numbers (0-9), or underscores (_). The maximum length is 1,024 characters.
    *
    * @schema JobTriggerSpecForProviderInspectJobStorageConfigBigQueryOptionsTableReference#tableId
    */
@@ -7642,7 +8834,7 @@ export interface JobTriggerSpecForProviderInspectJobStorageConfigDatastoreOption
   readonly namespaceId?: string;
 
   /**
-   * The Google Cloud Platform project ID of the project containing the table.
+   * The ID of the project containing this table.
    *
    * @schema JobTriggerSpecForProviderInspectJobStorageConfigDatastoreOptionsPartitionId#projectId
    */
@@ -7659,6 +8851,33 @@ export function toJson_JobTriggerSpecForProviderInspectJobStorageConfigDatastore
   const result = {
     'namespaceId': obj.namespaceId,
     'projectId': obj.projectId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobStorageConfigHybridOptionsTableOptions
+ */
+export interface JobTriggerSpecForProviderInspectJobStorageConfigHybridOptionsTableOptions {
+  /**
+   * The columns that are the primary keys for table objects included in ContentItem. A copy of this cell's value will stored alongside alongside each finding so that the finding can be traced to the specific row it came from. No more than 3 may be provided. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobStorageConfigHybridOptionsTableOptions#identifyingFields
+   */
+  readonly identifyingFields?: JobTriggerSpecForProviderInspectJobStorageConfigHybridOptionsTableOptionsIdentifyingFields[];
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobStorageConfigHybridOptionsTableOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobStorageConfigHybridOptionsTableOptions(obj: JobTriggerSpecForProviderInspectJobStorageConfigHybridOptionsTableOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'identifyingFields': obj.identifyingFields?.map(y => toJson_JobTriggerSpecForProviderInspectJobStorageConfigHybridOptionsTableOptionsIdentifyingFields(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7693,25 +8912,100 @@ export function toJson_JobTriggerSpecForProviderInspectJobStorageConfigTimespanC
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTable
+ */
+export interface JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTable {
+  /**
+   * The ID of the dataset containing this table.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTable#datasetId
+   */
+  readonly datasetId?: string;
+
+  /**
+   * Reference to a Dataset in bigquery to populate datasetId.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTable#datasetIdRef
+   */
+  readonly datasetIdRef?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRef;
+
+  /**
+   * Selector for a Dataset in bigquery to populate datasetId.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTable#datasetIdSelector
+   */
+  readonly datasetIdSelector?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelector;
+
+  /**
+   * The ID of the project containing this table.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTable#projectId
+   */
+  readonly projectId: string;
+
+  /**
+   * The ID of the table. The ID must contain only letters (a-z, A-Z), numbers (0-9), or underscores (_). The maximum length is 1,024 characters.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTable#tableId
+   */
+  readonly tableId?: string;
+
+  /**
+   * Reference to a Table in bigquery to populate tableId.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTable#tableIdRef
+   */
+  readonly tableIdRef?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRef;
+
+  /**
+   * Selector for a Table in bigquery to populate tableId.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTable#tableIdSelector
+   */
+  readonly tableIdSelector?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelector;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTable' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTable(obj: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTable | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'datasetId': obj.datasetId,
+    'datasetIdRef': toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRef(obj.datasetIdRef),
+    'datasetIdSelector': toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelector(obj.datasetIdSelector),
+    'projectId': obj.projectId,
+    'tableId': obj.tableId,
+    'tableIdRef': toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRef(obj.tableIdRef),
+    'tableIdSelector': toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelector(obj.tableIdSelector),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema JobTriggerSpecForProviderInspectJobActionsSaveFindingsOutputConfigTable
  */
 export interface JobTriggerSpecForProviderInspectJobActionsSaveFindingsOutputConfigTable {
   /**
-   * The dataset ID of the table.
+   * The ID of the dataset containing this table.
    *
    * @schema JobTriggerSpecForProviderInspectJobActionsSaveFindingsOutputConfigTable#datasetId
    */
   readonly datasetId: string;
 
   /**
-   * The Google Cloud Platform project ID of the project containing the table.
+   * The ID of the project containing this table.
    *
    * @schema JobTriggerSpecForProviderInspectJobActionsSaveFindingsOutputConfigTable#projectId
    */
   readonly projectId: string;
 
   /**
-   * The name of the table.
+   * The ID of the table. The ID must contain only letters (a-z, A-Z), numbers (0-9), or underscores (_). The maximum length is 1,024 characters.
    *
    * @schema JobTriggerSpecForProviderInspectJobActionsSaveFindingsOutputConfigTable#tableId
    */
@@ -7729,6 +9023,197 @@ export function toJson_JobTriggerSpecForProviderInspectJobActionsSaveFindingsOut
     'datasetId': obj.datasetId,
     'projectId': obj.projectId,
     'tableId': obj.tableId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionaryCloudStoragePath
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionaryCloudStoragePath {
+  /**
+   * A url representing a file or path (no wildcards) in Cloud Storage. Example: gs://[BUCKET_NAME]/dictionary.txt
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionaryCloudStoragePath#path
+   */
+  readonly path: string;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionaryCloudStoragePath' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionaryCloudStoragePath(obj: JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionaryCloudStoragePath | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionaryWordList
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionaryWordList {
+  /**
+   * Words or phrases defining the dictionary. The dictionary must contain at least one phrase and every phrase must contain at least 2 characters that are letters or digits.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionaryWordList#words
+   */
+  readonly words: string[];
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionaryWordList' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionaryWordList(obj: JobTriggerSpecForProviderInspectJobInspectConfigCustomInfoTypesDictionaryWordList | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'words': obj.words?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoTypeInfoType
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoTypeInfoType {
+  /**
+   * Specification of the field containing the timestamp of scanned items. Used for data sources like Datastore and BigQuery. For BigQuery: Required to filter out rows based on the given start and end times. If not specified and the table was modified between the given start and end times, the entire table will be scanned. The valid data types of the timestamp field are: INTEGER, DATE, TIMESTAMP, or DATETIME BigQuery column. For Datastore. Valid data types of the timestamp field are: TIMESTAMP. Datastore entity will be scanned if the timestamp property does not exist or its value is empty or invalid.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoTypeInfoType#name
+   */
+  readonly name: string;
+
+  /**
+   * Version of the information type to use. By default, the version is set to stable
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoTypeInfoType#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoTypeInfoType' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoTypeInfoType(obj: JobTriggerSpecForProviderInspectJobInspectConfigLimitsMaxFindingsPerInfoTypeInfoType | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRule
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRule {
+  /**
+   * Dictionary which defines the rule. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRule#dictionary
+   */
+  readonly dictionary?: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionary[];
+
+  /**
+   * Drop if the hotword rule is contained in the proximate context. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRule#excludeByHotword
+   */
+  readonly excludeByHotword?: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotword[];
+
+  /**
+   * When true, excludes type information of the findings.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRule#excludeInfoTypes
+   */
+  readonly excludeInfoTypes?: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypes[];
+
+  /**
+   * How the rule is applied. See the documentation for more information: https://cloud.google.com/dlp/docs/reference/rest/v2/InspectConfig#MatchingType Possible values are: MATCHING_TYPE_FULL_MATCH, MATCHING_TYPE_PARTIAL_MATCH, MATCHING_TYPE_INVERSE_MATCH.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRule#matchingType
+   */
+  readonly matchingType: string;
+
+  /**
+   * Regular expression which defines the rule. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRule#regex
+   */
+  readonly regex?: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleRegex[];
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRule(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dictionary': obj.dictionary?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionary(y)),
+    'excludeByHotword': obj.excludeByHotword?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotword(y)),
+    'excludeInfoTypes': obj.excludeInfoTypes?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypes(y)),
+    'matchingType': obj.matchingType,
+    'regex': obj.regex?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleRegex(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRule
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRule {
+  /**
+   * Regular expression pattern defining what qualifies as a hotword. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRule#hotwordRegex
+   */
+  readonly hotwordRegex?: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleHotwordRegex[];
+
+  /**
+   * Likelihood adjustment to apply to all matching findings. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRule#likelihoodAdjustment
+   */
+  readonly likelihoodAdjustment?: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleLikelihoodAdjustment[];
+
+  /**
+   * Proximity of the finding within which the entire hotword must reside. The total length of the window cannot exceed 1000 characters. Note that the finding itself will be included in the window, so that hotwords may be used to match substrings of the finding itself. For example, the certainty of a phone number regex (\d{3}) \d{3}-\d{4} could be adjusted upwards if the area code is known to be the local area code of a company office using the hotword regex (xxx), where xxx is the area code in question. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRule#proximity
+   */
+  readonly proximity?: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleProximity[];
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRule(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hotwordRegex': obj.hotwordRegex?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleHotwordRegex(y)),
+    'likelihoodAdjustment': obj.likelihoodAdjustment?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleLikelihoodAdjustment(y)),
+    'proximity': obj.proximity?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleProximity(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7777,6 +9262,837 @@ export function toJson_JobTriggerSpecForProviderInspectJobStorageConfigCloudStor
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobStorageConfigHybridOptionsTableOptionsIdentifyingFields
+ */
+export interface JobTriggerSpecForProviderInspectJobStorageConfigHybridOptionsTableOptionsIdentifyingFields {
+  /**
+   * Specification of the field containing the timestamp of scanned items. Used for data sources like Datastore and BigQuery. For BigQuery: Required to filter out rows based on the given start and end times. If not specified and the table was modified between the given start and end times, the entire table will be scanned. The valid data types of the timestamp field are: INTEGER, DATE, TIMESTAMP, or DATETIME BigQuery column. For Datastore. Valid data types of the timestamp field are: TIMESTAMP. Datastore entity will be scanned if the timestamp property does not exist or its value is empty or invalid.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobStorageConfigHybridOptionsTableOptionsIdentifyingFields#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobStorageConfigHybridOptionsTableOptionsIdentifyingFields' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobStorageConfigHybridOptionsTableOptionsIdentifyingFields(obj: JobTriggerSpecForProviderInspectJobStorageConfigHybridOptionsTableOptionsIdentifyingFields | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a Dataset in bigquery to populate datasetId.
+ *
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRef
+ */
+export interface JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRef#policy
+   */
+  readonly policy?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRef(obj: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a Dataset in bigquery to populate datasetId.
+ *
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelector
+ */
+export interface JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelector#policy
+   */
+  readonly policy?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelector(obj: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a Table in bigquery to populate tableId.
+ *
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRef
+ */
+export interface JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRef#policy
+   */
+  readonly policy?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRef(obj: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a Table in bigquery to populate tableId.
+ *
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelector
+ */
+export interface JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelector#policy
+   */
+  readonly policy?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelector(obj: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionary
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionary {
+  /**
+   * Newline-delimited file of words in Cloud Storage. Only a single file is accepted. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionary#cloudStoragePath
+   */
+  readonly cloudStoragePath?: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionaryCloudStoragePath[];
+
+  /**
+   * List of words or phrases to search for. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionary#wordList
+   */
+  readonly wordList?: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionaryWordList[];
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionary' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionary(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionary | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cloudStoragePath': obj.cloudStoragePath?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionaryCloudStoragePath(y)),
+    'wordList': obj.wordList?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionaryWordList(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotword
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotword {
+  /**
+   * Regular expression pattern defining what qualifies as a hotword. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotword#hotwordRegex
+   */
+  readonly hotwordRegex?: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex[];
+
+  /**
+   * Proximity of the finding within which the entire hotword must reside. The total length of the window cannot exceed 1000 characters. Note that the finding itself will be included in the window, so that hotwords may be used to match substrings of the finding itself. For example, the certainty of a phone number regex (\d{3}) \d{3}-\d{4} could be adjusted upwards if the area code is known to be the local area code of a company office using the hotword regex (xxx), where xxx is the area code in question. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotword#proximity
+   */
+  readonly proximity?: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity[];
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotword' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotword(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotword | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hotwordRegex': obj.hotwordRegex?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex(y)),
+    'proximity': obj.proximity?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypes
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypes {
+  /**
+   * List of infoTypes this rule set is applied to. Structure is documented below.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypes#infoTypes
+   */
+  readonly infoTypes: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypesInfoTypes[];
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypes(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'infoTypes': obj.infoTypes?.map(y => toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypesInfoTypes(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleRegex
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleRegex {
+  /**
+   * The index of the submatch to extract as findings. When not specified, the entire match is returned. No more than 3 may be included.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleRegex#groupIndexes
+   */
+  readonly groupIndexes?: number[];
+
+  /**
+   * Pattern defining the regular expression. Its syntax (https://github.com/google/re2/wiki/Syntax) can be found under the google/re2 repository on GitHub.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleRegex#pattern
+   */
+  readonly pattern: string;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleRegex' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleRegex(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleRegex | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'groupIndexes': obj.groupIndexes?.map(y => y),
+    'pattern': obj.pattern,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleHotwordRegex
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleHotwordRegex {
+  /**
+   * The index of the submatch to extract as findings. When not specified, the entire match is returned. No more than 3 may be included.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleHotwordRegex#groupIndexes
+   */
+  readonly groupIndexes?: number[];
+
+  /**
+   * Pattern defining the regular expression. Its syntax (https://github.com/google/re2/wiki/Syntax) can be found under the google/re2 repository on GitHub.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleHotwordRegex#pattern
+   */
+  readonly pattern?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleHotwordRegex' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleHotwordRegex(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleHotwordRegex | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'groupIndexes': obj.groupIndexes?.map(y => y),
+    'pattern': obj.pattern,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleLikelihoodAdjustment
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleLikelihoodAdjustment {
+  /**
+   * Set the likelihood of a finding to a fixed value. Either this or relative_likelihood can be set. Possible values are: VERY_UNLIKELY, UNLIKELY, POSSIBLE, LIKELY, VERY_LIKELY.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleLikelihoodAdjustment#fixedLikelihood
+   */
+  readonly fixedLikelihood?: string;
+
+  /**
+   * Increase or decrease the likelihood by the specified number of levels. For example, if a finding would be POSSIBLE without the detection rule and relativeLikelihood is 1, then it is upgraded to LIKELY, while a value of -1 would downgrade it to UNLIKELY. Likelihood may never drop below VERY_UNLIKELY or exceed VERY_LIKELY, so applying an adjustment of 1 followed by an adjustment of -1 when base likelihood is VERY_LIKELY will result in a final likelihood of LIKELY. Either this or fixed_likelihood can be set.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleLikelihoodAdjustment#relativeLikelihood
+   */
+  readonly relativeLikelihood?: number;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleLikelihoodAdjustment' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleLikelihoodAdjustment(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleLikelihoodAdjustment | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fixedLikelihood': obj.fixedLikelihood,
+    'relativeLikelihood': obj.relativeLikelihood,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleProximity
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleProximity {
+  /**
+   * Number of characters after the finding to consider. Either this or window_before must be specified
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleProximity#windowAfter
+   */
+  readonly windowAfter?: number;
+
+  /**
+   * Number of characters before the finding to consider. Either this or window_after must be specified
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleProximity#windowBefore
+   */
+  readonly windowBefore?: number;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleProximity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleProximity(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesHotwordRuleProximity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'windowAfter': obj.windowAfter,
+    'windowBefore': obj.windowBefore,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRefPolicy
+ */
+export interface JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRefPolicy#resolution
+   */
+  readonly resolution?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRefPolicy#resolve
+   */
+  readonly resolve?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRefPolicy(obj: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelectorPolicy
+ */
+export interface JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelectorPolicy#resolution
+   */
+  readonly resolution?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelectorPolicy#resolve
+   */
+  readonly resolve?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelectorPolicy(obj: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRefPolicy
+ */
+export interface JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRefPolicy#resolution
+   */
+  readonly resolution?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRefPolicy#resolve
+   */
+  readonly resolve?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRefPolicy(obj: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelectorPolicy
+ */
+export interface JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelectorPolicy#resolution
+   */
+  readonly resolution?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelectorPolicy#resolve
+   */
+  readonly resolve?: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelectorPolicy(obj: JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionaryCloudStoragePath
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionaryCloudStoragePath {
+  /**
+   * A url representing a file or path (no wildcards) in Cloud Storage. Example: gs://[BUCKET_NAME]/dictionary.txt
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionaryCloudStoragePath#path
+   */
+  readonly path: string;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionaryCloudStoragePath' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionaryCloudStoragePath(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionaryCloudStoragePath | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionaryWordList
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionaryWordList {
+  /**
+   * Words or phrases defining the dictionary. The dictionary must contain at least one phrase and every phrase must contain at least 2 characters that are letters or digits.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionaryWordList#words
+   */
+  readonly words: string[];
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionaryWordList' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionaryWordList(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleDictionaryWordList | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'words': obj.words?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex {
+  /**
+   * The index of the submatch to extract as findings. When not specified, the entire match is returned. No more than 3 may be included.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex#groupIndexes
+   */
+  readonly groupIndexes?: number[];
+
+  /**
+   * Pattern defining the regular expression. Its syntax (https://github.com/google/re2/wiki/Syntax) can be found under the google/re2 repository on GitHub.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex#pattern
+   */
+  readonly pattern?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordHotwordRegex | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'groupIndexes': obj.groupIndexes?.map(y => y),
+    'pattern': obj.pattern,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity {
+  /**
+   * Number of characters after the finding to consider. Either this or window_before must be specified
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity#windowAfter
+   */
+  readonly windowAfter?: number;
+
+  /**
+   * Number of characters before the finding to consider. Either this or window_after must be specified
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity#windowBefore
+   */
+  readonly windowBefore?: number;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeByHotwordProximity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'windowAfter': obj.windowAfter,
+    'windowBefore': obj.windowBefore,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypesInfoTypes
+ */
+export interface JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypesInfoTypes {
+  /**
+   * Specification of the field containing the timestamp of scanned items. Used for data sources like Datastore and BigQuery. For BigQuery: Required to filter out rows based on the given start and end times. If not specified and the table was modified between the given start and end times, the entire table will be scanned. The valid data types of the timestamp field are: INTEGER, DATE, TIMESTAMP, or DATETIME BigQuery column. For Datastore. Valid data types of the timestamp field are: TIMESTAMP. Datastore entity will be scanned if the timestamp property does not exist or its value is empty or invalid.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypesInfoTypes#name
+   */
+  readonly name: string;
+
+  /**
+   * Version of the information type to use. By default, the version is set to stable
+   *
+   * @schema JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypesInfoTypes#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypesInfoTypes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypesInfoTypes(obj: JobTriggerSpecForProviderInspectJobInspectConfigRuleSetRulesExclusionRuleExcludeInfoTypesInfoTypes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRefPolicyResolution
+ */
+export enum JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRefPolicyResolve
+ */
+export enum JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelectorPolicyResolution
+ */
+export enum JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelectorPolicyResolve
+ */
+export enum JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableDatasetIdSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRefPolicyResolution
+ */
+export enum JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRefPolicyResolve
+ */
+export enum JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelectorPolicyResolution
+ */
+export enum JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelectorPolicyResolve
+ */
+export enum JobTriggerSpecForProviderInspectJobActionsDeidentifyTransformationDetailsStorageConfigTableTableIdSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
 
 
 /**
@@ -7875,7 +10191,7 @@ export function toJson_StoredInfoTypeProps(obj: StoredInfoTypeProps | undefined)
  */
 export interface StoredInfoTypeSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema StoredInfoTypeSpec#deletionPolicy
    */
@@ -7885,6 +10201,13 @@ export interface StoredInfoTypeSpec {
    * @schema StoredInfoTypeSpec#forProvider
    */
   readonly forProvider: StoredInfoTypeSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema StoredInfoTypeSpec#managementPolicy
+   */
+  readonly managementPolicy?: StoredInfoTypeSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7925,6 +10248,7 @@ export function toJson_StoredInfoTypeSpec(obj: StoredInfoTypeSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_StoredInfoTypeSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_StoredInfoTypeSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_StoredInfoTypeSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_StoredInfoTypeSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -7936,7 +10260,7 @@ export function toJson_StoredInfoTypeSpec(obj: StoredInfoTypeSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema StoredInfoTypeSpecDeletionPolicy
  */
@@ -7984,7 +10308,7 @@ export interface StoredInfoTypeSpecForProvider {
    *
    * @schema StoredInfoTypeSpecForProvider#parent
    */
-  readonly parent: string;
+  readonly parent?: string;
 
   /**
    * Regular expression which defines the rule. Structure is documented below.
@@ -8013,6 +10337,20 @@ export function toJson_StoredInfoTypeSpecForProvider(obj: StoredInfoTypeSpecForP
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema StoredInfoTypeSpecManagementPolicy
+ */
+export enum StoredInfoTypeSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

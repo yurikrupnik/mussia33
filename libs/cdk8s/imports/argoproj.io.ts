@@ -1298,6 +1298,13 @@ export interface ApplicationSpecSourceKustomize {
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * CommonAnnotationsEnvsubst specifies whether to apply env variables substitution for annotation values
+   *
+   * @schema ApplicationSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * CommonLabels is a list of additional labels to add to rendered manifests
    *
    * @schema ApplicationSpecSourceKustomize#commonLabels
@@ -1340,6 +1347,20 @@ export interface ApplicationSpecSourceKustomize {
   readonly nameSuffix?: string;
 
   /**
+   * Namespace sets the namespace that Kustomize adds to all resources
+   *
+   * @schema ApplicationSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * Replicas is a list of Kustomize Replicas override specifications
+   *
+   * @schema ApplicationSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSpecSourceKustomizeReplicas[];
+
+  /**
    * Version controls which version of Kustomize to use for rendering manifests
    *
    * @schema ApplicationSpecSourceKustomize#version
@@ -1356,12 +1377,15 @@ export function toJson_ApplicationSpecSourceKustomize(obj: ApplicationSpecSource
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -1570,6 +1594,13 @@ export interface ApplicationSpecSourcesKustomize {
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * CommonAnnotationsEnvsubst specifies whether to apply env variables substitution for annotation values
+   *
+   * @schema ApplicationSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * CommonLabels is a list of additional labels to add to rendered manifests
    *
    * @schema ApplicationSpecSourcesKustomize#commonLabels
@@ -1612,6 +1643,20 @@ export interface ApplicationSpecSourcesKustomize {
   readonly nameSuffix?: string;
 
   /**
+   * Namespace sets the namespace that Kustomize adds to all resources
+   *
+   * @schema ApplicationSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * Replicas is a list of Kustomize Replicas override specifications
+   *
+   * @schema ApplicationSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSpecSourcesKustomizeReplicas[];
+
+  /**
    * Version controls which version of Kustomize to use for rendering manifests
    *
    * @schema ApplicationSpecSourcesKustomize#version
@@ -1628,12 +1673,15 @@ export function toJson_ApplicationSpecSourcesKustomize(obj: ApplicationSpecSourc
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -1957,6 +2005,13 @@ export interface ApplicationOperationSyncSourceKustomize {
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * CommonAnnotationsEnvsubst specifies whether to apply env variables substitution for annotation values
+   *
+   * @schema ApplicationOperationSyncSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * CommonLabels is a list of additional labels to add to rendered manifests
    *
    * @schema ApplicationOperationSyncSourceKustomize#commonLabels
@@ -1999,6 +2054,20 @@ export interface ApplicationOperationSyncSourceKustomize {
   readonly nameSuffix?: string;
 
   /**
+   * Namespace sets the namespace that Kustomize adds to all resources
+   *
+   * @schema ApplicationOperationSyncSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * Replicas is a list of Kustomize Replicas override specifications
+   *
+   * @schema ApplicationOperationSyncSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationOperationSyncSourceKustomizeReplicas[];
+
+  /**
    * Version controls which version of Kustomize to use for rendering manifests
    *
    * @schema ApplicationOperationSyncSourceKustomize#version
@@ -2015,12 +2084,15 @@ export function toJson_ApplicationOperationSyncSourceKustomize(obj: ApplicationO
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationOperationSyncSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -2229,6 +2301,13 @@ export interface ApplicationOperationSyncSourcesKustomize {
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * CommonAnnotationsEnvsubst specifies whether to apply env variables substitution for annotation values
+   *
+   * @schema ApplicationOperationSyncSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * CommonLabels is a list of additional labels to add to rendered manifests
    *
    * @schema ApplicationOperationSyncSourcesKustomize#commonLabels
@@ -2271,6 +2350,20 @@ export interface ApplicationOperationSyncSourcesKustomize {
   readonly nameSuffix?: string;
 
   /**
+   * Namespace sets the namespace that Kustomize adds to all resources
+   *
+   * @schema ApplicationOperationSyncSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * Replicas is a list of Kustomize Replicas override specifications
+   *
+   * @schema ApplicationOperationSyncSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationOperationSyncSourcesKustomizeReplicas[];
+
+  /**
    * Version controls which version of Kustomize to use for rendering manifests
    *
    * @schema ApplicationOperationSyncSourcesKustomize#version
@@ -2287,12 +2380,15 @@ export function toJson_ApplicationOperationSyncSourcesKustomize(obj: Application
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationOperationSyncSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -2527,6 +2623,41 @@ export function toJson_ApplicationSpecSourceHelmParameters(obj: ApplicationSpecS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSpecSourceKustomizeReplicas {
+  /**
+   * Number of replicas
+   *
+   * @schema ApplicationSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSpecSourceKustomizeReplicasCount;
+
+  /**
+   * Name of Deployment or StatefulSet
+   *
+   * @schema ApplicationSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecSourceKustomizeReplicas(obj: ApplicationSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * EnvEntry represents an entry in the application's environment
  *
  * @schema ApplicationSpecSourcePluginEnv
@@ -2735,6 +2866,41 @@ export function toJson_ApplicationSpecSourcesHelmParameters(obj: ApplicationSpec
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSpecSourcesKustomizeReplicas {
+  /**
+   * Number of replicas
+   *
+   * @schema ApplicationSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * Name of Deployment or StatefulSet
+   *
+   * @schema ApplicationSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecSourcesKustomizeReplicas(obj: ApplicationSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3002,6 +3168,41 @@ export function toJson_ApplicationOperationSyncSourceHelmParameters(obj: Applica
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationOperationSyncSourceKustomizeReplicas
+ */
+export interface ApplicationOperationSyncSourceKustomizeReplicas {
+  /**
+   * Number of replicas
+   *
+   * @schema ApplicationOperationSyncSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationOperationSyncSourceKustomizeReplicasCount;
+
+  /**
+   * Name of Deployment or StatefulSet
+   *
+   * @schema ApplicationOperationSyncSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationOperationSyncSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationOperationSyncSourceKustomizeReplicas(obj: ApplicationOperationSyncSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * EnvEntry represents an entry in the application's environment
  *
  * @schema ApplicationOperationSyncSourcePluginEnv
@@ -3217,6 +3418,41 @@ export function toJson_ApplicationOperationSyncSourcesHelmParameters(obj: Applic
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationOperationSyncSourcesKustomizeReplicas
+ */
+export interface ApplicationOperationSyncSourcesKustomizeReplicas {
+  /**
+   * Number of replicas
+   *
+   * @schema ApplicationOperationSyncSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationOperationSyncSourcesKustomizeReplicasCount;
+
+  /**
+   * Name of Deployment or StatefulSet
+   *
+   * @schema ApplicationOperationSyncSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationOperationSyncSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationOperationSyncSourcesKustomizeReplicas(obj: ApplicationOperationSyncSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * EnvEntry represents an entry in the application's environment
  *
  * @schema ApplicationOperationSyncSourcesPluginEnv
@@ -3383,6 +3619,22 @@ export function toJson_ApplicationSpecSourceDirectoryJsonnetTlas(obj: Applicatio
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Number of replicas
+ *
+ * @schema ApplicationSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSpecSourceKustomizeReplicasCount {
+    return new ApplicationSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSpecSourceKustomizeReplicasCount {
+    return new ApplicationSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * JsonnetVar represents a variable to be passed to jsonnet during manifest generation
  *
  * @schema ApplicationSpecSourcesDirectoryJsonnetExtVars
@@ -3459,6 +3711,22 @@ export function toJson_ApplicationSpecSourcesDirectoryJsonnetTlas(obj: Applicati
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * Number of replicas
+ *
+ * @schema ApplicationSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * JsonnetVar represents a variable to be passed to jsonnet during manifest generation
@@ -3539,6 +3807,22 @@ export function toJson_ApplicationOperationSyncSourceDirectoryJsonnetTlas(obj: A
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Number of replicas
+ *
+ * @schema ApplicationOperationSyncSourceKustomizeReplicasCount
+ */
+export class ApplicationOperationSyncSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationOperationSyncSourceKustomizeReplicasCount {
+    return new ApplicationOperationSyncSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationOperationSyncSourceKustomizeReplicasCount {
+    return new ApplicationOperationSyncSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * JsonnetVar represents a variable to be passed to jsonnet during manifest generation
  *
  * @schema ApplicationOperationSyncSourcesDirectoryJsonnetExtVars
@@ -3615,6 +3899,22 @@ export function toJson_ApplicationOperationSyncSourcesDirectoryJsonnetTlas(obj: 
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * Number of replicas
+ *
+ * @schema ApplicationOperationSyncSourcesKustomizeReplicasCount
+ */
+export class ApplicationOperationSyncSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationOperationSyncSourcesKustomizeReplicasCount {
+    return new ApplicationOperationSyncSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationOperationSyncSourcesKustomizeReplicasCount {
+    return new ApplicationOperationSyncSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 
 /**
@@ -3717,6 +4017,11 @@ export interface ApplicationSetSpec {
   readonly goTemplate?: boolean;
 
   /**
+   * @schema ApplicationSetSpec#preservedFields
+   */
+  readonly preservedFields?: ApplicationSetSpecPreservedFields;
+
+  /**
    * @schema ApplicationSetSpec#strategy
    */
   readonly strategy?: ApplicationSetSpecStrategy;
@@ -3742,6 +4047,7 @@ export function toJson_ApplicationSetSpec(obj: ApplicationSetSpec | undefined): 
   const result = {
     'generators': obj.generators?.map(y => toJson_ApplicationSetSpecGenerators(y)),
     'goTemplate': obj.goTemplate,
+    'preservedFields': toJson_ApplicationSetSpecPreservedFields(obj.preservedFields),
     'strategy': toJson_ApplicationSetSpecStrategy(obj.strategy),
     'syncPolicy': toJson_ApplicationSetSpecSyncPolicy(obj.syncPolicy),
     'template': toJson_ApplicationSetSpecTemplate(obj.template),
@@ -3818,6 +4124,31 @@ export function toJson_ApplicationSetSpecGenerators(obj: ApplicationSetSpecGener
     'pullRequest': toJson_ApplicationSetSpecGeneratorsPullRequest(obj.pullRequest),
     'scmProvider': toJson_ApplicationSetSpecGeneratorsScmProvider(obj.scmProvider),
     'selector': toJson_ApplicationSetSpecGeneratorsSelector(obj.selector),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecPreservedFields
+ */
+export interface ApplicationSetSpecPreservedFields {
+  /**
+   * @schema ApplicationSetSpecPreservedFields#annotations
+   */
+  readonly annotations?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecPreservedFields' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecPreservedFields(obj: ApplicationSetSpecPreservedFields | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': obj.annotations?.map(y => y),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4074,6 +4405,11 @@ export interface ApplicationSetSpecGeneratorsList {
   readonly elements: any[];
 
   /**
+   * @schema ApplicationSetSpecGeneratorsList#elementsYaml
+   */
+  readonly elementsYaml?: string;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsList#template
    */
   readonly template?: ApplicationSetSpecGeneratorsListTemplate;
@@ -4088,6 +4424,7 @@ export function toJson_ApplicationSetSpecGeneratorsList(obj: ApplicationSetSpecG
   if (obj === undefined) { return undefined; }
   const result = {
     'elements': obj.elements?.map(y => y),
+    'elementsYaml': obj.elementsYaml,
     'template': toJson_ApplicationSetSpecGeneratorsListTemplate(obj.template),
   };
   // filter undefined values
@@ -6626,6 +6963,11 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsList {
   readonly elements: any[];
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsList#elementsYaml
+   */
+  readonly elementsYaml?: string;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsList#template
    */
   readonly template?: ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplate;
@@ -6640,6 +6982,7 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsList(obj: App
   if (obj === undefined) { return undefined; }
   const result = {
     'elements': obj.elements?.map(y => y),
+    'elementsYaml': obj.elementsYaml,
     'template': toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplate(obj.template),
   };
   // filter undefined values
@@ -7097,6 +7440,11 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsList {
   readonly elements: any[];
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsList#elementsYaml
+   */
+  readonly elementsYaml?: string;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsList#template
    */
   readonly template?: ApplicationSetSpecGeneratorsMergeGeneratorsListTemplate;
@@ -7111,6 +7459,7 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsList(obj: Appl
   if (obj === undefined) { return undefined; }
   const result = {
     'elements': obj.elements?.map(y => y),
+    'elementsYaml': obj.elementsYaml,
     'template': toJson_ApplicationSetSpecGeneratorsMergeGeneratorsListTemplate(obj.template),
   };
   // filter undefined values
@@ -8124,6 +8473,11 @@ export interface ApplicationSetSpecTemplateSpecSourceKustomize {
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -8154,6 +8508,16 @@ export interface ApplicationSetSpecTemplateSpecSourceKustomize {
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -8168,12 +8532,15 @@ export function toJson_ApplicationSetSpecTemplateSpecSourceKustomize(obj: Applic
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -8344,6 +8711,11 @@ export interface ApplicationSetSpecTemplateSpecSourcesKustomize {
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -8374,6 +8746,16 @@ export interface ApplicationSetSpecTemplateSpecSourcesKustomize {
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -8388,12 +8770,15 @@ export function toJson_ApplicationSetSpecTemplateSpecSourcesKustomize(obj: Appli
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -13035,6 +13420,37 @@ export function toJson_ApplicationSetSpecTemplateSpecSourceHelmParameters(obj: A
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecTemplateSpecSourcePluginEnv {
@@ -13207,6 +13623,37 @@ export function toJson_ApplicationSetSpecTemplateSpecSourcesHelmParameters(obj: 
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -13450,6 +13897,11 @@ export interface ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpec
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -13480,6 +13932,16 @@ export interface ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpec
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -13494,12 +13956,15 @@ export function toJson_ApplicationSetSpecGeneratorsClusterDecisionResourceTempla
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -13670,6 +14135,11 @@ export interface ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpec
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -13700,6 +14170,16 @@ export interface ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpec
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -13714,12 +14194,15 @@ export function toJson_ApplicationSetSpecGeneratorsClusterDecisionResourceTempla
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -13989,6 +14472,11 @@ export interface ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomize
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -14019,6 +14507,16 @@ export interface ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomize
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -14033,12 +14531,15 @@ export function toJson_ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKus
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -14209,6 +14710,11 @@ export interface ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomiz
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -14239,6 +14745,16 @@ export interface ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomiz
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -14253,12 +14769,15 @@ export function toJson_ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKu
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -14528,6 +15047,11 @@ export interface ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomize {
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -14558,6 +15082,16 @@ export interface ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomize {
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -14572,12 +15106,15 @@ export function toJson_ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomiz
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -14748,6 +15285,11 @@ export interface ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomize {
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -14778,6 +15320,16 @@ export interface ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomize {
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -14792,12 +15344,15 @@ export function toJson_ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomi
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -15067,6 +15622,11 @@ export interface ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomize {
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -15097,6 +15657,16 @@ export interface ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomize {
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -15111,12 +15681,15 @@ export function toJson_ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomi
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -15287,6 +15860,11 @@ export interface ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomize {
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -15317,6 +15895,16 @@ export interface ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomize {
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -15331,12 +15919,15 @@ export function toJson_ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustom
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -16686,6 +17277,11 @@ export interface ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomize {
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -16716,6 +17312,16 @@ export interface ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomize {
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -16730,12 +17336,15 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKusto
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -16906,6 +17515,11 @@ export interface ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomize 
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -16936,6 +17550,16 @@ export interface ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomize 
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -16950,12 +17574,15 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKust
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -18305,6 +18932,11 @@ export interface ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomize {
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -18335,6 +18967,16 @@ export interface ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomize {
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -18349,12 +18991,15 @@ export function toJson_ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustom
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -18525,6 +19170,11 @@ export interface ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomize {
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -18555,6 +19205,16 @@ export interface ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomize {
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -18569,12 +19229,15 @@ export function toJson_ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKusto
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -18844,6 +19507,11 @@ export interface ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustom
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -18874,6 +19542,16 @@ export interface ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustom
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -18888,12 +19566,15 @@ export function toJson_ApplicationSetSpecGeneratorsPullRequestTemplateSpecSource
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -19064,6 +19745,11 @@ export interface ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKusto
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -19094,6 +19780,16 @@ export interface ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKusto
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -19108,12 +19804,15 @@ export function toJson_ApplicationSetSpecGeneratorsPullRequestTemplateSpecSource
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -19383,6 +20082,11 @@ export interface ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustom
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -19413,6 +20117,16 @@ export interface ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustom
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -19427,12 +20141,15 @@ export function toJson_ApplicationSetSpecGeneratorsScmProviderTemplateSpecSource
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -19603,6 +20320,11 @@ export interface ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKusto
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -19633,6 +20355,16 @@ export interface ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKusto
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -19647,12 +20379,15 @@ export function toJson_ApplicationSetSpecGeneratorsScmProviderTemplateSpecSource
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -19871,6 +20606,20 @@ export function toJson_ApplicationSetSpecTemplateSpecSourceDirectoryJsonnetTlas(
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -19943,6 +20692,20 @@ export function toJson_ApplicationSetSpecTemplateSpecSourcesDirectoryJsonnetTlas
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceDirectoryJsonnet
@@ -20043,6 +20806,37 @@ export function toJson_ApplicationSetSpecGeneratorsClusterDecisionResourceTempla
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -20222,6 +21016,37 @@ export function toJson_ApplicationSetSpecGeneratorsClusterDecisionResourceTempla
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -20445,6 +21270,37 @@ export function toJson_ApplicationSetSpecGeneratorsClustersTemplateSpecSourceHel
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsClustersTemplateSpecSourcePluginEnv {
@@ -20617,6 +21473,37 @@ export function toJson_ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesHe
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -20840,6 +21727,37 @@ export function toJson_ApplicationSetSpecGeneratorsGitTemplateSpecSourceHelmPara
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsGitTemplateSpecSourcePluginEnv {
@@ -21012,6 +21930,37 @@ export function toJson_ApplicationSetSpecGeneratorsGitTemplateSpecSourcesHelmPar
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -21235,6 +22184,37 @@ export function toJson_ApplicationSetSpecGeneratorsListTemplateSpecSourceHelmPar
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsListTemplateSpecSourcePluginEnv {
@@ -21407,6 +22387,37 @@ export function toJson_ApplicationSetSpecGeneratorsListTemplateSpecSourcesHelmPa
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -23600,6 +24611,37 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceHelmP
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcePluginEnv {
@@ -23772,6 +24814,37 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesHelm
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -25965,6 +27038,37 @@ export function toJson_ApplicationSetSpecGeneratorsMergeTemplateSpecSourceHelmPa
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsMergeTemplateSpecSourcePluginEnv {
@@ -26137,6 +27241,37 @@ export function toJson_ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesHelmP
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -26360,6 +27495,37 @@ export function toJson_ApplicationSetSpecGeneratorsPullRequestTemplateSpecSource
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcePluginEnv {
@@ -26532,6 +27698,37 @@ export function toJson_ApplicationSetSpecGeneratorsPullRequestTemplateSpecSource
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -26755,6 +27952,37 @@ export function toJson_ApplicationSetSpecGeneratorsScmProviderTemplateSpecSource
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcePluginEnv {
@@ -26927,6 +28155,37 @@ export function toJson_ApplicationSetSpecGeneratorsScmProviderTemplateSpecSource
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -27119,6 +28378,20 @@ export function toJson_ApplicationSetSpecGeneratorsClusterDecisionResourceTempla
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -27191,6 +28464,20 @@ export function toJson_ApplicationSetSpecGeneratorsClusterDecisionResourceTempla
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourceDirectoryJsonnetExtVars
@@ -27267,6 +28554,20 @@ export function toJson_ApplicationSetSpecGeneratorsClustersTemplateSpecSourceDir
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -27339,6 +28640,20 @@ export function toJson_ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesDi
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourceDirectoryJsonnetExtVars
@@ -27415,6 +28730,20 @@ export function toJson_ApplicationSetSpecGeneratorsGitTemplateSpecSourceDirector
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsGitTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsGitTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -27487,6 +28816,20 @@ export function toJson_ApplicationSetSpecGeneratorsGitTemplateSpecSourcesDirecto
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourceDirectoryJsonnetExtVars
@@ -27563,6 +28906,20 @@ export function toJson_ApplicationSetSpecGeneratorsListTemplateSpecSourceDirecto
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsListTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsListTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -27635,6 +28992,20 @@ export function toJson_ApplicationSetSpecGeneratorsListTemplateSpecSourcesDirect
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsListTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceDirectory
@@ -27762,6 +29133,11 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionReso
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -27792,6 +29168,16 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionReso
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -27806,12 +29192,15 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisi
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -27982,6 +29371,11 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionReso
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -28012,6 +29406,16 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionReso
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -28026,12 +29430,15 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisi
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -28301,6 +29708,11 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpe
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -28331,6 +29743,16 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpe
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -28345,12 +29767,15 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTempl
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -28521,6 +29946,11 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpe
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -28551,6 +29981,16 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpe
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -28565,12 +30005,15 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTempl
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -28840,6 +30283,11 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSour
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -28870,6 +30318,16 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSour
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -28884,12 +30342,15 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSp
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -29060,6 +30521,11 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSour
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -29090,6 +30556,16 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSour
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -29104,12 +30580,15 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSp
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -29379,6 +30858,11 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSou
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -29409,6 +30893,16 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSou
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -29423,12 +30917,15 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateS
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -29599,6 +31096,11 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSou
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -29629,6 +31131,16 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSou
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -29643,12 +31155,15 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateS
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -29918,6 +31433,11 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplate
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -29948,6 +31468,16 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplate
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -29962,12 +31492,15 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTe
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -30138,6 +31671,11 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplate
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -30168,6 +31706,16 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplate
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -30182,12 +31730,15 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTe
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -30457,6 +32008,11 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplate
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -30487,6 +32043,16 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplate
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -30501,12 +32067,15 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTe
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -30677,6 +32246,11 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplate
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -30707,6 +32281,16 @@ export interface ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplate
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -30721,12 +32305,15 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTe
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -30945,6 +32532,20 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceDirec
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -31017,6 +32618,20 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesDire
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceDirectory
@@ -31144,6 +32759,11 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResou
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -31174,6 +32794,16 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResou
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -31188,12 +32818,15 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisio
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -31364,6 +32997,11 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResou
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -31394,6 +33032,16 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResou
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -31408,12 +33056,15 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisio
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -31683,6 +33334,11 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpec
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -31713,6 +33369,16 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpec
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -31727,12 +33393,15 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClustersTempla
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -31903,6 +33572,11 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpec
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -31933,6 +33607,16 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpec
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -31947,12 +33631,15 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClustersTempla
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -32222,6 +33909,11 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourc
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -32252,6 +33944,16 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourc
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -32266,12 +33968,15 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpe
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -32442,6 +34147,11 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourc
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -32472,6 +34182,16 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourc
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -32486,12 +34206,15 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpe
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -32761,6 +34484,11 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSour
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -32791,6 +34519,16 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSour
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -32805,12 +34543,15 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSp
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -32981,6 +34722,11 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSour
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -33011,6 +34757,16 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSour
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -33025,12 +34781,15 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSp
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -33300,6 +35059,11 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateS
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -33330,6 +35094,16 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateS
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -33344,12 +35118,15 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTem
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -33520,6 +35297,11 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateS
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -33550,6 +35332,16 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateS
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -33564,12 +35356,15 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTem
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -33839,6 +35634,11 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateS
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -33869,6 +35669,16 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateS
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomize#version
    */
   readonly version?: string;
@@ -33883,12 +35693,15 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTem
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -34059,6 +35872,11 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateS
   readonly commonAnnotations?: { [key: string]: string };
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomize#commonAnnotationsEnvsubst
+   */
+  readonly commonAnnotationsEnvsubst?: boolean;
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomize#commonLabels
    */
   readonly commonLabels?: { [key: string]: string };
@@ -34089,6 +35907,16 @@ export interface ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateS
   readonly nameSuffix?: string;
 
   /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomize#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomize#replicas
+   */
+  readonly replicas?: ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas[];
+
+  /**
    * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomize#version
    */
   readonly version?: string;
@@ -34103,12 +35931,15 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTem
   if (obj === undefined) { return undefined; }
   const result = {
     'commonAnnotations': ((obj.commonAnnotations) === undefined) ? undefined : (Object.entries(obj.commonAnnotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'commonAnnotationsEnvsubst': obj.commonAnnotationsEnvsubst,
     'commonLabels': ((obj.commonLabels) === undefined) ? undefined : (Object.entries(obj.commonLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'forceCommonAnnotations': obj.forceCommonAnnotations,
     'forceCommonLabels': obj.forceCommonLabels,
     'images': obj.images?.map(y => y),
     'namePrefix': obj.namePrefix,
     'nameSuffix': obj.nameSuffix,
+    'namespace': obj.namespace,
+    'replicas': obj.replicas?.map(y => toJson_ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas(y)),
     'version': obj.version,
   };
   // filter undefined values
@@ -34327,6 +36158,20 @@ export function toJson_ApplicationSetSpecGeneratorsMergeTemplateSpecSourceDirect
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -34399,6 +36244,20 @@ export function toJson_ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesDirec
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceDirectoryJsonnetExtVars
@@ -34475,6 +36334,20 @@ export function toJson_ApplicationSetSpecGeneratorsPullRequestTemplateSpecSource
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -34547,6 +36420,20 @@ export function toJson_ApplicationSetSpecGeneratorsPullRequestTemplateSpecSource
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceDirectoryJsonnetExtVars
@@ -34623,6 +36510,20 @@ export function toJson_ApplicationSetSpecGeneratorsScmProviderTemplateSpecSource
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -34695,6 +36596,20 @@ export function toJson_ApplicationSetSpecGeneratorsScmProviderTemplateSpecSource
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceDirectoryJsonnet
@@ -34795,6 +36710,37 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisi
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -34974,6 +36920,37 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisi
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -35197,6 +37174,37 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTempl
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcePluginEnv {
@@ -35369,6 +37377,37 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTempl
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -35592,6 +37631,37 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSp
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcePluginEnv {
@@ -35764,6 +37834,37 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSp
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -35987,6 +38088,37 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcePluginEnv {
@@ -36159,6 +38291,37 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateS
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -36382,6 +38545,37 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcePluginEnv {
@@ -36554,6 +38748,37 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTe
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -36777,6 +39002,37 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcePluginEnv {
@@ -36949,6 +39205,37 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTe
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -37172,6 +39459,37 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisio
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcePluginEnv {
@@ -37344,6 +39662,37 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisio
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -37567,6 +39916,37 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClustersTempla
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcePluginEnv {
@@ -37739,6 +40119,37 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClustersTempla
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -37962,6 +40373,37 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcePluginEnv {
@@ -38134,6 +40576,37 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpe
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -38357,6 +40830,37 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSp
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcePluginEnv {
@@ -38529,6 +41033,37 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSp
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -38752,6 +41287,37 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTem
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcePluginEnv {
@@ -38924,6 +41490,37 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTem
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -39147,6 +41744,37 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTem
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcePluginEnv
  */
 export interface ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcePluginEnv {
@@ -39319,6 +41947,37 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTem
     'forceString': obj.forceString,
     'name': obj.name,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas
+ */
+export interface ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas {
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas#count
+   */
+  readonly count: ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount;
+
+  /**
+   * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas(obj: ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count?.value,
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -39511,6 +42170,20 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisi
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -39583,6 +42256,20 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisi
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceDirectoryJsonnetExtVars
@@ -39659,6 +42346,20 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTempl
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -39731,6 +42432,20 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTempl
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceDirectoryJsonnetExtVars
@@ -39807,6 +42522,20 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSp
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -39879,6 +42608,20 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSp
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceDirectoryJsonnetExtVars
@@ -39955,6 +42698,20 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -40027,6 +42784,20 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateS
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsListTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceDirectoryJsonnetExtVars
@@ -40103,6 +42874,20 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -40175,6 +42960,20 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTe
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceDirectoryJsonnetExtVars
@@ -40251,6 +43050,20 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -40323,6 +43136,20 @@ export function toJson_ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTe
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMatrixGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceDirectoryJsonnetExtVars
@@ -40399,6 +43226,20 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisio
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -40471,6 +43312,20 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisio
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsClusterDecisionResourceTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceDirectoryJsonnetExtVars
@@ -40547,6 +43402,20 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClustersTempla
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -40619,6 +43488,20 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsClustersTempla
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsClustersTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceDirectoryJsonnetExtVars
@@ -40695,6 +43578,20 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -40767,6 +43664,20 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpe
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsGitTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceDirectoryJsonnetExtVars
@@ -40843,6 +43754,20 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSp
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -40915,6 +43840,20 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSp
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsListTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceDirectoryJsonnetExtVars
@@ -40991,6 +43930,20 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTem
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -41063,6 +44016,20 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTem
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsPullRequestTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 /**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceDirectoryJsonnetExtVars
@@ -41139,6 +44106,20 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTem
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourceKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
  * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesDirectoryJsonnetExtVars
  */
 export interface ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesDirectoryJsonnetExtVars {
@@ -41211,6 +44192,20 @@ export function toJson_ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTem
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount
+ */
+export class ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount {
+  public static fromNumber(value: number): ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  public static fromString(value: string): ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount {
+    return new ApplicationSetSpecGeneratorsMergeGeneratorsScmProviderTemplateSpecSourcesKustomizeReplicasCount(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 
 /**
@@ -42207,7 +45202,7 @@ export interface DummyProps {
   /**
    * @schema Dummy#spec
    */
-  readonly spec?: any;
+  readonly spec?: DummySpec;
 
 }
 
@@ -42219,7 +45214,155 @@ export function toJson_DummyProps(obj: DummyProps | undefined): Record<string, a
   if (obj === undefined) { return undefined; }
   const result = {
     'metadata': obj.metadata,
-    'spec': obj.spec,
+    'spec': toJson_DummySpec(obj.spec),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DummySpec
+ */
+export interface DummySpec {
+  /**
+   * @schema DummySpec#cpu
+   */
+  readonly cpu?: string;
+
+  /**
+   * @schema DummySpec#memory
+   */
+  readonly memory?: string;
+
+}
+
+/**
+ * Converts an object of type 'DummySpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DummySpec(obj: DummySpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cpu': obj.cpu,
+    'memory': obj.memory,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+
+/**
+ *
+ *
+ * @schema Fake
+ */
+export class Fake extends ApiObject {
+  /**
+   * Returns the apiVersion and kind for "Fake"
+   */
+  public static readonly GVK: GroupVersionKind = {
+    apiVersion: 'argoproj.io/v1alpha1',
+    kind: 'Fake',
+  }
+
+  /**
+   * Renders a Kubernetes manifest for "Fake".
+   *
+   * This can be used to inline resource manifests inside other objects (e.g. as templates).
+   *
+   * @param props initialization props
+   */
+  public static manifest(props: FakeProps = {}): any {
+    return {
+      ...Fake.GVK,
+      ...toJson_FakeProps(props),
+    };
+  }
+
+  /**
+   * Defines a "Fake" API object
+   * @param scope the scope in which to define this object
+   * @param id a scope-local name for the object
+   * @param props initialization props
+   */
+  public constructor(scope: Construct, id: string, props: FakeProps = {}) {
+    super(scope, id, {
+      ...Fake.GVK,
+      ...props,
+    });
+  }
+
+  /**
+   * Renders the object to Kubernetes JSON.
+   */
+  public toJson(): any {
+    const resolved = super.toJson();
+
+    return {
+      ...Fake.GVK,
+      ...toJson_FakeProps(resolved),
+    };
+  }
+}
+
+/**
+ * @schema Fake
+ */
+export interface FakeProps {
+  /**
+   * @schema Fake#metadata
+   */
+  readonly metadata?: ApiObjectMetadata;
+
+  /**
+   * @schema Fake#spec
+   */
+  readonly spec?: FakeSpec;
+
+}
+
+/**
+ * Converts an object of type 'FakeProps' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FakeProps(obj: FakeProps | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metadata': obj.metadata,
+    'spec': toJson_FakeSpec(obj.spec),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FakeSpec
+ */
+export interface FakeSpec {
+  /**
+   * @schema FakeSpec#cpu
+   */
+  readonly cpu?: string;
+
+  /**
+   * @schema FakeSpec#memory
+   */
+  readonly memory?: string;
+
+}
+
+/**
+ * Converts an object of type 'FakeSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FakeSpec(obj: FakeSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cpu': obj.cpu,
+    'memory': obj.memory,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
