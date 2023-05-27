@@ -99,7 +99,7 @@ export function toJson_FlowProps(obj: FlowProps | undefined): Record<string, any
  */
 export interface FlowSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema FlowSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface FlowSpec {
    * @schema FlowSpec#forProvider
    */
   readonly forProvider: FlowSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema FlowSpec#managementPolicy
+   */
+  readonly managementPolicy?: FlowSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_FlowSpec(obj: FlowSpec | undefined): Record<string, any> 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_FlowSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_FlowSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_FlowSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_FlowSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_FlowSpec(obj: FlowSpec | undefined): Record<string, any> 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema FlowSpecDeletionPolicy
  */
@@ -187,7 +195,7 @@ export interface FlowSpecForProvider {
    *
    * @schema FlowSpecForProvider#destinationFlowConfig
    */
-  readonly destinationFlowConfig: FlowSpecForProviderDestinationFlowConfig[];
+  readonly destinationFlowConfig?: FlowSpecForProviderDestinationFlowConfig[];
 
   /**
    * ARN (Amazon Resource Name) of the Key Management Service (KMS) key you provide for encryption. This is required if you do not want to use the Amazon AppFlow-managed KMS key. If you don't provide anything here, Amazon AppFlow uses the Amazon AppFlow-managed KMS key.
@@ -208,7 +216,7 @@ export interface FlowSpecForProvider {
    *
    * @schema FlowSpecForProvider#sourceFlowConfig
    */
-  readonly sourceFlowConfig: FlowSpecForProviderSourceFlowConfig[];
+  readonly sourceFlowConfig?: FlowSpecForProviderSourceFlowConfig[];
 
   /**
    * Key-value map of resource tags.
@@ -222,14 +230,14 @@ export interface FlowSpecForProvider {
    *
    * @schema FlowSpecForProvider#task
    */
-  readonly task: FlowSpecForProviderTask[];
+  readonly task?: FlowSpecForProviderTask[];
 
   /**
    * A Trigger that determine how and when the flow runs.
    *
    * @schema FlowSpecForProvider#triggerConfig
    */
-  readonly triggerConfig: FlowSpecForProviderTriggerConfig[];
+  readonly triggerConfig?: FlowSpecForProviderTriggerConfig[];
 
 }
 
@@ -253,6 +261,20 @@ export function toJson_FlowSpecForProvider(obj: FlowSpecForProvider | undefined)
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema FlowSpecManagementPolicy
+ */
+export enum FlowSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2827,6 +2849,13 @@ export interface FlowSpecForProviderDestinationFlowConfigDestinationConnectorPro
    */
   readonly prefixConfig?: FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigPrefixConfig[];
 
+  /**
+   * Whether the data types from the source system need to be preserved (Only valid for Parquet file type)
+   *
+   * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfig#preserveSourceDataTyping
+   */
+  readonly preserveSourceDataTyping?: boolean;
+
 }
 
 /**
@@ -2839,6 +2868,7 @@ export function toJson_FlowSpecForProviderDestinationFlowConfigDestinationConnec
     'aggregationConfig': obj.aggregationConfig?.map(y => toJson_FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigAggregationConfig(y)),
     'fileType': obj.fileType,
     'prefixConfig': obj.prefixConfig?.map(y => toJson_FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigPrefixConfig(y)),
+    'preserveSourceDataTyping': obj.preserveSourceDataTyping,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});

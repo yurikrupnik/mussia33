@@ -99,7 +99,7 @@ export function toJson_SigningJobProps(obj: SigningJobProps | undefined): Record
  */
 export interface SigningJobSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SigningJobSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface SigningJobSpec {
    * @schema SigningJobSpec#forProvider
    */
   readonly forProvider: SigningJobSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema SigningJobSpec#managementPolicy
+   */
+  readonly managementPolicy?: SigningJobSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_SigningJobSpec(obj: SigningJobSpec | undefined): Record<s
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SigningJobSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_SigningJobSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_SigningJobSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SigningJobSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_SigningJobSpec(obj: SigningJobSpec | undefined): Record<s
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SigningJobSpecDeletionPolicy
  */
@@ -180,7 +188,7 @@ export interface SigningJobSpecForProvider {
    *
    * @schema SigningJobSpecForProvider#destination
    */
-  readonly destination: SigningJobSpecForProviderDestination[];
+  readonly destination?: SigningJobSpecForProviderDestination[];
 
   /**
    * Set this argument to true to ignore signing job failures and retrieve failed status and reason. Default false.
@@ -222,7 +230,7 @@ export interface SigningJobSpecForProvider {
    *
    * @schema SigningJobSpecForProvider#source
    */
-  readonly source: SigningJobSpecForProviderSource[];
+  readonly source?: SigningJobSpecForProviderSource[];
 
 }
 
@@ -245,6 +253,20 @@ export function toJson_SigningJobSpecForProvider(obj: SigningJobSpecForProvider 
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema SigningJobSpecManagementPolicy
+ */
+export enum SigningJobSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1100,7 +1122,7 @@ export function toJson_SigningProfileProps(obj: SigningProfileProps | undefined)
  */
 export interface SigningProfileSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SigningProfileSpec#deletionPolicy
    */
@@ -1110,6 +1132,13 @@ export interface SigningProfileSpec {
    * @schema SigningProfileSpec#forProvider
    */
   readonly forProvider: SigningProfileSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema SigningProfileSpec#managementPolicy
+   */
+  readonly managementPolicy?: SigningProfileSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1150,6 +1179,7 @@ export function toJson_SigningProfileSpec(obj: SigningProfileSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SigningProfileSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_SigningProfileSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_SigningProfileSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SigningProfileSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -1161,7 +1191,7 @@ export function toJson_SigningProfileSpec(obj: SigningProfileSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SigningProfileSpecDeletionPolicy
  */
@@ -1181,7 +1211,7 @@ export interface SigningProfileSpecForProvider {
    *
    * @schema SigningProfileSpecForProvider#platformId
    */
-  readonly platformId: string;
+  readonly platformId?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -1222,6 +1252,20 @@ export function toJson_SigningProfileSpecForProvider(obj: SigningProfileSpecForP
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema SigningProfileSpecManagementPolicy
+ */
+export enum SigningProfileSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1772,7 +1816,7 @@ export function toJson_SigningProfilePermissionProps(obj: SigningProfilePermissi
  */
 export interface SigningProfilePermissionSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SigningProfilePermissionSpec#deletionPolicy
    */
@@ -1782,6 +1826,13 @@ export interface SigningProfilePermissionSpec {
    * @schema SigningProfilePermissionSpec#forProvider
    */
   readonly forProvider: SigningProfilePermissionSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema SigningProfilePermissionSpec#managementPolicy
+   */
+  readonly managementPolicy?: SigningProfilePermissionSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1822,6 +1873,7 @@ export function toJson_SigningProfilePermissionSpec(obj: SigningProfilePermissio
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SigningProfilePermissionSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_SigningProfilePermissionSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_SigningProfilePermissionSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SigningProfilePermissionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -1833,7 +1885,7 @@ export function toJson_SigningProfilePermissionSpec(obj: SigningProfilePermissio
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SigningProfilePermissionSpecDeletionPolicy
  */
@@ -1853,14 +1905,14 @@ export interface SigningProfilePermissionSpecForProvider {
    *
    * @schema SigningProfilePermissionSpecForProvider#action
    */
-  readonly action: string;
+  readonly action?: string;
 
   /**
    * The AWS principal to be granted a cross-account permission.
    *
    * @schema SigningProfilePermissionSpecForProvider#principal
    */
-  readonly principal: string;
+  readonly principal?: string;
 
   /**
    * Name of the signing profile to add the cross-account permissions.
@@ -1950,6 +2002,20 @@ export function toJson_SigningProfilePermissionSpecForProvider(obj: SigningProfi
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema SigningProfilePermissionSpecManagementPolicy
+ */
+export enum SigningProfilePermissionSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

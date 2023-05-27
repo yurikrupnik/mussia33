@@ -25,6 +25,7 @@ spec:
         "prometheus.io/port": "9102"
     spec:
       serviceAccountName: node-nest-app
+      restartPolicy: Always
       containers:
         - name: node-nest-app
           image: yurikrupnik/node-nest-app:latest
@@ -32,11 +33,30 @@ spec:
           env:
 #            - name: GRPC_TRACE
 #              value: "all"
-            - name: GRPC_VERBOSITY
-              value: "DEBUG"
+#            - name: GRPC_VERBOSITY
+#              value: "DEBUG"
             - name: MONGO_URI
-              value: mongodb+srv://yurikrupnik:T4eXKj1RBI4VnszC@cluster0.rdmew.mongodb.net/
-      restartPolicy: Always
+              value: "mongodb://host.docker.internal"
+            - name: REDIS_HOST
+              value: "host.docker.internal"
+            - name: GRPC_HOST
+#              value: "0.0.0.0:8080"
+              value: "127.0.0.1:5000"
+#            - name: PORT
+#              value: "5000"
+#              value: "127.0.0.1:8080"
+#            - name: REDIS_PORT
+#            - name: REDIS_PASSWORD
+          volumeMounts:
+            - mountPath: /app/assets
+              name: proto-configs
+      volumes:
+        - name: proto-configs
+          configMap:
+            name: proto-configs
+            items:
+              - key: users.proto
+                path: users.proto
   selector:
     matchLabels:
       app: node-nest-app

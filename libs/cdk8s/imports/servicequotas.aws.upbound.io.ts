@@ -99,7 +99,7 @@ export function toJson_ServiceQuotaProps(obj: ServiceQuotaProps | undefined): Re
  */
 export interface ServiceQuotaSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ServiceQuotaSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface ServiceQuotaSpec {
    * @schema ServiceQuotaSpec#forProvider
    */
   readonly forProvider: ServiceQuotaSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ServiceQuotaSpec#managementPolicy
+   */
+  readonly managementPolicy?: ServiceQuotaSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_ServiceQuotaSpec(obj: ServiceQuotaSpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ServiceQuotaSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_ServiceQuotaSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_ServiceQuotaSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ServiceQuotaSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_ServiceQuotaSpec(obj: ServiceQuotaSpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ServiceQuotaSpecDeletionPolicy
  */
@@ -180,7 +188,7 @@ export interface ServiceQuotaSpecForProvider {
    *
    * @schema ServiceQuotaSpecForProvider#quotaCode
    */
-  readonly quotaCode: string;
+  readonly quotaCode?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -194,14 +202,14 @@ export interface ServiceQuotaSpecForProvider {
    *
    * @schema ServiceQuotaSpecForProvider#serviceCode
    */
-  readonly serviceCode: string;
+  readonly serviceCode?: string;
 
   /**
    * Float specifying the desired value for the service quota. If the desired value is higher than the current value, a quota increase request is submitted. When a known request is submitted and pending, the value reflects the desired value of the pending request.
    *
    * @schema ServiceQuotaSpecForProvider#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -221,6 +229,20 @@ export function toJson_ServiceQuotaSpecForProvider(obj: ServiceQuotaSpecForProvi
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ServiceQuotaSpecManagementPolicy
+ */
+export enum ServiceQuotaSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

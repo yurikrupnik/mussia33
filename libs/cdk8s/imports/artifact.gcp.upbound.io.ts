@@ -99,7 +99,7 @@ export function toJson_RegistryRepositoryProps(obj: RegistryRepositoryProps | un
  */
 export interface RegistryRepositorySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RegistryRepositorySpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface RegistryRepositorySpec {
    * @schema RegistryRepositorySpec#forProvider
    */
   readonly forProvider: RegistryRepositorySpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema RegistryRepositorySpec#managementPolicy
+   */
+  readonly managementPolicy?: RegistryRepositorySpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_RegistryRepositorySpec(obj: RegistryRepositorySpec | unde
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RegistryRepositorySpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_RegistryRepositorySpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_RegistryRepositorySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RegistryRepositorySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_RegistryRepositorySpec(obj: RegistryRepositorySpec | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RegistryRepositorySpecDeletionPolicy
  */
@@ -183,11 +191,18 @@ export interface RegistryRepositorySpecForProvider {
   readonly description?: string;
 
   /**
+   * Docker repository config contains repository level configuration for the repositories of docker type. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecForProvider#dockerConfig
+   */
+  readonly dockerConfig?: RegistryRepositorySpecForProviderDockerConfig[];
+
+  /**
    * The format of packages that are stored in the repository. Supported formats can be found here. You can only create alpha formats if you are a member of the alpha user group.
    *
    * @schema RegistryRepositorySpecForProvider#format
    */
-  readonly format: string;
+  readonly format?: string;
 
   /**
    * The Cloud KMS resource name of the customer managed encryption key that’s used to encrypt the contents of the Repository. Has the form: projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key. This value may not be changed after the Repository has been created.
@@ -218,11 +233,32 @@ export interface RegistryRepositorySpecForProvider {
   readonly mavenConfig?: RegistryRepositorySpecForProviderMavenConfig[];
 
   /**
+   * The mode configures the repository to serve artifacts from different sources. Default value is STANDARD_REPOSITORY. Possible values are: STANDARD_REPOSITORY, VIRTUAL_REPOSITORY, REMOTE_REPOSITORY.
+   *
+   * @schema RegistryRepositorySpecForProvider#mode
+   */
+  readonly mode?: string;
+
+  /**
    * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
    *
    * @schema RegistryRepositorySpecForProvider#project
    */
   readonly project?: string;
+
+  /**
+   * Configuration specific for a Remote Repository. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecForProvider#remoteRepositoryConfig
+   */
+  readonly remoteRepositoryConfig?: RegistryRepositorySpecForProviderRemoteRepositoryConfig[];
+
+  /**
+   * Configuration specific for a Virtual Repository. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecForProvider#virtualRepositoryConfig
+   */
+  readonly virtualRepositoryConfig?: RegistryRepositorySpecForProviderVirtualRepositoryConfig[];
 
 }
 
@@ -234,17 +270,35 @@ export function toJson_RegistryRepositorySpecForProvider(obj: RegistryRepository
   if (obj === undefined) { return undefined; }
   const result = {
     'description': obj.description,
+    'dockerConfig': obj.dockerConfig?.map(y => toJson_RegistryRepositorySpecForProviderDockerConfig(y)),
     'format': obj.format,
     'kmsKeyName': obj.kmsKeyName,
     'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'location': obj.location,
     'mavenConfig': obj.mavenConfig?.map(y => toJson_RegistryRepositorySpecForProviderMavenConfig(y)),
+    'mode': obj.mode,
     'project': obj.project,
+    'remoteRepositoryConfig': obj.remoteRepositoryConfig?.map(y => toJson_RegistryRepositorySpecForProviderRemoteRepositoryConfig(y)),
+    'virtualRepositoryConfig': obj.virtualRepositoryConfig?.map(y => toJson_RegistryRepositorySpecForProviderVirtualRepositoryConfig(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema RegistryRepositorySpecManagementPolicy
+ */
+export enum RegistryRepositorySpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -403,6 +457,33 @@ export function toJson_RegistryRepositorySpecWriteConnectionSecretToRef(obj: Reg
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RegistryRepositorySpecForProviderDockerConfig
+ */
+export interface RegistryRepositorySpecForProviderDockerConfig {
+  /**
+   * The repository which enabled this flag prevents all tags from being modified, moved or deleted. This does not prevent tags from being created.
+   *
+   * @schema RegistryRepositorySpecForProviderDockerConfig#immutableTags
+   */
+  readonly immutableTags?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecForProviderDockerConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecForProviderDockerConfig(obj: RegistryRepositorySpecForProviderDockerConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'immutableTags': obj.immutableTags,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema RegistryRepositorySpecForProviderMavenConfig
  */
 export interface RegistryRepositorySpecForProviderMavenConfig {
@@ -414,7 +495,7 @@ export interface RegistryRepositorySpecForProviderMavenConfig {
   readonly allowSnapshotOverwrites?: boolean;
 
   /**
-   * Version policy defines the versions that the registry will accept. Default value is VERSION_POLICY_UNSPECIFIED. Possible values are VERSION_POLICY_UNSPECIFIED, RELEASE, and SNAPSHOT.
+   * Version policy defines the versions that the registry will accept. Default value is VERSION_POLICY_UNSPECIFIED. Possible values are: VERSION_POLICY_UNSPECIFIED, RELEASE, SNAPSHOT.
    *
    * @schema RegistryRepositorySpecForProviderMavenConfig#versionPolicy
    */
@@ -431,6 +512,92 @@ export function toJson_RegistryRepositorySpecForProviderMavenConfig(obj: Registr
   const result = {
     'allowSnapshotOverwrites': obj.allowSnapshotOverwrites,
     'versionPolicy': obj.versionPolicy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RegistryRepositorySpecForProviderRemoteRepositoryConfig
+ */
+export interface RegistryRepositorySpecForProviderRemoteRepositoryConfig {
+  /**
+   * The description of the remote source.
+   *
+   * @schema RegistryRepositorySpecForProviderRemoteRepositoryConfig#description
+   */
+  readonly description?: string;
+
+  /**
+   * Specific settings for a Docker remote repository. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecForProviderRemoteRepositoryConfig#dockerRepository
+   */
+  readonly dockerRepository?: RegistryRepositorySpecForProviderRemoteRepositoryConfigDockerRepository[];
+
+  /**
+   * Specific settings for a Maven remote repository. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecForProviderRemoteRepositoryConfig#mavenRepository
+   */
+  readonly mavenRepository?: RegistryRepositorySpecForProviderRemoteRepositoryConfigMavenRepository[];
+
+  /**
+   * Specific settings for an Npm remote repository. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecForProviderRemoteRepositoryConfig#npmRepository
+   */
+  readonly npmRepository?: RegistryRepositorySpecForProviderRemoteRepositoryConfigNpmRepository[];
+
+  /**
+   * Specific settings for a Python remote repository. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecForProviderRemoteRepositoryConfig#pythonRepository
+   */
+  readonly pythonRepository?: RegistryRepositorySpecForProviderRemoteRepositoryConfigPythonRepository[];
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecForProviderRemoteRepositoryConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecForProviderRemoteRepositoryConfig(obj: RegistryRepositorySpecForProviderRemoteRepositoryConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'dockerRepository': obj.dockerRepository?.map(y => toJson_RegistryRepositorySpecForProviderRemoteRepositoryConfigDockerRepository(y)),
+    'mavenRepository': obj.mavenRepository?.map(y => toJson_RegistryRepositorySpecForProviderRemoteRepositoryConfigMavenRepository(y)),
+    'npmRepository': obj.npmRepository?.map(y => toJson_RegistryRepositorySpecForProviderRemoteRepositoryConfigNpmRepository(y)),
+    'pythonRepository': obj.pythonRepository?.map(y => toJson_RegistryRepositorySpecForProviderRemoteRepositoryConfigPythonRepository(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfig
+ */
+export interface RegistryRepositorySpecForProviderVirtualRepositoryConfig {
+  /**
+   * Policies that configure the upstream artifacts distributed by the Virtual Repository. Upstream policies cannot be set on a standard repository. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfig#upstreamPolicies
+   */
+  readonly upstreamPolicies?: RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPolicies[];
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecForProviderVirtualRepositoryConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecForProviderVirtualRepositoryConfig(obj: RegistryRepositorySpecForProviderVirtualRepositoryConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'upstreamPolicies': obj.upstreamPolicies?.map(y => toJson_RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPolicies(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -594,6 +761,173 @@ export function toJson_RegistryRepositorySpecPublishConnectionDetailsToMetadata(
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RegistryRepositorySpecForProviderRemoteRepositoryConfigDockerRepository
+ */
+export interface RegistryRepositorySpecForProviderRemoteRepositoryConfigDockerRepository {
+  /**
+   * Address of the remote repository. Default value is PYPI. Possible values are: PYPI.
+   *
+   * @schema RegistryRepositorySpecForProviderRemoteRepositoryConfigDockerRepository#publicRepository
+   */
+  readonly publicRepository?: string;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecForProviderRemoteRepositoryConfigDockerRepository' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecForProviderRemoteRepositoryConfigDockerRepository(obj: RegistryRepositorySpecForProviderRemoteRepositoryConfigDockerRepository | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'publicRepository': obj.publicRepository,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RegistryRepositorySpecForProviderRemoteRepositoryConfigMavenRepository
+ */
+export interface RegistryRepositorySpecForProviderRemoteRepositoryConfigMavenRepository {
+  /**
+   * Address of the remote repository. Default value is PYPI. Possible values are: PYPI.
+   *
+   * @schema RegistryRepositorySpecForProviderRemoteRepositoryConfigMavenRepository#publicRepository
+   */
+  readonly publicRepository?: string;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecForProviderRemoteRepositoryConfigMavenRepository' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecForProviderRemoteRepositoryConfigMavenRepository(obj: RegistryRepositorySpecForProviderRemoteRepositoryConfigMavenRepository | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'publicRepository': obj.publicRepository,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RegistryRepositorySpecForProviderRemoteRepositoryConfigNpmRepository
+ */
+export interface RegistryRepositorySpecForProviderRemoteRepositoryConfigNpmRepository {
+  /**
+   * Address of the remote repository. Default value is PYPI. Possible values are: PYPI.
+   *
+   * @schema RegistryRepositorySpecForProviderRemoteRepositoryConfigNpmRepository#publicRepository
+   */
+  readonly publicRepository?: string;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecForProviderRemoteRepositoryConfigNpmRepository' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecForProviderRemoteRepositoryConfigNpmRepository(obj: RegistryRepositorySpecForProviderRemoteRepositoryConfigNpmRepository | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'publicRepository': obj.publicRepository,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RegistryRepositorySpecForProviderRemoteRepositoryConfigPythonRepository
+ */
+export interface RegistryRepositorySpecForProviderRemoteRepositoryConfigPythonRepository {
+  /**
+   * Address of the remote repository. Default value is PYPI. Possible values are: PYPI.
+   *
+   * @schema RegistryRepositorySpecForProviderRemoteRepositoryConfigPythonRepository#publicRepository
+   */
+  readonly publicRepository?: string;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecForProviderRemoteRepositoryConfigPythonRepository' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecForProviderRemoteRepositoryConfigPythonRepository(obj: RegistryRepositorySpecForProviderRemoteRepositoryConfigPythonRepository | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'publicRepository': obj.publicRepository,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPolicies
+ */
+export interface RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPolicies {
+  /**
+   * The user-provided ID of the upstream policy.
+   *
+   * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPolicies#id
+   */
+  readonly id?: string;
+
+  /**
+   * Entries with a greater priority value take precedence in the pull order.
+   *
+   * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPolicies#priority
+   */
+  readonly priority?: number;
+
+  /**
+   * A reference to the repository resource, for example: "projects/p1/locations/us-central1/repository/repo1".
+   *
+   * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPolicies#repository
+   */
+  readonly repository?: string;
+
+  /**
+   * Reference to a RegistryRepository in artifact to populate repository.
+   *
+   * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPolicies#repositoryRef
+   */
+  readonly repositoryRef?: RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRef;
+
+  /**
+   * Selector for a RegistryRepository in artifact to populate repository.
+   *
+   * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPolicies#repositorySelector
+   */
+  readonly repositorySelector?: RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelector;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPolicies' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPolicies(obj: RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPolicies | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'id': obj.id,
+    'priority': obj.priority,
+    'repository': obj.repository,
+    'repositoryRef': toJson_RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRef(obj.repositoryRef),
+    'repositorySelector': toJson_RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelector(obj.repositorySelector),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema RegistryRepositorySpecProviderConfigRefPolicyResolution
@@ -679,6 +1013,88 @@ export function toJson_RegistryRepositorySpecPublishConnectionDetailsToConfigRef
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Reference to a RegistryRepository in artifact to populate repository.
+ *
+ * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRef
+ */
+export interface RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRef#policy
+   */
+  readonly policy?: RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRef(obj: RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a RegistryRepository in artifact to populate repository.
+ *
+ * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelector
+ */
+export interface RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelector#policy
+   */
+  readonly policy?: RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelector(obj: RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema RegistryRepositorySpecPublishConnectionDetailsToConfigRefPolicyResolution
@@ -696,6 +1112,128 @@ export enum RegistryRepositorySpecPublishConnectionDetailsToConfigRefPolicyResol
  * @schema RegistryRepositorySpecPublishConnectionDetailsToConfigRefPolicyResolve
  */
 export enum RegistryRepositorySpecPublishConnectionDetailsToConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Policies for referencing.
+ *
+ * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRefPolicy
+ */
+export interface RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRefPolicy#resolution
+   */
+  readonly resolution?: RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRefPolicy#resolve
+   */
+  readonly resolve?: RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRefPolicy(obj: RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelectorPolicy
+ */
+export interface RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelectorPolicy#resolution
+   */
+  readonly resolution?: RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelectorPolicy#resolve
+   */
+  readonly resolve?: RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelectorPolicy(obj: RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRefPolicyResolution
+ */
+export enum RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRefPolicyResolve
+ */
+export enum RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositoryRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelectorPolicyResolution
+ */
+export enum RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelectorPolicyResolve
+ */
+export enum RegistryRepositorySpecForProviderVirtualRepositoryConfigUpstreamPoliciesRepositorySelectorPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -799,7 +1337,7 @@ export function toJson_RegistryRepositoryIamMemberProps(obj: RegistryRepositoryI
  */
 export interface RegistryRepositoryIamMemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RegistryRepositoryIamMemberSpec#deletionPolicy
    */
@@ -809,6 +1347,13 @@ export interface RegistryRepositoryIamMemberSpec {
    * @schema RegistryRepositoryIamMemberSpec#forProvider
    */
   readonly forProvider: RegistryRepositoryIamMemberSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema RegistryRepositoryIamMemberSpec#managementPolicy
+   */
+  readonly managementPolicy?: RegistryRepositoryIamMemberSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -849,6 +1394,7 @@ export function toJson_RegistryRepositoryIamMemberSpec(obj: RegistryRepositoryIa
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RegistryRepositoryIamMemberSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_RegistryRepositoryIamMemberSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_RegistryRepositoryIamMemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RegistryRepositoryIamMemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -860,7 +1406,7 @@ export function toJson_RegistryRepositoryIamMemberSpec(obj: RegistryRepositoryIa
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RegistryRepositoryIamMemberSpecDeletionPolicy
  */
@@ -888,7 +1434,7 @@ export interface RegistryRepositoryIamMemberSpecForProvider {
   /**
    * @schema RegistryRepositoryIamMemberSpecForProvider#member
    */
-  readonly member: string;
+  readonly member?: string;
 
   /**
    * @schema RegistryRepositoryIamMemberSpecForProvider#project
@@ -898,12 +1444,12 @@ export interface RegistryRepositoryIamMemberSpecForProvider {
   /**
    * @schema RegistryRepositoryIamMemberSpecForProvider#repository
    */
-  readonly repository: string;
+  readonly repository?: string;
 
   /**
    * @schema RegistryRepositoryIamMemberSpecForProvider#role
    */
-  readonly role: string;
+  readonly role?: string;
 
 }
 
@@ -925,6 +1471,20 @@ export function toJson_RegistryRepositoryIamMemberSpecForProvider(obj: RegistryR
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema RegistryRepositoryIamMemberSpecManagementPolicy
+ */
+export enum RegistryRepositoryIamMemberSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package commons;
 
+option go_package = "grpc/commons";
+
 message Id {
   string id = 1;
 }

@@ -99,7 +99,7 @@ export function toJson_GatewayRouteProps(obj: GatewayRouteProps | undefined): Re
  */
 export interface GatewayRouteSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema GatewayRouteSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface GatewayRouteSpec {
    * @schema GatewayRouteSpec#forProvider
    */
   readonly forProvider: GatewayRouteSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema GatewayRouteSpec#managementPolicy
+   */
+  readonly managementPolicy?: GatewayRouteSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_GatewayRouteSpec(obj: GatewayRouteSpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_GatewayRouteSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_GatewayRouteSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_GatewayRouteSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_GatewayRouteSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_GatewayRouteSpec(obj: GatewayRouteSpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema GatewayRouteSpecDeletionPolicy
  */
@@ -180,7 +188,7 @@ export interface GatewayRouteSpecForProvider {
    *
    * @schema GatewayRouteSpecForProvider#meshName
    */
-  readonly meshName: string;
+  readonly meshName?: string;
 
   /**
    * AWS account ID of the service mesh's owner. Defaults to the account ID the AWS provider is currently connected to.
@@ -195,7 +203,7 @@ export interface GatewayRouteSpecForProvider {
    *
    * @schema GatewayRouteSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -209,7 +217,7 @@ export interface GatewayRouteSpecForProvider {
    *
    * @schema GatewayRouteSpecForProvider#spec
    */
-  readonly spec: GatewayRouteSpecForProviderSpec[];
+  readonly spec?: GatewayRouteSpecForProviderSpec[];
 
   /**
    * Key-value map of resource tags.
@@ -262,6 +270,20 @@ export function toJson_GatewayRouteSpecForProvider(obj: GatewayRouteSpecForProvi
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema GatewayRouteSpecManagementPolicy
+ */
+export enum GatewayRouteSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -444,6 +466,13 @@ export interface GatewayRouteSpecForProviderSpec {
    */
   readonly httpRoute?: GatewayRouteSpecForProviderSpecHttpRoute[];
 
+  /**
+   * Priority for the gateway route, between 0 and 1000.
+   *
+   * @schema GatewayRouteSpecForProviderSpec#priority
+   */
+  readonly priority?: number;
+
 }
 
 /**
@@ -456,6 +485,7 @@ export function toJson_GatewayRouteSpecForProviderSpec(obj: GatewayRouteSpecForP
     'grpcRoute': obj.grpcRoute?.map(y => toJson_GatewayRouteSpecForProviderSpecGrpcRoute(y)),
     'http2Route': obj.http2Route?.map(y => toJson_GatewayRouteSpecForProviderSpecHttp2Route(y)),
     'httpRoute': obj.httpRoute?.map(y => toJson_GatewayRouteSpecForProviderSpecHttpRoute(y)),
+    'priority': obj.priority,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -996,7 +1026,7 @@ export function toJson_GatewayRouteSpecForProviderSpecGrpcRouteAction(obj: Gatew
  */
 export interface GatewayRouteSpecForProviderSpecGrpcRouteMatch {
   /**
-   * The port number to match from the request.
+   * The port number that corresponds to the target for Virtual Service provider port. This is required when the provider (router or node) of the Virtual Service has multiple listeners.
    *
    * @schema GatewayRouteSpecForProviderSpecGrpcRouteMatch#port
    */
@@ -1066,6 +1096,13 @@ export function toJson_GatewayRouteSpecForProviderSpecHttp2RouteAction(obj: Gate
  */
 export interface GatewayRouteSpecForProviderSpecHttp2RouteMatch {
   /**
+   * Client request headers to match on.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatch#header
+   */
+  readonly header?: GatewayRouteSpecForProviderSpecHttp2RouteMatchHeader[];
+
+  /**
    * Host name to rewrite.
    *
    * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatch#hostname
@@ -1073,7 +1110,14 @@ export interface GatewayRouteSpecForProviderSpecHttp2RouteMatch {
   readonly hostname?: GatewayRouteSpecForProviderSpecHttp2RouteMatchHostname[];
 
   /**
-   * The port number to match from the request.
+   * Client request path to match on.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatch#path
+   */
+  readonly path?: GatewayRouteSpecForProviderSpecHttp2RouteMatchPath[];
+
+  /**
+   * The port number that corresponds to the target for Virtual Service provider port. This is required when the provider (router or node) of the Virtual Service has multiple listeners.
    *
    * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatch#port
    */
@@ -1086,6 +1130,13 @@ export interface GatewayRouteSpecForProviderSpecHttp2RouteMatch {
    */
   readonly prefix?: string;
 
+  /**
+   * Client request query parameters to match on.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatch#queryParameter
+   */
+  readonly queryParameter?: GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameter[];
+
 }
 
 /**
@@ -1095,9 +1146,12 @@ export interface GatewayRouteSpecForProviderSpecHttp2RouteMatch {
 export function toJson_GatewayRouteSpecForProviderSpecHttp2RouteMatch(obj: GatewayRouteSpecForProviderSpecHttp2RouteMatch | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'header': obj.header?.map(y => toJson_GatewayRouteSpecForProviderSpecHttp2RouteMatchHeader(y)),
     'hostname': obj.hostname?.map(y => toJson_GatewayRouteSpecForProviderSpecHttp2RouteMatchHostname(y)),
+    'path': obj.path?.map(y => toJson_GatewayRouteSpecForProviderSpecHttp2RouteMatchPath(y)),
     'port': obj.port,
     'prefix': obj.prefix,
+    'queryParameter': obj.queryParameter?.map(y => toJson_GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameter(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1144,6 +1198,13 @@ export function toJson_GatewayRouteSpecForProviderSpecHttpRouteAction(obj: Gatew
  */
 export interface GatewayRouteSpecForProviderSpecHttpRouteMatch {
   /**
+   * Client request headers to match on.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatch#header
+   */
+  readonly header?: GatewayRouteSpecForProviderSpecHttpRouteMatchHeader[];
+
+  /**
    * Host name to rewrite.
    *
    * @schema GatewayRouteSpecForProviderSpecHttpRouteMatch#hostname
@@ -1151,7 +1212,14 @@ export interface GatewayRouteSpecForProviderSpecHttpRouteMatch {
   readonly hostname?: GatewayRouteSpecForProviderSpecHttpRouteMatchHostname[];
 
   /**
-   * The port number to match from the request.
+   * Client request path to match on.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatch#path
+   */
+  readonly path?: GatewayRouteSpecForProviderSpecHttpRouteMatchPath[];
+
+  /**
+   * The port number that corresponds to the target for Virtual Service provider port. This is required when the provider (router or node) of the Virtual Service has multiple listeners.
    *
    * @schema GatewayRouteSpecForProviderSpecHttpRouteMatch#port
    */
@@ -1164,6 +1232,13 @@ export interface GatewayRouteSpecForProviderSpecHttpRouteMatch {
    */
   readonly prefix?: string;
 
+  /**
+   * Client request query parameters to match on.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatch#queryParameter
+   */
+  readonly queryParameter?: GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameter[];
+
 }
 
 /**
@@ -1173,9 +1248,12 @@ export interface GatewayRouteSpecForProviderSpecHttpRouteMatch {
 export function toJson_GatewayRouteSpecForProviderSpecHttpRouteMatch(obj: GatewayRouteSpecForProviderSpecHttpRouteMatch | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'header': obj.header?.map(y => toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchHeader(y)),
     'hostname': obj.hostname?.map(y => toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchHostname(y)),
+    'path': obj.path?.map(y => toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchPath(y)),
     'port': obj.port,
     'prefix': obj.prefix,
+    'queryParameter': obj.queryParameter?.map(y => toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameter(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1259,6 +1337,13 @@ export enum GatewayRouteSpecPublishConnectionDetailsToConfigRefPolicyResolve {
  */
 export interface GatewayRouteSpecForProviderSpecGrpcRouteActionTarget {
   /**
+   * The port number that corresponds to the target for Virtual Service provider port. This is required when the provider (router or node) of the Virtual Service has multiple listeners.
+   *
+   * @schema GatewayRouteSpecForProviderSpecGrpcRouteActionTarget#port
+   */
+  readonly port?: number;
+
+  /**
    * Virtual service gateway route target.
    *
    * @schema GatewayRouteSpecForProviderSpecGrpcRouteActionTarget#virtualService
@@ -1274,6 +1359,7 @@ export interface GatewayRouteSpecForProviderSpecGrpcRouteActionTarget {
 export function toJson_GatewayRouteSpecForProviderSpecGrpcRouteActionTarget(obj: GatewayRouteSpecForProviderSpecGrpcRouteActionTarget | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'port': obj.port,
     'virtualService': obj.virtualService?.map(y => toJson_GatewayRouteSpecForProviderSpecGrpcRouteActionTargetVirtualService(y)),
   };
   // filter undefined values
@@ -1321,6 +1407,13 @@ export function toJson_GatewayRouteSpecForProviderSpecHttp2RouteActionRewrite(ob
  */
 export interface GatewayRouteSpecForProviderSpecHttp2RouteActionTarget {
   /**
+   * The port number that corresponds to the target for Virtual Service provider port. This is required when the provider (router or node) of the Virtual Service has multiple listeners.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteActionTarget#port
+   */
+  readonly port?: number;
+
+  /**
    * Virtual service gateway route target.
    *
    * @schema GatewayRouteSpecForProviderSpecHttp2RouteActionTarget#virtualService
@@ -1336,7 +1429,52 @@ export interface GatewayRouteSpecForProviderSpecHttp2RouteActionTarget {
 export function toJson_GatewayRouteSpecForProviderSpecHttp2RouteActionTarget(obj: GatewayRouteSpecForProviderSpecHttp2RouteActionTarget | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'port': obj.port,
     'virtualService': obj.virtualService?.map(y => toJson_GatewayRouteSpecForProviderSpecHttp2RouteActionTargetVirtualService(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeader
+ */
+export interface GatewayRouteSpecForProviderSpecHttp2RouteMatchHeader {
+  /**
+   * If true, the match is on the opposite of the match method and value. Default is false.
+   *
+   * @default false.
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeader#invert
+   */
+  readonly invert?: boolean;
+
+  /**
+   * Criteria for determining a request match.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeader#match
+   */
+  readonly match?: GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatch[];
+
+  /**
+   * Name to use for the gateway route. Must be between 1 and 255 characters in length.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeader#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecForProviderSpecHttp2RouteMatchHeader' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecForProviderSpecHttp2RouteMatchHeader(obj: GatewayRouteSpecForProviderSpecHttp2RouteMatchHeader | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'invert': obj.invert,
+    'match': obj.match?.map(y => toJson_GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatch(y)),
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1348,14 +1486,14 @@ export function toJson_GatewayRouteSpecForProviderSpecHttp2RouteActionTarget(obj
  */
 export interface GatewayRouteSpecForProviderSpecHttp2RouteMatchHostname {
   /**
-   * Exact host name to match on.
+   * Header value sent by the client must match the specified value exactly.
    *
    * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHostname#exact
    */
   readonly exact?: string;
 
   /**
-   * Specified ending characters of the host name to match on.
+   * Header value sent by the client must end with the specified characters.
    *
    * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHostname#suffix
    */
@@ -1372,6 +1510,76 @@ export function toJson_GatewayRouteSpecForProviderSpecHttp2RouteMatchHostname(ob
   const result = {
     'exact': obj.exact,
     'suffix': obj.suffix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchPath
+ */
+export interface GatewayRouteSpecForProviderSpecHttp2RouteMatchPath {
+  /**
+   * Header value sent by the client must match the specified value exactly.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchPath#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Header value sent by the client must include the specified characters.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchPath#regex
+   */
+  readonly regex?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecForProviderSpecHttp2RouteMatchPath' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecForProviderSpecHttp2RouteMatchPath(obj: GatewayRouteSpecForProviderSpecHttp2RouteMatchPath | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'regex': obj.regex,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameter
+ */
+export interface GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameter {
+  /**
+   * Criteria for determining a request match.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameter#match
+   */
+  readonly match?: GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameterMatch[];
+
+  /**
+   * Name to use for the gateway route. Must be between 1 and 255 characters in length.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameter#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameter(obj: GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'match': obj.match?.map(y => toJson_GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameterMatch(y)),
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1418,6 +1626,13 @@ export function toJson_GatewayRouteSpecForProviderSpecHttpRouteActionRewrite(obj
  */
 export interface GatewayRouteSpecForProviderSpecHttpRouteActionTarget {
   /**
+   * The port number that corresponds to the target for Virtual Service provider port. This is required when the provider (router or node) of the Virtual Service has multiple listeners.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteActionTarget#port
+   */
+  readonly port?: number;
+
+  /**
    * Virtual service gateway route target.
    *
    * @schema GatewayRouteSpecForProviderSpecHttpRouteActionTarget#virtualService
@@ -1433,7 +1648,52 @@ export interface GatewayRouteSpecForProviderSpecHttpRouteActionTarget {
 export function toJson_GatewayRouteSpecForProviderSpecHttpRouteActionTarget(obj: GatewayRouteSpecForProviderSpecHttpRouteActionTarget | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'port': obj.port,
     'virtualService': obj.virtualService?.map(y => toJson_GatewayRouteSpecForProviderSpecHttpRouteActionTargetVirtualService(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHeader
+ */
+export interface GatewayRouteSpecForProviderSpecHttpRouteMatchHeader {
+  /**
+   * If true, the match is on the opposite of the match method and value. Default is false.
+   *
+   * @default false.
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHeader#invert
+   */
+  readonly invert?: boolean;
+
+  /**
+   * Criteria for determining a request match.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHeader#match
+   */
+  readonly match?: GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatch[];
+
+  /**
+   * Name to use for the gateway route. Must be between 1 and 255 characters in length.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHeader#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecForProviderSpecHttpRouteMatchHeader' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchHeader(obj: GatewayRouteSpecForProviderSpecHttpRouteMatchHeader | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'invert': obj.invert,
+    'match': obj.match?.map(y => toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatch(y)),
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1445,14 +1705,14 @@ export function toJson_GatewayRouteSpecForProviderSpecHttpRouteActionTarget(obj:
  */
 export interface GatewayRouteSpecForProviderSpecHttpRouteMatchHostname {
   /**
-   * Exact host name to match on.
+   * Header value sent by the client must match the specified value exactly.
    *
    * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHostname#exact
    */
   readonly exact?: string;
 
   /**
-   * Specified ending characters of the host name to match on.
+   * Header value sent by the client must end with the specified characters.
    *
    * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHostname#suffix
    */
@@ -1469,6 +1729,76 @@ export function toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchHostname(obj
   const result = {
     'exact': obj.exact,
     'suffix': obj.suffix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchPath
+ */
+export interface GatewayRouteSpecForProviderSpecHttpRouteMatchPath {
+  /**
+   * Header value sent by the client must match the specified value exactly.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchPath#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Header value sent by the client must include the specified characters.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchPath#regex
+   */
+  readonly regex?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecForProviderSpecHttpRouteMatchPath' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchPath(obj: GatewayRouteSpecForProviderSpecHttpRouteMatchPath | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'regex': obj.regex,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameter
+ */
+export interface GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameter {
+  /**
+   * Criteria for determining a request match.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameter#match
+   */
+  readonly match?: GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameterMatch[];
+
+  /**
+   * Name to use for the gateway route. Must be between 1 and 255 characters in length.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameter#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameter(obj: GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'match': obj.match?.map(y => toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameterMatch(y)),
+    'name': obj.name,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1592,6 +1922,92 @@ export function toJson_GatewayRouteSpecForProviderSpecHttp2RouteActionTargetVirt
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatch
+ */
+export interface GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatch {
+  /**
+   * Header value sent by the client must match the specified value exactly.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatch#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Specified beginning characters to rewrite.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatch#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Object that specifies the range of numbers that the header value sent by the client must be included in.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatch#range
+   */
+  readonly range?: GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange[];
+
+  /**
+   * Header value sent by the client must include the specified characters.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatch#regex
+   */
+  readonly regex?: string;
+
+  /**
+   * Header value sent by the client must end with the specified characters.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatch#suffix
+   */
+  readonly suffix?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatch(obj: GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'prefix': obj.prefix,
+    'range': obj.range?.map(y => toJson_GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange(y)),
+    'regex': obj.regex,
+    'suffix': obj.suffix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameterMatch
+ */
+export interface GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameterMatch {
+  /**
+   * Header value sent by the client must match the specified value exactly.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameterMatch#exact
+   */
+  readonly exact?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameterMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameterMatch(obj: GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameterMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema GatewayRouteSpecForProviderSpecHttpRouteActionRewriteHostname
  */
 export interface GatewayRouteSpecForProviderSpecHttpRouteActionRewriteHostname {
@@ -1697,6 +2113,127 @@ export function toJson_GatewayRouteSpecForProviderSpecHttpRouteActionTargetVirtu
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatch
+ */
+export interface GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatch {
+  /**
+   * Header value sent by the client must match the specified value exactly.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatch#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Specified beginning characters to rewrite.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatch#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Object that specifies the range of numbers that the header value sent by the client must be included in.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatch#range
+   */
+  readonly range?: GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange[];
+
+  /**
+   * Header value sent by the client must include the specified characters.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatch#regex
+   */
+  readonly regex?: string;
+
+  /**
+   * Header value sent by the client must end with the specified characters.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatch#suffix
+   */
+  readonly suffix?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatch(obj: GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'prefix': obj.prefix,
+    'range': obj.range?.map(y => toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange(y)),
+    'regex': obj.regex,
+    'suffix': obj.suffix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameterMatch
+ */
+export interface GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameterMatch {
+  /**
+   * Header value sent by the client must match the specified value exactly.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameterMatch#exact
+   */
+  readonly exact?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameterMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameterMatch(obj: GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameterMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange
+ */
+export interface GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange {
+  /**
+   * End of the range.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange#end
+   */
+  readonly end: number;
+
+  /**
+   * (Requited) Start of the range.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange#start
+   */
+  readonly start: number;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange(obj: GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'end': obj.end,
+    'start': obj.start,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Reference to a VirtualService in appmesh to populate virtualServiceName.
  *
  * @schema GatewayRouteSpecForProviderSpecHttpRouteActionTargetVirtualServiceVirtualServiceNameRef
@@ -1772,6 +2309,41 @@ export function toJson_GatewayRouteSpecForProviderSpecHttpRouteActionTargetVirtu
     'matchControllerRef': obj.matchControllerRef,
     'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'policy': toJson_GatewayRouteSpecForProviderSpecHttpRouteActionTargetVirtualServiceVirtualServiceNameSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange
+ */
+export interface GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange {
+  /**
+   * End of the range.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange#end
+   */
+  readonly end: number;
+
+  /**
+   * (Requited) Start of the range.
+   *
+   * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange#start
+   */
+  readonly start: number;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange(obj: GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'end': obj.end,
+    'start': obj.start,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1997,7 +2569,7 @@ export function toJson_MeshProps(obj: MeshProps | undefined): Record<string, any
  */
 export interface MeshSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MeshSpec#deletionPolicy
    */
@@ -2007,6 +2579,13 @@ export interface MeshSpec {
    * @schema MeshSpec#forProvider
    */
   readonly forProvider: MeshSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema MeshSpec#managementPolicy
+   */
+  readonly managementPolicy?: MeshSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2047,6 +2626,7 @@ export function toJson_MeshSpec(obj: MeshSpec | undefined): Record<string, any> 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MeshSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_MeshSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_MeshSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MeshSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -2058,7 +2638,7 @@ export function toJson_MeshSpec(obj: MeshSpec | undefined): Record<string, any> 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MeshSpecDeletionPolicy
  */
@@ -2111,6 +2691,20 @@ export function toJson_MeshSpecForProvider(obj: MeshSpecForProvider | undefined)
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema MeshSpecManagementPolicy
+ */
+export enum MeshSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2684,7 +3278,7 @@ export function toJson_RouteProps(obj: RouteProps | undefined): Record<string, a
  */
 export interface RouteSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RouteSpec#deletionPolicy
    */
@@ -2694,6 +3288,13 @@ export interface RouteSpec {
    * @schema RouteSpec#forProvider
    */
   readonly forProvider: RouteSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema RouteSpec#managementPolicy
+   */
+  readonly managementPolicy?: RouteSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2734,6 +3335,7 @@ export function toJson_RouteSpec(obj: RouteSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RouteSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_RouteSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_RouteSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RouteSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -2745,7 +3347,7 @@ export function toJson_RouteSpec(obj: RouteSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RouteSpecDeletionPolicy
  */
@@ -2794,7 +3396,7 @@ export interface RouteSpecForProvider {
    *
    * @schema RouteSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -2808,7 +3410,7 @@ export interface RouteSpecForProvider {
    *
    * @schema RouteSpecForProvider#spec
    */
-  readonly spec: RouteSpecForProviderSpec[];
+  readonly spec?: RouteSpecForProviderSpec[];
 
   /**
    * Key-value map of resource tags.
@@ -2863,6 +3465,20 @@ export function toJson_RouteSpecForProvider(obj: RouteSpecForProvider | undefine
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema RouteSpecManagementPolicy
+ */
+export enum RouteSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4102,6 +4718,13 @@ export interface RouteSpecForProviderSpecHttp2RouteMatch {
   readonly method?: string;
 
   /**
+   * Client request path to match on.
+   *
+   * @schema RouteSpecForProviderSpecHttp2RouteMatch#path
+   */
+  readonly path?: RouteSpecForProviderSpecHttp2RouteMatchPath[];
+
+  /**
    * The port number to match from the request.
    *
    * @schema RouteSpecForProviderSpecHttp2RouteMatch#port
@@ -4113,7 +4736,14 @@ export interface RouteSpecForProviderSpecHttp2RouteMatch {
    *
    * @schema RouteSpecForProviderSpecHttp2RouteMatch#prefix
    */
-  readonly prefix: string;
+  readonly prefix?: string;
+
+  /**
+   * Client request query parameters to match on.
+   *
+   * @schema RouteSpecForProviderSpecHttp2RouteMatch#queryParameter
+   */
+  readonly queryParameter?: RouteSpecForProviderSpecHttp2RouteMatchQueryParameter[];
 
   /**
    * Client request header scheme to match on. Valid values: http, https.
@@ -4133,8 +4763,10 @@ export function toJson_RouteSpecForProviderSpecHttp2RouteMatch(obj: RouteSpecFor
   const result = {
     'header': obj.header?.map(y => toJson_RouteSpecForProviderSpecHttp2RouteMatchHeader(y)),
     'method': obj.method,
+    'path': obj.path?.map(y => toJson_RouteSpecForProviderSpecHttp2RouteMatchPath(y)),
     'port': obj.port,
     'prefix': obj.prefix,
+    'queryParameter': obj.queryParameter?.map(y => toJson_RouteSpecForProviderSpecHttp2RouteMatchQueryParameter(y)),
     'scheme': obj.scheme,
   };
   // filter undefined values
@@ -4274,6 +4906,13 @@ export interface RouteSpecForProviderSpecHttpRouteMatch {
   readonly method?: string;
 
   /**
+   * Client request path to match on.
+   *
+   * @schema RouteSpecForProviderSpecHttpRouteMatch#path
+   */
+  readonly path?: RouteSpecForProviderSpecHttpRouteMatchPath[];
+
+  /**
    * The port number to match from the request.
    *
    * @schema RouteSpecForProviderSpecHttpRouteMatch#port
@@ -4285,7 +4924,14 @@ export interface RouteSpecForProviderSpecHttpRouteMatch {
    *
    * @schema RouteSpecForProviderSpecHttpRouteMatch#prefix
    */
-  readonly prefix: string;
+  readonly prefix?: string;
+
+  /**
+   * Client request query parameters to match on.
+   *
+   * @schema RouteSpecForProviderSpecHttpRouteMatch#queryParameter
+   */
+  readonly queryParameter?: RouteSpecForProviderSpecHttpRouteMatchQueryParameter[];
 
   /**
    * Client request header scheme to match on. Valid values: http, https.
@@ -4305,8 +4951,10 @@ export function toJson_RouteSpecForProviderSpecHttpRouteMatch(obj: RouteSpecForP
   const result = {
     'header': obj.header?.map(y => toJson_RouteSpecForProviderSpecHttpRouteMatchHeader(y)),
     'method': obj.method,
+    'path': obj.path?.map(y => toJson_RouteSpecForProviderSpecHttpRouteMatchPath(y)),
     'port': obj.port,
     'prefix': obj.prefix,
+    'queryParameter': obj.queryParameter?.map(y => toJson_RouteSpecForProviderSpecHttpRouteMatchQueryParameter(y)),
     'scheme': obj.scheme,
   };
   // filter undefined values
@@ -4833,6 +5481,76 @@ export function toJson_RouteSpecForProviderSpecHttp2RouteMatchHeader(obj: RouteS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RouteSpecForProviderSpecHttp2RouteMatchPath
+ */
+export interface RouteSpecForProviderSpecHttp2RouteMatchPath {
+  /**
+   * Value sent by the client must match the specified value exactly. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecForProviderSpecHttp2RouteMatchPath#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Value sent by the client must include the specified characters. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecForProviderSpecHttp2RouteMatchPath#regex
+   */
+  readonly regex?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecForProviderSpecHttp2RouteMatchPath' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecForProviderSpecHttp2RouteMatchPath(obj: RouteSpecForProviderSpecHttp2RouteMatchPath | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'regex': obj.regex,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecForProviderSpecHttp2RouteMatchQueryParameter
+ */
+export interface RouteSpecForProviderSpecHttp2RouteMatchQueryParameter {
+  /**
+   * Criteria for determining an gRPC request match.
+   *
+   * @schema RouteSpecForProviderSpecHttp2RouteMatchQueryParameter#match
+   */
+  readonly match?: RouteSpecForProviderSpecHttp2RouteMatchQueryParameterMatch[];
+
+  /**
+   * Name to use for the route. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecForProviderSpecHttp2RouteMatchQueryParameter#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecForProviderSpecHttp2RouteMatchQueryParameter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecForProviderSpecHttp2RouteMatchQueryParameter(obj: RouteSpecForProviderSpecHttp2RouteMatchQueryParameter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'match': obj.match?.map(y => toJson_RouteSpecForProviderSpecHttp2RouteMatchQueryParameterMatch(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema RouteSpecForProviderSpecHttp2RouteRetryPolicyPerRetryTimeout
  */
 export interface RouteSpecForProviderSpecHttp2RouteRetryPolicyPerRetryTimeout {
@@ -5033,6 +5751,76 @@ export function toJson_RouteSpecForProviderSpecHttpRouteMatchHeader(obj: RouteSp
   const result = {
     'invert': obj.invert,
     'match': obj.match?.map(y => toJson_RouteSpecForProviderSpecHttpRouteMatchHeaderMatch(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecForProviderSpecHttpRouteMatchPath
+ */
+export interface RouteSpecForProviderSpecHttpRouteMatchPath {
+  /**
+   * Value sent by the client must match the specified value exactly. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecForProviderSpecHttpRouteMatchPath#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Value sent by the client must include the specified characters. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecForProviderSpecHttpRouteMatchPath#regex
+   */
+  readonly regex?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecForProviderSpecHttpRouteMatchPath' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecForProviderSpecHttpRouteMatchPath(obj: RouteSpecForProviderSpecHttpRouteMatchPath | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'regex': obj.regex,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecForProviderSpecHttpRouteMatchQueryParameter
+ */
+export interface RouteSpecForProviderSpecHttpRouteMatchQueryParameter {
+  /**
+   * Criteria for determining an gRPC request match.
+   *
+   * @schema RouteSpecForProviderSpecHttpRouteMatchQueryParameter#match
+   */
+  readonly match?: RouteSpecForProviderSpecHttpRouteMatchQueryParameterMatch[];
+
+  /**
+   * Name to use for the route. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecForProviderSpecHttpRouteMatchQueryParameter#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecForProviderSpecHttpRouteMatchQueryParameter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecForProviderSpecHttpRouteMatchQueryParameter(obj: RouteSpecForProviderSpecHttpRouteMatchQueryParameter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'match': obj.match?.map(y => toJson_RouteSpecForProviderSpecHttpRouteMatchQueryParameterMatch(y)),
     'name': obj.name,
   };
   // filter undefined values
@@ -5358,6 +6146,33 @@ export function toJson_RouteSpecForProviderSpecHttp2RouteMatchHeaderMatch(obj: R
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RouteSpecForProviderSpecHttp2RouteMatchQueryParameterMatch
+ */
+export interface RouteSpecForProviderSpecHttp2RouteMatchQueryParameterMatch {
+  /**
+   * Value sent by the client must match the specified value exactly. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecForProviderSpecHttp2RouteMatchQueryParameterMatch#exact
+   */
+  readonly exact?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecForProviderSpecHttp2RouteMatchQueryParameterMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecForProviderSpecHttp2RouteMatchQueryParameterMatch(obj: RouteSpecForProviderSpecHttp2RouteMatchQueryParameterMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Reference to a VirtualNode in appmesh to populate virtualNode.
  *
  * @schema RouteSpecForProviderSpecHttpRouteActionWeightedTargetVirtualNodeRef
@@ -5492,6 +6307,33 @@ export function toJson_RouteSpecForProviderSpecHttpRouteMatchHeaderMatch(obj: Ro
     'range': obj.range?.map(y => toJson_RouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange(y)),
     'regex': obj.regex,
     'suffix': obj.suffix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecForProviderSpecHttpRouteMatchQueryParameterMatch
+ */
+export interface RouteSpecForProviderSpecHttpRouteMatchQueryParameterMatch {
+  /**
+   * Value sent by the client must match the specified value exactly. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecForProviderSpecHttpRouteMatchQueryParameterMatch#exact
+   */
+  readonly exact?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecForProviderSpecHttpRouteMatchQueryParameterMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecForProviderSpecHttpRouteMatchQueryParameterMatch(obj: RouteSpecForProviderSpecHttpRouteMatchQueryParameterMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6026,7 +6868,7 @@ export function toJson_VirtualGatewayProps(obj: VirtualGatewayProps | undefined)
  */
 export interface VirtualGatewaySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VirtualGatewaySpec#deletionPolicy
    */
@@ -6036,6 +6878,13 @@ export interface VirtualGatewaySpec {
    * @schema VirtualGatewaySpec#forProvider
    */
   readonly forProvider: VirtualGatewaySpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema VirtualGatewaySpec#managementPolicy
+   */
+  readonly managementPolicy?: VirtualGatewaySpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6076,6 +6925,7 @@ export function toJson_VirtualGatewaySpec(obj: VirtualGatewaySpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VirtualGatewaySpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_VirtualGatewaySpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_VirtualGatewaySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VirtualGatewaySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -6087,7 +6937,7 @@ export function toJson_VirtualGatewaySpec(obj: VirtualGatewaySpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VirtualGatewaySpecDeletionPolicy
  */
@@ -6107,7 +6957,7 @@ export interface VirtualGatewaySpecForProvider {
    *
    * @schema VirtualGatewaySpecForProvider#meshName
    */
-  readonly meshName: string;
+  readonly meshName?: string;
 
   /**
    * AWS account ID of the service mesh's owner. Defaults to the account ID the AWS provider is currently connected to.
@@ -6122,7 +6972,7 @@ export interface VirtualGatewaySpecForProvider {
    *
    * @schema VirtualGatewaySpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -6136,7 +6986,7 @@ export interface VirtualGatewaySpecForProvider {
    *
    * @schema VirtualGatewaySpecForProvider#spec
    */
-  readonly spec: VirtualGatewaySpecForProviderSpec[];
+  readonly spec?: VirtualGatewaySpecForProviderSpec[];
 
   /**
    * Key-value map of resource tags.
@@ -6165,6 +7015,20 @@ export function toJson_VirtualGatewaySpecForProvider(obj: VirtualGatewaySpecForP
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema VirtualGatewaySpecManagementPolicy
+ */
+export enum VirtualGatewaySpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7209,6 +8073,13 @@ export function toJson_VirtualGatewaySpecForProviderSpecListenerTlsValidation(ob
  */
 export interface VirtualGatewaySpecForProviderSpecLoggingAccessLogFile {
   /**
+   * The specified format for the logs.
+   *
+   * @schema VirtualGatewaySpecForProviderSpecLoggingAccessLogFile#format
+   */
+  readonly format?: VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormat[];
+
+  /**
    * File path to write access logs to. You can use /dev/stdout to send access logs to standard out. Must be between 1 and 255 characters in length.
    *
    * @schema VirtualGatewaySpecForProviderSpecLoggingAccessLogFile#path
@@ -7224,6 +8095,7 @@ export interface VirtualGatewaySpecForProviderSpecLoggingAccessLogFile {
 export function toJson_VirtualGatewaySpecForProviderSpecLoggingAccessLogFile(obj: VirtualGatewaySpecForProviderSpecLoggingAccessLogFile | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'format': obj.format?.map(y => toJson_VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormat(y)),
     'path': obj.path,
   };
   // filter undefined values
@@ -7462,6 +8334,41 @@ export function toJson_VirtualGatewaySpecForProviderSpecListenerTlsValidationTru
   const result = {
     'file': obj.file?.map(y => toJson_VirtualGatewaySpecForProviderSpecListenerTlsValidationTrustFile(y)),
     'sds': obj.sds?.map(y => toJson_VirtualGatewaySpecForProviderSpecListenerTlsValidationTrustSds(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormat
+ */
+export interface VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormat {
+  /**
+   * The logging format for JSON.
+   *
+   * @schema VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormat#json
+   */
+  readonly json?: VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormatJson[];
+
+  /**
+   * The logging format for text. Must be between 1 and 1000 characters in length.
+   *
+   * @schema VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormat#text
+   */
+  readonly text?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormat' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormat(obj: VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormat | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'json': obj.json?.map(y => toJson_VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormatJson(y)),
+    'text': obj.text,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7757,6 +8664,41 @@ export function toJson_VirtualGatewaySpecForProviderSpecListenerTlsValidationTru
   if (obj === undefined) { return undefined; }
   const result = {
     'secretName': obj.secretName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormatJson
+ */
+export interface VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormatJson {
+  /**
+   * The specified key for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormatJson#key
+   */
+  readonly key: string;
+
+  /**
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormatJson#value
+   */
+  readonly value: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormatJson' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormatJson(obj: VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormatJson | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8090,7 +9032,7 @@ export function toJson_VirtualNodeProps(obj: VirtualNodeProps | undefined): Reco
  */
 export interface VirtualNodeSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VirtualNodeSpec#deletionPolicy
    */
@@ -8100,6 +9042,13 @@ export interface VirtualNodeSpec {
    * @schema VirtualNodeSpec#forProvider
    */
   readonly forProvider: VirtualNodeSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema VirtualNodeSpec#managementPolicy
+   */
+  readonly managementPolicy?: VirtualNodeSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -8140,6 +9089,7 @@ export function toJson_VirtualNodeSpec(obj: VirtualNodeSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VirtualNodeSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_VirtualNodeSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_VirtualNodeSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VirtualNodeSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -8151,7 +9101,7 @@ export function toJson_VirtualNodeSpec(obj: VirtualNodeSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VirtualNodeSpecDeletionPolicy
  */
@@ -8200,7 +9150,7 @@ export interface VirtualNodeSpecForProvider {
    *
    * @schema VirtualNodeSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -8214,7 +9164,7 @@ export interface VirtualNodeSpecForProvider {
    *
    * @schema VirtualNodeSpecForProvider#spec
    */
-  readonly spec: VirtualNodeSpecForProviderSpec[];
+  readonly spec?: VirtualNodeSpecForProviderSpec[];
 
   /**
    * Key-value map of resource tags.
@@ -8245,6 +9195,20 @@ export function toJson_VirtualNodeSpecForProvider(obj: VirtualNodeSpecForProvide
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema VirtualNodeSpecManagementPolicy
+ */
+export enum VirtualNodeSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -9554,6 +10518,20 @@ export interface VirtualNodeSpecForProviderSpecServiceDiscoveryDns {
    */
   readonly hostname: string;
 
+  /**
+   * The preferred IP version that this virtual node uses. Valid values: IPv6_PREFERRED, IPv4_PREFERRED, IPv4_ONLY, IPv6_ONLY.
+   *
+   * @schema VirtualNodeSpecForProviderSpecServiceDiscoveryDns#ipPreference
+   */
+  readonly ipPreference?: string;
+
+  /**
+   * The DNS response type for the virtual node. Valid values: LOADBALANCER, ENDPOINTS.
+   *
+   * @schema VirtualNodeSpecForProviderSpecServiceDiscoveryDns#responseType
+   */
+  readonly responseType?: string;
+
 }
 
 /**
@@ -9564,6 +10542,8 @@ export function toJson_VirtualNodeSpecForProviderSpecServiceDiscoveryDns(obj: Vi
   if (obj === undefined) { return undefined; }
   const result = {
     'hostname': obj.hostname,
+    'ipPreference': obj.ipPreference,
+    'responseType': obj.responseType,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -9801,7 +10781,7 @@ export interface VirtualNodeSpecForProviderSpecListenerOutlierDetectionBaseEject
   readonly unit: string;
 
   /**
-   * Number of time units. Minimum value of 0.
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerOutlierDetectionBaseEjectionDuration#value
    */
@@ -9836,7 +10816,7 @@ export interface VirtualNodeSpecForProviderSpecListenerOutlierDetectionInterval 
   readonly unit: string;
 
   /**
-   * Number of time units. Minimum value of 0.
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerOutlierDetectionInterval#value
    */
@@ -10074,6 +11054,13 @@ export function toJson_VirtualNodeSpecForProviderSpecListenerTlsValidation(obj: 
  */
 export interface VirtualNodeSpecForProviderSpecLoggingAccessLogFile {
   /**
+   * The specified format for the logs.
+   *
+   * @schema VirtualNodeSpecForProviderSpecLoggingAccessLogFile#format
+   */
+  readonly format?: VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormat[];
+
+  /**
    * File path to write access logs to. You can use /dev/stdout to send access logs to standard out. Must be between 1 and 255 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecLoggingAccessLogFile#path
@@ -10089,6 +11076,7 @@ export interface VirtualNodeSpecForProviderSpecLoggingAccessLogFile {
 export function toJson_VirtualNodeSpecForProviderSpecLoggingAccessLogFile(obj: VirtualNodeSpecForProviderSpecLoggingAccessLogFile | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'format': obj.format?.map(y => toJson_VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormat(y)),
     'path': obj.path,
   };
   // filter undefined values
@@ -10312,7 +11300,7 @@ export interface VirtualNodeSpecForProviderSpecListenerTimeoutGrpcIdle {
   readonly unit: string;
 
   /**
-   * Number of time units. Minimum value of 0.
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutGrpcIdle#value
    */
@@ -10347,7 +11335,7 @@ export interface VirtualNodeSpecForProviderSpecListenerTimeoutGrpcPerRequest {
   readonly unit: string;
 
   /**
-   * Number of time units. Minimum value of 0.
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutGrpcPerRequest#value
    */
@@ -10382,7 +11370,7 @@ export interface VirtualNodeSpecForProviderSpecListenerTimeoutHttpIdle {
   readonly unit: string;
 
   /**
-   * Number of time units. Minimum value of 0.
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutHttpIdle#value
    */
@@ -10417,7 +11405,7 @@ export interface VirtualNodeSpecForProviderSpecListenerTimeoutHttpPerRequest {
   readonly unit: string;
 
   /**
-   * Number of time units. Minimum value of 0.
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutHttpPerRequest#value
    */
@@ -10452,7 +11440,7 @@ export interface VirtualNodeSpecForProviderSpecListenerTimeoutHttp2Idle {
   readonly unit: string;
 
   /**
-   * Number of time units. Minimum value of 0.
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutHttp2Idle#value
    */
@@ -10487,7 +11475,7 @@ export interface VirtualNodeSpecForProviderSpecListenerTimeoutHttp2PerRequest {
   readonly unit: string;
 
   /**
-   * Number of time units. Minimum value of 0.
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutHttp2PerRequest#value
    */
@@ -10522,7 +11510,7 @@ export interface VirtualNodeSpecForProviderSpecListenerTimeoutTcpIdle {
   readonly unit: string;
 
   /**
-   * Number of time units. Minimum value of 0.
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutTcpIdle#value
    */
@@ -10690,6 +11678,41 @@ export function toJson_VirtualNodeSpecForProviderSpecListenerTlsValidationTrust(
   const result = {
     'file': obj.file?.map(y => toJson_VirtualNodeSpecForProviderSpecListenerTlsValidationTrustFile(y)),
     'sds': obj.sds?.map(y => toJson_VirtualNodeSpecForProviderSpecListenerTlsValidationTrustSds(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormat
+ */
+export interface VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormat {
+  /**
+   * The logging format for JSON.
+   *
+   * @schema VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormat#json
+   */
+  readonly json?: VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormatJson[];
+
+  /**
+   * The logging format for text. Must be between 1 and 1000 characters in length.
+   *
+   * @schema VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormat#text
+   */
+  readonly text?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormat' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormat(obj: VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormat | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'json': obj.json?.map(y => toJson_VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormatJson(y)),
+    'text': obj.text,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -11047,6 +12070,41 @@ export function toJson_VirtualNodeSpecForProviderSpecListenerTlsValidationTrustS
   if (obj === undefined) { return undefined; }
   const result = {
     'secretName': obj.secretName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormatJson
+ */
+export interface VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormatJson {
+  /**
+   * The specified key for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormatJson#key
+   */
+  readonly key: string;
+
+  /**
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormatJson#value
+   */
+  readonly value: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormatJson' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormatJson(obj: VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormatJson | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -11546,7 +12604,7 @@ export function toJson_VirtualRouterProps(obj: VirtualRouterProps | undefined): 
  */
 export interface VirtualRouterSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VirtualRouterSpec#deletionPolicy
    */
@@ -11556,6 +12614,13 @@ export interface VirtualRouterSpec {
    * @schema VirtualRouterSpec#forProvider
    */
   readonly forProvider: VirtualRouterSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema VirtualRouterSpec#managementPolicy
+   */
+  readonly managementPolicy?: VirtualRouterSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -11596,6 +12661,7 @@ export function toJson_VirtualRouterSpec(obj: VirtualRouterSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VirtualRouterSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_VirtualRouterSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_VirtualRouterSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VirtualRouterSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -11607,7 +12673,7 @@ export function toJson_VirtualRouterSpec(obj: VirtualRouterSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VirtualRouterSpecDeletionPolicy
  */
@@ -11656,7 +12722,7 @@ export interface VirtualRouterSpecForProvider {
    *
    * @schema VirtualRouterSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -11670,7 +12736,7 @@ export interface VirtualRouterSpecForProvider {
    *
    * @schema VirtualRouterSpecForProvider#spec
    */
-  readonly spec: VirtualRouterSpecForProviderSpec[];
+  readonly spec?: VirtualRouterSpecForProviderSpec[];
 
   /**
    * Key-value map of resource tags.
@@ -11701,6 +12767,20 @@ export function toJson_VirtualRouterSpecForProvider(obj: VirtualRouterSpecForPro
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema VirtualRouterSpecManagementPolicy
+ */
+export enum VirtualRouterSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -11949,7 +13029,7 @@ export interface VirtualRouterSpecForProviderSpec {
    *
    * @schema VirtualRouterSpecForProviderSpec#listener
    */
-  readonly listener: VirtualRouterSpecForProviderSpecListener[];
+  readonly listener?: VirtualRouterSpecForProviderSpecListener[];
 
 }
 
@@ -12513,7 +13593,7 @@ export function toJson_VirtualServiceProps(obj: VirtualServiceProps | undefined)
  */
 export interface VirtualServiceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VirtualServiceSpec#deletionPolicy
    */
@@ -12523,6 +13603,13 @@ export interface VirtualServiceSpec {
    * @schema VirtualServiceSpec#forProvider
    */
   readonly forProvider: VirtualServiceSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema VirtualServiceSpec#managementPolicy
+   */
+  readonly managementPolicy?: VirtualServiceSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -12563,6 +13650,7 @@ export function toJson_VirtualServiceSpec(obj: VirtualServiceSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VirtualServiceSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_VirtualServiceSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_VirtualServiceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VirtualServiceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -12574,7 +13662,7 @@ export function toJson_VirtualServiceSpec(obj: VirtualServiceSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VirtualServiceSpecDeletionPolicy
  */
@@ -12623,7 +13711,7 @@ export interface VirtualServiceSpecForProvider {
    *
    * @schema VirtualServiceSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -12637,7 +13725,7 @@ export interface VirtualServiceSpecForProvider {
    *
    * @schema VirtualServiceSpecForProvider#spec
    */
-  readonly spec: VirtualServiceSpecForProviderSpec[];
+  readonly spec?: VirtualServiceSpecForProviderSpec[];
 
   /**
    * Key-value map of resource tags.
@@ -12668,6 +13756,20 @@ export function toJson_VirtualServiceSpecForProvider(obj: VirtualServiceSpecForP
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema VirtualServiceSpecManagementPolicy
+ */
+export enum VirtualServiceSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

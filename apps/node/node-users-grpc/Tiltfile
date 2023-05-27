@@ -1,0 +1,27 @@
+
+local_resource(
+  'build-node-users-grpc',
+  dir="../../..",
+  cmd='pnpm nx run node-node-users-grpc:build',
+  deps=['.', '../../../libs/node'],
+  resource_deps=["pnpm"],
+  ignore=["k8s"],
+  env={"GOOS":"linux","GOARCH":"amd64"},
+  labels=["pnpm"],
+)
+
+docker_build(
+  "yurikrupnik/node-users-grpc",
+  "../../..",
+  target="node",
+  build_args={"DIST_PATH":"dist/apps/node/node-users-grpc"},
+  only=["dist/apps/node/node-users-grpc"],
+  # live_update=[
+  #   sync('./dist/apps/users/api', '/app'),
+  #   # sync('../../../dist/apps/users/api', '/app')
+  # ],
+)
+
+k8s_yaml(kustomize('k8s/base'))
+
+

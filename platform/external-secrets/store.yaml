@@ -1,0 +1,61 @@
+#apiVersion: v1
+#kind: ServiceAccount
+#metadata:
+#  name: external-secrets
+#  namespace: es
+#  annotations:
+#    iam.gke.io/gcp-service-account: example-team-a@my-project.iam.gserviceaccount.com
+#---
+#apiVersion: external-secrets.io/v1beta1
+#kind: ClusterSecretStore
+#metadata:
+#  name: gcp-store
+#spec:
+#  provider:
+#    gcpsm:
+#      projectID: alphabet-123
+#      auth:
+#        workloadIdentity:
+#          # name of the cluster region
+#          clusterLocation: europe-central2
+#          # name of the GKE cluster
+#          clusterName: alpha-cluster-42
+#          # projectID of the cluster (if omitted defaults to spec.provider.gcpsm.projectID)
+#          clusterProjectID: my-cluster-project
+#          # reference the sa from above
+#          serviceAccountRef:
+#            name: team-a
+#            namespace: team-a
+#---
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: example
+  namespace: example-ns
+spec:
+  provider:
+    gcpsm:
+    # Auth defines the information necessary to authenticate against GCP by getting
+    # the credentials from an already created Kubernetes Secret.
+    auth:
+      secretRef:
+        secretAccessKeySecretRef:
+          name: MONGO_URI
+          key: MONGO_URI
+          # namespace: asd
+    projectID: mussia-infra
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: "gcr-token"
+spec:
+  refreshInterval: "30m"
+  target:
+    name: gcr-token
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: GCRAccessToken
+          name: "gcr-gen"

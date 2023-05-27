@@ -99,7 +99,7 @@ export function toJson_DomainMappingProps(obj: DomainMappingProps | undefined): 
  */
 export interface DomainMappingSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DomainMappingSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface DomainMappingSpec {
    * @schema DomainMappingSpec#forProvider
    */
   readonly forProvider: DomainMappingSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema DomainMappingSpec#managementPolicy
+   */
+  readonly managementPolicy?: DomainMappingSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_DomainMappingSpec(obj: DomainMappingSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DomainMappingSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_DomainMappingSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_DomainMappingSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DomainMappingSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_DomainMappingSpec(obj: DomainMappingSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DomainMappingSpecDeletionPolicy
  */
@@ -180,21 +188,21 @@ export interface DomainMappingSpecForProvider {
    *
    * @schema DomainMappingSpecForProvider#location
    */
-  readonly location: string;
+  readonly location?: string;
 
   /**
    * Metadata associated with this DomainMapping. Structure is documented below.
    *
    * @schema DomainMappingSpecForProvider#metadata
    */
-  readonly metadata: DomainMappingSpecForProviderMetadata[];
+  readonly metadata?: DomainMappingSpecForProviderMetadata[];
 
   /**
    * Name should be a verified domain
    *
    * @schema DomainMappingSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
@@ -208,7 +216,7 @@ export interface DomainMappingSpecForProvider {
    *
    * @schema DomainMappingSpecForProvider#spec
    */
-  readonly spec: DomainMappingSpecForProviderSpec[];
+  readonly spec?: DomainMappingSpecForProviderSpec[];
 
 }
 
@@ -229,6 +237,20 @@ export function toJson_DomainMappingSpecForProvider(obj: DomainMappingSpecForPro
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema DomainMappingSpecManagementPolicy
+ */
+export enum DomainMappingSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -450,7 +472,7 @@ export function toJson_DomainMappingSpecForProviderMetadata(obj: DomainMappingSp
  */
 export interface DomainMappingSpecForProviderSpec {
   /**
-   * The mode of the certificate. Default value is AUTOMATIC. Possible values are NONE and AUTOMATIC.
+   * The mode of the certificate. Default value is AUTOMATIC. Possible values are: NONE, AUTOMATIC.
    *
    * @schema DomainMappingSpecForProviderSpec#certificateMode
    */
@@ -1179,7 +1201,7 @@ export enum DomainMappingSpecForProviderSpecRouteNameSelectorPolicyResolve {
 
 
 /**
- * Service is the Schema for the Services API. Service acts as a top-level container that manages a set of Routes and Configurations which implement a network service.
+ * Service is the Schema for the Services API. A Cloud Run service has a unique endpoint and autoscales containers.
  *
  * @schema Service
  */
@@ -1233,7 +1255,7 @@ export class Service extends ApiObject {
 }
 
 /**
- * Service is the Schema for the Services API. Service acts as a top-level container that manages a set of Routes and Configurations which implement a network service.
+ * Service is the Schema for the Services API. A Cloud Run service has a unique endpoint and autoscales containers.
  *
  * @schema Service
  */
@@ -1274,7 +1296,7 @@ export function toJson_ServiceProps(obj: ServiceProps | undefined): Record<strin
  */
 export interface ServiceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ServiceSpec#deletionPolicy
    */
@@ -1284,6 +1306,13 @@ export interface ServiceSpec {
    * @schema ServiceSpec#forProvider
    */
   readonly forProvider: ServiceSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ServiceSpec#managementPolicy
+   */
+  readonly managementPolicy?: ServiceSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1324,6 +1353,7 @@ export function toJson_ServiceSpec(obj: ServiceSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ServiceSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_ServiceSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_ServiceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ServiceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -1335,7 +1365,7 @@ export function toJson_ServiceSpec(obj: ServiceSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ServiceSpecDeletionPolicy
  */
@@ -1412,6 +1442,20 @@ export function toJson_ServiceSpecForProvider(obj: ServiceSpecForProvider | unde
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ServiceSpecManagementPolicy
+ */
+export enum ServiceSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1574,14 +1618,14 @@ export function toJson_ServiceSpecWriteConnectionSecretToRef(obj: ServiceSpecWri
  */
 export interface ServiceSpecForProviderMetadata {
   /**
-   * Annotations is a key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: http://kubernetes.io/docs/user-guide/annotations Note: The Cloud Run API may add additional annotations that were not provided in your config.ignore_changes rule to the metadata.0.annotations field.
+   * Annotations is a key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: http://kubernetes.io/docs/user-guide/annotations Note: The Cloud Run API may add additional annotations that were not provided in your config.ignore_changes rule to the metadata.0.annotations field. Annotations with run.googleapis.com/ and autoscaling.knative.dev are restricted. Use the following annotation keys to configure features on a Revision template:
    *
    * @schema ServiceSpecForProviderMetadata#annotations
    */
   readonly annotations?: { [key: string]: string };
 
   /**
-   * Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and routes. More info: http://kubernetes.io/docs/user-guide/labels
+   * Map of string keys and values that can be used to organize and categorize (scope and select) objects.
    *
    * @schema ServiceSpecForProviderMetadata#labels
    */
@@ -1957,14 +2001,14 @@ export function toJson_ServiceSpecForProviderMetadataNamespaceSelector(obj: Serv
  */
 export interface ServiceSpecForProviderTemplateMetadata {
   /**
-   * Annotations is a key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: http://kubernetes.io/docs/user-guide/annotations Note: The Cloud Run API may add additional annotations that were not provided in your config.ignore_changes rule to the metadata.0.annotations field.
+   * Annotations is a key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: http://kubernetes.io/docs/user-guide/annotations Note: The Cloud Run API may add additional annotations that were not provided in your config.ignore_changes rule to the metadata.0.annotations field. Annotations with run.googleapis.com/ and autoscaling.knative.dev are restricted. Use the following annotation keys to configure features on a Revision template:
    *
    * @schema ServiceSpecForProviderTemplateMetadata#annotations
    */
   readonly annotations?: { [key: string]: string };
 
   /**
-   * Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and routes. More info: http://kubernetes.io/docs/user-guide/labels
+   * Map of string keys and values that can be used to organize and categorize (scope and select) objects.
    *
    * @schema ServiceSpecForProviderTemplateMetadata#labels
    */
@@ -2015,7 +2059,7 @@ export interface ServiceSpecForProviderTemplateSpec {
   readonly containerConcurrency?: number;
 
   /**
-   * Container defines the unit of execution for this Revision. In the context of a Revision, we disallow a number of the fields of this Container, including: name, ports, and volumeMounts. The runtime contract is documented here: https://github.com/knative/serving/blob/main/docs/runtime-contract.md Structure is documented below.
+   * Container defines the unit of execution for this Revision. In the context of a Revision, we disallow a number of the fields of this Container, including: name, ports, and volumeMounts. Structure is documented below.
    *
    * @schema ServiceSpecForProviderTemplateSpec#containers
    */
@@ -2227,14 +2271,14 @@ export function toJson_ServiceSpecForProviderMetadataNamespaceSelectorPolicy(obj
  */
 export interface ServiceSpecForProviderTemplateSpecContainers {
   /**
-   * Arguments to the entrypoint. The docker image's CMD is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell
+   * Arguments to the entrypoint. The docker image's CMD is used if this is not provided.
    *
    * @schema ServiceSpecForProviderTemplateSpecContainers#args
    */
   readonly args?: string[];
 
   /**
-   * Entrypoint array. Not executed within a shell. The docker image's ENTRYPOINT is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell
+   * Entrypoint array. Not executed within a shell. The docker image's ENTRYPOINT is used if this is not provided.
    *
    * @schema ServiceSpecForProviderTemplateSpecContainers#command
    */
@@ -2255,25 +2299,39 @@ export interface ServiceSpecForProviderTemplateSpecContainers {
   readonly envFrom?: ServiceSpecForProviderTemplateSpecContainersEnvFrom[];
 
   /**
-   * Docker image name. This is most often a reference to a container located in the container registry, such as gcr.io/cloudrun/hello More info: https://kubernetes.io/docs/concepts/containers/images
+   * Docker image name. This is most often a reference to a container located in the container registry, such as gcr.io/cloudrun/hello
    *
    * @schema ServiceSpecForProviderTemplateSpecContainers#image
    */
   readonly image: string;
 
   /**
-   * List of open ports in the container. More Info: https://cloud.google.com/run/docs/reference/rest/v1/RevisionSpec#ContainerPort Structure is documented below.
+   * Periodic probe of container liveness. Container will be restarted if the probe fails. Structure is documented below.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainers#livenessProbe
+   */
+  readonly livenessProbe?: ServiceSpecForProviderTemplateSpecContainersLivenessProbe[];
+
+  /**
+   * List of open ports in the container. Structure is documented below.
    *
    * @schema ServiceSpecForProviderTemplateSpecContainers#ports
    */
   readonly ports?: ServiceSpecForProviderTemplateSpecContainersPorts[];
 
   /**
-   * Compute Resources required by this container. Used to set values such as max memory More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits Structure is documented below.
+   * Compute Resources required by this container. Used to set values such as max memory Structure is documented below.
    *
    * @schema ServiceSpecForProviderTemplateSpecContainers#resources
    */
   readonly resources?: ServiceSpecForProviderTemplateSpecContainersResources[];
+
+  /**
+   * Startup probe of application within the container. All other probes are disabled if a startup probe is provided, until it succeeds. Container will not be added to service endpoints if the probe fails. Structure is documented below.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainers#startupProbe
+   */
+  readonly startupProbe?: ServiceSpecForProviderTemplateSpecContainersStartupProbe[];
 
   /**
    * Volume to mount into the container's filesystem. Only supports SecretVolumeSources. Structure is documented below.
@@ -2303,8 +2361,10 @@ export function toJson_ServiceSpecForProviderTemplateSpecContainers(obj: Service
     'env': obj.env?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersEnv(y)),
     'envFrom': obj.envFrom?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersEnvFrom(y)),
     'image': obj.image,
+    'livenessProbe': obj.livenessProbe?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersLivenessProbe(y)),
     'ports': obj.ports?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersPorts(y)),
     'resources': obj.resources?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersResources(y)),
+    'startupProbe': obj.startupProbe?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersStartupProbe(y)),
     'volumeMounts': obj.volumeMounts?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersVolumeMounts(y)),
     'workingDir': obj.workingDir,
   };
@@ -2507,6 +2567,77 @@ export function toJson_ServiceSpecForProviderTemplateSpecContainersEnvFrom(obj: 
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbe
+ */
+export interface ServiceSpecForProviderTemplateSpecContainersLivenessProbe {
+  /**
+   * Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1.
+   *
+   * @default 3. Minimum value is 1.
+   * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbe#failureThreshold
+   */
+  readonly failureThreshold?: number;
+
+  /**
+   * GRPC specifies an action involving a GRPC port. Structure is documented below.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbe#grpc
+   */
+  readonly grpc?: ServiceSpecForProviderTemplateSpecContainersLivenessProbeGrpc[];
+
+  /**
+   * HttpGet specifies the http request to perform. Structure is documented below.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbe#httpGet
+   */
+  readonly httpGet?: ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGet[];
+
+  /**
+   * Number of seconds after the container has started before the probe is initiated. Defaults to 0 seconds. Minimum value is 0. Maximum value is 240.
+   *
+   * @default 0 seconds. Minimum value is 0. Maximum value is 240.
+   * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbe#initialDelaySeconds
+   */
+  readonly initialDelaySeconds?: number;
+
+  /**
+   * How often (in seconds) to perform the probe. Default to 10 seconds. Minimum value is 1. Maximum value is 240.
+   *
+   * @default 10 seconds. Minimum value is 1. Maximum value is 240.
+   * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbe#periodSeconds
+   */
+  readonly periodSeconds?: number;
+
+  /**
+   * Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds.
+   *
+   * @default 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds.
+   * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbe#timeoutSeconds
+   */
+  readonly timeoutSeconds?: number;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecForProviderTemplateSpecContainersLivenessProbe' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecForProviderTemplateSpecContainersLivenessProbe(obj: ServiceSpecForProviderTemplateSpecContainersLivenessProbe | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'failureThreshold': obj.failureThreshold,
+    'grpc': obj.grpc?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersLivenessProbeGrpc(y)),
+    'httpGet': obj.httpGet?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGet(y)),
+    'initialDelaySeconds': obj.initialDelaySeconds,
+    'periodSeconds': obj.periodSeconds,
+    'timeoutSeconds': obj.timeoutSeconds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ServiceSpecForProviderTemplateSpecContainersPorts
  */
 export interface ServiceSpecForProviderTemplateSpecContainersPorts {
@@ -2580,6 +2711,85 @@ export function toJson_ServiceSpecForProviderTemplateSpecContainersResources(obj
   const result = {
     'limits': ((obj.limits) === undefined) ? undefined : (Object.entries(obj.limits).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'requests': ((obj.requests) === undefined) ? undefined : (Object.entries(obj.requests).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbe
+ */
+export interface ServiceSpecForProviderTemplateSpecContainersStartupProbe {
+  /**
+   * Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1.
+   *
+   * @default 3. Minimum value is 1.
+   * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbe#failureThreshold
+   */
+  readonly failureThreshold?: number;
+
+  /**
+   * GRPC specifies an action involving a GRPC port. Structure is documented below.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbe#grpc
+   */
+  readonly grpc?: ServiceSpecForProviderTemplateSpecContainersStartupProbeGrpc[];
+
+  /**
+   * HttpGet specifies the http request to perform. Structure is documented below.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbe#httpGet
+   */
+  readonly httpGet?: ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGet[];
+
+  /**
+   * Number of seconds after the container has started before the probe is initiated. Defaults to 0 seconds. Minimum value is 0. Maximum value is 240.
+   *
+   * @default 0 seconds. Minimum value is 0. Maximum value is 240.
+   * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbe#initialDelaySeconds
+   */
+  readonly initialDelaySeconds?: number;
+
+  /**
+   * How often (in seconds) to perform the probe. Default to 10 seconds. Minimum value is 1. Maximum value is 240.
+   *
+   * @default 10 seconds. Minimum value is 1. Maximum value is 240.
+   * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbe#periodSeconds
+   */
+  readonly periodSeconds?: number;
+
+  /**
+   * TcpSocket specifies an action involving a TCP port. Structure is documented below.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbe#tcpSocket
+   */
+  readonly tcpSocket?: ServiceSpecForProviderTemplateSpecContainersStartupProbeTcpSocket[];
+
+  /**
+   * Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds.
+   *
+   * @default 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds.
+   * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbe#timeoutSeconds
+   */
+  readonly timeoutSeconds?: number;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecForProviderTemplateSpecContainersStartupProbe' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecForProviderTemplateSpecContainersStartupProbe(obj: ServiceSpecForProviderTemplateSpecContainersStartupProbe | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'failureThreshold': obj.failureThreshold,
+    'grpc': obj.grpc?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersStartupProbeGrpc(y)),
+    'httpGet': obj.httpGet?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGet(y)),
+    'initialDelaySeconds': obj.initialDelaySeconds,
+    'periodSeconds': obj.periodSeconds,
+    'tcpSocket': obj.tcpSocket?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersStartupProbeTcpSocket(y)),
+    'timeoutSeconds': obj.timeoutSeconds,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2772,6 +2982,189 @@ export function toJson_ServiceSpecForProviderTemplateSpecContainersEnvFromSecret
   const result = {
     'localObjectReference': obj.localObjectReference?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersEnvFromSecretRefLocalObjectReference(y)),
     'optional': obj.optional,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbeGrpc
+ */
+export interface ServiceSpecForProviderTemplateSpecContainersLivenessProbeGrpc {
+  /**
+   * Port number to access on the container. Number must be in the range 1 to 65535. If not specified, defaults to the same value as container.ports[0].containerPort.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbeGrpc#port
+   */
+  readonly port?: number;
+
+  /**
+   * The name of the service to place in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md). If this is not specified, the default behavior is defined by gRPC.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbeGrpc#service
+   */
+  readonly service?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecForProviderTemplateSpecContainersLivenessProbeGrpc' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecForProviderTemplateSpecContainersLivenessProbeGrpc(obj: ServiceSpecForProviderTemplateSpecContainersLivenessProbeGrpc | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'service': obj.service,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGet
+ */
+export interface ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGet {
+  /**
+   * Custom headers to set in the request. HTTP allows repeated headers. Structure is documented below.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGet#httpHeaders
+   */
+  readonly httpHeaders?: ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders[];
+
+  /**
+   * The relative path of the file to map the key to. May not be an absolute path. May not contain the path element '..'. May not start with the string '..'.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGet#path
+   */
+  readonly path?: string;
+
+  /**
+   * Port number to access on the container. Number must be in the range 1 to 65535. If not specified, defaults to the same value as container.ports[0].containerPort.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGet#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGet' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGet(obj: ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGet | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'httpHeaders': obj.httpHeaders?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders(y)),
+    'path': obj.path,
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbeGrpc
+ */
+export interface ServiceSpecForProviderTemplateSpecContainersStartupProbeGrpc {
+  /**
+   * Port number to access on the container. Number must be in the range 1 to 65535. If not specified, defaults to the same value as container.ports[0].containerPort.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbeGrpc#port
+   */
+  readonly port?: number;
+
+  /**
+   * The name of the service to place in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md). If this is not specified, the default behavior is defined by gRPC.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbeGrpc#service
+   */
+  readonly service?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecForProviderTemplateSpecContainersStartupProbeGrpc' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecForProviderTemplateSpecContainersStartupProbeGrpc(obj: ServiceSpecForProviderTemplateSpecContainersStartupProbeGrpc | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'service': obj.service,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGet
+ */
+export interface ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGet {
+  /**
+   * Custom headers to set in the request. HTTP allows repeated headers. Structure is documented below.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGet#httpHeaders
+   */
+  readonly httpHeaders?: ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders[];
+
+  /**
+   * The relative path of the file to map the key to. May not be an absolute path. May not contain the path element '..'. May not start with the string '..'.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGet#path
+   */
+  readonly path?: string;
+
+  /**
+   * Port number to access on the container. Number must be in the range 1 to 65535. If not specified, defaults to the same value as container.ports[0].containerPort.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGet#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGet' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGet(obj: ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGet | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'httpHeaders': obj.httpHeaders?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders(y)),
+    'path': obj.path,
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbeTcpSocket
+ */
+export interface ServiceSpecForProviderTemplateSpecContainersStartupProbeTcpSocket {
+  /**
+   * Port number to access on the container. Number must be in the range 1 to 65535. If not specified, defaults to the same value as container.ports[0].containerPort.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbeTcpSocket#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecForProviderTemplateSpecContainersStartupProbeTcpSocket' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecForProviderTemplateSpecContainersStartupProbeTcpSocket(obj: ServiceSpecForProviderTemplateSpecContainersStartupProbeTcpSocket | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3002,6 +3395,76 @@ export function toJson_ServiceSpecForProviderTemplateSpecContainersEnvFromSecret
   if (obj === undefined) { return undefined; }
   const result = {
     'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders
+ */
+export interface ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders {
+  /**
+   * Volume's name.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders#name
+   */
+  readonly name: string;
+
+  /**
+   * The header field value.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders(obj: ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders
+ */
+export interface ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders {
+  /**
+   * Volume's name.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders#name
+   */
+  readonly name: string;
+
+  /**
+   * The header field value.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders(obj: ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3431,7 +3894,7 @@ export function toJson_ServiceIamMemberProps(obj: ServiceIamMemberProps | undefi
  */
 export interface ServiceIamMemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ServiceIamMemberSpec#deletionPolicy
    */
@@ -3441,6 +3904,13 @@ export interface ServiceIamMemberSpec {
    * @schema ServiceIamMemberSpec#forProvider
    */
   readonly forProvider: ServiceIamMemberSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ServiceIamMemberSpec#managementPolicy
+   */
+  readonly managementPolicy?: ServiceIamMemberSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3481,6 +3951,7 @@ export function toJson_ServiceIamMemberSpec(obj: ServiceIamMemberSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ServiceIamMemberSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_ServiceIamMemberSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_ServiceIamMemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ServiceIamMemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -3492,7 +3963,7 @@ export function toJson_ServiceIamMemberSpec(obj: ServiceIamMemberSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ServiceIamMemberSpecDeletionPolicy
  */
@@ -3515,12 +3986,12 @@ export interface ServiceIamMemberSpecForProvider {
   /**
    * @schema ServiceIamMemberSpecForProvider#location
    */
-  readonly location: string;
+  readonly location?: string;
 
   /**
    * @schema ServiceIamMemberSpecForProvider#member
    */
-  readonly member: string;
+  readonly member?: string;
 
   /**
    * @schema ServiceIamMemberSpecForProvider#project
@@ -3544,7 +4015,7 @@ export interface ServiceIamMemberSpecForProvider {
   /**
    * @schema ServiceIamMemberSpecForProvider#role
    */
-  readonly role: string;
+  readonly role?: string;
 
   /**
    * @schema ServiceIamMemberSpecForProvider#service
@@ -3589,6 +4060,20 @@ export function toJson_ServiceIamMemberSpecForProvider(obj: ServiceIamMemberSpec
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ServiceIamMemberSpecManagementPolicy
+ */
+export enum ServiceIamMemberSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4553,7 +5038,7 @@ export function toJson_V2JobProps(obj: V2JobProps | undefined): Record<string, a
  */
 export interface V2JobSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema V2JobSpec#deletionPolicy
    */
@@ -4563,6 +5048,13 @@ export interface V2JobSpec {
    * @schema V2JobSpec#forProvider
    */
   readonly forProvider: V2JobSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema V2JobSpec#managementPolicy
+   */
+  readonly managementPolicy?: V2JobSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4603,6 +5095,7 @@ export function toJson_V2JobSpec(obj: V2JobSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_V2JobSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_V2JobSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_V2JobSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_V2JobSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -4614,7 +5107,7 @@ export function toJson_V2JobSpec(obj: V2JobSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema V2JobSpecDeletionPolicy
  */
@@ -4658,7 +5151,7 @@ export interface V2JobSpecForProvider {
   readonly labels?: { [key: string]: string };
 
   /**
-   * The launch stage as defined by Google Cloud Platform Launch Stages. Cloud Run supports ALPHA, BETA, and GA. If no value is specified, GA is assumed. Possible values are UNIMPLEMENTED, PRELAUNCH, EARLY_ACCESS, ALPHA, BETA, GA, and DEPRECATED.
+   * The launch stage as defined by Google Cloud Platform Launch Stages. Cloud Run supports ALPHA, BETA, and GA. If no value is specified, GA is assumed. Set the launch stage to a preview stage on input to allow use of preview features in that stage. On read (or output), describes whether the resource uses preview features. For example, if ALPHA is provided as input, but only BETA and GA-level features are used, this field will be BETA on output. Possible values are: UNIMPLEMENTED, PRELAUNCH, EARLY_ACCESS, ALPHA, BETA, GA, DEPRECATED.
    *
    * @schema V2JobSpecForProvider#launchStage
    */
@@ -4683,7 +5176,7 @@ export interface V2JobSpecForProvider {
    *
    * @schema V2JobSpecForProvider#template
    */
-  readonly template: V2JobSpecForProviderTemplate[];
+  readonly template?: V2JobSpecForProviderTemplate[];
 
 }
 
@@ -4707,6 +5200,20 @@ export function toJson_V2JobSpecForProvider(obj: V2JobSpecForProvider | undefine
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema V2JobSpecManagementPolicy
+ */
+export enum V2JobSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5126,7 +5633,7 @@ export interface V2JobSpecForProviderTemplateTemplate {
   readonly encryptionKey?: string;
 
   /**
-   * The execution environment being used to host this Task. Possible values are EXECUTION_ENVIRONMENT_GEN1 and EXECUTION_ENVIRONMENT_GEN2.
+   * The execution environment being used to host this Task. Possible values are: EXECUTION_ENVIRONMENT_GEN1, EXECUTION_ENVIRONMENT_GEN2.
    *
    * @schema V2JobSpecForProviderTemplateTemplate#executionEnvironment
    */
@@ -5437,7 +5944,7 @@ export interface V2JobSpecForProviderTemplateTemplateVpcAccess {
   readonly connector?: string;
 
   /**
-   * Traffic VPC egress settings. Possible values are ALL_TRAFFIC and PRIVATE_RANGES_ONLY.
+   * Traffic VPC egress settings. Possible values are: ALL_TRAFFIC, PRIVATE_RANGES_ONLY.
    *
    * @schema V2JobSpecForProviderTemplateTemplateVpcAccess#egress
    */
@@ -6672,7 +7179,7 @@ export function toJson_V2ServiceProps(obj: V2ServiceProps | undefined): Record<s
  */
 export interface V2ServiceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema V2ServiceSpec#deletionPolicy
    */
@@ -6682,6 +7189,13 @@ export interface V2ServiceSpec {
    * @schema V2ServiceSpec#forProvider
    */
   readonly forProvider: V2ServiceSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema V2ServiceSpec#managementPolicy
+   */
+  readonly managementPolicy?: V2ServiceSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6722,6 +7236,7 @@ export function toJson_V2ServiceSpec(obj: V2ServiceSpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_V2ServiceSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_V2ServiceSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_V2ServiceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_V2ServiceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -6733,7 +7248,7 @@ export function toJson_V2ServiceSpec(obj: V2ServiceSpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema V2ServiceSpecDeletionPolicy
  */
@@ -6784,7 +7299,7 @@ export interface V2ServiceSpecForProvider {
   readonly description?: string;
 
   /**
-   * Provides the ingress settings for this Service. On output, returns the currently observed ingress settings, or INGRESS_TRAFFIC_UNSPECIFIED if no revision is active. Possible values are INGRESS_TRAFFIC_ALL, INGRESS_TRAFFIC_INTERNAL_ONLY, and INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER.
+   * Provides the ingress settings for this Service. On output, returns the currently observed ingress settings, or INGRESS_TRAFFIC_UNSPECIFIED if no revision is active. Possible values are: INGRESS_TRAFFIC_ALL, INGRESS_TRAFFIC_INTERNAL_ONLY, INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER.
    *
    * @schema V2ServiceSpecForProvider#ingress
    */
@@ -6798,7 +7313,7 @@ export interface V2ServiceSpecForProvider {
   readonly labels?: { [key: string]: string };
 
   /**
-   * The launch stage as defined by Google Cloud Platform Launch Stages. Cloud Run supports ALPHA, BETA, and GA. If no value is specified, GA is assumed. Possible values are UNIMPLEMENTED, PRELAUNCH, EARLY_ACCESS, ALPHA, BETA, GA, and DEPRECATED.
+   * The launch stage as defined by Google Cloud Platform Launch Stages. Cloud Run supports ALPHA, BETA, and GA. If no value is specified, GA is assumed. Set the launch stage to a preview stage on input to allow use of preview features in that stage. On read (or output), describes whether the resource uses preview features. For example, if ALPHA is provided as input, but only BETA and GA-level features are used, this field will be BETA on output. Possible values are: UNIMPLEMENTED, PRELAUNCH, EARLY_ACCESS, ALPHA, BETA, GA, DEPRECATED.
    *
    * @schema V2ServiceSpecForProvider#launchStage
    */
@@ -6823,7 +7338,7 @@ export interface V2ServiceSpecForProvider {
    *
    * @schema V2ServiceSpecForProvider#template
    */
-  readonly template: V2ServiceSpecForProviderTemplate[];
+  readonly template?: V2ServiceSpecForProviderTemplate[];
 
   /**
    * Specifies how to distribute traffic over a collection of Revisions belonging to the Service. If traffic is empty or not provided, defaults to 100% traffic to the latest Ready Revision. Structure is documented below.
@@ -6858,6 +7373,20 @@ export function toJson_V2ServiceSpecForProvider(obj: V2ServiceSpecForProvider | 
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema V2ServiceSpecManagementPolicy
+ */
+export enum V2ServiceSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7077,7 +7606,7 @@ export interface V2ServiceSpecForProviderTemplate {
   readonly encryptionKey?: string;
 
   /**
-   * The sandbox environment to host this Revision. Possible values are EXECUTION_ENVIRONMENT_GEN1 and EXECUTION_ENVIRONMENT_GEN2.
+   * The sandbox environment to host this Revision. Possible values are: EXECUTION_ENVIRONMENT_GEN1, EXECUTION_ENVIRONMENT_GEN2.
    *
    * @schema V2ServiceSpecForProviderTemplate#executionEnvironment
    */
@@ -7119,6 +7648,13 @@ export interface V2ServiceSpecForProviderTemplate {
   readonly serviceAccount?: string;
 
   /**
+   * Enables session affinity. For more information, go to https://cloud.google.com/run/docs/configuring/session-affinity
+   *
+   * @schema V2ServiceSpecForProviderTemplate#sessionAffinity
+   */
+  readonly sessionAffinity?: boolean;
+
+  /**
    * Max allowed time for an instance to respond to a request. A duration in seconds with up to nine fractional digits, ending with 's'. Example: "3.5s".
    *
    * @schema V2ServiceSpecForProviderTemplate#timeout
@@ -7157,6 +7693,7 @@ export function toJson_V2ServiceSpecForProviderTemplate(obj: V2ServiceSpecForPro
     'revision': obj.revision,
     'scaling': obj.scaling?.map(y => toJson_V2ServiceSpecForProviderTemplateScaling(y)),
     'serviceAccount': obj.serviceAccount,
+    'sessionAffinity': obj.sessionAffinity,
     'timeout': obj.timeout,
     'volumes': obj.volumes?.map(y => toJson_V2ServiceSpecForProviderTemplateVolumes(y)),
     'vpcAccess': obj.vpcAccess?.map(y => toJson_V2ServiceSpecForProviderTemplateVpcAccess(y)),
@@ -7192,7 +7729,7 @@ export interface V2ServiceSpecForProviderTraffic {
   readonly tag?: string;
 
   /**
-   * The allocation type for this traffic target. Possible values are TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST and TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION.
+   * The allocation type for this traffic target. Possible values are: TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST, TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION.
    *
    * @schema V2ServiceSpecForProviderTraffic#type
    */
@@ -7570,7 +8107,7 @@ export interface V2ServiceSpecForProviderTemplateVpcAccess {
   readonly connector?: string;
 
   /**
-   * Traffic VPC egress settings. Possible values are ALL_TRAFFIC and PRIVATE_RANGES_ONLY.
+   * Traffic VPC egress settings. Possible values are: ALL_TRAFFIC, PRIVATE_RANGES_ONLY.
    *
    * @schema V2ServiceSpecForProviderTemplateVpcAccess#egress
    */
@@ -7853,6 +8390,13 @@ export interface V2ServiceSpecForProviderTemplateContainersResources {
    */
   readonly limits?: { [key: string]: string };
 
+  /**
+   * Determines whether CPU should be boosted on startup of a new container instance above the requested CPU threshold, this can help reduce cold-start latency.
+   *
+   * @schema V2ServiceSpecForProviderTemplateContainersResources#startupCpuBoost
+   */
+  readonly startupCpuBoost?: boolean;
+
 }
 
 /**
@@ -7864,6 +8408,7 @@ export function toJson_V2ServiceSpecForProviderTemplateContainersResources(obj: 
   const result = {
     'cpuIdle': obj.cpuIdle,
     'limits': ((obj.limits) === undefined) ? undefined : (Object.entries(obj.limits).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'startupCpuBoost': obj.startupCpuBoost,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8174,6 +8719,13 @@ export interface V2ServiceSpecForProviderTemplateContainersLivenessProbeHttpGet 
    */
   readonly path?: string;
 
+  /**
+   * Port number to access on the container. Must be in the range 1 to 65535. If not specified, defaults to 8080.
+   *
+   * @schema V2ServiceSpecForProviderTemplateContainersLivenessProbeHttpGet#port
+   */
+  readonly port?: number;
+
 }
 
 /**
@@ -8185,6 +8737,7 @@ export function toJson_V2ServiceSpecForProviderTemplateContainersLivenessProbeHt
   const result = {
     'httpHeaders': obj.httpHeaders?.map(y => toJson_V2ServiceSpecForProviderTemplateContainersLivenessProbeHttpGetHttpHeaders(y)),
     'path': obj.path,
+    'port': obj.port,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8271,6 +8824,13 @@ export interface V2ServiceSpecForProviderTemplateContainersStartupProbeHttpGet {
    */
   readonly path?: string;
 
+  /**
+   * Port number to access on the container. Must be in the range 1 to 65535. If not specified, defaults to 8080.
+   *
+   * @schema V2ServiceSpecForProviderTemplateContainersStartupProbeHttpGet#port
+   */
+  readonly port?: number;
+
 }
 
 /**
@@ -8282,6 +8842,7 @@ export function toJson_V2ServiceSpecForProviderTemplateContainersStartupProbeHtt
   const result = {
     'httpHeaders': obj.httpHeaders?.map(y => toJson_V2ServiceSpecForProviderTemplateContainersStartupProbeHttpGetHttpHeaders(y)),
     'path': obj.path,
+    'port': obj.port,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});

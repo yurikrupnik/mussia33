@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-users-redis
+#  namespace: mussia30
+  labels:
+    app: node-users-redis
+    version: v1
+spec:
+  replicas: 1
+
+  template:
+    metadata:
+      name: node-users-redis
+      labels:
+        app: node-users-redis
+        version: v1
+      annotations:
+        "linkerd.io/inject": "enabled"
+        "consul.hashicorp.com/connect-inject": "true"
+        "consul.hashicorp.com/connect-service": "node-users-redis"
+        "consul.hashicorp.com/connect-service-protocol": "http"
+        "consul.hashicorp.com/service-meta-version": "v.1.1"
+        "prometheus.io/scrape": "true"
+        "prometheus.io/port": "9102"
+    spec:
+      serviceAccountName: node-users-redis
+      containers:
+        - name: node-users-redis
+          image: yurikrupnik/node-users-redis:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MONGO_URI
+              value: "mongodb://host.docker.internal"
+            - name: REDIS_HOST
+              value: "host.docker.internal"
+      restartPolicy: Always
+  selector:
+    matchLabels:
+      app: node-users-redis
+      version: v1

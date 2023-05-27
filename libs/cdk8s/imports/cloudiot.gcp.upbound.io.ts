@@ -99,7 +99,7 @@ export function toJson_DeviceProps(obj: DeviceProps | undefined): Record<string,
  */
 export interface DeviceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DeviceSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface DeviceSpec {
    * @schema DeviceSpec#forProvider
    */
   readonly forProvider: DeviceSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema DeviceSpec#managementPolicy
+   */
+  readonly managementPolicy?: DeviceSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_DeviceSpec(obj: DeviceSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DeviceSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_DeviceSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_DeviceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DeviceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_DeviceSpec(obj: DeviceSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DeviceSpecDeletionPolicy
  */
@@ -197,7 +205,7 @@ export interface DeviceSpecForProvider {
   readonly gatewayConfig?: DeviceSpecForProviderGatewayConfig[];
 
   /**
-   * The logging verbosity for device activity. Possible values are NONE, ERROR, INFO, and DEBUG.
+   * The logging verbosity for device activity. Possible values are: NONE, ERROR, INFO, DEBUG.
    *
    * @schema DeviceSpecForProvider#logLevel
    */
@@ -253,6 +261,20 @@ export function toJson_DeviceSpecForProvider(obj: DeviceSpecForProvider | undefi
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema DeviceSpecManagementPolicy
+ */
+export enum DeviceSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -450,14 +472,14 @@ export function toJson_DeviceSpecForProviderCredentials(obj: DeviceSpecForProvid
  */
 export interface DeviceSpecForProviderGatewayConfig {
   /**
-   * Indicates whether the device is a gateway. Possible values are ASSOCIATION_ONLY, DEVICE_AUTH_TOKEN_ONLY, and ASSOCIATION_AND_DEVICE_AUTH_TOKEN.
+   * Indicates whether the device is a gateway. Possible values are: ASSOCIATION_ONLY, DEVICE_AUTH_TOKEN_ONLY, ASSOCIATION_AND_DEVICE_AUTH_TOKEN.
    *
    * @schema DeviceSpecForProviderGatewayConfig#gatewayAuthMethod
    */
   readonly gatewayAuthMethod?: string;
 
   /**
-   * Indicates whether the device is a gateway. Default value is NON_GATEWAY. Possible values are GATEWAY and NON_GATEWAY.
+   * Indicates whether the device is a gateway. Default value is NON_GATEWAY. Possible values are: GATEWAY, NON_GATEWAY.
    *
    * @schema DeviceSpecForProviderGatewayConfig#gatewayType
    */
@@ -723,7 +745,7 @@ export function toJson_DeviceSpecPublishConnectionDetailsToMetadata(obj: DeviceS
  */
 export interface DeviceSpecForProviderCredentialsPublicKey {
   /**
-   * The format of the key. Possible values are RSA_PEM, RSA_X509_PEM, ES256_PEM, and ES256_X509_PEM.
+   * The format of the key. Possible values are: RSA_PEM, RSA_X509_PEM, ES256_PEM, ES256_X509_PEM.
    *
    * @schema DeviceSpecForProviderCredentialsPublicKey#format
    */
@@ -1081,7 +1103,7 @@ export function toJson_RegistryProps(obj: RegistryProps | undefined): Record<str
  */
 export interface RegistrySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RegistrySpec#deletionPolicy
    */
@@ -1091,6 +1113,13 @@ export interface RegistrySpec {
    * @schema RegistrySpec#forProvider
    */
   readonly forProvider: RegistrySpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema RegistrySpec#managementPolicy
+   */
+  readonly managementPolicy?: RegistrySpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1131,6 +1160,7 @@ export function toJson_RegistrySpec(obj: RegistrySpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RegistrySpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_RegistrySpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_RegistrySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RegistrySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -1142,7 +1172,7 @@ export function toJson_RegistrySpec(obj: RegistrySpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RegistrySpecDeletionPolicy
  */
@@ -1179,7 +1209,7 @@ export interface RegistrySpecForProvider {
   readonly httpConfig?: { [key: string]: string };
 
   /**
-   * The default logging verbosity for activity from devices in this registry. Specifies which events should be written to logs. For example, if the LogLevel is ERROR, only events that terminate in errors will be logged. LogLevel is inclusive; enabling INFO logging will also enable ERROR logging. Default value is NONE. Possible values are NONE, ERROR, INFO, and DEBUG.
+   * The default logging verbosity for activity from devices in this registry. Specifies which events should be written to logs. For example, if the LogLevel is ERROR, only events that terminate in errors will be logged. LogLevel is inclusive; enabling INFO logging will also enable ERROR logging. Default value is NONE. Possible values are: NONE, ERROR, INFO, DEBUG.
    *
    * @schema RegistrySpecForProvider#logLevel
    */
@@ -1197,7 +1227,7 @@ export interface RegistrySpecForProvider {
    *
    * @schema RegistrySpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
@@ -1243,6 +1273,20 @@ export function toJson_RegistrySpecForProvider(obj: RegistrySpecForProvider | un
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema RegistrySpecManagementPolicy
+ */
+export enum RegistrySpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

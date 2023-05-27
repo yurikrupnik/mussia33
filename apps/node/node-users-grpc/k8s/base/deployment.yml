@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-users-grpc
+#  namespace: mussia30
+  labels:
+    app: node-users-grpc
+    version: v1
+spec:
+  replicas: 1
+
+  template:
+    metadata:
+      name: node-users-grpc
+      labels:
+        app: node-users-grpc
+        version: v1
+      annotations:
+        "linkerd.io/inject": "enabled"
+        "consul.hashicorp.com/connect-inject": "true"
+        "consul.hashicorp.com/connect-service": "node-users-grpc"
+        "consul.hashicorp.com/connect-service-protocol": "http"
+        "consul.hashicorp.com/service-meta-version": "v.1.1"
+        "prometheus.io/scrape": "true"
+        "prometheus.io/port": "9102"
+    spec:
+      serviceAccountName: node-users-grpc
+      containers:
+        - name: node-users-grpc
+          image: yurikrupnik/node-users-grpc:latest
+          imagePullPolicy: IfNotPresent
+          restartPolicy: Always
+          env:
+#            - name: GRPC_TRACE
+#              value: "all"
+#            - name: GRPC_VERBOSITY
+#              value: "DEBUG"
+            - name: MONGO_URI
+              value: "mongodb://host.docker.internal"
+            - name: GRPC_HOST
+#              value: "0.0.0.0:8080"
+              value: "127.0.0.1:5000"
+
+          volumeMounts:
+            - mountPath: /app/assets
+              name: proto-configs
+      volumes:
+        - name: proto-configs
+          configMap:
+            name: proto-configs
+            items:
+              - key: users.proto
+                path: users.proto
+  selector:
+    matchLabels:
+      app: node-users-grpc
+      version: v1

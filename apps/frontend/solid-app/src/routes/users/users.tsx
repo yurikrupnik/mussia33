@@ -1,21 +1,38 @@
 import { For, createResource } from "solid-js";
-import axios from "axios";
 import { useMachine } from "@xstate/solid";
 import { testMachine } from "@mussia33/node/xstate-machines";
-// import { User, UserDocument } from '@nx-go-playground/api/users';
+// import { users } from "@mussia33/node/grpc"; // does not affect
+import { User } from "@mussia33/node/nest/users-api"; // does not affect
+import instance from "../../request";
 
 function getUsers() {
-  return axios.get("/api/users").then((r: any) => r.data);
-  // return axios.get('http://localhost:8080/api/users').then((r: any) => r.data);
+  return instance.get<User[]>("/api/users").then((r: any) => r.data);
 }
+
+function getUsersRedis() {
+  return instance.get("/api/redis-users").then((r: any) => r.data);
+}
+
+function getUsersGrpc() {
+  return instance.get("/api/grpc-users").then((r: any) => r.data);
+}
+
 function deleteUser(id: string) {
-  return axios.delete(`/api/users/${id}`);
+  return instance.delete(`/api/users/${id}`);
 }
 
 const Users = () => {
   const [state, send] = useMachine(testMachine);
   // const [data, setData] = createSignal([]);
-  const [data, { refetch }] = createResource(getUsers, { initialValue: [] });
+  const [redisData] = createResource(getUsersRedis, {
+    initialValue: [],
+  });
+  const [grpcData] = createResource(getUsersGrpc, {
+    initialValue: [],
+  });
+  const [data, { refetch }] = createResource<User[]>(getUsers, {
+    initialValue: [],
+  });
 
   const deleteItem = (id: string) => {
     deleteUser(id).then(() => {
@@ -35,6 +52,34 @@ const Users = () => {
         data here
         <For each={data()}>
           {(item: any) => {
+            return (
+              <div class="flex items-stretch">
+                <div class="py-6 w-full">{item.name}</div>
+                <div class="py-6 w-full">{item.email}</div>
+                <div class="py-6 w-full">
+                  <button onclick={() => deleteItem(item._id)}>Delete</button>
+                </div>
+              </div>
+            );
+          }}
+        </For>
+        <h1>Redis data</h1>
+        <For each={redisData()}>
+          {(item: any) => {
+            return (
+              <div class="flex items-stretch">
+                <div class="py-6 w-full">{item.name}</div>
+                <div class="py-6 w-full">{item.email}</div>
+                <div class="py-6 w-full">
+                  <button onclick={() => deleteItem(item._id)}>Delete</button>
+                </div>
+              </div>
+            );
+          }}
+        </For>
+        <h1>GRPC data</h1>
+        <For each={grpcData()}>
+          {(item) => {
             return (
               <div class="flex items-stretch">
                 <div class="py-6 w-full">{item.name}</div>

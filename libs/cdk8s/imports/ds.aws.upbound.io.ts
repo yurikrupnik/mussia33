@@ -99,7 +99,7 @@ export function toJson_ConditionalForwarderProps(obj: ConditionalForwarderProps 
  */
 export interface ConditionalForwarderSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ConditionalForwarderSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface ConditionalForwarderSpec {
    * @schema ConditionalForwarderSpec#forProvider
    */
   readonly forProvider: ConditionalForwarderSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ConditionalForwarderSpec#managementPolicy
+   */
+  readonly managementPolicy?: ConditionalForwarderSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_ConditionalForwarderSpec(obj: ConditionalForwarderSpec | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ConditionalForwarderSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_ConditionalForwarderSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_ConditionalForwarderSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ConditionalForwarderSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_ConditionalForwarderSpec(obj: ConditionalForwarderSpec | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ConditionalForwarderSpecDeletionPolicy
  */
@@ -201,7 +209,7 @@ export interface ConditionalForwarderSpecForProvider {
    *
    * @schema ConditionalForwarderSpecForProvider#dnsIps
    */
-  readonly dnsIps: string[];
+  readonly dnsIps?: string[];
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -237,6 +245,20 @@ export function toJson_ConditionalForwarderSpecForProvider(obj: ConditionalForwa
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ConditionalForwarderSpecManagementPolicy
+ */
+export enum ConditionalForwarderSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -960,7 +982,7 @@ export function toJson_DirectoryProps(obj: DirectoryProps | undefined): Record<s
  */
 export interface DirectorySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DirectorySpec#deletionPolicy
    */
@@ -970,6 +992,13 @@ export interface DirectorySpec {
    * @schema DirectorySpec#forProvider
    */
   readonly forProvider: DirectorySpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema DirectorySpec#managementPolicy
+   */
+  readonly managementPolicy?: DirectorySpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1010,6 +1039,7 @@ export function toJson_DirectorySpec(obj: DirectorySpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DirectorySpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_DirectorySpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_DirectorySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DirectorySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -1021,7 +1051,7 @@ export function toJson_DirectorySpec(obj: DirectorySpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DirectorySpecDeletionPolicy
  */
@@ -1085,14 +1115,14 @@ export interface DirectorySpecForProvider {
    *
    * @schema DirectorySpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The password for the directory administrator or connector user.
    *
    * @schema DirectorySpecForProvider#passwordSecretRef
    */
-  readonly passwordSecretRef: DirectorySpecForProviderPasswordSecretRef;
+  readonly passwordSecretRef?: DirectorySpecForProviderPasswordSecretRef;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -1165,6 +1195,20 @@ export function toJson_DirectorySpecForProvider(obj: DirectorySpecForProvider | 
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema DirectorySpecManagementPolicy
+ */
+export enum DirectorySpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1345,7 +1389,21 @@ export interface DirectorySpecForProviderConnectSettings {
    *
    * @schema DirectorySpecForProviderConnectSettings#subnetIds
    */
-  readonly subnetIds: string[];
+  readonly subnetIds?: string[];
+
+  /**
+   * References to Subnet in ec2 to populate subnetIds.
+   *
+   * @schema DirectorySpecForProviderConnectSettings#subnetIdsRefs
+   */
+  readonly subnetIdsRefs?: DirectorySpecForProviderConnectSettingsSubnetIdsRefs[];
+
+  /**
+   * Selector for a list of Subnet in ec2 to populate subnetIds.
+   *
+   * @schema DirectorySpecForProviderConnectSettings#subnetIdsSelector
+   */
+  readonly subnetIdsSelector?: DirectorySpecForProviderConnectSettingsSubnetIdsSelector;
 
   /**
    * The identifier of the VPC that the directory is in.
@@ -1380,6 +1438,8 @@ export function toJson_DirectorySpecForProviderConnectSettings(obj: DirectorySpe
     'customerDnsIps': obj.customerDnsIps?.map(y => y),
     'customerUsername': obj.customerUsername,
     'subnetIds': obj.subnetIds?.map(y => y),
+    'subnetIdsRefs': obj.subnetIdsRefs?.map(y => toJson_DirectorySpecForProviderConnectSettingsSubnetIdsRefs(y)),
+    'subnetIdsSelector': toJson_DirectorySpecForProviderConnectSettingsSubnetIdsSelector(obj.subnetIdsSelector),
     'vpcId': obj.vpcId,
     'vpcIdRef': toJson_DirectorySpecForProviderConnectSettingsVpcIdRef(obj.vpcIdRef),
     'vpcIdSelector': toJson_DirectorySpecForProviderConnectSettingsVpcIdSelector(obj.vpcIdSelector),
@@ -1651,6 +1711,88 @@ export function toJson_DirectorySpecPublishConnectionDetailsToMetadata(obj: Dire
     'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A Reference to a named object.
+ *
+ * @schema DirectorySpecForProviderConnectSettingsSubnetIdsRefs
+ */
+export interface DirectorySpecForProviderConnectSettingsSubnetIdsRefs {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema DirectorySpecForProviderConnectSettingsSubnetIdsRefs#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema DirectorySpecForProviderConnectSettingsSubnetIdsRefs#policy
+   */
+  readonly policy?: DirectorySpecForProviderConnectSettingsSubnetIdsRefsPolicy;
+
+}
+
+/**
+ * Converts an object of type 'DirectorySpecForProviderConnectSettingsSubnetIdsRefs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DirectorySpecForProviderConnectSettingsSubnetIdsRefs(obj: DirectorySpecForProviderConnectSettingsSubnetIdsRefs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_DirectorySpecForProviderConnectSettingsSubnetIdsRefsPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a list of Subnet in ec2 to populate subnetIds.
+ *
+ * @schema DirectorySpecForProviderConnectSettingsSubnetIdsSelector
+ */
+export interface DirectorySpecForProviderConnectSettingsSubnetIdsSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema DirectorySpecForProviderConnectSettingsSubnetIdsSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema DirectorySpecForProviderConnectSettingsSubnetIdsSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema DirectorySpecForProviderConnectSettingsSubnetIdsSelector#policy
+   */
+  readonly policy?: DirectorySpecForProviderConnectSettingsSubnetIdsSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'DirectorySpecForProviderConnectSettingsSubnetIdsSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DirectorySpecForProviderConnectSettingsSubnetIdsSelector(obj: DirectorySpecForProviderConnectSettingsSubnetIdsSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_DirectorySpecForProviderConnectSettingsSubnetIdsSelectorPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1991,6 +2133,80 @@ export function toJson_DirectorySpecPublishConnectionDetailsToConfigRefPolicy(ob
 /**
  * Policies for referencing.
  *
+ * @schema DirectorySpecForProviderConnectSettingsSubnetIdsRefsPolicy
+ */
+export interface DirectorySpecForProviderConnectSettingsSubnetIdsRefsPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema DirectorySpecForProviderConnectSettingsSubnetIdsRefsPolicy#resolution
+   */
+  readonly resolution?: DirectorySpecForProviderConnectSettingsSubnetIdsRefsPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema DirectorySpecForProviderConnectSettingsSubnetIdsRefsPolicy#resolve
+   */
+  readonly resolve?: DirectorySpecForProviderConnectSettingsSubnetIdsRefsPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'DirectorySpecForProviderConnectSettingsSubnetIdsRefsPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DirectorySpecForProviderConnectSettingsSubnetIdsRefsPolicy(obj: DirectorySpecForProviderConnectSettingsSubnetIdsRefsPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema DirectorySpecForProviderConnectSettingsSubnetIdsSelectorPolicy
+ */
+export interface DirectorySpecForProviderConnectSettingsSubnetIdsSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema DirectorySpecForProviderConnectSettingsSubnetIdsSelectorPolicy#resolution
+   */
+  readonly resolution?: DirectorySpecForProviderConnectSettingsSubnetIdsSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema DirectorySpecForProviderConnectSettingsSubnetIdsSelectorPolicy#resolve
+   */
+  readonly resolve?: DirectorySpecForProviderConnectSettingsSubnetIdsSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'DirectorySpecForProviderConnectSettingsSubnetIdsSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DirectorySpecForProviderConnectSettingsSubnetIdsSelectorPolicy(obj: DirectorySpecForProviderConnectSettingsSubnetIdsSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
  * @schema DirectorySpecForProviderConnectSettingsVpcIdRefPolicy
  */
 export interface DirectorySpecForProviderConnectSettingsVpcIdRefPolicy {
@@ -2237,6 +2453,54 @@ export enum DirectorySpecPublishConnectionDetailsToConfigRefPolicyResolve {
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
+ * @schema DirectorySpecForProviderConnectSettingsSubnetIdsRefsPolicyResolution
+ */
+export enum DirectorySpecForProviderConnectSettingsSubnetIdsRefsPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema DirectorySpecForProviderConnectSettingsSubnetIdsRefsPolicyResolve
+ */
+export enum DirectorySpecForProviderConnectSettingsSubnetIdsRefsPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema DirectorySpecForProviderConnectSettingsSubnetIdsSelectorPolicyResolution
+ */
+export enum DirectorySpecForProviderConnectSettingsSubnetIdsSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema DirectorySpecForProviderConnectSettingsSubnetIdsSelectorPolicyResolve
+ */
+export enum DirectorySpecForProviderConnectSettingsSubnetIdsSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
  * @schema DirectorySpecForProviderConnectSettingsVpcIdRefPolicyResolution
  */
 export enum DirectorySpecForProviderConnectSettingsVpcIdRefPolicyResolution {
@@ -2372,6 +2636,979 @@ export enum DirectorySpecForProviderVpcSettingsVpcIdSelectorPolicyResolution {
  * @schema DirectorySpecForProviderVpcSettingsVpcIdSelectorPolicyResolve
  */
 export enum DirectorySpecForProviderVpcSettingsVpcIdSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+
+/**
+ * SharedDirectory is the Schema for the SharedDirectorys API. Manages a directory in your account (directory owner) shared with another account (directory consumer).
+ *
+ * @schema SharedDirectory
+ */
+export class SharedDirectory extends ApiObject {
+  /**
+   * Returns the apiVersion and kind for "SharedDirectory"
+   */
+  public static readonly GVK: GroupVersionKind = {
+    apiVersion: 'ds.aws.upbound.io/v1beta1',
+    kind: 'SharedDirectory',
+  }
+
+  /**
+   * Renders a Kubernetes manifest for "SharedDirectory".
+   *
+   * This can be used to inline resource manifests inside other objects (e.g. as templates).
+   *
+   * @param props initialization props
+   */
+  public static manifest(props: SharedDirectoryProps): any {
+    return {
+      ...SharedDirectory.GVK,
+      ...toJson_SharedDirectoryProps(props),
+    };
+  }
+
+  /**
+   * Defines a "SharedDirectory" API object
+   * @param scope the scope in which to define this object
+   * @param id a scope-local name for the object
+   * @param props initialization props
+   */
+  public constructor(scope: Construct, id: string, props: SharedDirectoryProps) {
+    super(scope, id, {
+      ...SharedDirectory.GVK,
+      ...props,
+    });
+  }
+
+  /**
+   * Renders the object to Kubernetes JSON.
+   */
+  public toJson(): any {
+    const resolved = super.toJson();
+
+    return {
+      ...SharedDirectory.GVK,
+      ...toJson_SharedDirectoryProps(resolved),
+    };
+  }
+}
+
+/**
+ * SharedDirectory is the Schema for the SharedDirectorys API. Manages a directory in your account (directory owner) shared with another account (directory consumer).
+ *
+ * @schema SharedDirectory
+ */
+export interface SharedDirectoryProps {
+  /**
+   * @schema SharedDirectory#metadata
+   */
+  readonly metadata?: ApiObjectMetadata;
+
+  /**
+   * SharedDirectorySpec defines the desired state of SharedDirectory
+   *
+   * @schema SharedDirectory#spec
+   */
+  readonly spec: SharedDirectorySpec;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectoryProps' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectoryProps(obj: SharedDirectoryProps | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metadata': obj.metadata,
+    'spec': toJson_SharedDirectorySpec(obj.spec),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SharedDirectorySpec defines the desired state of SharedDirectory
+ *
+ * @schema SharedDirectorySpec
+ */
+export interface SharedDirectorySpec {
+  /**
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema SharedDirectorySpec#deletionPolicy
+   */
+  readonly deletionPolicy?: SharedDirectorySpecDeletionPolicy;
+
+  /**
+   * @schema SharedDirectorySpec#forProvider
+   */
+  readonly forProvider: SharedDirectorySpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema SharedDirectorySpec#managementPolicy
+   */
+  readonly managementPolicy?: SharedDirectorySpecManagementPolicy;
+
+  /**
+   * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+   *
+   * @schema SharedDirectorySpec#providerConfigRef
+   */
+  readonly providerConfigRef?: SharedDirectorySpecProviderConfigRef;
+
+  /**
+   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
+   *
+   * @schema SharedDirectorySpec#providerRef
+   */
+  readonly providerRef?: SharedDirectorySpecProviderRef;
+
+  /**
+   * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+   *
+   * @schema SharedDirectorySpec#publishConnectionDetailsTo
+   */
+  readonly publishConnectionDetailsTo?: SharedDirectorySpecPublishConnectionDetailsTo;
+
+  /**
+   * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+   *
+   * @schema SharedDirectorySpec#writeConnectionSecretToRef
+   */
+  readonly writeConnectionSecretToRef?: SharedDirectorySpecWriteConnectionSecretToRef;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpec(obj: SharedDirectorySpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deletionPolicy': obj.deletionPolicy,
+    'forProvider': toJson_SharedDirectorySpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
+    'providerConfigRef': toJson_SharedDirectorySpecProviderConfigRef(obj.providerConfigRef),
+    'providerRef': toJson_SharedDirectorySpecProviderRef(obj.providerRef),
+    'publishConnectionDetailsTo': toJson_SharedDirectorySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
+    'writeConnectionSecretToRef': toJson_SharedDirectorySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema SharedDirectorySpecDeletionPolicy
+ */
+export enum SharedDirectorySpecDeletionPolicy {
+  /** Orphan */
+  ORPHAN = "Orphan",
+  /** Delete */
+  DELETE = "Delete",
+}
+
+/**
+ * @schema SharedDirectorySpecForProvider
+ */
+export interface SharedDirectorySpecForProvider {
+  /**
+   * Identifier of the Managed Microsoft AD directory that you want to share with other accounts.
+   *
+   * @schema SharedDirectorySpecForProvider#directoryId
+   */
+  readonly directoryId?: string;
+
+  /**
+   * Reference to a Directory in ds to populate directoryId.
+   *
+   * @schema SharedDirectorySpecForProvider#directoryIdRef
+   */
+  readonly directoryIdRef?: SharedDirectorySpecForProviderDirectoryIdRef;
+
+  /**
+   * Selector for a Directory in ds to populate directoryId.
+   *
+   * @schema SharedDirectorySpecForProvider#directoryIdSelector
+   */
+  readonly directoryIdSelector?: SharedDirectorySpecForProviderDirectoryIdSelector;
+
+  /**
+   * Method used when sharing a directory. Valid values are ORGANIZATIONS and HANDSHAKE. Default is HANDSHAKE.
+   *
+   * @default HANDSHAKE.
+   * @schema SharedDirectorySpecForProvider#method
+   */
+  readonly method?: string;
+
+  /**
+   * Message sent by the directory owner to the directory consumer to help the directory consumer administrator determine whether to approve or reject the share invitation.
+   *
+   * @schema SharedDirectorySpecForProvider#notesSecretRef
+   */
+  readonly notesSecretRef?: SharedDirectorySpecForProviderNotesSecretRef;
+
+  /**
+   * Region is the region you'd like your resource to be created in.
+   *
+   * @schema SharedDirectorySpecForProvider#region
+   */
+  readonly region: string;
+
+  /**
+   * Identifier for the directory consumer account with whom the directory is to be shared. See below.
+   *
+   * @schema SharedDirectorySpecForProvider#target
+   */
+  readonly target?: SharedDirectorySpecForProviderTarget[];
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpecForProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpecForProvider(obj: SharedDirectorySpecForProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'directoryId': obj.directoryId,
+    'directoryIdRef': toJson_SharedDirectorySpecForProviderDirectoryIdRef(obj.directoryIdRef),
+    'directoryIdSelector': toJson_SharedDirectorySpecForProviderDirectoryIdSelector(obj.directoryIdSelector),
+    'method': obj.method,
+    'notesSecretRef': toJson_SharedDirectorySpecForProviderNotesSecretRef(obj.notesSecretRef),
+    'region': obj.region,
+    'target': obj.target?.map(y => toJson_SharedDirectorySpecForProviderTarget(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema SharedDirectorySpecManagementPolicy
+ */
+export enum SharedDirectorySpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
+
+/**
+ * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+ *
+ * @schema SharedDirectorySpecProviderConfigRef
+ */
+export interface SharedDirectorySpecProviderConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema SharedDirectorySpecProviderConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema SharedDirectorySpecProviderConfigRef#policy
+   */
+  readonly policy?: SharedDirectorySpecProviderConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpecProviderConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpecProviderConfigRef(obj: SharedDirectorySpecProviderConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_SharedDirectorySpecProviderConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
+ *
+ * @schema SharedDirectorySpecProviderRef
+ */
+export interface SharedDirectorySpecProviderRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema SharedDirectorySpecProviderRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema SharedDirectorySpecProviderRef#policy
+   */
+  readonly policy?: SharedDirectorySpecProviderRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpecProviderRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpecProviderRef(obj: SharedDirectorySpecProviderRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_SharedDirectorySpecProviderRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+ *
+ * @schema SharedDirectorySpecPublishConnectionDetailsTo
+ */
+export interface SharedDirectorySpecPublishConnectionDetailsTo {
+  /**
+   * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+   *
+   * @schema SharedDirectorySpecPublishConnectionDetailsTo#configRef
+   */
+  readonly configRef?: SharedDirectorySpecPublishConnectionDetailsToConfigRef;
+
+  /**
+   * Metadata is the metadata for connection secret.
+   *
+   * @schema SharedDirectorySpecPublishConnectionDetailsTo#metadata
+   */
+  readonly metadata?: SharedDirectorySpecPublishConnectionDetailsToMetadata;
+
+  /**
+   * Name is the name of the connection secret.
+   *
+   * @schema SharedDirectorySpecPublishConnectionDetailsTo#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpecPublishConnectionDetailsTo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpecPublishConnectionDetailsTo(obj: SharedDirectorySpecPublishConnectionDetailsTo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configRef': toJson_SharedDirectorySpecPublishConnectionDetailsToConfigRef(obj.configRef),
+    'metadata': toJson_SharedDirectorySpecPublishConnectionDetailsToMetadata(obj.metadata),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+ *
+ * @schema SharedDirectorySpecWriteConnectionSecretToRef
+ */
+export interface SharedDirectorySpecWriteConnectionSecretToRef {
+  /**
+   * Name of the secret.
+   *
+   * @schema SharedDirectorySpecWriteConnectionSecretToRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the secret.
+   *
+   * @schema SharedDirectorySpecWriteConnectionSecretToRef#namespace
+   */
+  readonly namespace: string;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpecWriteConnectionSecretToRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpecWriteConnectionSecretToRef(obj: SharedDirectorySpecWriteConnectionSecretToRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a Directory in ds to populate directoryId.
+ *
+ * @schema SharedDirectorySpecForProviderDirectoryIdRef
+ */
+export interface SharedDirectorySpecForProviderDirectoryIdRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema SharedDirectorySpecForProviderDirectoryIdRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema SharedDirectorySpecForProviderDirectoryIdRef#policy
+   */
+  readonly policy?: SharedDirectorySpecForProviderDirectoryIdRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpecForProviderDirectoryIdRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpecForProviderDirectoryIdRef(obj: SharedDirectorySpecForProviderDirectoryIdRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_SharedDirectorySpecForProviderDirectoryIdRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a Directory in ds to populate directoryId.
+ *
+ * @schema SharedDirectorySpecForProviderDirectoryIdSelector
+ */
+export interface SharedDirectorySpecForProviderDirectoryIdSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema SharedDirectorySpecForProviderDirectoryIdSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema SharedDirectorySpecForProviderDirectoryIdSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema SharedDirectorySpecForProviderDirectoryIdSelector#policy
+   */
+  readonly policy?: SharedDirectorySpecForProviderDirectoryIdSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpecForProviderDirectoryIdSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpecForProviderDirectoryIdSelector(obj: SharedDirectorySpecForProviderDirectoryIdSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_SharedDirectorySpecForProviderDirectoryIdSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Message sent by the directory owner to the directory consumer to help the directory consumer administrator determine whether to approve or reject the share invitation.
+ *
+ * @schema SharedDirectorySpecForProviderNotesSecretRef
+ */
+export interface SharedDirectorySpecForProviderNotesSecretRef {
+  /**
+   * The key to select.
+   *
+   * @schema SharedDirectorySpecForProviderNotesSecretRef#key
+   */
+  readonly key: string;
+
+  /**
+   * Name of the secret.
+   *
+   * @schema SharedDirectorySpecForProviderNotesSecretRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the secret.
+   *
+   * @schema SharedDirectorySpecForProviderNotesSecretRef#namespace
+   */
+  readonly namespace: string;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpecForProviderNotesSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpecForProviderNotesSecretRef(obj: SharedDirectorySpecForProviderNotesSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SharedDirectorySpecForProviderTarget
+ */
+export interface SharedDirectorySpecForProviderTarget {
+  /**
+   * Identifier of the directory consumer account.
+   *
+   * @schema SharedDirectorySpecForProviderTarget#id
+   */
+  readonly id: string;
+
+  /**
+   * Type of identifier to be used in the id field. Valid value is ACCOUNT. Default is ACCOUNT.
+   *
+   * @default ACCOUNT.
+   * @schema SharedDirectorySpecForProviderTarget#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpecForProviderTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpecForProviderTarget(obj: SharedDirectorySpecForProviderTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'id': obj.id,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema SharedDirectorySpecProviderConfigRefPolicy
+ */
+export interface SharedDirectorySpecProviderConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema SharedDirectorySpecProviderConfigRefPolicy#resolution
+   */
+  readonly resolution?: SharedDirectorySpecProviderConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema SharedDirectorySpecProviderConfigRefPolicy#resolve
+   */
+  readonly resolve?: SharedDirectorySpecProviderConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpecProviderConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpecProviderConfigRefPolicy(obj: SharedDirectorySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema SharedDirectorySpecProviderRefPolicy
+ */
+export interface SharedDirectorySpecProviderRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema SharedDirectorySpecProviderRefPolicy#resolution
+   */
+  readonly resolution?: SharedDirectorySpecProviderRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema SharedDirectorySpecProviderRefPolicy#resolve
+   */
+  readonly resolve?: SharedDirectorySpecProviderRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpecProviderRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpecProviderRefPolicy(obj: SharedDirectorySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+ *
+ * @schema SharedDirectorySpecPublishConnectionDetailsToConfigRef
+ */
+export interface SharedDirectorySpecPublishConnectionDetailsToConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema SharedDirectorySpecPublishConnectionDetailsToConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema SharedDirectorySpecPublishConnectionDetailsToConfigRef#policy
+   */
+  readonly policy?: SharedDirectorySpecPublishConnectionDetailsToConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpecPublishConnectionDetailsToConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpecPublishConnectionDetailsToConfigRef(obj: SharedDirectorySpecPublishConnectionDetailsToConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_SharedDirectorySpecPublishConnectionDetailsToConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Metadata is the metadata for connection secret.
+ *
+ * @schema SharedDirectorySpecPublishConnectionDetailsToMetadata
+ */
+export interface SharedDirectorySpecPublishConnectionDetailsToMetadata {
+  /**
+   * Annotations are the annotations to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.annotations". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema SharedDirectorySpecPublishConnectionDetailsToMetadata#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Labels are the labels/tags to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.labels". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema SharedDirectorySpecPublishConnectionDetailsToMetadata#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Type is the SecretType for the connection secret. - Only valid for Kubernetes Secret Stores.
+   *
+   * @schema SharedDirectorySpecPublishConnectionDetailsToMetadata#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpecPublishConnectionDetailsToMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpecPublishConnectionDetailsToMetadata(obj: SharedDirectorySpecPublishConnectionDetailsToMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema SharedDirectorySpecForProviderDirectoryIdRefPolicy
+ */
+export interface SharedDirectorySpecForProviderDirectoryIdRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema SharedDirectorySpecForProviderDirectoryIdRefPolicy#resolution
+   */
+  readonly resolution?: SharedDirectorySpecForProviderDirectoryIdRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema SharedDirectorySpecForProviderDirectoryIdRefPolicy#resolve
+   */
+  readonly resolve?: SharedDirectorySpecForProviderDirectoryIdRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpecForProviderDirectoryIdRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpecForProviderDirectoryIdRefPolicy(obj: SharedDirectorySpecForProviderDirectoryIdRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema SharedDirectorySpecForProviderDirectoryIdSelectorPolicy
+ */
+export interface SharedDirectorySpecForProviderDirectoryIdSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema SharedDirectorySpecForProviderDirectoryIdSelectorPolicy#resolution
+   */
+  readonly resolution?: SharedDirectorySpecForProviderDirectoryIdSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema SharedDirectorySpecForProviderDirectoryIdSelectorPolicy#resolve
+   */
+  readonly resolve?: SharedDirectorySpecForProviderDirectoryIdSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpecForProviderDirectoryIdSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpecForProviderDirectoryIdSelectorPolicy(obj: SharedDirectorySpecForProviderDirectoryIdSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema SharedDirectorySpecProviderConfigRefPolicyResolution
+ */
+export enum SharedDirectorySpecProviderConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema SharedDirectorySpecProviderConfigRefPolicyResolve
+ */
+export enum SharedDirectorySpecProviderConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema SharedDirectorySpecProviderRefPolicyResolution
+ */
+export enum SharedDirectorySpecProviderRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema SharedDirectorySpecProviderRefPolicyResolve
+ */
+export enum SharedDirectorySpecProviderRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Policies for referencing.
+ *
+ * @schema SharedDirectorySpecPublishConnectionDetailsToConfigRefPolicy
+ */
+export interface SharedDirectorySpecPublishConnectionDetailsToConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema SharedDirectorySpecPublishConnectionDetailsToConfigRefPolicy#resolution
+   */
+  readonly resolution?: SharedDirectorySpecPublishConnectionDetailsToConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema SharedDirectorySpecPublishConnectionDetailsToConfigRefPolicy#resolve
+   */
+  readonly resolve?: SharedDirectorySpecPublishConnectionDetailsToConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'SharedDirectorySpecPublishConnectionDetailsToConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SharedDirectorySpecPublishConnectionDetailsToConfigRefPolicy(obj: SharedDirectorySpecPublishConnectionDetailsToConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema SharedDirectorySpecForProviderDirectoryIdRefPolicyResolution
+ */
+export enum SharedDirectorySpecForProviderDirectoryIdRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema SharedDirectorySpecForProviderDirectoryIdRefPolicyResolve
+ */
+export enum SharedDirectorySpecForProviderDirectoryIdRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema SharedDirectorySpecForProviderDirectoryIdSelectorPolicyResolution
+ */
+export enum SharedDirectorySpecForProviderDirectoryIdSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema SharedDirectorySpecForProviderDirectoryIdSelectorPolicyResolve
+ */
+export enum SharedDirectorySpecForProviderDirectoryIdSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema SharedDirectorySpecPublishConnectionDetailsToConfigRefPolicyResolution
+ */
+export enum SharedDirectorySpecPublishConnectionDetailsToConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema SharedDirectorySpecPublishConnectionDetailsToConfigRefPolicyResolve
+ */
+export enum SharedDirectorySpecPublishConnectionDetailsToConfigRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

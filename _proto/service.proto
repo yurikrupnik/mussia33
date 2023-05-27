@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package proto;
+package maths;
 
-option go_package = "proto;service";
+option go_package = "grpc/maths";
 
 message Request {
   int64 a = 1;

@@ -99,7 +99,7 @@ export function toJson_ConnectivityTestProps(obj: ConnectivityTestProps | undefi
  */
 export interface ConnectivityTestSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ConnectivityTestSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface ConnectivityTestSpec {
    * @schema ConnectivityTestSpec#forProvider
    */
   readonly forProvider: ConnectivityTestSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ConnectivityTestSpec#managementPolicy
+   */
+  readonly managementPolicy?: ConnectivityTestSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_ConnectivityTestSpec(obj: ConnectivityTestSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ConnectivityTestSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_ConnectivityTestSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_ConnectivityTestSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ConnectivityTestSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_ConnectivityTestSpec(obj: ConnectivityTestSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ConnectivityTestSpecDeletionPolicy
  */
@@ -187,7 +195,7 @@ export interface ConnectivityTestSpecForProvider {
    *
    * @schema ConnectivityTestSpecForProvider#destination
    */
-  readonly destination: ConnectivityTestSpecForProviderDestination[];
+  readonly destination?: ConnectivityTestSpecForProviderDestination[];
 
   /**
    * Resource labels to represent user-provided metadata.
@@ -201,7 +209,7 @@ export interface ConnectivityTestSpecForProvider {
    *
    * @schema ConnectivityTestSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
@@ -229,7 +237,7 @@ export interface ConnectivityTestSpecForProvider {
    *
    * @schema ConnectivityTestSpecForProvider#source
    */
-  readonly source: ConnectivityTestSpecForProviderSource[];
+  readonly source?: ConnectivityTestSpecForProviderSource[];
 
 }
 
@@ -253,6 +261,20 @@ export function toJson_ConnectivityTestSpecForProvider(obj: ConnectivityTestSpec
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ConnectivityTestSpecManagementPolicy
+ */
+export enum ConnectivityTestSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -601,7 +623,7 @@ export interface ConnectivityTestSpecForProviderSource {
   readonly networkSelector?: ConnectivityTestSpecForProviderSourceNetworkSelector;
 
   /**
-   * Type of the network where the endpoint is located. Possible values are GCP_NETWORK and NON_GCP_NETWORK.
+   * Type of the network where the endpoint is located. Possible values are: GCP_NETWORK, NON_GCP_NETWORK.
    *
    * @schema ConnectivityTestSpecForProviderSource#networkType
    */

@@ -99,7 +99,7 @@ export function toJson_FirewallProps(obj: FirewallProps | undefined): Record<str
  */
 export interface FirewallSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema FirewallSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface FirewallSpec {
    * @schema FirewallSpec#forProvider
    */
   readonly forProvider: FirewallSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema FirewallSpec#managementPolicy
+   */
+  readonly managementPolicy?: FirewallSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_FirewallSpec(obj: FirewallSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_FirewallSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_FirewallSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_FirewallSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_FirewallSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_FirewallSpec(obj: FirewallSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema FirewallSpecDeletionPolicy
  */
@@ -231,7 +239,7 @@ export interface FirewallSpecForProvider {
    *
    * @schema FirewallSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -253,7 +261,7 @@ export interface FirewallSpecForProvider {
    *
    * @schema FirewallSpecForProvider#subnetMapping
    */
-  readonly subnetMapping: FirewallSpecForProviderSubnetMapping[];
+  readonly subnetMapping?: FirewallSpecForProviderSubnetMapping[];
 
   /**
    * Key-value map of resource tags.
@@ -312,6 +320,20 @@ export function toJson_FirewallSpecForProvider(obj: FirewallSpecForProvider | un
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema FirewallSpecManagementPolicy
+ */
+export enum FirewallSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1529,7 +1551,7 @@ export function toJson_FirewallPolicyProps(obj: FirewallPolicyProps | undefined)
  */
 export interface FirewallPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema FirewallPolicySpec#deletionPolicy
    */
@@ -1539,6 +1561,13 @@ export interface FirewallPolicySpec {
    * @schema FirewallPolicySpec#forProvider
    */
   readonly forProvider: FirewallPolicySpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema FirewallPolicySpec#managementPolicy
+   */
+  readonly managementPolicy?: FirewallPolicySpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1579,6 +1608,7 @@ export function toJson_FirewallPolicySpec(obj: FirewallPolicySpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_FirewallPolicySpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_FirewallPolicySpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_FirewallPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_FirewallPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -1590,7 +1620,7 @@ export function toJson_FirewallPolicySpec(obj: FirewallPolicySpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema FirewallPolicySpecDeletionPolicy
  */
@@ -1624,7 +1654,7 @@ export interface FirewallPolicySpecForProvider {
    *
    * @schema FirewallPolicySpecForProvider#firewallPolicy
    */
-  readonly firewallPolicy: FirewallPolicySpecForProviderFirewallPolicy[];
+  readonly firewallPolicy?: FirewallPolicySpecForProviderFirewallPolicy[];
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -1659,6 +1689,20 @@ export function toJson_FirewallPolicySpecForProvider(obj: FirewallPolicySpecForP
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema FirewallPolicySpecManagementPolicy
+ */
+export enum FirewallPolicySpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2132,7 +2176,21 @@ export interface FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupRef
    *
    * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReference#resourceArn
    */
-  readonly resourceArn: string;
+  readonly resourceArn?: string;
+
+  /**
+   * Reference to a RuleGroup in networkfirewall to populate resourceArn.
+   *
+   * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReference#resourceArnRef
+   */
+  readonly resourceArnRef?: FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRef;
+
+  /**
+   * Selector for a RuleGroup in networkfirewall to populate resourceArn.
+   *
+   * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReference#resourceArnSelector
+   */
+  readonly resourceArnSelector?: FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelector;
 
 }
 
@@ -2146,6 +2204,8 @@ export function toJson_FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGr
     'override': obj.override?.map(y => toJson_FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceOverride(y)),
     'priority': obj.priority,
     'resourceArn': obj.resourceArn,
+    'resourceArnRef': toJson_FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRef(obj.resourceArnRef),
+    'resourceArnSelector': toJson_FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelector(obj.resourceArnSelector),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2351,6 +2411,88 @@ export function toJson_FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGr
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Reference to a RuleGroup in networkfirewall to populate resourceArn.
+ *
+ * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRef
+ */
+export interface FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRef#policy
+   */
+  readonly policy?: FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRef(obj: FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a RuleGroup in networkfirewall to populate resourceArn.
+ *
+ * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelector
+ */
+export interface FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelector#policy
+   */
+  readonly policy?: FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelector(obj: FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActionActionDefinition
  */
 export interface FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActionActionDefinition {
@@ -2484,6 +2626,80 @@ export enum FirewallPolicySpecPublishConnectionDetailsToConfigRefPolicyResolve {
 }
 
 /**
+ * Policies for referencing.
+ *
+ * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRefPolicy
+ */
+export interface FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRefPolicy#resolution
+   */
+  readonly resolution?: FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRefPolicy#resolve
+   */
+  readonly resolve?: FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRefPolicy(obj: FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelectorPolicy
+ */
+export interface FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelectorPolicy#resolution
+   */
+  readonly resolution?: FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelectorPolicy#resolve
+   */
+  readonly resolve?: FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelectorPolicy(obj: FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricAction
  */
 export interface FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricAction {
@@ -2585,6 +2801,54 @@ export function toJson_FirewallPolicySpecForProviderFirewallPolicyStatelessRuleG
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRefPolicyResolution
+ */
+export enum FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRefPolicyResolve
+ */
+export enum FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelectorPolicyResolution
+ */
+export enum FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelectorPolicyResolve
+ */
+export enum FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
  * @schema FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricActionDimension
  */
 export interface FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricActionDimension {
@@ -2653,6 +2917,951 @@ export enum FirewallPolicySpecForProviderFirewallPolicyStatelessRuleGroupReferen
  * @schema FirewallPolicySpecForProviderFirewallPolicyStatelessRuleGroupReferenceResourceArnSelectorPolicyResolve
  */
 export enum FirewallPolicySpecForProviderFirewallPolicyStatelessRuleGroupReferenceResourceArnSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+
+/**
+ * LoggingConfiguration is the Schema for the LoggingConfigurations API. Provides an AWS Network Firewall Logging Configuration resource.
+ *
+ * @schema LoggingConfiguration
+ */
+export class LoggingConfiguration extends ApiObject {
+  /**
+   * Returns the apiVersion and kind for "LoggingConfiguration"
+   */
+  public static readonly GVK: GroupVersionKind = {
+    apiVersion: 'networkfirewall.aws.upbound.io/v1beta1',
+    kind: 'LoggingConfiguration',
+  }
+
+  /**
+   * Renders a Kubernetes manifest for "LoggingConfiguration".
+   *
+   * This can be used to inline resource manifests inside other objects (e.g. as templates).
+   *
+   * @param props initialization props
+   */
+  public static manifest(props: LoggingConfigurationProps): any {
+    return {
+      ...LoggingConfiguration.GVK,
+      ...toJson_LoggingConfigurationProps(props),
+    };
+  }
+
+  /**
+   * Defines a "LoggingConfiguration" API object
+   * @param scope the scope in which to define this object
+   * @param id a scope-local name for the object
+   * @param props initialization props
+   */
+  public constructor(scope: Construct, id: string, props: LoggingConfigurationProps) {
+    super(scope, id, {
+      ...LoggingConfiguration.GVK,
+      ...props,
+    });
+  }
+
+  /**
+   * Renders the object to Kubernetes JSON.
+   */
+  public toJson(): any {
+    const resolved = super.toJson();
+
+    return {
+      ...LoggingConfiguration.GVK,
+      ...toJson_LoggingConfigurationProps(resolved),
+    };
+  }
+}
+
+/**
+ * LoggingConfiguration is the Schema for the LoggingConfigurations API. Provides an AWS Network Firewall Logging Configuration resource.
+ *
+ * @schema LoggingConfiguration
+ */
+export interface LoggingConfigurationProps {
+  /**
+   * @schema LoggingConfiguration#metadata
+   */
+  readonly metadata?: ApiObjectMetadata;
+
+  /**
+   * LoggingConfigurationSpec defines the desired state of LoggingConfiguration
+   *
+   * @schema LoggingConfiguration#spec
+   */
+  readonly spec: LoggingConfigurationSpec;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationProps' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationProps(obj: LoggingConfigurationProps | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metadata': obj.metadata,
+    'spec': toJson_LoggingConfigurationSpec(obj.spec),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * LoggingConfigurationSpec defines the desired state of LoggingConfiguration
+ *
+ * @schema LoggingConfigurationSpec
+ */
+export interface LoggingConfigurationSpec {
+  /**
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema LoggingConfigurationSpec#deletionPolicy
+   */
+  readonly deletionPolicy?: LoggingConfigurationSpecDeletionPolicy;
+
+  /**
+   * @schema LoggingConfigurationSpec#forProvider
+   */
+  readonly forProvider: LoggingConfigurationSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema LoggingConfigurationSpec#managementPolicy
+   */
+  readonly managementPolicy?: LoggingConfigurationSpecManagementPolicy;
+
+  /**
+   * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+   *
+   * @schema LoggingConfigurationSpec#providerConfigRef
+   */
+  readonly providerConfigRef?: LoggingConfigurationSpecProviderConfigRef;
+
+  /**
+   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
+   *
+   * @schema LoggingConfigurationSpec#providerRef
+   */
+  readonly providerRef?: LoggingConfigurationSpecProviderRef;
+
+  /**
+   * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+   *
+   * @schema LoggingConfigurationSpec#publishConnectionDetailsTo
+   */
+  readonly publishConnectionDetailsTo?: LoggingConfigurationSpecPublishConnectionDetailsTo;
+
+  /**
+   * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+   *
+   * @schema LoggingConfigurationSpec#writeConnectionSecretToRef
+   */
+  readonly writeConnectionSecretToRef?: LoggingConfigurationSpecWriteConnectionSecretToRef;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpec(obj: LoggingConfigurationSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deletionPolicy': obj.deletionPolicy,
+    'forProvider': toJson_LoggingConfigurationSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
+    'providerConfigRef': toJson_LoggingConfigurationSpecProviderConfigRef(obj.providerConfigRef),
+    'providerRef': toJson_LoggingConfigurationSpecProviderRef(obj.providerRef),
+    'publishConnectionDetailsTo': toJson_LoggingConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
+    'writeConnectionSecretToRef': toJson_LoggingConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema LoggingConfigurationSpecDeletionPolicy
+ */
+export enum LoggingConfigurationSpecDeletionPolicy {
+  /** Orphan */
+  ORPHAN = "Orphan",
+  /** Delete */
+  DELETE = "Delete",
+}
+
+/**
+ * @schema LoggingConfigurationSpecForProvider
+ */
+export interface LoggingConfigurationSpecForProvider {
+  /**
+   * The Amazon Resource Name (ARN) of the Network Firewall firewall.
+   *
+   * @schema LoggingConfigurationSpecForProvider#firewallArn
+   */
+  readonly firewallArn?: string;
+
+  /**
+   * Reference to a Firewall in networkfirewall to populate firewallArn.
+   *
+   * @schema LoggingConfigurationSpecForProvider#firewallArnRef
+   */
+  readonly firewallArnRef?: LoggingConfigurationSpecForProviderFirewallArnRef;
+
+  /**
+   * Selector for a Firewall in networkfirewall to populate firewallArn.
+   *
+   * @schema LoggingConfigurationSpecForProvider#firewallArnSelector
+   */
+  readonly firewallArnSelector?: LoggingConfigurationSpecForProviderFirewallArnSelector;
+
+  /**
+   * A configuration block describing how AWS Network Firewall performs logging for a firewall. See Logging Configuration below for details.
+   *
+   * @schema LoggingConfigurationSpecForProvider#loggingConfiguration
+   */
+  readonly loggingConfiguration?: LoggingConfigurationSpecForProviderLoggingConfiguration[];
+
+  /**
+   * Region is the region you'd like your resource to be created in.
+   *
+   * @schema LoggingConfigurationSpecForProvider#region
+   */
+  readonly region: string;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecForProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecForProvider(obj: LoggingConfigurationSpecForProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'firewallArn': obj.firewallArn,
+    'firewallArnRef': toJson_LoggingConfigurationSpecForProviderFirewallArnRef(obj.firewallArnRef),
+    'firewallArnSelector': toJson_LoggingConfigurationSpecForProviderFirewallArnSelector(obj.firewallArnSelector),
+    'loggingConfiguration': obj.loggingConfiguration?.map(y => toJson_LoggingConfigurationSpecForProviderLoggingConfiguration(y)),
+    'region': obj.region,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema LoggingConfigurationSpecManagementPolicy
+ */
+export enum LoggingConfigurationSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
+
+/**
+ * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+ *
+ * @schema LoggingConfigurationSpecProviderConfigRef
+ */
+export interface LoggingConfigurationSpecProviderConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema LoggingConfigurationSpecProviderConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema LoggingConfigurationSpecProviderConfigRef#policy
+   */
+  readonly policy?: LoggingConfigurationSpecProviderConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecProviderConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecProviderConfigRef(obj: LoggingConfigurationSpecProviderConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_LoggingConfigurationSpecProviderConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
+ *
+ * @schema LoggingConfigurationSpecProviderRef
+ */
+export interface LoggingConfigurationSpecProviderRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema LoggingConfigurationSpecProviderRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema LoggingConfigurationSpecProviderRef#policy
+   */
+  readonly policy?: LoggingConfigurationSpecProviderRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecProviderRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecProviderRef(obj: LoggingConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_LoggingConfigurationSpecProviderRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+ *
+ * @schema LoggingConfigurationSpecPublishConnectionDetailsTo
+ */
+export interface LoggingConfigurationSpecPublishConnectionDetailsTo {
+  /**
+   * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+   *
+   * @schema LoggingConfigurationSpecPublishConnectionDetailsTo#configRef
+   */
+  readonly configRef?: LoggingConfigurationSpecPublishConnectionDetailsToConfigRef;
+
+  /**
+   * Metadata is the metadata for connection secret.
+   *
+   * @schema LoggingConfigurationSpecPublishConnectionDetailsTo#metadata
+   */
+  readonly metadata?: LoggingConfigurationSpecPublishConnectionDetailsToMetadata;
+
+  /**
+   * Name is the name of the connection secret.
+   *
+   * @schema LoggingConfigurationSpecPublishConnectionDetailsTo#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecPublishConnectionDetailsTo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecPublishConnectionDetailsTo(obj: LoggingConfigurationSpecPublishConnectionDetailsTo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configRef': toJson_LoggingConfigurationSpecPublishConnectionDetailsToConfigRef(obj.configRef),
+    'metadata': toJson_LoggingConfigurationSpecPublishConnectionDetailsToMetadata(obj.metadata),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+ *
+ * @schema LoggingConfigurationSpecWriteConnectionSecretToRef
+ */
+export interface LoggingConfigurationSpecWriteConnectionSecretToRef {
+  /**
+   * Name of the secret.
+   *
+   * @schema LoggingConfigurationSpecWriteConnectionSecretToRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the secret.
+   *
+   * @schema LoggingConfigurationSpecWriteConnectionSecretToRef#namespace
+   */
+  readonly namespace: string;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecWriteConnectionSecretToRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecWriteConnectionSecretToRef(obj: LoggingConfigurationSpecWriteConnectionSecretToRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a Firewall in networkfirewall to populate firewallArn.
+ *
+ * @schema LoggingConfigurationSpecForProviderFirewallArnRef
+ */
+export interface LoggingConfigurationSpecForProviderFirewallArnRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema LoggingConfigurationSpecForProviderFirewallArnRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema LoggingConfigurationSpecForProviderFirewallArnRef#policy
+   */
+  readonly policy?: LoggingConfigurationSpecForProviderFirewallArnRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecForProviderFirewallArnRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecForProviderFirewallArnRef(obj: LoggingConfigurationSpecForProviderFirewallArnRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_LoggingConfigurationSpecForProviderFirewallArnRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a Firewall in networkfirewall to populate firewallArn.
+ *
+ * @schema LoggingConfigurationSpecForProviderFirewallArnSelector
+ */
+export interface LoggingConfigurationSpecForProviderFirewallArnSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema LoggingConfigurationSpecForProviderFirewallArnSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema LoggingConfigurationSpecForProviderFirewallArnSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema LoggingConfigurationSpecForProviderFirewallArnSelector#policy
+   */
+  readonly policy?: LoggingConfigurationSpecForProviderFirewallArnSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecForProviderFirewallArnSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecForProviderFirewallArnSelector(obj: LoggingConfigurationSpecForProviderFirewallArnSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_LoggingConfigurationSpecForProviderFirewallArnSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LoggingConfigurationSpecForProviderLoggingConfiguration
+ */
+export interface LoggingConfigurationSpecForProviderLoggingConfiguration {
+  /**
+   * Set of configuration blocks describing the logging details for a firewall. See Log Destination Config below for details. At most, only two blocks can be specified; one for FLOW logs and one for ALERT logs.
+   *
+   * @schema LoggingConfigurationSpecForProviderLoggingConfiguration#logDestinationConfig
+   */
+  readonly logDestinationConfig: LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig[];
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecForProviderLoggingConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecForProviderLoggingConfiguration(obj: LoggingConfigurationSpecForProviderLoggingConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'logDestinationConfig': obj.logDestinationConfig?.map(y => toJson_LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema LoggingConfigurationSpecProviderConfigRefPolicy
+ */
+export interface LoggingConfigurationSpecProviderConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema LoggingConfigurationSpecProviderConfigRefPolicy#resolution
+   */
+  readonly resolution?: LoggingConfigurationSpecProviderConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema LoggingConfigurationSpecProviderConfigRefPolicy#resolve
+   */
+  readonly resolve?: LoggingConfigurationSpecProviderConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecProviderConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecProviderConfigRefPolicy(obj: LoggingConfigurationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema LoggingConfigurationSpecProviderRefPolicy
+ */
+export interface LoggingConfigurationSpecProviderRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema LoggingConfigurationSpecProviderRefPolicy#resolution
+   */
+  readonly resolution?: LoggingConfigurationSpecProviderRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema LoggingConfigurationSpecProviderRefPolicy#resolve
+   */
+  readonly resolve?: LoggingConfigurationSpecProviderRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecProviderRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecProviderRefPolicy(obj: LoggingConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+ *
+ * @schema LoggingConfigurationSpecPublishConnectionDetailsToConfigRef
+ */
+export interface LoggingConfigurationSpecPublishConnectionDetailsToConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema LoggingConfigurationSpecPublishConnectionDetailsToConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema LoggingConfigurationSpecPublishConnectionDetailsToConfigRef#policy
+   */
+  readonly policy?: LoggingConfigurationSpecPublishConnectionDetailsToConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecPublishConnectionDetailsToConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecPublishConnectionDetailsToConfigRef(obj: LoggingConfigurationSpecPublishConnectionDetailsToConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_LoggingConfigurationSpecPublishConnectionDetailsToConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Metadata is the metadata for connection secret.
+ *
+ * @schema LoggingConfigurationSpecPublishConnectionDetailsToMetadata
+ */
+export interface LoggingConfigurationSpecPublishConnectionDetailsToMetadata {
+  /**
+   * Annotations are the annotations to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.annotations". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema LoggingConfigurationSpecPublishConnectionDetailsToMetadata#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Labels are the labels/tags to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.labels". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema LoggingConfigurationSpecPublishConnectionDetailsToMetadata#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Type is the SecretType for the connection secret. - Only valid for Kubernetes Secret Stores.
+   *
+   * @schema LoggingConfigurationSpecPublishConnectionDetailsToMetadata#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecPublishConnectionDetailsToMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecPublishConnectionDetailsToMetadata(obj: LoggingConfigurationSpecPublishConnectionDetailsToMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema LoggingConfigurationSpecForProviderFirewallArnRefPolicy
+ */
+export interface LoggingConfigurationSpecForProviderFirewallArnRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema LoggingConfigurationSpecForProviderFirewallArnRefPolicy#resolution
+   */
+  readonly resolution?: LoggingConfigurationSpecForProviderFirewallArnRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema LoggingConfigurationSpecForProviderFirewallArnRefPolicy#resolve
+   */
+  readonly resolve?: LoggingConfigurationSpecForProviderFirewallArnRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecForProviderFirewallArnRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecForProviderFirewallArnRefPolicy(obj: LoggingConfigurationSpecForProviderFirewallArnRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema LoggingConfigurationSpecForProviderFirewallArnSelectorPolicy
+ */
+export interface LoggingConfigurationSpecForProviderFirewallArnSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema LoggingConfigurationSpecForProviderFirewallArnSelectorPolicy#resolution
+   */
+  readonly resolution?: LoggingConfigurationSpecForProviderFirewallArnSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema LoggingConfigurationSpecForProviderFirewallArnSelectorPolicy#resolve
+   */
+  readonly resolve?: LoggingConfigurationSpecForProviderFirewallArnSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecForProviderFirewallArnSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecForProviderFirewallArnSelectorPolicy(obj: LoggingConfigurationSpecForProviderFirewallArnSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig
+ */
+export interface LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig {
+  /**
+   * A map describing the logging destination for the chosen log_destination_type.
+   *
+   * @schema LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig#logDestination
+   */
+  readonly logDestination: { [key: string]: string };
+
+  /**
+   * The location to send logs to. Valid values: S3, CloudWatchLogs, KinesisDataFirehose.
+   *
+   * @schema LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig#logDestinationType
+   */
+  readonly logDestinationType: string;
+
+  /**
+   * The type of log to send. Valid values: ALERT or FLOW. Alert logs report traffic that matches a StatefulRule with an action setting that sends a log message. Flow logs are standard network traffic flow logs.
+   *
+   * @schema LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig#logType
+   */
+  readonly logType: string;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig(obj: LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'logDestination': ((obj.logDestination) === undefined) ? undefined : (Object.entries(obj.logDestination).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'logDestinationType': obj.logDestinationType,
+    'logType': obj.logType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema LoggingConfigurationSpecProviderConfigRefPolicyResolution
+ */
+export enum LoggingConfigurationSpecProviderConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema LoggingConfigurationSpecProviderConfigRefPolicyResolve
+ */
+export enum LoggingConfigurationSpecProviderConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema LoggingConfigurationSpecProviderRefPolicyResolution
+ */
+export enum LoggingConfigurationSpecProviderRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema LoggingConfigurationSpecProviderRefPolicyResolve
+ */
+export enum LoggingConfigurationSpecProviderRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Policies for referencing.
+ *
+ * @schema LoggingConfigurationSpecPublishConnectionDetailsToConfigRefPolicy
+ */
+export interface LoggingConfigurationSpecPublishConnectionDetailsToConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema LoggingConfigurationSpecPublishConnectionDetailsToConfigRefPolicy#resolution
+   */
+  readonly resolution?: LoggingConfigurationSpecPublishConnectionDetailsToConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema LoggingConfigurationSpecPublishConnectionDetailsToConfigRefPolicy#resolve
+   */
+  readonly resolve?: LoggingConfigurationSpecPublishConnectionDetailsToConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecPublishConnectionDetailsToConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecPublishConnectionDetailsToConfigRefPolicy(obj: LoggingConfigurationSpecPublishConnectionDetailsToConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema LoggingConfigurationSpecForProviderFirewallArnRefPolicyResolution
+ */
+export enum LoggingConfigurationSpecForProviderFirewallArnRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema LoggingConfigurationSpecForProviderFirewallArnRefPolicyResolve
+ */
+export enum LoggingConfigurationSpecForProviderFirewallArnRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema LoggingConfigurationSpecForProviderFirewallArnSelectorPolicyResolution
+ */
+export enum LoggingConfigurationSpecForProviderFirewallArnSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema LoggingConfigurationSpecForProviderFirewallArnSelectorPolicyResolve
+ */
+export enum LoggingConfigurationSpecForProviderFirewallArnSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema LoggingConfigurationSpecPublishConnectionDetailsToConfigRefPolicyResolution
+ */
+export enum LoggingConfigurationSpecPublishConnectionDetailsToConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema LoggingConfigurationSpecPublishConnectionDetailsToConfigRefPolicyResolve
+ */
+export enum LoggingConfigurationSpecPublishConnectionDetailsToConfigRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2756,7 +3965,7 @@ export function toJson_RuleGroupProps(obj: RuleGroupProps | undefined): Record<s
  */
 export interface RuleGroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RuleGroupSpec#deletionPolicy
    */
@@ -2766,6 +3975,13 @@ export interface RuleGroupSpec {
    * @schema RuleGroupSpec#forProvider
    */
   readonly forProvider: RuleGroupSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema RuleGroupSpec#managementPolicy
+   */
+  readonly managementPolicy?: RuleGroupSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2806,6 +4022,7 @@ export function toJson_RuleGroupSpec(obj: RuleGroupSpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RuleGroupSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_RuleGroupSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_RuleGroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RuleGroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -2817,7 +4034,7 @@ export function toJson_RuleGroupSpec(obj: RuleGroupSpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RuleGroupSpecDeletionPolicy
  */
@@ -2837,7 +4054,7 @@ export interface RuleGroupSpecForProvider {
    *
    * @schema RuleGroupSpecForProvider#capacity
    */
-  readonly capacity: number;
+  readonly capacity?: number;
 
   /**
    * A friendly description of the rule group.
@@ -2858,7 +4075,7 @@ export interface RuleGroupSpecForProvider {
    *
    * @schema RuleGroupSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -2893,7 +4110,7 @@ export interface RuleGroupSpecForProvider {
    *
    * @schema RuleGroupSpecForProvider#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -2918,6 +4135,20 @@ export function toJson_RuleGroupSpecForProvider(obj: RuleGroupSpecForProvider | 
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema RuleGroupSpecManagementPolicy
+ */
+export enum RuleGroupSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3115,7 +4346,7 @@ export function toJson_RuleGroupSpecForProviderEncryptionConfiguration(obj: Rule
  */
 export interface RuleGroupSpecForProviderRuleGroup {
   /**
-   * A configuration block that defines the IP Set References for the rule group. See Reference Sets below for details.
+   * A configuration block that defines the IP Set References for the rule group. See Reference Sets below for details. Please notes that there can only be a maximum of 5 reference_sets in a rule_group. See the AWS documentation for details.
    *
    * @schema RuleGroupSpecForProviderRuleGroup#referenceSets
    */

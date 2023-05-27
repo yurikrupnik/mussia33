@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package app;
 
+option go_package = "grpc/users";
+
 // Declare a service for each controller you have
 service AppController {
   // Declare an rpc for each method that is called via gRPC

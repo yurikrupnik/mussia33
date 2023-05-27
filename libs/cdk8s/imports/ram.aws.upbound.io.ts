@@ -4,6 +4,881 @@ import { Construct } from 'constructs';
 
 
 /**
+ * ResourceAssociation is the Schema for the ResourceAssociations API. Manages a Resource Access Manager (RAM) Resource Association.
+ *
+ * @schema ResourceAssociation
+ */
+export class ResourceAssociation extends ApiObject {
+  /**
+   * Returns the apiVersion and kind for "ResourceAssociation"
+   */
+  public static readonly GVK: GroupVersionKind = {
+    apiVersion: 'ram.aws.upbound.io/v1beta1',
+    kind: 'ResourceAssociation',
+  }
+
+  /**
+   * Renders a Kubernetes manifest for "ResourceAssociation".
+   *
+   * This can be used to inline resource manifests inside other objects (e.g. as templates).
+   *
+   * @param props initialization props
+   */
+  public static manifest(props: ResourceAssociationProps): any {
+    return {
+      ...ResourceAssociation.GVK,
+      ...toJson_ResourceAssociationProps(props),
+    };
+  }
+
+  /**
+   * Defines a "ResourceAssociation" API object
+   * @param scope the scope in which to define this object
+   * @param id a scope-local name for the object
+   * @param props initialization props
+   */
+  public constructor(scope: Construct, id: string, props: ResourceAssociationProps) {
+    super(scope, id, {
+      ...ResourceAssociation.GVK,
+      ...props,
+    });
+  }
+
+  /**
+   * Renders the object to Kubernetes JSON.
+   */
+  public toJson(): any {
+    const resolved = super.toJson();
+
+    return {
+      ...ResourceAssociation.GVK,
+      ...toJson_ResourceAssociationProps(resolved),
+    };
+  }
+}
+
+/**
+ * ResourceAssociation is the Schema for the ResourceAssociations API. Manages a Resource Access Manager (RAM) Resource Association.
+ *
+ * @schema ResourceAssociation
+ */
+export interface ResourceAssociationProps {
+  /**
+   * @schema ResourceAssociation#metadata
+   */
+  readonly metadata?: ApiObjectMetadata;
+
+  /**
+   * ResourceAssociationSpec defines the desired state of ResourceAssociation
+   *
+   * @schema ResourceAssociation#spec
+   */
+  readonly spec: ResourceAssociationSpec;
+
+}
+
+/**
+ * Converts an object of type 'ResourceAssociationProps' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceAssociationProps(obj: ResourceAssociationProps | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metadata': obj.metadata,
+    'spec': toJson_ResourceAssociationSpec(obj.spec),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ResourceAssociationSpec defines the desired state of ResourceAssociation
+ *
+ * @schema ResourceAssociationSpec
+ */
+export interface ResourceAssociationSpec {
+  /**
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ResourceAssociationSpec#deletionPolicy
+   */
+  readonly deletionPolicy?: ResourceAssociationSpecDeletionPolicy;
+
+  /**
+   * @schema ResourceAssociationSpec#forProvider
+   */
+  readonly forProvider: ResourceAssociationSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ResourceAssociationSpec#managementPolicy
+   */
+  readonly managementPolicy?: ResourceAssociationSpecManagementPolicy;
+
+  /**
+   * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+   *
+   * @schema ResourceAssociationSpec#providerConfigRef
+   */
+  readonly providerConfigRef?: ResourceAssociationSpecProviderConfigRef;
+
+  /**
+   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
+   *
+   * @schema ResourceAssociationSpec#providerRef
+   */
+  readonly providerRef?: ResourceAssociationSpecProviderRef;
+
+  /**
+   * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+   *
+   * @schema ResourceAssociationSpec#publishConnectionDetailsTo
+   */
+  readonly publishConnectionDetailsTo?: ResourceAssociationSpecPublishConnectionDetailsTo;
+
+  /**
+   * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+   *
+   * @schema ResourceAssociationSpec#writeConnectionSecretToRef
+   */
+  readonly writeConnectionSecretToRef?: ResourceAssociationSpecWriteConnectionSecretToRef;
+
+}
+
+/**
+ * Converts an object of type 'ResourceAssociationSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceAssociationSpec(obj: ResourceAssociationSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deletionPolicy': obj.deletionPolicy,
+    'forProvider': toJson_ResourceAssociationSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
+    'providerConfigRef': toJson_ResourceAssociationSpecProviderConfigRef(obj.providerConfigRef),
+    'providerRef': toJson_ResourceAssociationSpecProviderRef(obj.providerRef),
+    'publishConnectionDetailsTo': toJson_ResourceAssociationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
+    'writeConnectionSecretToRef': toJson_ResourceAssociationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ResourceAssociationSpecDeletionPolicy
+ */
+export enum ResourceAssociationSpecDeletionPolicy {
+  /** Orphan */
+  ORPHAN = "Orphan",
+  /** Delete */
+  DELETE = "Delete",
+}
+
+/**
+ * @schema ResourceAssociationSpecForProvider
+ */
+export interface ResourceAssociationSpecForProvider {
+  /**
+   * Region is the region you'd like your resource to be created in.
+   *
+   * @schema ResourceAssociationSpecForProvider#region
+   */
+  readonly region: string;
+
+  /**
+   * Amazon Resource Name (ARN) of the resource to associate with the RAM Resource Share.
+   *
+   * @schema ResourceAssociationSpecForProvider#resourceArn
+   */
+  readonly resourceArn?: string;
+
+  /**
+   * Amazon Resource Name (ARN) of the RAM Resource Share.
+   *
+   * @schema ResourceAssociationSpecForProvider#resourceShareArn
+   */
+  readonly resourceShareArn?: string;
+
+  /**
+   * Reference to a ResourceShare in ram to populate resourceShareArn.
+   *
+   * @schema ResourceAssociationSpecForProvider#resourceShareArnRef
+   */
+  readonly resourceShareArnRef?: ResourceAssociationSpecForProviderResourceShareArnRef;
+
+  /**
+   * Selector for a ResourceShare in ram to populate resourceShareArn.
+   *
+   * @schema ResourceAssociationSpecForProvider#resourceShareArnSelector
+   */
+  readonly resourceShareArnSelector?: ResourceAssociationSpecForProviderResourceShareArnSelector;
+
+}
+
+/**
+ * Converts an object of type 'ResourceAssociationSpecForProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceAssociationSpecForProvider(obj: ResourceAssociationSpecForProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'region': obj.region,
+    'resourceArn': obj.resourceArn,
+    'resourceShareArn': obj.resourceShareArn,
+    'resourceShareArnRef': toJson_ResourceAssociationSpecForProviderResourceShareArnRef(obj.resourceShareArnRef),
+    'resourceShareArnSelector': toJson_ResourceAssociationSpecForProviderResourceShareArnSelector(obj.resourceShareArnSelector),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ResourceAssociationSpecManagementPolicy
+ */
+export enum ResourceAssociationSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
+
+/**
+ * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+ *
+ * @schema ResourceAssociationSpecProviderConfigRef
+ */
+export interface ResourceAssociationSpecProviderConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema ResourceAssociationSpecProviderConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema ResourceAssociationSpecProviderConfigRef#policy
+   */
+  readonly policy?: ResourceAssociationSpecProviderConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ResourceAssociationSpecProviderConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceAssociationSpecProviderConfigRef(obj: ResourceAssociationSpecProviderConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_ResourceAssociationSpecProviderConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
+ *
+ * @schema ResourceAssociationSpecProviderRef
+ */
+export interface ResourceAssociationSpecProviderRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema ResourceAssociationSpecProviderRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema ResourceAssociationSpecProviderRef#policy
+   */
+  readonly policy?: ResourceAssociationSpecProviderRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ResourceAssociationSpecProviderRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceAssociationSpecProviderRef(obj: ResourceAssociationSpecProviderRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_ResourceAssociationSpecProviderRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+ *
+ * @schema ResourceAssociationSpecPublishConnectionDetailsTo
+ */
+export interface ResourceAssociationSpecPublishConnectionDetailsTo {
+  /**
+   * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+   *
+   * @schema ResourceAssociationSpecPublishConnectionDetailsTo#configRef
+   */
+  readonly configRef?: ResourceAssociationSpecPublishConnectionDetailsToConfigRef;
+
+  /**
+   * Metadata is the metadata for connection secret.
+   *
+   * @schema ResourceAssociationSpecPublishConnectionDetailsTo#metadata
+   */
+  readonly metadata?: ResourceAssociationSpecPublishConnectionDetailsToMetadata;
+
+  /**
+   * Name is the name of the connection secret.
+   *
+   * @schema ResourceAssociationSpecPublishConnectionDetailsTo#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ResourceAssociationSpecPublishConnectionDetailsTo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceAssociationSpecPublishConnectionDetailsTo(obj: ResourceAssociationSpecPublishConnectionDetailsTo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configRef': toJson_ResourceAssociationSpecPublishConnectionDetailsToConfigRef(obj.configRef),
+    'metadata': toJson_ResourceAssociationSpecPublishConnectionDetailsToMetadata(obj.metadata),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+ *
+ * @schema ResourceAssociationSpecWriteConnectionSecretToRef
+ */
+export interface ResourceAssociationSpecWriteConnectionSecretToRef {
+  /**
+   * Name of the secret.
+   *
+   * @schema ResourceAssociationSpecWriteConnectionSecretToRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the secret.
+   *
+   * @schema ResourceAssociationSpecWriteConnectionSecretToRef#namespace
+   */
+  readonly namespace: string;
+
+}
+
+/**
+ * Converts an object of type 'ResourceAssociationSpecWriteConnectionSecretToRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceAssociationSpecWriteConnectionSecretToRef(obj: ResourceAssociationSpecWriteConnectionSecretToRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a ResourceShare in ram to populate resourceShareArn.
+ *
+ * @schema ResourceAssociationSpecForProviderResourceShareArnRef
+ */
+export interface ResourceAssociationSpecForProviderResourceShareArnRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema ResourceAssociationSpecForProviderResourceShareArnRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema ResourceAssociationSpecForProviderResourceShareArnRef#policy
+   */
+  readonly policy?: ResourceAssociationSpecForProviderResourceShareArnRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ResourceAssociationSpecForProviderResourceShareArnRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceAssociationSpecForProviderResourceShareArnRef(obj: ResourceAssociationSpecForProviderResourceShareArnRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_ResourceAssociationSpecForProviderResourceShareArnRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a ResourceShare in ram to populate resourceShareArn.
+ *
+ * @schema ResourceAssociationSpecForProviderResourceShareArnSelector
+ */
+export interface ResourceAssociationSpecForProviderResourceShareArnSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema ResourceAssociationSpecForProviderResourceShareArnSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema ResourceAssociationSpecForProviderResourceShareArnSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema ResourceAssociationSpecForProviderResourceShareArnSelector#policy
+   */
+  readonly policy?: ResourceAssociationSpecForProviderResourceShareArnSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ResourceAssociationSpecForProviderResourceShareArnSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceAssociationSpecForProviderResourceShareArnSelector(obj: ResourceAssociationSpecForProviderResourceShareArnSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_ResourceAssociationSpecForProviderResourceShareArnSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema ResourceAssociationSpecProviderConfigRefPolicy
+ */
+export interface ResourceAssociationSpecProviderConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ResourceAssociationSpecProviderConfigRefPolicy#resolution
+   */
+  readonly resolution?: ResourceAssociationSpecProviderConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ResourceAssociationSpecProviderConfigRefPolicy#resolve
+   */
+  readonly resolve?: ResourceAssociationSpecProviderConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ResourceAssociationSpecProviderConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceAssociationSpecProviderConfigRefPolicy(obj: ResourceAssociationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema ResourceAssociationSpecProviderRefPolicy
+ */
+export interface ResourceAssociationSpecProviderRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ResourceAssociationSpecProviderRefPolicy#resolution
+   */
+  readonly resolution?: ResourceAssociationSpecProviderRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ResourceAssociationSpecProviderRefPolicy#resolve
+   */
+  readonly resolve?: ResourceAssociationSpecProviderRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ResourceAssociationSpecProviderRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceAssociationSpecProviderRefPolicy(obj: ResourceAssociationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+ *
+ * @schema ResourceAssociationSpecPublishConnectionDetailsToConfigRef
+ */
+export interface ResourceAssociationSpecPublishConnectionDetailsToConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema ResourceAssociationSpecPublishConnectionDetailsToConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema ResourceAssociationSpecPublishConnectionDetailsToConfigRef#policy
+   */
+  readonly policy?: ResourceAssociationSpecPublishConnectionDetailsToConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ResourceAssociationSpecPublishConnectionDetailsToConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceAssociationSpecPublishConnectionDetailsToConfigRef(obj: ResourceAssociationSpecPublishConnectionDetailsToConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_ResourceAssociationSpecPublishConnectionDetailsToConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Metadata is the metadata for connection secret.
+ *
+ * @schema ResourceAssociationSpecPublishConnectionDetailsToMetadata
+ */
+export interface ResourceAssociationSpecPublishConnectionDetailsToMetadata {
+  /**
+   * Annotations are the annotations to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.annotations". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema ResourceAssociationSpecPublishConnectionDetailsToMetadata#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Labels are the labels/tags to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.labels". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema ResourceAssociationSpecPublishConnectionDetailsToMetadata#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Type is the SecretType for the connection secret. - Only valid for Kubernetes Secret Stores.
+   *
+   * @schema ResourceAssociationSpecPublishConnectionDetailsToMetadata#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'ResourceAssociationSpecPublishConnectionDetailsToMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceAssociationSpecPublishConnectionDetailsToMetadata(obj: ResourceAssociationSpecPublishConnectionDetailsToMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema ResourceAssociationSpecForProviderResourceShareArnRefPolicy
+ */
+export interface ResourceAssociationSpecForProviderResourceShareArnRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ResourceAssociationSpecForProviderResourceShareArnRefPolicy#resolution
+   */
+  readonly resolution?: ResourceAssociationSpecForProviderResourceShareArnRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ResourceAssociationSpecForProviderResourceShareArnRefPolicy#resolve
+   */
+  readonly resolve?: ResourceAssociationSpecForProviderResourceShareArnRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ResourceAssociationSpecForProviderResourceShareArnRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceAssociationSpecForProviderResourceShareArnRefPolicy(obj: ResourceAssociationSpecForProviderResourceShareArnRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema ResourceAssociationSpecForProviderResourceShareArnSelectorPolicy
+ */
+export interface ResourceAssociationSpecForProviderResourceShareArnSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ResourceAssociationSpecForProviderResourceShareArnSelectorPolicy#resolution
+   */
+  readonly resolution?: ResourceAssociationSpecForProviderResourceShareArnSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ResourceAssociationSpecForProviderResourceShareArnSelectorPolicy#resolve
+   */
+  readonly resolve?: ResourceAssociationSpecForProviderResourceShareArnSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ResourceAssociationSpecForProviderResourceShareArnSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceAssociationSpecForProviderResourceShareArnSelectorPolicy(obj: ResourceAssociationSpecForProviderResourceShareArnSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ResourceAssociationSpecProviderConfigRefPolicyResolution
+ */
+export enum ResourceAssociationSpecProviderConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ResourceAssociationSpecProviderConfigRefPolicyResolve
+ */
+export enum ResourceAssociationSpecProviderConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ResourceAssociationSpecProviderRefPolicyResolution
+ */
+export enum ResourceAssociationSpecProviderRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ResourceAssociationSpecProviderRefPolicyResolve
+ */
+export enum ResourceAssociationSpecProviderRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Policies for referencing.
+ *
+ * @schema ResourceAssociationSpecPublishConnectionDetailsToConfigRefPolicy
+ */
+export interface ResourceAssociationSpecPublishConnectionDetailsToConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ResourceAssociationSpecPublishConnectionDetailsToConfigRefPolicy#resolution
+   */
+  readonly resolution?: ResourceAssociationSpecPublishConnectionDetailsToConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ResourceAssociationSpecPublishConnectionDetailsToConfigRefPolicy#resolve
+   */
+  readonly resolve?: ResourceAssociationSpecPublishConnectionDetailsToConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ResourceAssociationSpecPublishConnectionDetailsToConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceAssociationSpecPublishConnectionDetailsToConfigRefPolicy(obj: ResourceAssociationSpecPublishConnectionDetailsToConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ResourceAssociationSpecForProviderResourceShareArnRefPolicyResolution
+ */
+export enum ResourceAssociationSpecForProviderResourceShareArnRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ResourceAssociationSpecForProviderResourceShareArnRefPolicyResolve
+ */
+export enum ResourceAssociationSpecForProviderResourceShareArnRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ResourceAssociationSpecForProviderResourceShareArnSelectorPolicyResolution
+ */
+export enum ResourceAssociationSpecForProviderResourceShareArnSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ResourceAssociationSpecForProviderResourceShareArnSelectorPolicyResolve
+ */
+export enum ResourceAssociationSpecForProviderResourceShareArnSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ResourceAssociationSpecPublishConnectionDetailsToConfigRefPolicyResolution
+ */
+export enum ResourceAssociationSpecPublishConnectionDetailsToConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ResourceAssociationSpecPublishConnectionDetailsToConfigRefPolicyResolve
+ */
+export enum ResourceAssociationSpecPublishConnectionDetailsToConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+
+/**
  * ResourceShare is the Schema for the ResourceShares API. Manages a Resource Access Manager (RAM) Resource Share.
  *
  * @schema ResourceShare
@@ -99,7 +974,7 @@ export function toJson_ResourceShareProps(obj: ResourceShareProps | undefined): 
  */
 export interface ResourceShareSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ResourceShareSpec#deletionPolicy
    */
@@ -109,6 +984,13 @@ export interface ResourceShareSpec {
    * @schema ResourceShareSpec#forProvider
    */
   readonly forProvider: ResourceShareSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ResourceShareSpec#managementPolicy
+   */
+  readonly managementPolicy?: ResourceShareSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +1031,7 @@ export function toJson_ResourceShareSpec(obj: ResourceShareSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ResourceShareSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_ResourceShareSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_ResourceShareSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ResourceShareSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +1043,7 @@ export function toJson_ResourceShareSpec(obj: ResourceShareSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ResourceShareSpecDeletionPolicy
  */
@@ -187,7 +1070,7 @@ export interface ResourceShareSpecForProvider {
    *
    * @schema ResourceShareSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Specifies the Amazon Resource Names (ARNs) of the RAM permission to associate with the resource share. If you do not specify an ARN for the permission, RAM automatically attaches the default version of the permission for each resource type. You can associate only one permission with each resource type included in the resource share.
@@ -229,6 +1112,20 @@ export function toJson_ResourceShareSpecForProvider(obj: ResourceShareSpecForPro
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ResourceShareSpecManagementPolicy
+ */
+export enum ResourceShareSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

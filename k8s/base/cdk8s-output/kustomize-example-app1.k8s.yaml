@@ -16,3 +16,18 @@ spec:
     schemaSettings:
       - encoding: AVRO
         schema: '{"type":"record","name":"Avro","fields":[{"name":"StringField","type":"string"},{"name":"FloatField","type":"float"},{"name":"BooleanField","type":"boolean"}]}'
+---
+apiVersion: core.oam.dev/v1beta1
+kind: Application
+metadata:
+  annotations:
+    application: app11
+  labels:
+    application: app11
+  name: app11
+  namespace: app11
+spec:
+  components:
+    - name: ads
+      type: webservice
+  policies: []

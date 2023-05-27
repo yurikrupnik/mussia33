@@ -99,7 +99,7 @@ export function toJson_SshPublicKeyProps(obj: SshPublicKeyProps | undefined): Re
  */
 export interface SshPublicKeySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SshPublicKeySpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface SshPublicKeySpec {
    * @schema SshPublicKeySpec#forProvider
    */
   readonly forProvider: SshPublicKeySpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema SshPublicKeySpec#managementPolicy
+   */
+  readonly managementPolicy?: SshPublicKeySpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_SshPublicKeySpec(obj: SshPublicKeySpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SshPublicKeySpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_SshPublicKeySpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_SshPublicKeySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SshPublicKeySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_SshPublicKeySpec(obj: SshPublicKeySpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SshPublicKeySpecDeletionPolicy
  */
@@ -187,7 +195,7 @@ export interface SshPublicKeySpecForProvider {
    *
    * @schema SshPublicKeySpecForProvider#keySecretRef
    */
-  readonly keySecretRef: SshPublicKeySpecForProviderKeySecretRef;
+  readonly keySecretRef?: SshPublicKeySpecForProviderKeySecretRef;
 
   /**
    * The project ID of the Google Cloud Platform project.
@@ -201,7 +209,7 @@ export interface SshPublicKeySpecForProvider {
    *
    * @schema SshPublicKeySpecForProvider#user
    */
-  readonly user: string;
+  readonly user?: string;
 
 }
 
@@ -221,6 +229,20 @@ export function toJson_SshPublicKeySpecForProvider(obj: SshPublicKeySpecForProvi
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema SshPublicKeySpecManagementPolicy
+ */
+export enum SshPublicKeySpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

@@ -99,7 +99,7 @@ export function toJson_NetworkPerformanceMetricSubscriptionProps(obj: NetworkPer
  */
 export interface NetworkPerformanceMetricSubscriptionSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema NetworkPerformanceMetricSubscriptionSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface NetworkPerformanceMetricSubscriptionSpec {
    * @schema NetworkPerformanceMetricSubscriptionSpec#forProvider
    */
   readonly forProvider: NetworkPerformanceMetricSubscriptionSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema NetworkPerformanceMetricSubscriptionSpec#managementPolicy
+   */
+  readonly managementPolicy?: NetworkPerformanceMetricSubscriptionSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_NetworkPerformanceMetricSubscriptionSpec(obj: NetworkPerf
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_NetworkPerformanceMetricSubscriptionSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_NetworkPerformanceMetricSubscriptionSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_NetworkPerformanceMetricSubscriptionSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_NetworkPerformanceMetricSubscriptionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_NetworkPerformanceMetricSubscriptionSpec(obj: NetworkPerf
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema NetworkPerformanceMetricSubscriptionSpecDeletionPolicy
  */
@@ -180,7 +188,7 @@ export interface NetworkPerformanceMetricSubscriptionSpecForProvider {
    *
    * @schema NetworkPerformanceMetricSubscriptionSpecForProvider#destination
    */
-  readonly destination: string;
+  readonly destination?: string;
 
   /**
    * The metric used for the enabled subscription. Valid values: aggregate-latency. Default: aggregate-latency.
@@ -201,7 +209,7 @@ export interface NetworkPerformanceMetricSubscriptionSpecForProvider {
    *
    * @schema NetworkPerformanceMetricSubscriptionSpecForProvider#source
    */
-  readonly source: string;
+  readonly source?: string;
 
   /**
    * The statistic used for the enabled subscription. Valid values: p50. Default: p50.
@@ -229,6 +237,20 @@ export function toJson_NetworkPerformanceMetricSubscriptionSpecForProvider(obj: 
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema NetworkPerformanceMetricSubscriptionSpecManagementPolicy
+ */
+export enum NetworkPerformanceMetricSubscriptionSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

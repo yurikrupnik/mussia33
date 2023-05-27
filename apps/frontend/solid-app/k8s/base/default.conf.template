@@ -1,0 +1,62 @@
+upstream ${UPSTREAM_NAME} {
+    server ${UPSTREAM_HOST}:${UPSTREAM_PORT};
+}
+
+server {
+        listen       80;
+        listen  [::]:80;
+        server_name  localhost;
+
+        #access_log  /var/log/nginx/host.access.log  main;
+        proxy_http_version 1.1;
+        client_body_buffer_size 100m;
+        client_max_body_size 0;
+        proxy_buffering on;
+        proxy_buffer_size 50m;
+        proxy_buffers 8 10m;
+        proxy_busy_buffers_size 50m;
+        proxy_request_buffering off;
+        keepalive_timeout 600;
+        client_header_buffer_size 1k;
+        large_client_header_buffers 4 8k;
+        location / {
+            root   /usr/share/nginx/html;
+            index  index.html index.htm;
+            try_files $uri $uri/ /index.html =404;
+        }
+        location /api {
+            proxy_redirect  http://${UPSTREAM_NAME}/  /api/;
+            proxy_pass http://${UPSTREAM_NAME};
+        }
+        #error_page  404              /404.html;
+
+        # redirect server error pages to the static page /50x.html
+        #
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   /usr/share/nginx/html;
+        }
+
+        # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+        #
+        #location ~ \.php$ {
+        #    proxy_pass   http://127.0.0.1;
+        #}
+
+        # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+        #
+        #location ~ \.php$ {
+        #    root           html;
+        #    fastcgi_pass   127.0.0.1:9000;
+        #    fastcgi_index  index.php;
+        #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+        #    include        fastcgi_params;
+        #}
+
+        # deny access to .htaccess files, if Apache's document root
+        # concurs with nginx's one
+        #
+        #location ~ /\.ht {
+        #    deny  all;
+        #}
+    }

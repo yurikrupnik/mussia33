@@ -99,7 +99,7 @@ export function toJson_AccountAssignmentProps(obj: AccountAssignmentProps | unde
  */
 export interface AccountAssignmentSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AccountAssignmentSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface AccountAssignmentSpec {
    * @schema AccountAssignmentSpec#forProvider
    */
   readonly forProvider: AccountAssignmentSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema AccountAssignmentSpec#managementPolicy
+   */
+  readonly managementPolicy?: AccountAssignmentSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_AccountAssignmentSpec(obj: AccountAssignmentSpec | undefi
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AccountAssignmentSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_AccountAssignmentSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_AccountAssignmentSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AccountAssignmentSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_AccountAssignmentSpec(obj: AccountAssignmentSpec | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AccountAssignmentSpecDeletionPolicy
  */
@@ -245,6 +253,20 @@ export function toJson_AccountAssignmentSpecForProvider(obj: AccountAssignmentSp
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema AccountAssignmentSpecManagementPolicy
+ */
+export enum AccountAssignmentSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -764,7 +786,7 @@ export function toJson_ManagedPolicyAttachmentProps(obj: ManagedPolicyAttachment
  */
 export interface ManagedPolicyAttachmentSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ManagedPolicyAttachmentSpec#deletionPolicy
    */
@@ -774,6 +796,13 @@ export interface ManagedPolicyAttachmentSpec {
    * @schema ManagedPolicyAttachmentSpec#forProvider
    */
   readonly forProvider: ManagedPolicyAttachmentSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ManagedPolicyAttachmentSpec#managementPolicy
+   */
+  readonly managementPolicy?: ManagedPolicyAttachmentSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -814,6 +843,7 @@ export function toJson_ManagedPolicyAttachmentSpec(obj: ManagedPolicyAttachmentS
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ManagedPolicyAttachmentSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_ManagedPolicyAttachmentSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_ManagedPolicyAttachmentSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ManagedPolicyAttachmentSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -825,7 +855,7 @@ export function toJson_ManagedPolicyAttachmentSpec(obj: ManagedPolicyAttachmentS
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ManagedPolicyAttachmentSpecDeletionPolicy
  */
@@ -902,6 +932,20 @@ export function toJson_ManagedPolicyAttachmentSpecForProvider(obj: ManagedPolicy
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ManagedPolicyAttachmentSpecManagementPolicy
+ */
+export enum ManagedPolicyAttachmentSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1625,7 +1669,7 @@ export function toJson_PermissionSetProps(obj: PermissionSetProps | undefined): 
  */
 export interface PermissionSetSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PermissionSetSpec#deletionPolicy
    */
@@ -1635,6 +1679,13 @@ export interface PermissionSetSpec {
    * @schema PermissionSetSpec#forProvider
    */
   readonly forProvider: PermissionSetSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema PermissionSetSpec#managementPolicy
+   */
+  readonly managementPolicy?: PermissionSetSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1675,6 +1726,7 @@ export function toJson_PermissionSetSpec(obj: PermissionSetSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PermissionSetSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_PermissionSetSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_PermissionSetSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PermissionSetSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -1686,7 +1738,7 @@ export function toJson_PermissionSetSpec(obj: PermissionSetSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PermissionSetSpecDeletionPolicy
  */
@@ -1713,14 +1765,14 @@ export interface PermissionSetSpecForProvider {
    *
    * @schema PermissionSetSpecForProvider#instanceArn
    */
-  readonly instanceArn: string;
+  readonly instanceArn?: string;
 
   /**
    * The name of the Permission Set.
    *
    * @schema PermissionSetSpecForProvider#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -1771,6 +1823,20 @@ export function toJson_PermissionSetSpecForProvider(obj: PermissionSetSpecForPro
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema PermissionSetSpecManagementPolicy
+ */
+export enum PermissionSetSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2290,7 +2356,7 @@ export function toJson_PermissionSetInlinePolicyProps(obj: PermissionSetInlinePo
  */
 export interface PermissionSetInlinePolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PermissionSetInlinePolicySpec#deletionPolicy
    */
@@ -2300,6 +2366,13 @@ export interface PermissionSetInlinePolicySpec {
    * @schema PermissionSetInlinePolicySpec#forProvider
    */
   readonly forProvider: PermissionSetInlinePolicySpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema PermissionSetInlinePolicySpec#managementPolicy
+   */
+  readonly managementPolicy?: PermissionSetInlinePolicySpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2340,6 +2413,7 @@ export function toJson_PermissionSetInlinePolicySpec(obj: PermissionSetInlinePol
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PermissionSetInlinePolicySpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_PermissionSetInlinePolicySpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_PermissionSetInlinePolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PermissionSetInlinePolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -2351,7 +2425,7 @@ export function toJson_PermissionSetInlinePolicySpec(obj: PermissionSetInlinePol
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PermissionSetInlinePolicySpecDeletionPolicy
  */
@@ -2371,28 +2445,14 @@ export interface PermissionSetInlinePolicySpecForProvider {
    *
    * @schema PermissionSetInlinePolicySpecForProvider#inlinePolicy
    */
-  readonly inlinePolicy: string;
+  readonly inlinePolicy?: string;
 
   /**
    * The Amazon Resource Name (ARN) of the SSO Instance under which the operation will be executed.
    *
    * @schema PermissionSetInlinePolicySpecForProvider#instanceArn
    */
-  readonly instanceArn?: string;
-
-  /**
-   * Reference to a PermissionSet in ssoadmin to populate instanceArn.
-   *
-   * @schema PermissionSetInlinePolicySpecForProvider#instanceArnRef
-   */
-  readonly instanceArnRef?: PermissionSetInlinePolicySpecForProviderInstanceArnRef;
-
-  /**
-   * Selector for a PermissionSet in ssoadmin to populate instanceArn.
-   *
-   * @schema PermissionSetInlinePolicySpecForProvider#instanceArnSelector
-   */
-  readonly instanceArnSelector?: PermissionSetInlinePolicySpecForProviderInstanceArnSelector;
+  readonly instanceArn: string;
 
   /**
    * The Amazon Resource Name (ARN) of the Permission Set.
@@ -2433,8 +2493,6 @@ export function toJson_PermissionSetInlinePolicySpecForProvider(obj: PermissionS
   const result = {
     'inlinePolicy': obj.inlinePolicy,
     'instanceArn': obj.instanceArn,
-    'instanceArnRef': toJson_PermissionSetInlinePolicySpecForProviderInstanceArnRef(obj.instanceArnRef),
-    'instanceArnSelector': toJson_PermissionSetInlinePolicySpecForProviderInstanceArnSelector(obj.instanceArnSelector),
     'permissionSetArn': obj.permissionSetArn,
     'permissionSetArnRef': toJson_PermissionSetInlinePolicySpecForProviderPermissionSetArnRef(obj.permissionSetArnRef),
     'permissionSetArnSelector': toJson_PermissionSetInlinePolicySpecForProviderPermissionSetArnSelector(obj.permissionSetArnSelector),
@@ -2444,6 +2502,20 @@ export function toJson_PermissionSetInlinePolicySpecForProvider(obj: PermissionS
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema PermissionSetInlinePolicySpecManagementPolicy
+ */
+export enum PermissionSetInlinePolicySpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2595,88 +2667,6 @@ export function toJson_PermissionSetInlinePolicySpecWriteConnectionSecretToRef(o
   const result = {
     'name': obj.name,
     'namespace': obj.namespace,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Reference to a PermissionSet in ssoadmin to populate instanceArn.
- *
- * @schema PermissionSetInlinePolicySpecForProviderInstanceArnRef
- */
-export interface PermissionSetInlinePolicySpecForProviderInstanceArnRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema PermissionSetInlinePolicySpecForProviderInstanceArnRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema PermissionSetInlinePolicySpecForProviderInstanceArnRef#policy
-   */
-  readonly policy?: PermissionSetInlinePolicySpecForProviderInstanceArnRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'PermissionSetInlinePolicySpecForProviderInstanceArnRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PermissionSetInlinePolicySpecForProviderInstanceArnRef(obj: PermissionSetInlinePolicySpecForProviderInstanceArnRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_PermissionSetInlinePolicySpecForProviderInstanceArnRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Selector for a PermissionSet in ssoadmin to populate instanceArn.
- *
- * @schema PermissionSetInlinePolicySpecForProviderInstanceArnSelector
- */
-export interface PermissionSetInlinePolicySpecForProviderInstanceArnSelector {
-  /**
-   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
-   *
-   * @schema PermissionSetInlinePolicySpecForProviderInstanceArnSelector#matchControllerRef
-   */
-  readonly matchControllerRef?: boolean;
-
-  /**
-   * MatchLabels ensures an object with matching labels is selected.
-   *
-   * @schema PermissionSetInlinePolicySpecForProviderInstanceArnSelector#matchLabels
-   */
-  readonly matchLabels?: { [key: string]: string };
-
-  /**
-   * Policies for selection.
-   *
-   * @schema PermissionSetInlinePolicySpecForProviderInstanceArnSelector#policy
-   */
-  readonly policy?: PermissionSetInlinePolicySpecForProviderInstanceArnSelectorPolicy;
-
-}
-
-/**
- * Converts an object of type 'PermissionSetInlinePolicySpecForProviderInstanceArnSelector' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PermissionSetInlinePolicySpecForProviderInstanceArnSelector(obj: PermissionSetInlinePolicySpecForProviderInstanceArnSelector | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'matchControllerRef': obj.matchControllerRef,
-    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
-    'policy': toJson_PermissionSetInlinePolicySpecForProviderInstanceArnSelectorPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2924,80 +2914,6 @@ export function toJson_PermissionSetInlinePolicySpecPublishConnectionDetailsToMe
 /**
  * Policies for referencing.
  *
- * @schema PermissionSetInlinePolicySpecForProviderInstanceArnRefPolicy
- */
-export interface PermissionSetInlinePolicySpecForProviderInstanceArnRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema PermissionSetInlinePolicySpecForProviderInstanceArnRefPolicy#resolution
-   */
-  readonly resolution?: PermissionSetInlinePolicySpecForProviderInstanceArnRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema PermissionSetInlinePolicySpecForProviderInstanceArnRefPolicy#resolve
-   */
-  readonly resolve?: PermissionSetInlinePolicySpecForProviderInstanceArnRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'PermissionSetInlinePolicySpecForProviderInstanceArnRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PermissionSetInlinePolicySpecForProviderInstanceArnRefPolicy(obj: PermissionSetInlinePolicySpecForProviderInstanceArnRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for selection.
- *
- * @schema PermissionSetInlinePolicySpecForProviderInstanceArnSelectorPolicy
- */
-export interface PermissionSetInlinePolicySpecForProviderInstanceArnSelectorPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema PermissionSetInlinePolicySpecForProviderInstanceArnSelectorPolicy#resolution
-   */
-  readonly resolution?: PermissionSetInlinePolicySpecForProviderInstanceArnSelectorPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema PermissionSetInlinePolicySpecForProviderInstanceArnSelectorPolicy#resolve
-   */
-  readonly resolve?: PermissionSetInlinePolicySpecForProviderInstanceArnSelectorPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'PermissionSetInlinePolicySpecForProviderInstanceArnSelectorPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PermissionSetInlinePolicySpecForProviderInstanceArnSelectorPolicy(obj: PermissionSetInlinePolicySpecForProviderInstanceArnSelectorPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
  * @schema PermissionSetInlinePolicySpecForProviderPermissionSetArnRefPolicy
  */
 export interface PermissionSetInlinePolicySpecForProviderPermissionSetArnRefPolicy {
@@ -3153,54 +3069,6 @@ export function toJson_PermissionSetInlinePolicySpecPublishConnectionDetailsToCo
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema PermissionSetInlinePolicySpecForProviderInstanceArnRefPolicyResolution
- */
-export enum PermissionSetInlinePolicySpecForProviderInstanceArnRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema PermissionSetInlinePolicySpecForProviderInstanceArnRefPolicyResolve
- */
-export enum PermissionSetInlinePolicySpecForProviderInstanceArnRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema PermissionSetInlinePolicySpecForProviderInstanceArnSelectorPolicyResolution
- */
-export enum PermissionSetInlinePolicySpecForProviderInstanceArnSelectorPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema PermissionSetInlinePolicySpecForProviderInstanceArnSelectorPolicyResolve
- */
-export enum PermissionSetInlinePolicySpecForProviderInstanceArnSelectorPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
 
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.

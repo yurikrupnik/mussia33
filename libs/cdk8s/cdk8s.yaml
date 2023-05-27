@@ -7,17 +7,17 @@ imports:
   - github:argoproj/argo-cd
   - github:external-secrets/external-secrets
   - github:GoogleContainerTools/kaniko
-#  - github:kubernetes-sigs/kustomize
   - github:kubevela/kubevela
   - github:upbound/provider-gcp
   - github:upbound/provider-aws
+  - github:crossplane/crossplane
+#  - github:kubernetes-sigs/kustomize
+#  - github:upbound/provider-azure
 
 #  - github:robusta-dev/robusta
 
-  - github:crossplane/crossplane
 #  - github:crossplane/crossplane-runtime
 #  - github:dapr/dapr
-  - github:kubevela/kubevela
 #  - github:argoproj/argo-cds
 #  - github:argoproj/argo-workflows
 #  - github:argoproj/argo-rollouts

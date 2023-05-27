@@ -16,11 +16,23 @@
     "baseUrl": ".",
     "paths": {
       "@mussia33/cdk8s": ["libs/cdk8s/src/index.ts"],
+      "@mussia33/node/bindings": ["libs/node/bindings/src/index.ts"],
+      "@mussia33/node/grpc": ["libs/node/grpc/src/index.ts"],
       "@mussia33/node/nest/auth": ["libs/node/nest/auth/src/index.ts"],
       "@mussia33/node/nest/envs": ["libs/node/nest/envs/src/index.ts"],
       "@mussia33/node/nest/errors": ["libs/node/nest/errors/src/index.ts"],
       "@mussia33/node/nest/filters": ["libs/node/nest/filters/src/index.ts"],
+      "@mussia33/node/nest/generic-api": [
+        "libs/node/nest/generic-api/src/index.ts"
+      ],
+      "@mussia33/node/nest/health": ["libs/node/nest/health/src/index.ts"],
+      "@mussia33/node/nest/logger": ["libs/node/nest/logger/src/index.ts"],
+      "@mussia33/node/nest/swagger": ["libs/node/nest/swagger/src/index.ts"],
+      "@mussia33/node/nest/users-api": [
+        "libs/node/nest/users-api/src/index.ts"
+      ],
       "@mussia33/node/shared": ["libs/node/shared/src/index.ts"],
+      "@mussia33/node/ts-utils": ["libs/node/ts-utils/src/index.ts"],
       "@mussia33/node/xstate-machines": [
         "libs/node/xstate-machines/src/index.ts"
       ]

@@ -99,7 +99,7 @@ export function toJson_BudgetProps(obj: BudgetProps | undefined): Record<string,
  */
 export interface BudgetSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BudgetSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface BudgetSpec {
    * @schema BudgetSpec#forProvider
    */
   readonly forProvider: BudgetSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema BudgetSpec#managementPolicy
+   */
+  readonly managementPolicy?: BudgetSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_BudgetSpec(obj: BudgetSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BudgetSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_BudgetSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_BudgetSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BudgetSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_BudgetSpec(obj: BudgetSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BudgetSpecDeletionPolicy
  */
@@ -194,7 +202,7 @@ export interface BudgetSpecForProvider {
    *
    * @schema BudgetSpecForProvider#budgetType
    */
-  readonly budgetType: string;
+  readonly budgetType?: string;
 
   /**
    * A list of CostFilter name/values pair to apply to budget.
@@ -271,7 +279,7 @@ export interface BudgetSpecForProvider {
    *
    * @schema BudgetSpecForProvider#timeUnit
    */
-  readonly timeUnit: string;
+  readonly timeUnit?: string;
 
 }
 
@@ -301,6 +309,20 @@ export function toJson_BudgetSpecForProvider(obj: BudgetSpecForProvider | undefi
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema BudgetSpecManagementPolicy
+ */
+export enum BudgetSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1137,7 +1159,7 @@ export function toJson_BudgetActionProps(obj: BudgetActionProps | undefined): Re
  */
 export interface BudgetActionSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BudgetActionSpec#deletionPolicy
    */
@@ -1147,6 +1169,13 @@ export interface BudgetActionSpec {
    * @schema BudgetActionSpec#forProvider
    */
   readonly forProvider: BudgetActionSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema BudgetActionSpec#managementPolicy
+   */
+  readonly managementPolicy?: BudgetActionSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1187,6 +1216,7 @@ export function toJson_BudgetActionSpec(obj: BudgetActionSpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BudgetActionSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_BudgetActionSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_BudgetActionSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BudgetActionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -1198,7 +1228,7 @@ export function toJson_BudgetActionSpec(obj: BudgetActionSpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BudgetActionSpecDeletionPolicy
  */
@@ -1225,21 +1255,21 @@ export interface BudgetActionSpecForProvider {
    *
    * @schema BudgetActionSpecForProvider#actionThreshold
    */
-  readonly actionThreshold: BudgetActionSpecForProviderActionThreshold[];
+  readonly actionThreshold?: BudgetActionSpecForProviderActionThreshold[];
 
   /**
    * The type of action. This defines the type of tasks that can be carried out by this action. This field also determines the format for definition. Valid values are APPLY_IAM_POLICY, APPLY_SCP_POLICY, and RUN_SSM_DOCUMENTS.
    *
    * @schema BudgetActionSpecForProvider#actionType
    */
-  readonly actionType: string;
+  readonly actionType?: string;
 
   /**
    * This specifies if the action needs manual or automatic approval. Valid values are AUTOMATIC and MANUAL.
    *
    * @schema BudgetActionSpecForProvider#approvalModel
    */
-  readonly approvalModel: string;
+  readonly approvalModel?: string;
 
   /**
    * The name of a budget.
@@ -1267,7 +1297,7 @@ export interface BudgetActionSpecForProvider {
    *
    * @schema BudgetActionSpecForProvider#definition
    */
-  readonly definition: BudgetActionSpecForProviderDefinition[];
+  readonly definition?: BudgetActionSpecForProviderDefinition[];
 
   /**
    * The role passed for action execution and reversion. Roles and actions must be in the same account.
@@ -1295,7 +1325,7 @@ export interface BudgetActionSpecForProvider {
    *
    * @schema BudgetActionSpecForProvider#notificationType
    */
-  readonly notificationType: string;
+  readonly notificationType?: string;
 
   /**
    * The Region to run the SSM document. Region is the region you'd like your resource to be created in.
@@ -1309,7 +1339,7 @@ export interface BudgetActionSpecForProvider {
    *
    * @schema BudgetActionSpecForProvider#subscriber
    */
-  readonly subscriber: BudgetActionSpecForProviderSubscriber[];
+  readonly subscriber?: BudgetActionSpecForProviderSubscriber[];
 
 }
 
@@ -1339,6 +1369,20 @@ export function toJson_BudgetActionSpecForProvider(obj: BudgetActionSpecForProvi
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema BudgetActionSpecManagementPolicy
+ */
+export enum BudgetActionSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

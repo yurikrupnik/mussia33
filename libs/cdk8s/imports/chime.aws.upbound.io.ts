@@ -99,7 +99,7 @@ export function toJson_VoiceConnectorProps(obj: VoiceConnectorProps | undefined)
  */
 export interface VoiceConnectorSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VoiceConnectorSpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface VoiceConnectorSpec {
    * @schema VoiceConnectorSpec#forProvider
    */
   readonly forProvider: VoiceConnectorSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema VoiceConnectorSpec#managementPolicy
+   */
+  readonly managementPolicy?: VoiceConnectorSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_VoiceConnectorSpec(obj: VoiceConnectorSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VoiceConnectorSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_VoiceConnectorSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_VoiceConnectorSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VoiceConnectorSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_VoiceConnectorSpec(obj: VoiceConnectorSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VoiceConnectorSpecDeletionPolicy
  */
@@ -194,7 +202,7 @@ export interface VoiceConnectorSpecForProvider {
    *
    * @schema VoiceConnectorSpecForProvider#requireEncryption
    */
-  readonly requireEncryption: boolean;
+  readonly requireEncryption?: boolean;
 
 }
 
@@ -213,6 +221,20 @@ export function toJson_VoiceConnectorSpecForProvider(obj: VoiceConnectorSpecForP
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema VoiceConnectorSpecManagementPolicy
+ */
+export enum VoiceConnectorSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -732,7 +754,7 @@ export function toJson_VoiceConnectorGroupProps(obj: VoiceConnectorGroupProps | 
  */
 export interface VoiceConnectorGroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VoiceConnectorGroupSpec#deletionPolicy
    */
@@ -742,6 +764,13 @@ export interface VoiceConnectorGroupSpec {
    * @schema VoiceConnectorGroupSpec#forProvider
    */
   readonly forProvider: VoiceConnectorGroupSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema VoiceConnectorGroupSpec#managementPolicy
+   */
+  readonly managementPolicy?: VoiceConnectorGroupSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -782,6 +811,7 @@ export function toJson_VoiceConnectorGroupSpec(obj: VoiceConnectorGroupSpec | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VoiceConnectorGroupSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_VoiceConnectorGroupSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_VoiceConnectorGroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VoiceConnectorGroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -793,7 +823,7 @@ export function toJson_VoiceConnectorGroupSpec(obj: VoiceConnectorGroupSpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VoiceConnectorGroupSpecDeletionPolicy
  */
@@ -838,6 +868,20 @@ export function toJson_VoiceConnectorGroupSpecForProvider(obj: VoiceConnectorGro
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema VoiceConnectorGroupSpecManagementPolicy
+ */
+export enum VoiceConnectorGroupSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1612,7 +1656,7 @@ export function toJson_VoiceConnectorLoggingProps(obj: VoiceConnectorLoggingProp
  */
 export interface VoiceConnectorLoggingSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VoiceConnectorLoggingSpec#deletionPolicy
    */
@@ -1622,6 +1666,13 @@ export interface VoiceConnectorLoggingSpec {
    * @schema VoiceConnectorLoggingSpec#forProvider
    */
   readonly forProvider: VoiceConnectorLoggingSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema VoiceConnectorLoggingSpec#managementPolicy
+   */
+  readonly managementPolicy?: VoiceConnectorLoggingSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1662,6 +1713,7 @@ export function toJson_VoiceConnectorLoggingSpec(obj: VoiceConnectorLoggingSpec 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VoiceConnectorLoggingSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_VoiceConnectorLoggingSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_VoiceConnectorLoggingSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VoiceConnectorLoggingSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -1673,7 +1725,7 @@ export function toJson_VoiceConnectorLoggingSpec(obj: VoiceConnectorLoggingSpec 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VoiceConnectorLoggingSpecDeletionPolicy
  */
@@ -1750,6 +1802,20 @@ export function toJson_VoiceConnectorLoggingSpecForProvider(obj: VoiceConnectorL
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema VoiceConnectorLoggingSpecManagementPolicy
+ */
+export enum VoiceConnectorLoggingSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2473,7 +2539,7 @@ export function toJson_VoiceConnectorOriginationProps(obj: VoiceConnectorOrigina
  */
 export interface VoiceConnectorOriginationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VoiceConnectorOriginationSpec#deletionPolicy
    */
@@ -2483,6 +2549,13 @@ export interface VoiceConnectorOriginationSpec {
    * @schema VoiceConnectorOriginationSpec#forProvider
    */
   readonly forProvider: VoiceConnectorOriginationSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema VoiceConnectorOriginationSpec#managementPolicy
+   */
+  readonly managementPolicy?: VoiceConnectorOriginationSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2523,6 +2596,7 @@ export function toJson_VoiceConnectorOriginationSpec(obj: VoiceConnectorOriginat
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VoiceConnectorOriginationSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_VoiceConnectorOriginationSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_VoiceConnectorOriginationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VoiceConnectorOriginationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -2534,7 +2608,7 @@ export function toJson_VoiceConnectorOriginationSpec(obj: VoiceConnectorOriginat
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VoiceConnectorOriginationSpecDeletionPolicy
  */
@@ -2568,7 +2642,7 @@ export interface VoiceConnectorOriginationSpecForProvider {
    *
    * @schema VoiceConnectorOriginationSpecForProvider#route
    */
-  readonly route: VoiceConnectorOriginationSpecForProviderRoute[];
+  readonly route?: VoiceConnectorOriginationSpecForProviderRoute[];
 
   /**
    * The Amazon Chime Voice Connector ID.
@@ -2611,6 +2685,20 @@ export function toJson_VoiceConnectorOriginationSpecForProvider(obj: VoiceConnec
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema VoiceConnectorOriginationSpecManagementPolicy
+ */
+export enum VoiceConnectorOriginationSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3394,7 +3482,7 @@ export function toJson_VoiceConnectorStreamingProps(obj: VoiceConnectorStreaming
  */
 export interface VoiceConnectorStreamingSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VoiceConnectorStreamingSpec#deletionPolicy
    */
@@ -3404,6 +3492,13 @@ export interface VoiceConnectorStreamingSpec {
    * @schema VoiceConnectorStreamingSpec#forProvider
    */
   readonly forProvider: VoiceConnectorStreamingSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema VoiceConnectorStreamingSpec#managementPolicy
+   */
+  readonly managementPolicy?: VoiceConnectorStreamingSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3444,6 +3539,7 @@ export function toJson_VoiceConnectorStreamingSpec(obj: VoiceConnectorStreamingS
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VoiceConnectorStreamingSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_VoiceConnectorStreamingSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_VoiceConnectorStreamingSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VoiceConnectorStreamingSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -3455,7 +3551,7 @@ export function toJson_VoiceConnectorStreamingSpec(obj: VoiceConnectorStreamingS
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VoiceConnectorStreamingSpecDeletionPolicy
  */
@@ -3475,7 +3571,7 @@ export interface VoiceConnectorStreamingSpecForProvider {
    *
    * @schema VoiceConnectorStreamingSpecForProvider#dataRetention
    */
-  readonly dataRetention: number;
+  readonly dataRetention?: number;
 
   /**
    * When true, media streaming to Amazon Kinesis is turned off. Default: false
@@ -3483,6 +3579,13 @@ export interface VoiceConnectorStreamingSpecForProvider {
    * @schema VoiceConnectorStreamingSpecForProvider#disabled
    */
   readonly disabled?: boolean;
+
+  /**
+   * The media insights configuration. See media_insights_configuration.
+   *
+   * @schema VoiceConnectorStreamingSpecForProvider#mediaInsightsConfiguration
+   */
+  readonly mediaInsightsConfiguration?: VoiceConnectorStreamingSpecForProviderMediaInsightsConfiguration[];
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -3530,6 +3633,7 @@ export function toJson_VoiceConnectorStreamingSpecForProvider(obj: VoiceConnecto
   const result = {
     'dataRetention': obj.dataRetention,
     'disabled': obj.disabled,
+    'mediaInsightsConfiguration': obj.mediaInsightsConfiguration?.map(y => toJson_VoiceConnectorStreamingSpecForProviderMediaInsightsConfiguration(y)),
     'region': obj.region,
     'streamingNotificationTargets': obj.streamingNotificationTargets?.map(y => y),
     'voiceConnectorId': obj.voiceConnectorId,
@@ -3540,6 +3644,20 @@ export function toJson_VoiceConnectorStreamingSpecForProvider(obj: VoiceConnecto
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema VoiceConnectorStreamingSpecManagementPolicy
+ */
+export enum VoiceConnectorStreamingSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3691,6 +3809,42 @@ export function toJson_VoiceConnectorStreamingSpecWriteConnectionSecretToRef(obj
   const result = {
     'name': obj.name,
     'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VoiceConnectorStreamingSpecForProviderMediaInsightsConfiguration
+ */
+export interface VoiceConnectorStreamingSpecForProviderMediaInsightsConfiguration {
+  /**
+   * The media insights configuration that will be invoked by the Voice Connector.
+   *
+   * @schema VoiceConnectorStreamingSpecForProviderMediaInsightsConfiguration#configurationArn
+   */
+  readonly configurationArn?: string;
+
+  /**
+   * When true, the media insights configuration is not enabled. Defaults to false.
+   *
+   * @default false.
+   * @schema VoiceConnectorStreamingSpecForProviderMediaInsightsConfiguration#disabled
+   */
+  readonly disabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'VoiceConnectorStreamingSpecForProviderMediaInsightsConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VoiceConnectorStreamingSpecForProviderMediaInsightsConfiguration(obj: VoiceConnectorStreamingSpecForProviderMediaInsightsConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configurationArn': obj.configurationArn,
+    'disabled': obj.disabled,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4263,7 +4417,7 @@ export function toJson_VoiceConnectorTerminationProps(obj: VoiceConnectorTermina
  */
 export interface VoiceConnectorTerminationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VoiceConnectorTerminationSpec#deletionPolicy
    */
@@ -4273,6 +4427,13 @@ export interface VoiceConnectorTerminationSpec {
    * @schema VoiceConnectorTerminationSpec#forProvider
    */
   readonly forProvider: VoiceConnectorTerminationSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema VoiceConnectorTerminationSpec#managementPolicy
+   */
+  readonly managementPolicy?: VoiceConnectorTerminationSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4313,6 +4474,7 @@ export function toJson_VoiceConnectorTerminationSpec(obj: VoiceConnectorTerminat
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VoiceConnectorTerminationSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_VoiceConnectorTerminationSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_VoiceConnectorTerminationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VoiceConnectorTerminationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -4324,7 +4486,7 @@ export function toJson_VoiceConnectorTerminationSpec(obj: VoiceConnectorTerminat
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VoiceConnectorTerminationSpecDeletionPolicy
  */
@@ -4344,14 +4506,14 @@ export interface VoiceConnectorTerminationSpecForProvider {
    *
    * @schema VoiceConnectorTerminationSpecForProvider#callingRegions
    */
-  readonly callingRegions: string[];
+  readonly callingRegions?: string[];
 
   /**
    * The IP addresses allowed to make calls, in CIDR format.
    *
    * @schema VoiceConnectorTerminationSpecForProvider#cidrAllowList
    */
-  readonly cidrAllowList: string[];
+  readonly cidrAllowList?: string[];
 
   /**
    * The limit on calls per second. Max value based on account service quota. Default value of 1.
@@ -4425,6 +4587,20 @@ export function toJson_VoiceConnectorTerminationSpecForProvider(obj: VoiceConnec
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema VoiceConnectorTerminationSpecManagementPolicy
+ */
+export enum VoiceConnectorTerminationSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5148,7 +5324,7 @@ export function toJson_VoiceConnectorTerminationCredentialsProps(obj: VoiceConne
  */
 export interface VoiceConnectorTerminationCredentialsSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VoiceConnectorTerminationCredentialsSpec#deletionPolicy
    */
@@ -5158,6 +5334,13 @@ export interface VoiceConnectorTerminationCredentialsSpec {
    * @schema VoiceConnectorTerminationCredentialsSpec#forProvider
    */
   readonly forProvider: VoiceConnectorTerminationCredentialsSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema VoiceConnectorTerminationCredentialsSpec#managementPolicy
+   */
+  readonly managementPolicy?: VoiceConnectorTerminationCredentialsSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5198,6 +5381,7 @@ export function toJson_VoiceConnectorTerminationCredentialsSpec(obj: VoiceConnec
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VoiceConnectorTerminationCredentialsSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_VoiceConnectorTerminationCredentialsSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_VoiceConnectorTerminationCredentialsSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VoiceConnectorTerminationCredentialsSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -5209,7 +5393,7 @@ export function toJson_VoiceConnectorTerminationCredentialsSpec(obj: VoiceConnec
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VoiceConnectorTerminationCredentialsSpecDeletionPolicy
  */
@@ -5229,7 +5413,7 @@ export interface VoiceConnectorTerminationCredentialsSpecForProvider {
    *
    * @schema VoiceConnectorTerminationCredentialsSpecForProvider#credentials
    */
-  readonly credentials: VoiceConnectorTerminationCredentialsSpecForProviderCredentials[];
+  readonly credentials?: VoiceConnectorTerminationCredentialsSpecForProviderCredentials[];
 
   /**
    * Region is the region you'd like your resource to be created in.
@@ -5278,6 +5462,20 @@ export function toJson_VoiceConnectorTerminationCredentialsSpecForProvider(obj: 
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema VoiceConnectorTerminationCredentialsSpecManagementPolicy
+ */
+export enum VoiceConnectorTerminationCredentialsSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

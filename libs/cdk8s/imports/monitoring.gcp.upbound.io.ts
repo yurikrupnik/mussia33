@@ -99,7 +99,7 @@ export function toJson_AlertPolicyProps(obj: AlertPolicyProps | undefined): Reco
  */
 export interface AlertPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AlertPolicySpec#deletionPolicy
    */
@@ -109,6 +109,13 @@ export interface AlertPolicySpec {
    * @schema AlertPolicySpec#forProvider
    */
   readonly forProvider: AlertPolicySpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema AlertPolicySpec#managementPolicy
+   */
+  readonly managementPolicy?: AlertPolicySpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -149,6 +156,7 @@ export function toJson_AlertPolicySpec(obj: AlertPolicySpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AlertPolicySpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_AlertPolicySpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_AlertPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AlertPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -160,7 +168,7 @@ export function toJson_AlertPolicySpec(obj: AlertPolicySpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AlertPolicySpecDeletionPolicy
  */
@@ -183,25 +191,25 @@ export interface AlertPolicySpecForProvider {
   readonly alertStrategy?: AlertPolicySpecForProviderAlertStrategy[];
 
   /**
-   * How to combine the results of multiple conditions to determine if an incident should be opened. Possible values are AND, OR, and AND_WITH_MATCHING_RESOURCE.
+   * How to combine the results of multiple conditions to determine if an incident should be opened. Possible values are: AND, OR, AND_WITH_MATCHING_RESOURCE.
    *
    * @schema AlertPolicySpecForProvider#combiner
    */
-  readonly combiner: string;
+  readonly combiner?: string;
 
   /**
    * A list of conditions for the policy. The conditions are combined by AND or OR according to the combiner field. If the combined conditions evaluate to true, then an incident is created. A policy can have from one to six conditions. Structure is documented below.
    *
    * @schema AlertPolicySpecForProvider#conditions
    */
-  readonly conditions: AlertPolicySpecForProviderConditions[];
+  readonly conditions?: AlertPolicySpecForProviderConditions[];
 
   /**
    * A short name or phrase used to identify the policy in dashboards, notifications, and incidents. To avoid confusion, don't use the same display name for multiple policies in the same project. The name is limited to 512 Unicode characters.
    *
    * @schema AlertPolicySpecForProvider#displayName
    */
-  readonly displayName: string;
+  readonly displayName?: string;
 
   /**
    * Documentation that is included with notifications and incidents related to this policy. Best practice is for the documentation to include information to help responders understand, mitigate, escalate, and correct the underlying problems detected by the alerting policy. Notification channels that have limited capacity might not show this documentation. Structure is documented below.
@@ -261,6 +269,20 @@ export function toJson_AlertPolicySpecForProvider(obj: AlertPolicySpecForProvide
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema AlertPolicySpecManagementPolicy
+ */
+export enum AlertPolicySpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -828,7 +850,7 @@ export interface AlertPolicySpecForProviderConditionsConditionMonitoringQueryLan
   readonly duration: string;
 
   /**
-   * A condition control that determines how metric-threshold conditions are evaluated when data stops arriving. Possible values are EVALUATION_MISSING_DATA_INACTIVE, EVALUATION_MISSING_DATA_ACTIVE, and EVALUATION_MISSING_DATA_NO_OP.
+   * A condition control that determines how metric-threshold conditions are evaluated when data stops arriving. Possible values are: EVALUATION_MISSING_DATA_INACTIVE, EVALUATION_MISSING_DATA_ACTIVE, EVALUATION_MISSING_DATA_NO_OP.
    *
    * @schema AlertPolicySpecForProviderConditionsConditionMonitoringQueryLanguage#evaluationMissingData
    */
@@ -879,7 +901,7 @@ export interface AlertPolicySpecForProviderConditionsConditionThreshold {
   readonly aggregations?: AlertPolicySpecForProviderConditionsConditionThresholdAggregations[];
 
   /**
-   * The comparison to apply between the time series (indicated by filter and aggregation) and the threshold (indicated by threshold_value). The comparison is applied on each time series, with the time series on the left-hand side and the threshold on the right-hand side. Only COMPARISON_LT and COMPARISON_GT are supported currently. Possible values are COMPARISON_GT, COMPARISON_GE, COMPARISON_LT, COMPARISON_LE, COMPARISON_EQ, and COMPARISON_NE.
+   * The comparison to apply between the time series (indicated by filter and aggregation) and the threshold (indicated by threshold_value). The comparison is applied on each time series, with the time series on the left-hand side and the threshold on the right-hand side. Only COMPARISON_LT and COMPARISON_GT are supported currently. Possible values are: COMPARISON_GT, COMPARISON_GE, COMPARISON_LT, COMPARISON_LE, COMPARISON_EQ, COMPARISON_NE.
    *
    * @schema AlertPolicySpecForProviderConditionsConditionThreshold#comparison
    */
@@ -907,7 +929,7 @@ export interface AlertPolicySpecForProviderConditionsConditionThreshold {
   readonly duration: string;
 
   /**
-   * A condition control that determines how metric-threshold conditions are evaluated when data stops arriving. Possible values are EVALUATION_MISSING_DATA_INACTIVE, EVALUATION_MISSING_DATA_ACTIVE, and EVALUATION_MISSING_DATA_NO_OP.
+   * A condition control that determines how metric-threshold conditions are evaluated when data stops arriving. Possible values are: EVALUATION_MISSING_DATA_INACTIVE, EVALUATION_MISSING_DATA_ACTIVE, EVALUATION_MISSING_DATA_NO_OP.
    *
    * @schema AlertPolicySpecForProviderConditionsConditionThreshold#evaluationMissingData
    */
@@ -1055,7 +1077,7 @@ export interface AlertPolicySpecForProviderConditionsConditionAbsentAggregations
   readonly alignmentPeriod?: string;
 
   /**
-   * The approach to be used to combine time series. Not all reducer functions may be applied to all time series, depending on the metric type and the value type of the original time series. Reduction may change the metric type of value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are REDUCE_NONE, REDUCE_MEAN, REDUCE_MIN, REDUCE_MAX, REDUCE_SUM, REDUCE_STDDEV, REDUCE_COUNT, REDUCE_COUNT_TRUE, REDUCE_COUNT_FALSE, REDUCE_FRACTION_TRUE, REDUCE_PERCENTILE_99, REDUCE_PERCENTILE_95, REDUCE_PERCENTILE_50, and REDUCE_PERCENTILE_05.
+   * The approach to be used to combine time series. Not all reducer functions may be applied to all time series, depending on the metric type and the value type of the original time series. Reduction may change the metric type of value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are: REDUCE_NONE, REDUCE_MEAN, REDUCE_MIN, REDUCE_MAX, REDUCE_SUM, REDUCE_STDDEV, REDUCE_COUNT, REDUCE_COUNT_TRUE, REDUCE_COUNT_FALSE, REDUCE_FRACTION_TRUE, REDUCE_PERCENTILE_99, REDUCE_PERCENTILE_95, REDUCE_PERCENTILE_50, REDUCE_PERCENTILE_05.
    *
    * @schema AlertPolicySpecForProviderConditionsConditionAbsentAggregations#crossSeriesReducer
    */
@@ -1069,7 +1091,7 @@ export interface AlertPolicySpecForProviderConditionsConditionAbsentAggregations
   readonly groupByFields?: string[];
 
   /**
-   * The approach to be used to align individual time series. Not all alignment functions may be applied to all time series, depending on the metric type and value type of the original time series. Alignment may change the metric type or the value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are ALIGN_NONE, ALIGN_DELTA, ALIGN_RATE, ALIGN_INTERPOLATE, ALIGN_NEXT_OLDER, ALIGN_MIN, ALIGN_MAX, ALIGN_MEAN, ALIGN_COUNT, ALIGN_SUM, ALIGN_STDDEV, ALIGN_COUNT_TRUE, ALIGN_COUNT_FALSE, ALIGN_FRACTION_TRUE, ALIGN_PERCENTILE_99, ALIGN_PERCENTILE_95, ALIGN_PERCENTILE_50, ALIGN_PERCENTILE_05, and ALIGN_PERCENT_CHANGE.
+   * The approach to be used to align individual time series. Not all alignment functions may be applied to all time series, depending on the metric type and value type of the original time series. Alignment may change the metric type or the value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are: ALIGN_NONE, ALIGN_DELTA, ALIGN_RATE, ALIGN_INTERPOLATE, ALIGN_NEXT_OLDER, ALIGN_MIN, ALIGN_MAX, ALIGN_MEAN, ALIGN_COUNT, ALIGN_SUM, ALIGN_STDDEV, ALIGN_COUNT_TRUE, ALIGN_COUNT_FALSE, ALIGN_FRACTION_TRUE, ALIGN_PERCENTILE_99, ALIGN_PERCENTILE_95, ALIGN_PERCENTILE_50, ALIGN_PERCENTILE_05, ALIGN_PERCENT_CHANGE.
    *
    * @schema AlertPolicySpecForProviderConditionsConditionAbsentAggregations#perSeriesAligner
    */
@@ -1176,7 +1198,7 @@ export interface AlertPolicySpecForProviderConditionsConditionThresholdAggregati
   readonly alignmentPeriod?: string;
 
   /**
-   * The approach to be used to combine time series. Not all reducer functions may be applied to all time series, depending on the metric type and the value type of the original time series. Reduction may change the metric type of value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are REDUCE_NONE, REDUCE_MEAN, REDUCE_MIN, REDUCE_MAX, REDUCE_SUM, REDUCE_STDDEV, REDUCE_COUNT, REDUCE_COUNT_TRUE, REDUCE_COUNT_FALSE, REDUCE_FRACTION_TRUE, REDUCE_PERCENTILE_99, REDUCE_PERCENTILE_95, REDUCE_PERCENTILE_50, and REDUCE_PERCENTILE_05.
+   * The approach to be used to combine time series. Not all reducer functions may be applied to all time series, depending on the metric type and the value type of the original time series. Reduction may change the metric type of value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are: REDUCE_NONE, REDUCE_MEAN, REDUCE_MIN, REDUCE_MAX, REDUCE_SUM, REDUCE_STDDEV, REDUCE_COUNT, REDUCE_COUNT_TRUE, REDUCE_COUNT_FALSE, REDUCE_FRACTION_TRUE, REDUCE_PERCENTILE_99, REDUCE_PERCENTILE_95, REDUCE_PERCENTILE_50, REDUCE_PERCENTILE_05.
    *
    * @schema AlertPolicySpecForProviderConditionsConditionThresholdAggregations#crossSeriesReducer
    */
@@ -1190,7 +1212,7 @@ export interface AlertPolicySpecForProviderConditionsConditionThresholdAggregati
   readonly groupByFields?: string[];
 
   /**
-   * The approach to be used to align individual time series. Not all alignment functions may be applied to all time series, depending on the metric type and value type of the original time series. Alignment may change the metric type or the value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are ALIGN_NONE, ALIGN_DELTA, ALIGN_RATE, ALIGN_INTERPOLATE, ALIGN_NEXT_OLDER, ALIGN_MIN, ALIGN_MAX, ALIGN_MEAN, ALIGN_COUNT, ALIGN_SUM, ALIGN_STDDEV, ALIGN_COUNT_TRUE, ALIGN_COUNT_FALSE, ALIGN_FRACTION_TRUE, ALIGN_PERCENTILE_99, ALIGN_PERCENTILE_95, ALIGN_PERCENTILE_50, ALIGN_PERCENTILE_05, and ALIGN_PERCENT_CHANGE.
+   * The approach to be used to align individual time series. Not all alignment functions may be applied to all time series, depending on the metric type and value type of the original time series. Alignment may change the metric type or the value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are: ALIGN_NONE, ALIGN_DELTA, ALIGN_RATE, ALIGN_INTERPOLATE, ALIGN_NEXT_OLDER, ALIGN_MIN, ALIGN_MAX, ALIGN_MEAN, ALIGN_COUNT, ALIGN_SUM, ALIGN_STDDEV, ALIGN_COUNT_TRUE, ALIGN_COUNT_FALSE, ALIGN_FRACTION_TRUE, ALIGN_PERCENTILE_99, ALIGN_PERCENTILE_95, ALIGN_PERCENTILE_50, ALIGN_PERCENTILE_05, ALIGN_PERCENT_CHANGE.
    *
    * @schema AlertPolicySpecForProviderConditionsConditionThresholdAggregations#perSeriesAligner
    */
@@ -1227,7 +1249,7 @@ export interface AlertPolicySpecForProviderConditionsConditionThresholdDenominat
   readonly alignmentPeriod?: string;
 
   /**
-   * The approach to be used to combine time series. Not all reducer functions may be applied to all time series, depending on the metric type and the value type of the original time series. Reduction may change the metric type of value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are REDUCE_NONE, REDUCE_MEAN, REDUCE_MIN, REDUCE_MAX, REDUCE_SUM, REDUCE_STDDEV, REDUCE_COUNT, REDUCE_COUNT_TRUE, REDUCE_COUNT_FALSE, REDUCE_FRACTION_TRUE, REDUCE_PERCENTILE_99, REDUCE_PERCENTILE_95, REDUCE_PERCENTILE_50, and REDUCE_PERCENTILE_05.
+   * The approach to be used to combine time series. Not all reducer functions may be applied to all time series, depending on the metric type and the value type of the original time series. Reduction may change the metric type of value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are: REDUCE_NONE, REDUCE_MEAN, REDUCE_MIN, REDUCE_MAX, REDUCE_SUM, REDUCE_STDDEV, REDUCE_COUNT, REDUCE_COUNT_TRUE, REDUCE_COUNT_FALSE, REDUCE_FRACTION_TRUE, REDUCE_PERCENTILE_99, REDUCE_PERCENTILE_95, REDUCE_PERCENTILE_50, REDUCE_PERCENTILE_05.
    *
    * @schema AlertPolicySpecForProviderConditionsConditionThresholdDenominatorAggregations#crossSeriesReducer
    */
@@ -1241,7 +1263,7 @@ export interface AlertPolicySpecForProviderConditionsConditionThresholdDenominat
   readonly groupByFields?: string[];
 
   /**
-   * The approach to be used to align individual time series. Not all alignment functions may be applied to all time series, depending on the metric type and value type of the original time series. Alignment may change the metric type or the value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are ALIGN_NONE, ALIGN_DELTA, ALIGN_RATE, ALIGN_INTERPOLATE, ALIGN_NEXT_OLDER, ALIGN_MIN, ALIGN_MAX, ALIGN_MEAN, ALIGN_COUNT, ALIGN_SUM, ALIGN_STDDEV, ALIGN_COUNT_TRUE, ALIGN_COUNT_FALSE, ALIGN_FRACTION_TRUE, ALIGN_PERCENTILE_99, ALIGN_PERCENTILE_95, ALIGN_PERCENTILE_50, ALIGN_PERCENTILE_05, and ALIGN_PERCENT_CHANGE.
+   * The approach to be used to align individual time series. Not all alignment functions may be applied to all time series, depending on the metric type and value type of the original time series. Alignment may change the metric type or the value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are: ALIGN_NONE, ALIGN_DELTA, ALIGN_RATE, ALIGN_INTERPOLATE, ALIGN_NEXT_OLDER, ALIGN_MIN, ALIGN_MAX, ALIGN_MEAN, ALIGN_COUNT, ALIGN_SUM, ALIGN_STDDEV, ALIGN_COUNT_TRUE, ALIGN_COUNT_FALSE, ALIGN_FRACTION_TRUE, ALIGN_PERCENTILE_99, ALIGN_PERCENTILE_95, ALIGN_PERCENTILE_50, ALIGN_PERCENTILE_05, ALIGN_PERCENT_CHANGE.
    *
    * @schema AlertPolicySpecForProviderConditionsConditionThresholdDenominatorAggregations#perSeriesAligner
    */
@@ -1422,7 +1444,7 @@ export function toJson_CustomServiceProps(obj: CustomServiceProps | undefined): 
  */
 export interface CustomServiceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CustomServiceSpec#deletionPolicy
    */
@@ -1432,6 +1454,13 @@ export interface CustomServiceSpec {
    * @schema CustomServiceSpec#forProvider
    */
   readonly forProvider: CustomServiceSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema CustomServiceSpec#managementPolicy
+   */
+  readonly managementPolicy?: CustomServiceSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1472,6 +1501,7 @@ export function toJson_CustomServiceSpec(obj: CustomServiceSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CustomServiceSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_CustomServiceSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_CustomServiceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CustomServiceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -1483,7 +1513,7 @@ export function toJson_CustomServiceSpec(obj: CustomServiceSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CustomServiceSpecDeletionPolicy
  */
@@ -1552,6 +1582,20 @@ export function toJson_CustomServiceSpecForProvider(obj: CustomServiceSpecForPro
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema CustomServiceSpecManagementPolicy
+ */
+export enum CustomServiceSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2098,7 +2142,7 @@ export function toJson_DashboardProps(obj: DashboardProps | undefined): Record<s
  */
 export interface DashboardSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DashboardSpec#deletionPolicy
    */
@@ -2108,6 +2152,13 @@ export interface DashboardSpec {
    * @schema DashboardSpec#forProvider
    */
   readonly forProvider: DashboardSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema DashboardSpec#managementPolicy
+   */
+  readonly managementPolicy?: DashboardSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2148,6 +2199,7 @@ export function toJson_DashboardSpec(obj: DashboardSpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DashboardSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_DashboardSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_DashboardSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DashboardSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -2159,7 +2211,7 @@ export function toJson_DashboardSpec(obj: DashboardSpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DashboardSpecDeletionPolicy
  */
@@ -2179,7 +2231,7 @@ export interface DashboardSpecForProvider {
    *
    * @schema DashboardSpecForProvider#dashboardJson
    */
-  readonly dashboardJson: string;
+  readonly dashboardJson?: string;
 
   /**
    * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
@@ -2204,6 +2256,20 @@ export function toJson_DashboardSpecForProvider(obj: DashboardSpecForProvider | 
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema DashboardSpecManagementPolicy
+ */
+export enum DashboardSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2723,7 +2789,7 @@ export function toJson_GroupProps(obj: GroupProps | undefined): Record<string, a
  */
 export interface GroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema GroupSpec#deletionPolicy
    */
@@ -2733,6 +2799,13 @@ export interface GroupSpec {
    * @schema GroupSpec#forProvider
    */
   readonly forProvider: GroupSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema GroupSpec#managementPolicy
+   */
+  readonly managementPolicy?: GroupSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2773,6 +2846,7 @@ export function toJson_GroupSpec(obj: GroupSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_GroupSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_GroupSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_GroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_GroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -2784,7 +2858,7 @@ export function toJson_GroupSpec(obj: GroupSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema GroupSpecDeletionPolicy
  */
@@ -2804,14 +2878,14 @@ export interface GroupSpecForProvider {
    *
    * @schema GroupSpecForProvider#displayName
    */
-  readonly displayName: string;
+  readonly displayName?: string;
 
   /**
    * The filter used to determine which monitored resources belong to this group.
    *
    * @schema GroupSpecForProvider#filter
    */
-  readonly filter: string;
+  readonly filter?: string;
 
   /**
    * If true, the members of this group are considered to be a cluster. The system can perform additional analysis on groups that are clusters.
@@ -2869,6 +2943,20 @@ export function toJson_GroupSpecForProvider(obj: GroupSpecForProvider | undefine
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema GroupSpecManagementPolicy
+ */
+export enum GroupSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3592,7 +3680,7 @@ export function toJson_MetricDescriptorProps(obj: MetricDescriptorProps | undefi
  */
 export interface MetricDescriptorSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MetricDescriptorSpec#deletionPolicy
    */
@@ -3602,6 +3690,13 @@ export interface MetricDescriptorSpec {
    * @schema MetricDescriptorSpec#forProvider
    */
   readonly forProvider: MetricDescriptorSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema MetricDescriptorSpec#managementPolicy
+   */
+  readonly managementPolicy?: MetricDescriptorSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3642,6 +3737,7 @@ export function toJson_MetricDescriptorSpec(obj: MetricDescriptorSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MetricDescriptorSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_MetricDescriptorSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_MetricDescriptorSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MetricDescriptorSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -3653,7 +3749,7 @@ export function toJson_MetricDescriptorSpec(obj: MetricDescriptorSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MetricDescriptorSpecDeletionPolicy
  */
@@ -3673,14 +3769,14 @@ export interface MetricDescriptorSpecForProvider {
    *
    * @schema MetricDescriptorSpecForProvider#description
    */
-  readonly description: string;
+  readonly description?: string;
 
   /**
    * A concise name for the metric, which can be displayed in user interfaces. Use sentence case without an ending period, for example "Request count".
    *
    * @schema MetricDescriptorSpecForProvider#displayName
    */
-  readonly displayName: string;
+  readonly displayName?: string;
 
   /**
    * The set of labels that can be used to describe a specific instance of this metric type. In order to delete a label, the entire resource must be deleted, then created with the desired labels. Structure is documented below.
@@ -3690,7 +3786,7 @@ export interface MetricDescriptorSpecForProvider {
   readonly labels?: MetricDescriptorSpecForProviderLabels[];
 
   /**
-   * The launch stage of the metric definition. Possible values are LAUNCH_STAGE_UNSPECIFIED, UNIMPLEMENTED, PRELAUNCH, EARLY_ACCESS, ALPHA, BETA, GA, and DEPRECATED.
+   * The launch stage of the metric definition. Possible values are: LAUNCH_STAGE_UNSPECIFIED, UNIMPLEMENTED, PRELAUNCH, EARLY_ACCESS, ALPHA, BETA, GA, DEPRECATED.
    *
    * @schema MetricDescriptorSpecForProvider#launchStage
    */
@@ -3704,11 +3800,11 @@ export interface MetricDescriptorSpecForProvider {
   readonly metadata?: MetricDescriptorSpecForProviderMetadata[];
 
   /**
-   * Whether the metric records instantaneous values, changes to a value, etc. Some combinations of metricKind and valueType might not be supported. Possible values are METRIC_KIND_UNSPECIFIED, GAUGE, DELTA, and CUMULATIVE.
+   * Whether the metric records instantaneous values, changes to a value, etc. Some combinations of metricKind and valueType might not be supported. Possible values are: METRIC_KIND_UNSPECIFIED, GAUGE, DELTA, CUMULATIVE.
    *
    * @schema MetricDescriptorSpecForProvider#metricKind
    */
-  readonly metricKind: string;
+  readonly metricKind?: string;
 
   /**
    * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
@@ -3722,7 +3818,7 @@ export interface MetricDescriptorSpecForProvider {
    *
    * @schema MetricDescriptorSpecForProvider#type
    */
-  readonly type: string;
+  readonly type?: string;
 
   /**
    * The units in which the metric value is reported. It is only applicable if the valueType is INT64, DOUBLE, or DISTRIBUTION. The unit defines the representation of the stored metric values. Different systems may scale the values to be more easily displayed (so a value of 0.02KBy might be displayed as 20By, and a value of 3523KBy might be displayed as 3.5MBy). However, if the unit is KBy, then the value of the metric is always in thousands of bytes, no matter how it may be displayed. If you want a custom metric to record the exact number of CPU-seconds used by a job, you can create an INT64 CUMULATIVE metric whose unit is s{CPU} (or equivalently 1s{CPU} or just s). If the job uses 12,005 CPU-seconds, then the value is written as 12005. Alternatively, if you want a custom metric to record data in a more granular way, you can create a DOUBLE CUMULATIVE metric whose unit is ks{CPU}, and then write the value 12.005 (which is 12005/1000), or use Kis{CPU} and write 11.723 (which is 12005/1024). The supported units are a subset of The Unified Code for Units of Measure standard. More info can be found in the API documentation (https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.metricDescriptors).
@@ -3732,11 +3828,11 @@ export interface MetricDescriptorSpecForProvider {
   readonly unit?: string;
 
   /**
-   * Whether the measurement is an integer, a floating-point number, etc. Some combinations of metricKind and valueType might not be supported. Possible values are BOOL, INT64, DOUBLE, STRING, and DISTRIBUTION.
+   * Whether the measurement is an integer, a floating-point number, etc. Some combinations of metricKind and valueType might not be supported. Possible values are: BOOL, INT64, DOUBLE, STRING, DISTRIBUTION.
    *
    * @schema MetricDescriptorSpecForProvider#valueType
    */
-  readonly valueType: string;
+  readonly valueType?: string;
 
 }
 
@@ -3762,6 +3858,20 @@ export function toJson_MetricDescriptorSpecForProvider(obj: MetricDescriptorSpec
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema MetricDescriptorSpecManagementPolicy
+ */
+export enum MetricDescriptorSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3938,7 +4048,7 @@ export interface MetricDescriptorSpecForProviderLabels {
   readonly key: string;
 
   /**
-   * The type of data that can be assigned to the label. Default value is STRING. Possible values are STRING, BOOL, and INT64.
+   * The type of data that can be assigned to the label. Default value is STRING. Possible values are: STRING, BOOL, INT64.
    *
    * @schema MetricDescriptorSpecForProviderLabels#valueType
    */
@@ -4359,7 +4469,7 @@ export function toJson_NotificationChannelProps(obj: NotificationChannelProps | 
  */
 export interface NotificationChannelSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema NotificationChannelSpec#deletionPolicy
    */
@@ -4369,6 +4479,13 @@ export interface NotificationChannelSpec {
    * @schema NotificationChannelSpec#forProvider
    */
   readonly forProvider: NotificationChannelSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema NotificationChannelSpec#managementPolicy
+   */
+  readonly managementPolicy?: NotificationChannelSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4409,6 +4526,7 @@ export function toJson_NotificationChannelSpec(obj: NotificationChannelSpec | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_NotificationChannelSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_NotificationChannelSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_NotificationChannelSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_NotificationChannelSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -4420,7 +4538,7 @@ export function toJson_NotificationChannelSpec(obj: NotificationChannelSpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema NotificationChannelSpecDeletionPolicy
  */
@@ -4489,7 +4607,7 @@ export interface NotificationChannelSpecForProvider {
    *
    * @schema NotificationChannelSpecForProvider#type
    */
-  readonly type: string;
+  readonly type?: string;
 
   /**
    * User-supplied key/value data that does not need to conform to the corresponding NotificationChannelDescriptor's schema, unlike the labels field. This field is intended to be used for organizing and identifying the NotificationChannel objects.The field can contain up to 64 entries. Each key and value is limited to 63 Unicode characters or 128 bytes, whichever is smaller. Labels and values can contain only lowercase letters, numerals, underscores, and dashes. Keys must begin with a letter.
@@ -4521,6 +4639,20 @@ export function toJson_NotificationChannelSpecForProvider(obj: NotificationChann
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema NotificationChannelSpecManagementPolicy
+ */
+export enum NotificationChannelSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5218,7 +5350,7 @@ export function toJson_ServiceProps(obj: ServiceProps | undefined): Record<strin
  */
 export interface ServiceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ServiceSpec#deletionPolicy
    */
@@ -5228,6 +5360,13 @@ export interface ServiceSpec {
    * @schema ServiceSpec#forProvider
    */
   readonly forProvider: ServiceSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ServiceSpec#managementPolicy
+   */
+  readonly managementPolicy?: ServiceSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5268,6 +5407,7 @@ export function toJson_ServiceSpec(obj: ServiceSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ServiceSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_ServiceSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_ServiceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ServiceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -5279,7 +5419,7 @@ export function toJson_ServiceSpec(obj: ServiceSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ServiceSpecDeletionPolicy
  */
@@ -5295,7 +5435,7 @@ export enum ServiceSpecDeletionPolicy {
  */
 export interface ServiceSpecForProvider {
   /**
-   * A well-known service type, defined by its service type and service labels. Valid values are described at https://cloud.google.com/stackdriver/docs/solutions/slo-monitoring/api/api-structures#basic-svc-w-basic-sli Structure is documented below.
+   * A well-known service type, defined by its service type and service labels. Valid values of service types and services labels are described at https://cloud.google.com/stackdriver/docs/solutions/slo-monitoring/api/api-structures#basic-svc-w-basic-sli Structure is documented below.
    *
    * @schema ServiceSpecForProvider#basicService
    */
@@ -5340,6 +5480,20 @@ export function toJson_ServiceSpecForProvider(obj: ServiceSpecForProvider | unde
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ServiceSpecManagementPolicy
+ */
+export enum ServiceSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5894,7 +6048,7 @@ export function toJson_SloProps(obj: SloProps | undefined): Record<string, any> 
  */
 export interface SloSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SloSpec#deletionPolicy
    */
@@ -5904,6 +6058,13 @@ export interface SloSpec {
    * @schema SloSpec#forProvider
    */
   readonly forProvider: SloSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema SloSpec#managementPolicy
+   */
+  readonly managementPolicy?: SloSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5944,6 +6105,7 @@ export function toJson_SloSpec(obj: SloSpec | undefined): Record<string, any> | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SloSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_SloSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_SloSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SloSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -5955,7 +6117,7 @@ export function toJson_SloSpec(obj: SloSpec | undefined): Record<string, any> | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SloSpecDeletionPolicy
  */
@@ -5978,7 +6140,7 @@ export interface SloSpecForProvider {
   readonly basicSli?: SloSpecForProviderBasicSli[];
 
   /**
-   * A calendar period, semantically "since the start of the current ". Possible values are DAY, WEEK, FORTNIGHT, and MONTH.
+   * A calendar period, semantically "since the start of the current ". Possible values are: DAY, WEEK, FORTNIGHT, MONTH.
    *
    * @schema SloSpecForProvider#calendarPeriod
    */
@@ -5996,7 +6158,7 @@ export interface SloSpecForProvider {
    *
    * @schema SloSpecForProvider#goal
    */
-  readonly goal: number;
+  readonly goal?: number;
 
   /**
    * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
@@ -6088,6 +6250,20 @@ export function toJson_SloSpecForProvider(obj: SloSpecForProvider | undefined): 
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema SloSpecManagementPolicy
+ */
+export enum SloSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7046,14 +7222,14 @@ export function toJson_SloSpecPublishConnectionDetailsToConfigRefPolicy(obj: Slo
  */
 export interface SloSpecForProviderRequestBasedSliDistributionCutRange {
   /**
-   * max value for the range (inclusive). If not given, will be set to "infinity", defining an open range ">= range.min"
+   * max value for the range (inclusive). If not given, will be set to 0
    *
    * @schema SloSpecForProviderRequestBasedSliDistributionCutRange#max
    */
   readonly max?: number;
 
   /**
-   * Min value for the range (inclusive). If not given, will be set to "-infinity", defining an open range "< range.max"
+   * Min value for the range (inclusive). If not given, will be set to 0
    *
    * @schema SloSpecForProviderRequestBasedSliDistributionCutRange#min
    */
@@ -7223,14 +7399,14 @@ export function toJson_SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdP
  */
 export interface SloSpecForProviderWindowsBasedSliMetricMeanInRangeRange {
   /**
-   * max value for the range (inclusive). If not given, will be set to "infinity", defining an open range ">= range.min"
+   * max value for the range (inclusive). If not given, will be set to 0
    *
    * @schema SloSpecForProviderWindowsBasedSliMetricMeanInRangeRange#max
    */
   readonly max?: number;
 
   /**
-   * Min value for the range (inclusive). If not given, will be set to "-infinity", defining an open range "< range.max"
+   * Min value for the range (inclusive). If not given, will be set to 0
    *
    * @schema SloSpecForProviderWindowsBasedSliMetricMeanInRangeRange#min
    */
@@ -7258,14 +7434,14 @@ export function toJson_SloSpecForProviderWindowsBasedSliMetricMeanInRangeRange(o
  */
 export interface SloSpecForProviderWindowsBasedSliMetricSumInRangeRange {
   /**
-   * max value for the range (inclusive). If not given, will be set to "infinity", defining an open range ">= range.min"
+   * max value for the range (inclusive). If not given, will be set to 0
    *
    * @schema SloSpecForProviderWindowsBasedSliMetricSumInRangeRange#max
    */
   readonly max?: number;
 
   /**
-   * Min value for the range (inclusive). If not given, will be set to "-infinity", defining an open range "< range.max"
+   * Min value for the range (inclusive). If not given, will be set to 0
    *
    * @schema SloSpecForProviderWindowsBasedSliMetricSumInRangeRange#min
    */
@@ -7450,14 +7626,14 @@ export function toJson_SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdP
  */
 export interface SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange {
   /**
-   * max value for the range (inclusive). If not given, will be set to "infinity", defining an open range ">= range.min"
+   * max value for the range (inclusive). If not given, will be set to 0
    *
    * @schema SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange#max
    */
   readonly max?: number;
 
   /**
-   * Min value for the range (inclusive). If not given, will be set to "-infinity", defining an open range "< range.max"
+   * Min value for the range (inclusive). If not given, will be set to 0
    *
    * @schema SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange#min
    */
@@ -7577,7 +7753,7 @@ export function toJson_UptimeCheckConfigProps(obj: UptimeCheckConfigProps | unde
  */
 export interface UptimeCheckConfigSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema UptimeCheckConfigSpec#deletionPolicy
    */
@@ -7587,6 +7763,13 @@ export interface UptimeCheckConfigSpec {
    * @schema UptimeCheckConfigSpec#forProvider
    */
   readonly forProvider: UptimeCheckConfigSpecForProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema UptimeCheckConfigSpec#managementPolicy
+   */
+  readonly managementPolicy?: UptimeCheckConfigSpecManagementPolicy;
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7627,6 +7810,7 @@ export function toJson_UptimeCheckConfigSpec(obj: UptimeCheckConfigSpec | undefi
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_UptimeCheckConfigSpecForProvider(obj.forProvider),
+    'managementPolicy': obj.managementPolicy,
     'providerConfigRef': toJson_UptimeCheckConfigSpecProviderConfigRef(obj.providerConfigRef),
     'providerRef': toJson_UptimeCheckConfigSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_UptimeCheckConfigSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
@@ -7638,7 +7822,7 @@ export function toJson_UptimeCheckConfigSpec(obj: UptimeCheckConfigSpec | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource.
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema UptimeCheckConfigSpecDeletionPolicy
  */
@@ -7654,7 +7838,7 @@ export enum UptimeCheckConfigSpecDeletionPolicy {
  */
 export interface UptimeCheckConfigSpecForProvider {
   /**
-   * The checker type to use for the check. If the monitored resource type is servicedirectory_service, checkerType must be set to VPC_CHECKERS. Possible values are STATIC_IP_CHECKERS and VPC_CHECKERS.
+   * The checker type to use for the check. If the monitored resource type is servicedirectory_service, checkerType must be set to VPC_CHECKERS. Possible values are: STATIC_IP_CHECKERS, VPC_CHECKERS.
    *
    * @schema UptimeCheckConfigSpecForProvider#checkerType
    */
@@ -7672,7 +7856,7 @@ export interface UptimeCheckConfigSpecForProvider {
    *
    * @schema UptimeCheckConfigSpecForProvider#displayName
    */
-  readonly displayName: string;
+  readonly displayName?: string;
 
   /**
    * Contains information needed to make an HTTP or HTTPS check. Structure is documented below.
@@ -7728,7 +7912,7 @@ export interface UptimeCheckConfigSpecForProvider {
    *
    * @schema UptimeCheckConfigSpecForProvider#timeout
    */
-  readonly timeout: string;
+  readonly timeout?: string;
 
 }
 
@@ -7755,6 +7939,20 @@ export function toJson_UptimeCheckConfigSpecForProvider(obj: UptimeCheckConfigSp
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema UptimeCheckConfigSpecManagementPolicy
+ */
+export enum UptimeCheckConfigSpecManagementPolicy {
+  /** FullControl */
+  FULL_CONTROL = "FullControl",
+  /** ObserveOnly */
+  OBSERVE_ONLY = "ObserveOnly",
+  /** OrphanOnDelete */
+  ORPHAN_ON_DELETE = "OrphanOnDelete",
+}
 
 /**
  * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7931,7 +8129,7 @@ export interface UptimeCheckConfigSpecForProviderContentMatchers {
   readonly jsonPathMatcher?: UptimeCheckConfigSpecForProviderContentMatchersJsonPathMatcher[];
 
   /**
-   * The type of content matcher that will be applied to the server output, compared to the content string when the check is run. Default value is CONTAINS_STRING. Possible values are CONTAINS_STRING, NOT_CONTAINS_STRING, MATCHES_REGEX, NOT_MATCHES_REGEX, MATCHES_JSON_PATH, and NOT_MATCHES_JSON_PATH.
+   * The type of content matcher that will be applied to the server output, compared to the content string when the check is run. Default value is CONTAINS_STRING. Possible values are: CONTAINS_STRING, NOT_CONTAINS_STRING, MATCHES_REGEX, NOT_MATCHES_REGEX, MATCHES_JSON_PATH, NOT_MATCHES_JSON_PATH.
    *
    * @schema UptimeCheckConfigSpecForProviderContentMatchers#matcher
    */
@@ -7981,7 +8179,7 @@ export interface UptimeCheckConfigSpecForProviderHttpCheck {
   readonly body?: string;
 
   /**
-   * The content type to use for the check. Possible values are TYPE_UNSPECIFIED and URL_ENCODED.
+   * The content type to use for the check. Possible values are: TYPE_UNSPECIFIED, URL_ENCODED.
    *
    * @schema UptimeCheckConfigSpecForProviderHttpCheck#contentType
    */
@@ -8016,7 +8214,7 @@ export interface UptimeCheckConfigSpecForProviderHttpCheck {
   readonly port?: number;
 
   /**
-   * The HTTP request method to use for the check. If set to METHOD_UNSPECIFIED then requestMethod defaults to GET. Default value is GET. Possible values are METHOD_UNSPECIFIED, GET, and POST.
+   * The HTTP request method to use for the check. If set to METHOD_UNSPECIFIED then requestMethod defaults to GET. Default value is GET. Possible values are: METHOD_UNSPECIFIED, GET, POST.
    *
    * @schema UptimeCheckConfigSpecForProviderHttpCheck#requestMethod
    */
@@ -8123,7 +8321,7 @@ export interface UptimeCheckConfigSpecForProviderResourceGroup {
   readonly groupIdSelector?: UptimeCheckConfigSpecForProviderResourceGroupGroupIdSelector;
 
   /**
-   * The resource type of the group members. Possible values are RESOURCE_TYPE_UNSPECIFIED, INSTANCE, and AWS_ELB_LOAD_BALANCER.
+   * The resource type of the group members. Possible values are: RESOURCE_TYPE_UNSPECIFIED, INSTANCE, AWS_ELB_LOAD_BALANCER.
    *
    * @schema UptimeCheckConfigSpecForProviderResourceGroup#resourceType
    */
@@ -8336,7 +8534,7 @@ export function toJson_UptimeCheckConfigSpecPublishConnectionDetailsToMetadata(o
  */
 export interface UptimeCheckConfigSpecForProviderContentMatchersJsonPathMatcher {
   /**
-   * Options to perform JSONPath content matching. Default value is EXACT_MATCH. Possible values are EXACT_MATCH and REGEX_MATCH.
+   * Options to perform JSONPath content matching. Default value is EXACT_MATCH. Possible values are: EXACT_MATCH, REGEX_MATCH.
    *
    * @schema UptimeCheckConfigSpecForProviderContentMatchersJsonPathMatcher#jsonMatcher
    */
@@ -8371,7 +8569,7 @@ export function toJson_UptimeCheckConfigSpecForProviderContentMatchersJsonPathMa
  */
 export interface UptimeCheckConfigSpecForProviderHttpCheckAcceptedResponseStatusCodes {
   /**
-   * A class of status codes to accept. Possible values are STATUS_CLASS_1XX, STATUS_CLASS_2XX, STATUS_CLASS_3XX, STATUS_CLASS_4XX, STATUS_CLASS_5XX, and STATUS_CLASS_ANY.
+   * A class of status codes to accept. Possible values are: STATUS_CLASS_1XX, STATUS_CLASS_2XX, STATUS_CLASS_3XX, STATUS_CLASS_4XX, STATUS_CLASS_5XX, STATUS_CLASS_ANY.
    *
    * @schema UptimeCheckConfigSpecForProviderHttpCheckAcceptedResponseStatusCodes#statusClass
    */
