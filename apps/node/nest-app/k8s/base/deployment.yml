@@ -31,17 +31,17 @@ spec:
           image: yurikrupnik/node-nest-app:latest
           imagePullPolicy: IfNotPresent
           env:
-#            - name: GRPC_TRACE
-#              value: "all"
-#            - name: GRPC_VERBOSITY
-#              value: "DEBUG"
+            - name: GRPC_TRACE
+              value: "all"
+            - name: GRPC_VERBOSITY
+              value: "DEBUG"
             - name: MONGO_URI
               value: "mongodb://host.docker.internal"
             - name: REDIS_HOST
               value: "host.docker.internal"
             - name: GRPC_HOST
-#              value: "0.0.0.0:8080"
-              value: "127.0.0.1:5000"
+              value: "0.0.0.0"
+#              value: "127.0.0.1"
 #            - name: PORT
 #              value: "5000"
 #              value: "127.0.0.1:8080"

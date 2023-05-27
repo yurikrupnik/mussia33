@@ -26,9 +26,6 @@ export class RedisUserController {
 
   @Get()
   findAll(@Req() request) {
-    console.log("get", request.url);
-    console.log("get", request.query);
-    console.log("get", request.params);
     return this.client.send("get.list", request.query);
   }
 }

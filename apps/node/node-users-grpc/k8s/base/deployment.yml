@@ -25,21 +25,22 @@ spec:
         "prometheus.io/port": "9102"
     spec:
       serviceAccountName: node-users-grpc
+      restartPolicy: Always
       containers:
         - name: node-users-grpc
           image: yurikrupnik/node-users-grpc:latest
           imagePullPolicy: IfNotPresent
-          restartPolicy: Always
           env:
-#            - name: GRPC_TRACE
-#              value: "all"
-#            - name: GRPC_VERBOSITY
-#              value: "DEBUG"
+            - name: GRPC_TRACE
+              value: "all"
+            - name: GRPC_VERBOSITY
+              value: "DEBUG"
             - name: MONGO_URI
               value: "mongodb://host.docker.internal"
             - name: GRPC_HOST
 #              value: "0.0.0.0:8080"
-              value: "127.0.0.1:5000"
+#              value: "127.0.0.1"
+              value: "0.0.0.0"
 
           volumeMounts:
             - mountPath: /app/assets

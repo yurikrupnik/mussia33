@@ -1,0 +1,16 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  GREETING: Hello, World!
+
+tasks:
+  up:
+    cmds:
+      - docker-compose up -d
+    dir: scripts
+  down:
+    cmds:
+      - docker-compose down
+    dir: scripts
