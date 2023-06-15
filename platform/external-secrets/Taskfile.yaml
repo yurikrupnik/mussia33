@@ -1,0 +1,81 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  GREETING: Hello, World!
+
+tasks:
+  default:
+    cmds:
+      - echo "{{.GREETING}}"
+    silent: true
+  using-key:
+#    dir: ./platform/external-secrets
+    cmds:
+      - kind create cluster
+      - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
+      - kubectl create namespace aris
+      - kubectl -n external-secrets wait deployment external-secrets-webhook --for=condition=Available --timeout=180s
+      - kubectl -n external-secrets wait deployment external-secrets-cert-controller --for=condition=Available --timeout=180s
+      - kubectl apply -f store.yaml
+      - kubectl apply -f secrets.yaml
+  using-key1:
+    #    dir: ./platform/external-secrets
+    cmds:
+      - kind create cluster
+      - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
+      - kubectl create secret generic secret-puller --from-file=creds=./secret-puller-key.json
+      - kubectl create namespace aris
+      - kubectl -n external-secrets wait deployment external-secrets-webhook --for=condition=Available --timeout=180s
+      - kubectl -n external-secrets wait deployment external-secrets-cert-controller --for=condition=Available --timeout=180s
+      - kubectl apply -f store1.yaml
+      - kubectl apply -f secrets.yaml
+  using-minikube: # does not work with key - fix!!!
+    cmds:
+      - minikube start
+      - minikube addons enable gcp-auth
+      - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
+      - kubectl -n external-secrets wait deployment external-secrets-webhook --for=condition=Available --timeout=180s
+      - kubectl -n external-secrets wait deployment external-secrets-cert-controller --for=condition=Available --timeout=180s
+      - kubectl apply -f store2.yaml
+      - kubectl apply -f secrets.yaml
+  using-cluster:
+    cmds:
+      - kind create cluster
+      - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
+      - kubectl create namespace es
+      - kubectl label namespaces es cool=label
+      - kubectl create namespace aris
+      - kubectl label namespaces aris cool=label
+      - kubectl create secret generic secret-puller --from-file=creds=./secret-puller-key.json
+      - kubectl create secret generic secret-puller --from-file=creds=./secret-puller-key.json -n aris
+      - kubectl create secret generic secret-puller --from-file=creds=./secret-puller-key.json -n es
+      - kubectl -n external-secrets wait deployment external-secrets-webhook --for=condition=Available --timeout=180s
+      - kubectl -n external-secrets wait deployment external-secrets-cert-controller --for=condition=Available --timeout=180s
+#      - kubectl apply -f store-cluster.yaml
+#      - kubectl apply -f secrets-cluster.yaml
+  using-gke:
+    cmds:
+      - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
+      - kubectl create namespace es
+      - kubectl -n external-secrets wait deployment external-secrets-webhook --for=condition=Available --timeout=180s
+      - kubectl -n external-secrets wait deployment external-secrets-cert-controller --for=condition=Available --timeout=180s
+#  todo show the guys this
+#  https://www.youtube.com/watch?v=4OzbPaJCUr8
+#  make sure to run the next command in pulumi
+# gcloud iam service-accounts add-iam-policy-binding GSA_NAME@GSA_PROJECT.iam.gserviceaccount.com \
+      #    --role roles/iam.workloadIdentityUser \
+      #    --member "serviceAccount:PROJECT_ID.svc.id.goog[NAMESPACE/KSA_NAME]"
+# exec to workload-identity-test pod and run
+#  gcloud secrets versions access latest --secret=mong-uri
+#  should fetch secret from secret manager
+#      -
+      - kubectl apply -f store3.yaml
+  #      - kubectl apply -f secrets.yaml
+# docs: https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#yaml
+
+
+# network!!!
+# TODO! show istio video
+# https://www.youtube.com/watch?v=VCIn-8-4FNM&t=449s

@@ -1,21 +1,15 @@
 resources:
-  - configMap.yml
   - service-account.yaml
   - service.yml
   - deployment.yml
   # - ingress.yaml
 commonLabels:
-  demo: web-host
-  service: web-host
-  my-type: static
-#namespace: users
+  demo: deno-nest-app
+  service: users
+  my-type: server
+namespace: aris
 #  - servi
-configMapGenerator:
-  - name: nginx-config
-#    options:
-#      disableNameSuffixHash: true
-    files:
-      - default.conf.template
+
 #namePrefix: demo
 #nameSuffix: api
 #commonAnnotations:

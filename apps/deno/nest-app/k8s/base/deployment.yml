@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deno-nest-app
+  labels:
+    app: deno-nest-app
+    version: v1
+spec:
+  replicas: 1
+
+  template:
+    metadata:
+      name: deno-nest-app
+      labels:
+        app: deno-nest-app
+        version: v1
+    spec:
+      serviceAccountName: deno-nest-app
+      restartPolicy: Always
+      containers:
+        - name: deno-nest-app
+#          image: yurikrupnik/deno-nest-app:latest
+          image: europe-central2-docker.pkg.dev/mussia-infra/container-repository/deno-nest-app:main
+          imagePullPolicy: IfNotPresent
+#          env:
+#            - name: GRPC_TRACE
+#              value: "all"
+#            - name: GRPC_VERBOSITY
+#              value: "DEBUG"
+#            - name: MONGO_URI
+#              value: "mongodb://host.docker.internal"
+#            - name: REDIS_HOST
+#              value: "host.docker.internal"
+#            - name: GRPC_HOST
+##              value: "http://127.0.0.1:2379"
+##              value: "0.0.0.0"
+#              value: "deno-users-grpc-service:50051"
+#            - name: PORT
+#              value: "5000"
+#              value: "127.0.0.1:8080"
+#            - name: REDIS_PORT
+#            - name: REDIS_PASSWORD
+      imagePullSecrets:
+#        - name: my-registry-secret
+        - name: mongo-uri
+  selector:
+    matchLabels:
+      app: deno-nest-app
+      version: v1

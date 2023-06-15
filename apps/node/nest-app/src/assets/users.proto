@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package app;
+
+option go_package = "grpc/users";
+
+// Declare a service for each controller you have
+service AppController {
+  // Declare an rpc for each method that is called via gRPC
+  rpc CreateUser (User) returns (User) {};
+  //  my get user method
+  rpc GetUser (GetUserRequestDto) returns (User) {};
+  rpc DeleteUser (DeleteUserRequestDto) returns (VoidResponse) {};
+  rpc UpdateUser (UpdateUserRequestDto) returns (User) {};
+  rpc GetUsers (GetUsersRequestDto) returns (Users) {};
+  rpc GetUsersStream (GetUsersRequestDto) returns (stream User) {};
+}
+
+message GetUsersRequestDto {
+  string limit = 1;
+  repeated string projection = 2;
+}
+
+message UpdateUserRequestDto {
+  string id = 1;
+}
+
+message VoidResponse {};
+message DeleteUserRequestDto {
+  string id = 1;
+}
+
+message GetUserRequestDto {
+  string id = 1;
+  repeated string projection = 2;
+}
+
+message User {
+  //  mongodb object id - 24 2len chars
+  //  string id = 1;
+  string _id = 1;
+  //  user personal name
+  string name = 2;
+  //  user email address
+  string email = 3;
+  string tenantId = 4;
+  string role = 5;
+  string provider = 6;
+  string password = 7;
+  string updatedAt = 8;
+  string createdAt = 9;
+}
+
+message Users {
+  repeated User data = 1;
+}

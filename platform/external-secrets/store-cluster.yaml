@@ -1,0 +1,23 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ClusterSecretStore
+metadata:
+  name: example
+spec:
+  provider:
+    gcpsm:                                  # gcpsm provider
+      auth:
+        secretRef:
+          secretAccessKeySecretRef:
+            name: secret-puller              # secret name containing SA key
+            key: creds  # key name containing SA key
+      projectID: mussia-infra
+  conditions:
+    # Options are namespaceSelector, or namespaces
+#    - namespaceSelector:
+#        matchLabels:
+#          my.namespace.io/some-label: "value" # Only namespaces with that label will work
+
+    - namespaces:
+        - "es"
+        - "aris"
+#        - "default"

@@ -1,0 +1,14 @@
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: example
+#  namespace: aris
+spec:
+  provider:
+    gcpsm:                                  # gcpsm provider
+      auth:
+        secretRef:
+          secretAccessKeySecretRef:
+            name: secret-puller              # secret name containing SA key
+            key: creds  # key name containing SA key
+      projectID: mussia-infra
