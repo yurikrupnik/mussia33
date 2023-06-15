@@ -1,0 +1,22 @@
+
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: example
+#  namespace: aris
+#  namespace: gcp-auth
+#  namespace: external-secrets
+spec:
+  provider:
+    gcpsm:                                  # gcpsm provider
+      auth:
+        secretRef:
+          secretAccessKeySecretRef:
+            name: gcp-auth
+            key: creds
+#            name: gcp-auth-certs              # secret name containing SA key
+#            key: cert
+#            namespace: gcp-auth              # secret name containing SA key
+#            key: key  # key name containing SA key
+#            key: key  # key name containing SA key
+      projectID: mussia-infra

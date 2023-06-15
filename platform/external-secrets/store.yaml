@@ -1,3 +1,41 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gcpsm-secret
+#  namespace: aris
+  labels:
+    type: gcpsm
+type: Opaque
+stringData:
+  secret-access-credentials: |-
+    {
+    "type": "service_account",
+    "project_id": "mussia-infra",
+    "private_key_id": "f26326812acbe2d5d41704aeeb41c01f14367efd",
+    "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDqAdTiE7sh6zXP\n8NiLVSPySaS9tFP8LgWfcvqI9XMOpJJNj9rzTavKn97ek7tURoObV4ZffxHH7FNA\no+uhu4kT5dioG2U5HiUEE5x4hkAtEX3vQKchB/weMEIH63Mue/XcHMpA7vabqKkq\nyHdp+/GK6RA/uiUKuNpqZfJVkQcayjFM9BGHh3RFSsAezdXAHdpg8qZeasoCB9xj\nfNWDe476xcwjAn8FKRhCv09vimbqRZRBjK1dIwllSZ/ym4/kNjNsoQUSUxd5yLn3\n8eBL9jVnF5tQRkb0UtJTTOKXNGc9nkDuWW3n30MLF13lh+261DNzoUJAQl0LXh8a\nlTEJvstdAgMBAAECggEAMXbuJlTX5XFYCGrHh1pZtR1CjNQpvaCH0T7nfRxvNAzv\nHSSXun70XapCHOf6/PND3goYDico3csThRIxXJhs/y8Ch3R1BugbmHtBw8tTFQPB\nzFltCqMqtMHsL0rip9SNsbfHPAcXS2uRSMkjztwyIHQoGmRxcI0HJF8E5Pf5Wby0\ntNyXfoqXrWQXccMPS/bOxwd+lI20b5qNJYkVjqmu4dVsa8aYtNDLdDAcKc1CBg2z\nB2gebIHa+zmPFO2P8TMGhuLxQGMIEdcNiQTw8AAPRM5KTE7EpzNHZW3Jjncpjqvt\nspjB9hxtjS+AJKz0+Wj66tCBYtvFHQ7kUb4jVTdZ6QKBgQD+u9EnGyWP9iyvxOWp\nK2IipSlhLBtFDehaer8GbDRFJg+wgqoP5T8TWCw8/idJiXgZafeK3i7EkwIz/CVy\nqGtgqJXP6tM3UcPJP09jCgNN9QbZawbdcVMAut1M8IFb9hCM8ZuvHvfyLWqiWX5d\nzYvKBu8MGXUbZr1JVJV4TgxklQKBgQDrK6Mlpb7aZldSHhbHNQM4J5cRpbWWA35a\nYnrF7NmTRI6YHlZ5wIARLX8cxkh3Tp1iuXoTJE2HfTHDRzpGjtWy6dzLRTfq5S59\nLWW5orUGgLII2/l0VP3NfTsUh+Kyi15e1piLjGPgxbS6ZeYKwLdJcfR4a9jk9Bgi\nxSLDBjiRqQKBgAjKxr9IypUbdBNlAmBCZRK5DKKT+ST7A+gLkIhSN8OjOqtm9yOx\nT+oFAxHf289H9WM7KxYZ8RdL06mjrE82zO37I6CXhE7GfbF2g/DxKYgJSwE6FnSS\nMsE1semz62MXLR8QP8VdlkU/mAyediQashZ5AssyHb6iXyomxzntx7O5AoGBANhb\nTz+lm07G9PMhp4ciaJHTKpMbx1H6aNay340UeJ+aZS3iS2C8D5a+KsHIUochFn7r\ncToHHiTWs1+bOiwL4OM3cOC6D9XVf82+ZGZDIRSYdjLcXkX+o3nYCvC6i4AD5JCQ\nEcvhH0p92eXbNacS4g15/5aCcgtB3qquf2q5YHXxAoGBAPU0oE7WV27Xm5rH3KZS\nomrrCQSHjpN5sGQYoJLH/AJs8HN7OzDSzu9qqIZWWBrRhmnY6OrSr57CvWL+sYYD\nAetyqFRQizCP5S8SkJ+I2xN57ts1KIMfP/HTFRes4+ZjtDvTe8Cm0DaaXJvPTQ03\nrL/tNDPTUulXC4BqFGr87anN\n-----END PRIVATE KEY-----\n",
+    "client_email": "secret-puller@mussia-infra.iam.gserviceaccount.com",
+    "client_id": "110993684248568596961",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/secret-puller%40mussia-infra.iam.gserviceaccount.com",
+    "universe_domain": "googleapis.com"
+    }
+---
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: example
+#  namespace: aris
+spec:
+  provider:
+    gcpsm:                                  # gcpsm provider
+      auth:
+        secretRef:
+          secretAccessKeySecretRef:
+            name: gcpsm-secret              # secret name containing SA key
+            key: secret-access-credentials  # key name containing SA key
+      projectID: mussia-infra
 #apiVersion: v1
 #kind: ServiceAccount
 #metadata:
@@ -27,35 +65,35 @@
 #            name: team-a
 #            namespace: team-a
 #---
-apiVersion: external-secrets.io/v1beta1
-kind: SecretStore
-metadata:
-  name: example
-  namespace: example-ns
-spec:
-  provider:
-    gcpsm:
-    # Auth defines the information necessary to authenticate against GCP by getting
-    # the credentials from an already created Kubernetes Secret.
-    auth:
-      secretRef:
-        secretAccessKeySecretRef:
-          name: MONGO_URI
-          key: MONGO_URI
-          # namespace: asd
-    projectID: mussia-infra
----
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: "gcr-token"
-spec:
-  refreshInterval: "30m"
-  target:
-    name: gcr-token
-  dataFrom:
-    - sourceRef:
-        generatorRef:
-          apiVersion: generators.external-secrets.io/v1alpha1
-          kind: GCRAccessToken
-          name: "gcr-gen"
+#apiVersion: external-secrets.io/v1beta1
+#kind: SecretStore
+#metadata:
+#  name: example
+#  namespace: example-ns
+#spec:
+#  provider:
+#    gcpsm:
+#    # Auth defines the information necessary to authenticate against GCP by getting
+#    # the credentials from an already created Kubernetes Secret.
+#    auth:
+#      secretRef:
+#        secretAccessKeySecretRef:
+#          name: MONGO_URI
+#          key: MONGO_URI
+#          # namespace: asd
+#    projectID: mussia-infra
+#---
+#apiVersion: external-secrets.io/v1beta1
+#kind: ExternalSecret
+#metadata:
+#  name: "gcr-token"
+#spec:
+#  refreshInterval: "30m"
+#  target:
+#    name: gcr-token
+#  dataFrom:
+#    - sourceRef:
+#        generatorRef:
+#          apiVersion: generators.external-secrets.io/v1alpha1
+#          kind: GCRAccessToken
+#          name: "gcr-gen"

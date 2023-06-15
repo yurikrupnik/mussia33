@@ -37,11 +37,15 @@ spec:
               value: "DEBUG"
             - name: MONGO_URI
               value: "mongodb://host.docker.internal"
+            - name: PORT
+              value: "50051"
             - name: GRPC_HOST
 #              value: "0.0.0.0:8080"
 #              value: "127.0.0.1"
-              value: "0.0.0.0"
-
+              value: "node-users-grpc-service:50051"
+          ports:
+            - name: grpc
+              containerPort: 50051
           volumeMounts:
             - mountPath: /app/assets
               name: proto-configs

@@ -40,13 +40,40 @@ spec:
             - name: REDIS_HOST
               value: "host.docker.internal"
             - name: GRPC_HOST
-              value: "0.0.0.0"
-#              value: "127.0.0.1"
+#              value: "http://127.0.0.1:2379"
+#              value: "0.0.0.0"
+              value: "node-users-grpc-service:50051"
 #            - name: PORT
 #              value: "5000"
 #              value: "127.0.0.1:8080"
 #            - name: REDIS_PORT
 #            - name: REDIS_PASSWORD
+          ports:
+            - name: liveness-port
+              containerPort: 8080
+              hostPort: 8080
+            - name: grpc
+              containerPort: 50051
+            ## Used to detect when an application degrades to broken states and
+            ## cannot recover except by being restarted.
+            ##
+            ## https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-a-liveness-command
+          livenessProbe:
+            httpGet:
+#              port: liveness-port
+              port: 8080
+              path: /api/health
+#            grpc:
+#              port: 8080
+            failureThreshold: 1
+            periodSeconds: 10
+
+            ## Used to detect when an application is no longer able to service traffic.
+            ## https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-readiness-probes
+#            readinessProbe:
+#              exec:
+#                command: [ "/usr/bin/grpc_health_probe", "-addr=:8080" ]
+#              initialDelaySeconds: 5
           volumeMounts:
             - mountPath: /app/assets
               name: proto-configs
@@ -61,3 +88,19 @@ spec:
     matchLabels:
       app: node-nest-app
       version: v1
+#---
+#apiVersion: v1
+#kind: Pod
+#metadata:
+#  name: etcd-with-grpc
+#spec:
+#  containers:
+#    - name: etcd
+#      image: registry.k8s.io/etcd:3.5.1-0
+#      command: [ "/usr/local/bin/etcd", "--data-dir",  "/var/lib/etcd", "--listen-client-urls", "http://0.0.0.0:2379", "--advertise-client-urls", "http://127.0.0.1:2379", "--log-level", "debug"]
+#      ports:
+#        - containerPort: 2379
+#      livenessProbe:
+#        grpc:
+#          port: 2379
+#        initialDelaySeconds: 10

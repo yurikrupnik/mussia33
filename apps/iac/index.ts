@@ -23,6 +23,29 @@ const gcpConfig = new pulumi.Config("gcp");
 const region = gcpConfig.get("region");
 const project = gcpConfig.get("project");
 
+const sa = new gcp.serviceaccount.Account("secret-puller", {
+  project,
+  accountId: "secret-puller",
+  disabled: false,
+  description: "Secrets Puller service account",
+  displayName: "Secrets Puller",
+});
+
+new gcp.projects.IAMBinding("secret-puller-binding", {
+  project: project,
+  members: [sa.email.apply((email) => `serviceAccount:${email}`)],
+  role: "roles/secretmanager.secretAccessor",
+});
+
+new gcp.projects.IAMBinding("secret-puller-binding-token-creator", {
+  project: project,
+  members: [sa.email.apply((email) => `serviceAccount:${email}`)],
+  role: "roles/iam.serviceAccountTokenCreator",
+});
+
+// run to add
+// gcloud iam service-accounts add-iam-policy-binding secret-puller@mussia-infra.iam.gserviceaccount.com --role roles/iam.workloadIdentityUser --member "serviceAccount:mussia-infra.svc.id.goog[external-secrets/secret-puller]"
+
 // import * as k8s from "@pulumi/kubernetes";
 
 // let myk8s = new k8s.Provider("myk8s", { context: "test-ci" });
