@@ -13,7 +13,9 @@ import { ArtifactoryResource } from "./src/artifactory";
 import { GcpFunction } from "./src/gcpFunction";
 import { WorkloadIdentityResource } from "./src/workloadIdentity";
 import { GkeClusterResource } from "./src/cluster";
+// import { Providers, Subscriptions } from "@mussia";
 import { Providers, Subscriptions } from "../../libs/node/shared/src";
+// import { Providers, Subscriptions } from "@mussia33/node/shared";
 
 const config = new pulumi.Config("core");
 const nodeCount = config.get("nodeCount");
@@ -202,7 +204,6 @@ const servicesNames = [
 
 const gcpFunctionServices = new ServicesResource("GcpFunctionServices", {
   services: servicesNames,
-  provider: Providers.gcp,
 });
 
 const functionsPath = "../../dist/apps/node/";
@@ -264,7 +265,6 @@ import { Repository, RepositoryArgs } from "@pulumi/aws/ecr";
 const secretManager = new ServicesResource(
   "secretManagerServices",
   {
-    provider: Providers.gcp,
     services: ["secretmanager.googleapis.com"],
   },
   {}
@@ -273,7 +273,6 @@ const secretManager = new ServicesResource(
 const eventarc = new ServicesResource(
   "eventArcServices",
   {
-    provider: Providers.gcp,
     services: ["eventarc.googleapis.com"],
   },
   {}
@@ -415,9 +414,21 @@ const artifactRegistry = new gcp.projects.Service(
 // let useast1 = new aws.Provider("useast1", { region: "us-east-1" });
 // let myk8s = new kubernetes.Provider("myk8s", { context: "test-ci" });
 
+const dockerRegistryTest = new ArtifactoryResource("docker-registry-test", {
+  provider: Providers.AWS,
+  repositoryArgs: {
+    name: "test-repo1",
+    imageScanningConfiguration: {
+      scanOnPush: false,
+    },
+    imageTagMutability: "MUTABLE",
+  },
+});
+
 const dockerRegistry = new ArtifactoryResource(
   "docker-registry",
   {
+    provider: Providers.GCP,
     repositoryArgs: {
       mode: "STANDARD_REPOSITORY",
       project,
@@ -427,8 +438,8 @@ const dockerRegistry = new ArtifactoryResource(
       format: "DOCKER",
       description: "Example docker repository.",
     },
-  }
-  // { parent: artifactRegistry, dependsOn: [artifactRegistry] }
+  },
+  { parent: artifactRegistry, dependsOn: [artifactRegistry] }
 );
 
 const mesh = new gcp.projects.Service("mesh.googleapis.com", {
@@ -440,7 +451,6 @@ const mesh = new gcp.projects.Service("mesh.googleapis.com", {
 const computeServices = new ServicesResource(
   "computeServices",
   {
-    provider: Providers.gcp,
     services: ["compute.googleapis.com"],
   },
   {}
@@ -458,7 +468,6 @@ new NetworkResource(
 const migrationServices = new ServicesResource(
   "migrationServices",
   {
-    provider: Providers.gcp,
     services: ["datamigration.googleapis.com"],
   },
   {}
@@ -551,7 +560,7 @@ new gcp.projects.IAMBinding("artifact-registry-reader", {
   role: "roles/artifactregistry.reader",
 });
 
-export const dockerRepo1 = pulumi.interpolate`${region}-docker.pkg.dev/${project}/${dockerRegistry.dockerRepo}`;
-export const dockerRepo = dockerRegistry.dockerRepo;
+export const gcpDockerRepo = pulumi.interpolate`${region}-docker.pkg.dev/${project}/${dockerRegistry.dockerRepo}`;
+export const awsDockerRepo = dockerRegistryTest.dockerRepo;
 export const workloadName = workloadIdentity.workload_identity_provider;
 export const workloadSAEmail = workloadIdentity.saEmail;

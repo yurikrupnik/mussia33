@@ -9,7 +9,21 @@ services:
     image: "redis:alpine"
     ports:
       - "6379:6379"
-
+  sql:
+#    image: mcr.microsoft.com/mssql/server:2017-latest
+    image: 'mcr.microsoft.com/mssql/server'
+#    mem_limit: 2g
+    ports:
+      - "1433:1433"
+    environment:
+      SA_PASSWORD: "123456"
+#      MSSQL_SA_PASSWORD: "123456"
+      ACCEPT_EULA: "Y"
+#      MSSQL_DATA_DIR: /var/opt/sqlserver/data
+#      MSSQL_LOG_DIR: /var/opt/sqlserver/log
+#      MSSQL_BACKUP_DIR: /var/opt/sqlserver/backup
+    volumes:
+      - './drive:/var/opt/mssql'
   nest-app:
     build:
       context: ../

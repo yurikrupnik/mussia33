@@ -1,8 +1,15 @@
+// export enum Providers {
+//   GCP = "gcp",
+//   AWS = "aws",
+//   "azure",
+//   "ali",
+// }
+
 export enum Providers {
-  "gcp",
-  "aws",
-  "azure",
-  "ali",
+  AWS = "aws",
+  GCP = "gcp",
+  AZURE = "azure",
+  ALI = "ali",
 }
 
 export enum Subscriptions {
