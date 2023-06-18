@@ -23,16 +23,16 @@ spec:
                   oneOf:
                     - pattern: '^EU$'
                     - pattern: '^US$'
-                    - pattern: '^europe$'
-                    - pattern: '^us$'
-                    - pattern: '^me$'
-                labels:
-                  type: array
-                storageClass:
-                  type: string
+#                    testing starts here
+#                provider:
+#                  type: string
+#                  oneOf:
+#                    - pattern: '^gcp$'
+#                    - pattern: '^aws$'
+#                    testing ends here
               required:
+#                - provider
                 - location
-#                - labels
   claimNames:
     kind: TopicBucket
     plural: topicbuckets

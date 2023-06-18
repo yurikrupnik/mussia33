@@ -1,0 +1,118 @@
+apiVersion: storage.gcp.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  #  generateName: crossplane-bucket-
+  name: yuri-crossplane-bucket
+  labels:
+    docs.crossplane.io/example: provider-gcp
+spec:
+  forProvider:
+    location: US
+    storageClass: MULTI_REGIONAL
+  providerConfigRef:
+    name: default
+  deletionPolicy: Delete
+#  publishConnectionDetailsTo:
+#    name: aris4
+#    configRef:
+#      name: aris4
+#    kind: Secret
+#    - name: aris4
+#      kind: ConfigMap
+#    metadata:
+#      labels:
+#        shit: yes
+#  writeConnectionSecretToRef:
+#    name: "aris1"
+#    namespace: default
+#status:
+#  atProvider:
+#    selfLink: ''
+---
+apiVersion: storage.gcp.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  #  generateName: crossplane-bucket-
+  name: yuri-crossplane-bucket1
+  annotations:
+    meta.upbound.io/example-id: compute/v1beta1/regionnetworkendpointgroup
+    upjet.upbound.io/manual-intervention: BucketObject does not support source field
+  labels:
+      testing.upbound.io/example-name: region-endpoint-network-group
+      docs.crossplane.io/example: provider-gcp
+#  labels:
+spec:
+  forProvider:
+    location: EU
+    storageClass: MULTI_REGIONAL
+    labels:
+      label1: my-value
+  providerConfigRef:
+    name: default
+  deletionPolicy: Delete
+---
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  annotations:
+    crossplane.io/external-name: test-channel-bucket-omg
+    meta.upbound.io/example-id: configservice/v1beta1/awsconfigurationrecorderstatus
+  labels:
+    testing.upbound.io/example-name: test-channel-bucket-omg
+  name: test-channel-bucket-omg
+spec:
+  forProvider:
+    forceDestroy: true
+    region: us-west-1
+    tags:
+      label: one
+---
+apiVersion: pubsub.gcp.upbound.io/v1beta1
+kind: Topic
+metadata:
+  annotations:
+    meta.upbound.io/example-id: eventarc/v1beta1/trigger
+  labels:
+    testing.upbound.io/example-name: trigger1
+  name: trigger1
+spec:
+  forProvider: {}
+---
+apiVersion: custom-api.example.org/v1alpha1
+kind: TopicBucket
+metadata:
+  name: second-claimed-topic-with-bucket
+#  namespace: test2
+spec:
+  location: "EU"
+  storageClass: MULTI_REGIONAL
+#  labels:
+#    iac: crossplane
+---
+apiVersion: custom-api.example.org/v1alpha1
+kind: TopicBucket
+metadata:
+  name: second-claimed-topic-with-bucket1
+spec:
+  location: "US"
+  storageClass: NEARLINE
+#  labels:
+#    iac: crossplane
+---
+apiVersion: custom-api.example.org/v1alpha1
+kind: TopicBucket
+metadata:
+  name: second-claimed-topic-with-bucket2
+#  namespace: test2
+spec:
+  location: "me"
+#apiVersion: custom-api.example.org/v1alpha1
+#kind: Storage
+#metadata:
+#  name: second-claimed-storage-with-cross
+#spec:
+#  location: "EU"
+
+#  compositionSelector:
+#    matchLabels:
+#      provider: GCP

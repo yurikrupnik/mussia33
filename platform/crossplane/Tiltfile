@@ -1,0 +1,23 @@
+k8s_yaml("advanced.yaml")
+
+# k8s_yaml(["storage/compositeResourceDefinition.yaml", "storage/composition.yaml"])
+# k8s_yaml(["compositeResourceDefinition.yaml", "composition.yaml"])
+
+
+local_resource('managed', cmd='kubectl get managed', deps=['.'], labels=['crossplane'])
+local_resource('xrd', cmd='kubectl get xrd', deps=['.'], labels=['crossplane'])
+
+local_resource('composition', cmd='kubectl get composition', deps=['.'], labels=['crossplane'])
+local_resource('composite', cmd='kubectl get composite', deps=['.'], labels=['crossplane'])
+local_resource('bucket', cmd='kubectl get bucket', deps=['.'], labels=['crossplane'])
+
+local_resource('bucket gcp', cmd='kubectl get buckets.storage.gcp.upbound.io', deps=['.'], labels=['crossplane'])
+
+local_resource('bucket aws', cmd='kubectl get buckets.s3.aws.upbound.io', deps=['.'], labels=['crossplane'])
+
+local_resource('topicbucket', cmd='kubectl get topicbucket -A', deps=['.'], labels=['crossplane'])
+local_resource('Topicbucket', cmd='kubectl get TopicBucket', deps=['.'], labels=['crossplane'])
+local_resource('xtopicbucket', cmd='kubectl get xtopicbucket', deps=['.'], labels=['crossplane'])
+
+
+# local_resource('bucket gcp', cmd='kubectl get buckets.storage.gcp.upbound.io yuri-crossplane-bucket -o jsonpath="{.status.atProvider.url}"', deps=['.'], labels=['crossplane'])

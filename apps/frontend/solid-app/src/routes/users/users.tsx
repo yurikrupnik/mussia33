@@ -13,9 +13,9 @@ function getUsersRedis() {
   return instance.get("/api/redis-users").then((r: any) => r.data);
 }
 
-function getUsersGrpc() {
-  return instance.get("/api/grpc-users").then((r: any) => r.data);
-}
+// function getUsersGrpc() {
+//   return instance.get("/api/grpc-users").then((r: any) => r.data);
+// }
 
 function deleteUser(id: string) {
   return instance.delete(`/api/users/${id}`);
@@ -27,9 +27,9 @@ const Users = () => {
   const [redisData] = createResource(getUsersRedis, {
     initialValue: [],
   });
-  const [grpcData] = createResource(getUsersGrpc, {
-    initialValue: [],
-  });
+  // const [grpcData] = createResource(getUsersGrpc, {
+  //   initialValue: [],
+  // });
   const [data, { refetch }] = createResource<User[]>(getUsers, {
     initialValue: [],
   });
@@ -78,19 +78,19 @@ const Users = () => {
           }}
         </For>
         <h1>GRPC data</h1>
-        <For each={grpcData()}>
-          {(item) => {
-            return (
-              <div class="flex items-stretch">
-                <div class="py-6 w-full">{item.name}</div>
-                <div class="py-6 w-full">{item.email}</div>
-                <div class="py-6 w-full">
-                  <button onclick={() => deleteItem(item._id)}>Delete</button>
-                </div>
-              </div>
-            );
-          }}
-        </For>
+        {/*<For each={grpcData()}>*/}
+        {/*  {(item) => {*/}
+        {/*    return (*/}
+        {/*      <div class="flex items-stretch">*/}
+        {/*        <div class="py-6 w-full">{item.name}</div>*/}
+        {/*        <div class="py-6 w-full">{item.email}</div>*/}
+        {/*        <div class="py-6 w-full">*/}
+        {/*          <button onclick={() => deleteItem(item._id)}>Delete</button>*/}
+        {/*        </div>*/}
+        {/*      </div>*/}
+        {/*    );*/}
+        {/*  }}*/}
+        {/*</For>*/}
       </div>
     </div>
   );

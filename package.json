@@ -71,6 +71,7 @@
     "@nestjs/platform-express": "9.4.1",
     "@nestjs/swagger": "^6.3.0",
     "@nestjs/terminus": "^9.2.2",
+    "@nestjs/typeorm": "^10.0.0",
     "@pulumi/aws": "^5.33.0",
     "@pulumi/datadog": "^4.16.0",
     "@pulumi/gcp": "^6.52.0",
@@ -91,10 +92,12 @@
     "ioredis": "^5.3.2",
     "lodash": "^4.17.21",
     "mongoose": "^7.2.0",
+    "mysql": "^2.18.1",
     "nestjs-seeder": "^0.3.1",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0",
     "tslib": "^2.3.0",
+    "typeorm": "^0.3.16",
     "xstate": "^4.37.1"
   }
 }

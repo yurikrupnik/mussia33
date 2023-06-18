@@ -1,12 +1,12 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: CompositeResourceDefinition
 metadata:
-  name: xtopicbuckets.custom-api.example.org
+  name: xstorages.custom-api.example.org
 spec:
   group: custom-api.example.org
   names:
-    kind: XTopicBucket
-    plural: xtopicbuckets
+    kind: XStorage
+    plural: XStorages
   versions:
     - name: v1alpha1
       served: true
@@ -23,16 +23,8 @@ spec:
                   oneOf:
                     - pattern: '^EU$'
                     - pattern: '^US$'
-                    - pattern: '^europe$'
-                    - pattern: '^us$'
-                    - pattern: '^me$'
-                labels:
-                  type: array
-                storageClass:
-                  type: string
               required:
                 - location
-#                - labels
   claimNames:
-    kind: TopicBucket
-    plural: topicbuckets
+    kind: Storage
+    plural: Storages

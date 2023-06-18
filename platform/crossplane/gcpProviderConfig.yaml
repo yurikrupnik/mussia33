@@ -8,7 +8,8 @@ spec:
     source: Secret
     secretRef:
       namespace: crossplane-system
-      name: gcp-secret
+#      name: gcp-secret
+      name: gcp-auth
       key: creds
 ---
 apiVersion: aws.upbound.io/v1beta1
@@ -22,4 +23,5 @@ spec:
       namespace: crossplane-system
       name: aws-secret
       key: creds
+
 #      key: key-file
