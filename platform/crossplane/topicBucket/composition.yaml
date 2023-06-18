@@ -15,11 +15,6 @@ spec:
         spec:
           forProvider:
             location: US
-            storageClass: STANDARD
-            publicAccessPrevention: enforced
-            uniformBucketLevelAccess: true
-#            labels:
-#              label1: "example-label"
       patches:
         - fromFieldPath: "spec.location"
           toFieldPath: "spec.forProvider.location"
@@ -28,15 +23,6 @@ spec:
               map:
                 EU: "EU"
                 US: "US"
-                europe: "us-east1"
-                us: "europe-central2"
-                me: "me-west1"
-        - fromFieldPath: "spec.storageClass"
-          toFieldPath: "spec.forProvider.storageClass"
-        - type: PatchSet
-          patchSetName: metadata
-#        - fromFieldPath: "spec.labels"
-#          toFieldPath: "spec.forProvider.labels[*]"
     - name: crossplane-quickstart-topic
       base:
         apiVersion: pubsub.gcp.upbound.io/v1beta1

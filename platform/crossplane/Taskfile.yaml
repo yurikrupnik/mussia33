@@ -10,6 +10,17 @@ tasks:
     cmds:
       - echo "{{.GREETING}}"
     silent: true
+  local:
+    cmds:
+      - task: cluster
+      - task: install
+      - task: create-secret
+      - task: create-gcp-provider
+      - tilt up
+  cluster:
+    cmds:
+      - minikube start
+      - minikube addons enable gcp-auth
   install:
     dir: platform/crossplane
     cmds:
@@ -21,15 +32,15 @@ tasks:
   create-secret:
     cmds:
       - kubectl create secret generic aws-secret -n crossplane-system --from-file=creds=./aws_creds.txt
-      - kubectl create secret generic gcp-secret -n crossplane-system --from-file=creds=./gcp-credentials.json
+#      - kubectl create secret generic gcp-secret -n crossplane-system --from-file=creds=./gcp-credentials.json
   create-gcp-provider:
     dir: platform/crossplane
     cmds:
       - kubectl apply -f gcpProvider.yaml
-      - kubectl wait "providers.pkg.crossplane.io/provider-gcp" --for=condition=Installed --timeout=180s
-      - kubectl wait "providers.pkg.crossplane.io/provider-gcp" --for=condition=Healthy --timeout=180s
-      - kubectl wait "providers.pkg.crossplane.io/provider-aws" --for=condition=Installed --timeout=180s
-      - kubectl wait "providers.pkg.crossplane.io/provider-aws" --for=condition=Healthy --timeout=180s
+      - kubectl wait "providers.pkg.crossplane.io/provider-gcp" --for=condition=Installed --timeout=300s
+      - kubectl wait "providers.pkg.crossplane.io/provider-gcp" --for=condition=Healthy --timeout=300s
+      - kubectl wait "providers.pkg.crossplane.io/provider-aws" --for=condition=Installed --timeout=300s
+      - kubectl wait "providers.pkg.crossplane.io/provider-aws" --for=condition=Healthy --timeout=300s
       - kubectl get providers
       - kubectl apply -f gcpProviderConfig.yaml
   create-resources:
@@ -37,9 +48,19 @@ tasks:
     cmds:
       - kubectl apply -f gcpBucket.yaml
       - kubectl apply -f gcpTopic.yaml
+      - kubectl apply -f advanced.yaml
+# Compositions
+      - kubectl apply -f composition.yaml
+      - kubectl apply -f compositeResourceDefinition.yaml
   get-buckets:
     cmds:
+      - kubectl get managed
+      - kubectl get xrd
+      - kubectl get composite
+      - kubectl get composition
       - kubectl get bucket
+      - kubectl get buckets yuri-crossplane-bucket -o jsonpath='{.status.atProvider.url}'
+      - kubectl get buckets.storage.gcp.upbound.io yuri-crossplane-bucket
   delete-schemas:
     cmds:
       - kubectl delete schema --selector testing.upbound.io/example-name=trigger

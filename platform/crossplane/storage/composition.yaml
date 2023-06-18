@@ -1,0 +1,29 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: storage
+#  labels:
+#    provider: GCP
+spec:
+  compositeTypeRef:
+    apiVersion: custom-api.example.org/v1alpha1
+    kind: XStorage
+  resources:
+    - name: crossplane-quickstart-bucket
+      base:
+        apiVersion: storage.gcp.upbound.io/v1beta1
+        kind: Bucket
+        spec:
+          forProvider:
+            location: US
+            labels:
+              iac: corssplane
+      patches:
+        - fromFieldPath: "spec.location"
+          toFieldPath: "spec.forProvider.location"
+          transforms:
+            - type: map
+              map:
+                EU: "EU"
+                US: "US"
+
