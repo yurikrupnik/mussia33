@@ -5,8 +5,8 @@ import { SwaggerModule } from "@mussia33/node/nest/swagger";
 import { LoggerModule } from "@mussia33/node/nest/logger";
 import { UsersModule } from "@mussia33/node/nest/users-api";
 // import { PubSubModule } from "./pubsub/pubsub.module";
-import { RedisModule } from "./redis/redis.module";
-import { GrpcModule } from "./grpc/grpc.module";
+// import { RedisModule } from "./redis/redis.module";
+// import { GrpcModule } from "./grpc/grpc.module";
 
 @Module({
   imports: [
@@ -18,8 +18,8 @@ import { GrpcModule } from "./grpc/grpc.module";
     LoggerModule,
     // PubSubModule,
     UsersModule,
-    RedisModule,
-    GrpcModule,
+    // RedisModule,
+    // GrpcModule,
   ],
 })
 export class AppModule {}
