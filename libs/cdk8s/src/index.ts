@@ -310,25 +310,25 @@ export class SecondChart extends Chart {
   }
 }
 
-// const app = new App({
-// outdir: `${__dirname}/dist-output`
-// });
+const app = new App({
+  // outdir: `${__dirname}/dist-output`
+});
 const app1 = new App({});
-// new MyChart(app, 'cdk8s-example', {
-//   // replicas: 1
-//   // image: "shit",
-//   // tag: "latest",
+// new MyChart(app, "cdk8s-example", {
+//   replicas: 1,
+//   image: "shit",
+//   tag: "latest",
 // });
 // new MyChart(app, 'cdk8s-example1', {
 //   // replicas: 1
 //   // image: "shit",
 //   // tag: "latest",
 // });
-// new SecondChart(app, 'kustomize-example', {
-//   // replicas: 1
-//   // image: "shit",
-//   // tag: "latest",
-// });
+new SecondChart(app, "kustomize-example", {
+  // replicas: 1
+  // image: "shit",
+  // tag: "latest",
+});
 new SecondChart(app1, "kustomize-example-app1", {
   // replicas: 1
   // image: "shit",

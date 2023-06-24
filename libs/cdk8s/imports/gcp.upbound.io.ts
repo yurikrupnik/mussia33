@@ -150,6 +150,13 @@ export interface ProviderConfigSpecCredentials {
   readonly fs?: ProviderConfigSpecCredentialsFs;
 
   /**
+   * Use GCP service account impersonation for authentication.
+   *
+   * @schema ProviderConfigSpecCredentials#impersonateServiceAccount
+   */
+  readonly impersonateServiceAccount?: ProviderConfigSpecCredentialsImpersonateServiceAccount;
+
+  /**
    * A SecretRef is a reference to a secret key that contains the credentials that must be used to connect to the provider.
    *
    * @schema ProviderConfigSpecCredentials#secretRef
@@ -181,6 +188,7 @@ export function toJson_ProviderConfigSpecCredentials(obj: ProviderConfigSpecCred
   const result = {
     'env': toJson_ProviderConfigSpecCredentialsEnv(obj.env),
     'fs': toJson_ProviderConfigSpecCredentialsFs(obj.fs),
+    'impersonateServiceAccount': toJson_ProviderConfigSpecCredentialsImpersonateServiceAccount(obj.impersonateServiceAccount),
     'secretRef': toJson_ProviderConfigSpecCredentialsSecretRef(obj.secretRef),
     'source': obj.source,
     'upbound': toJson_ProviderConfigSpecCredentialsUpbound(obj.upbound),
@@ -249,6 +257,35 @@ export function toJson_ProviderConfigSpecCredentialsFs(obj: ProviderConfigSpecCr
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Use GCP service account impersonation for authentication.
+ *
+ * @schema ProviderConfigSpecCredentialsImpersonateServiceAccount
+ */
+export interface ProviderConfigSpecCredentialsImpersonateServiceAccount {
+  /**
+   * GCP service account email address
+   *
+   * @schema ProviderConfigSpecCredentialsImpersonateServiceAccount#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ProviderConfigSpecCredentialsImpersonateServiceAccount' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ProviderConfigSpecCredentialsImpersonateServiceAccount(obj: ProviderConfigSpecCredentialsImpersonateServiceAccount | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * A SecretRef is a reference to a secret key that contains the credentials that must be used to connect to the provider.
  *
  * @schema ProviderConfigSpecCredentialsSecretRef
@@ -305,6 +342,8 @@ export enum ProviderConfigSpecCredentialsSource {
   SECRET = "Secret",
   /** AccessToken */
   ACCESS_TOKEN = "AccessToken",
+  /** ImpersonateServiceAccount */
+  IMPERSONATE_SERVICE_ACCOUNT = "ImpersonateServiceAccount",
   /** InjectedIdentity */
   INJECTED_IDENTITY = "InjectedIdentity",
   /** Environment */

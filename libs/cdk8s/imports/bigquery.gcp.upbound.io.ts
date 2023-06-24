@@ -13970,6 +13970,13 @@ export interface JobSpecForProviderLoad {
   readonly nullMarker?: string;
 
   /**
+   * Parquet Options for load and make external tables. Structure is documented below.
+   *
+   * @schema JobSpecForProviderLoad#parquetOptions
+   */
+  readonly parquetOptions?: JobSpecForProviderLoadParquetOptions[];
+
+  /**
    * If sourceFormat is set to "DATASTORE_BACKUP", indicates which entity properties to load into BigQuery from a Cloud Datastore backup. Property names are case sensitive and must be top-level properties. If no properties are specified, BigQuery loads all properties. If any named property isn't found in the Cloud Datastore backup, an invalid error is returned in the job result.
    *
    * @schema JobSpecForProviderLoad#projectionFields
@@ -14046,6 +14053,7 @@ export function toJson_JobSpecForProviderLoad(obj: JobSpecForProviderLoad | unde
     'jsonExtension': obj.jsonExtension,
     'maxBadRecords': obj.maxBadRecords,
     'nullMarker': obj.nullMarker,
+    'parquetOptions': obj.parquetOptions?.map(y => toJson_JobSpecForProviderLoadParquetOptions(y)),
     'projectionFields': obj.projectionFields?.map(y => y),
     'quote': obj.quote,
     'schemaUpdateOptions': obj.schemaUpdateOptions?.map(y => y),
@@ -14746,6 +14754,41 @@ export function toJson_JobSpecForProviderLoadDestinationTable(obj: JobSpecForPro
     'tableId': obj.tableId,
     'tableIdRef': toJson_JobSpecForProviderLoadDestinationTableTableIdRef(obj.tableIdRef),
     'tableIdSelector': toJson_JobSpecForProviderLoadDestinationTableTableIdSelector(obj.tableIdSelector),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecForProviderLoadParquetOptions
+ */
+export interface JobSpecForProviderLoadParquetOptions {
+  /**
+   * If sourceFormat is set to PARQUET, indicates whether to use schema inference specifically for Parquet LIST logical type.
+   *
+   * @schema JobSpecForProviderLoadParquetOptions#enableListInference
+   */
+  readonly enableListInference?: boolean;
+
+  /**
+   * If sourceFormat is set to PARQUET, indicates whether to infer Parquet ENUM logical type as STRING instead of BYTES by default.
+   *
+   * @schema JobSpecForProviderLoadParquetOptions#enumAsString
+   */
+  readonly enumAsString?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'JobSpecForProviderLoadParquetOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecForProviderLoadParquetOptions(obj: JobSpecForProviderLoadParquetOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableListInference': obj.enableListInference,
+    'enumAsString': obj.enumAsString,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -20463,14 +20506,14 @@ export interface TableSpecForProviderExternalDataConfiguration {
   readonly referenceFileSchemaUri?: string;
 
   /**
-   * A JSON schema for the external table. Schema is required for CSV and JSON formats if autodetect is not on. Schema is disallowed for Google Cloud Bigtable, Cloud Datastore backups, Avro, ORC and Parquet formats. ~>NOTE: Because this field expects a JSON string, any changes to the string will create a diff, even if the JSON itself hasn't changed. Furthermore drift for this field cannot not be detected because BigQuery only uses this schema to compute the effective schema for the table, therefore any changes on the configured value will force the table to be recreated. This schema is effectively only applied when creating a table from an external datasource, after creation the computed schema will be stored in google_bigquery_table.schema
+   * A JSON schema for the external table. Schema is required for CSV and JSON formats if autodetect is not on. Schema is disallowed for Google Cloud Bigtable, Cloud Datastore backups, Avro, Iceberg, ORC and Parquet formats. ~>NOTE: Because this field expects a JSON string, any changes to the string will create a diff, even if the JSON itself hasn't changed. Furthermore drift for this field cannot not be detected because BigQuery only uses this schema to compute the effective schema for the table, therefore any changes on the configured value will force the table to be recreated. This schema is effectively only applied when creating a table from an external datasource, after creation the computed schema will be stored in google_bigquery_table.schema
    *
    * @schema TableSpecForProviderExternalDataConfiguration#schema
    */
   readonly schema?: string;
 
   /**
-   * The data format. Supported values are: "CSV", "GOOGLE_SHEETS", "NEWLINE_DELIMITED_JSON", "AVRO", "PARQUET", "ORC", "DATSTORE_BACKUP", and "BIGTABLE". To use "GOOGLE_SHEETS" the scopes must include "https://www.googleapis.com/auth/drive.readonly".
+   * The data format. Please see sourceFormat under ExternalDataConfiguration in Bigquery's public API documentation for supported formats. To use "GOOGLE_SHEETS" the scopes must include "https://www.googleapis.com/auth/drive.readonly".
    *
    * @schema TableSpecForProviderExternalDataConfiguration#sourceFormat
    */

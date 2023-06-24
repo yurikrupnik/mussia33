@@ -1618,6 +1618,11 @@ export interface DatabaseInstanceSpecForProviderSettings {
   readonly activeDirectoryConfig?: DatabaseInstanceSpecForProviderSettingsActiveDirectoryConfig[];
 
   /**
+   * @schema DatabaseInstanceSpecForProviderSettings#advancedMachineFeatures
+   */
+  readonly advancedMachineFeatures?: DatabaseInstanceSpecForProviderSettingsAdvancedMachineFeatures[];
+
+  /**
    * The availability type of the Cloud SQL instance, high availability (REGIONAL) or single zone (ZONAL).' For all instances, ensure that settings.backup_configuration.enabled is set to true. For MySQL instances, ensure that settings.backup_configuration.binary_log_enabled is set to true. For Postgres and SQL Server instances, ensure that settings.backup_configuration.point_in_time_recovery_enabled is set to true. Defaults to ZONAL.
    *
    * @default ZONAL.
@@ -1760,6 +1765,7 @@ export function toJson_DatabaseInstanceSpecForProviderSettings(obj: DatabaseInst
   const result = {
     'activationPolicy': obj.activationPolicy,
     'activeDirectoryConfig': obj.activeDirectoryConfig?.map(y => toJson_DatabaseInstanceSpecForProviderSettingsActiveDirectoryConfig(y)),
+    'advancedMachineFeatures': obj.advancedMachineFeatures?.map(y => toJson_DatabaseInstanceSpecForProviderSettingsAdvancedMachineFeatures(y)),
     'availabilityType': obj.availabilityType,
     'backupConfiguration': obj.backupConfiguration?.map(y => toJson_DatabaseInstanceSpecForProviderSettingsBackupConfiguration(y)),
     'collation': obj.collation,
@@ -2016,6 +2022,33 @@ export function toJson_DatabaseInstanceSpecForProviderSettingsActiveDirectoryCon
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DatabaseInstanceSpecForProviderSettingsAdvancedMachineFeatures
+ */
+export interface DatabaseInstanceSpecForProviderSettingsAdvancedMachineFeatures {
+  /**
+   * The number of threads per core. The value of this flag can be 1 or 2. To disable SMT, set this flag to 1. Only available in Cloud SQL for SQL Server instances. See smt for more details.
+   *
+   * @schema DatabaseInstanceSpecForProviderSettingsAdvancedMachineFeatures#threadsPerCore
+   */
+  readonly threadsPerCore?: number;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecForProviderSettingsAdvancedMachineFeatures' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecForProviderSettingsAdvancedMachineFeatures(obj: DatabaseInstanceSpecForProviderSettingsAdvancedMachineFeatures | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'threadsPerCore': obj.threadsPerCore,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema DatabaseInstanceSpecForProviderSettingsBackupConfiguration
  */
 export interface DatabaseInstanceSpecForProviderSettingsBackupConfiguration {
@@ -2095,14 +2128,14 @@ export function toJson_DatabaseInstanceSpecForProviderSettingsBackupConfiguratio
  */
 export interface DatabaseInstanceSpecForProviderSettingsDatabaseFlags {
   /**
-   * Name of the flag.
+   * A name for this whitelist entry.
    *
    * @schema DatabaseInstanceSpecForProviderSettingsDatabaseFlags#name
    */
   readonly name: string;
 
   /**
-   * Value of the flag.
+   * A CIDR notation IPv4 or IPv6 address that is allowed to access this instance. Must be set even if other two attributes are not for the whitelist to become active.
    *
    * @schema DatabaseInstanceSpecForProviderSettingsDatabaseFlags#value
    */
@@ -2639,14 +2672,14 @@ export interface DatabaseInstanceSpecForProviderSettingsIpConfigurationAuthorize
   readonly expirationTime?: string;
 
   /**
-   * Name of the flag.
+   * A name for this whitelist entry.
    *
    * @schema DatabaseInstanceSpecForProviderSettingsIpConfigurationAuthorizedNetworks#name
    */
   readonly name?: string;
 
   /**
-   * Value of the flag.
+   * A CIDR notation IPv4 or IPv6 address that is allowed to access this instance. Must be set even if other two attributes are not for the whitelist to become active.
    *
    * @schema DatabaseInstanceSpecForProviderSettingsIpConfigurationAuthorizedNetworks#value
    */
