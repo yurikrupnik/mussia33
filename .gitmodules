@@ -1,3 +1,9 @@
+
+
+
 [submodule "submodules/tauri-app"]
 	path = submodules/tauri-app
 	url = https://github.com/yurikrupnik/tauri-app.git
+[submodule "first-rust-app"]
+	path = first-rust-app
+	url = https://github.com/yurikrupnik/first-rust-app

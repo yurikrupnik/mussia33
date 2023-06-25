@@ -60,6 +60,7 @@ jobs:
     steps:
       - checkout
       - run: cargo test
+      - run: ls submodules
 workflows:
   build:
     jobs:
