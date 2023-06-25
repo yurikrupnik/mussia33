@@ -17,6 +17,9 @@ tasks:
     cmds:
       - echo "{{.GREETING}}"
     silent: true
+  git-submodules:
+    cmds:
+      - git submodule update --init --recursive
   wrk:
     cmds:
       - wrk -t8 -c256 -d30s http://127.0.0.1:8082/api/users

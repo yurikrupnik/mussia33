@@ -62,6 +62,7 @@ jobs:
       - run: cargo test
       - run: ls
       - run: ls submodules/tauri-app
+      - run: pnpm nx run-many --target=build --max-parallel=3 --prod
 workflows:
   build:
     jobs:
