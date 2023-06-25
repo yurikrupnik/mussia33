@@ -138,10 +138,10 @@ devDependencies:
     version: 2.7.0
   '@nx-tools/container-metadata':
     specifier: ^4.0.3
-    version: 4.0.3(@nrwl/devkit@15.9.4)(dotenv@16.0.3)
+    version: 4.0.3(@nrwl/devkit@15.9.4)(dotenv@16.3.1)
   '@nx-tools/nx-container':
     specifier: ^4.0.3
-    version: 4.0.3(@nrwl/devkit@15.9.4)(dotenv@16.0.3)
+    version: 4.0.3(@nrwl/devkit@15.9.4)(dotenv@16.3.1)
   '@nx/cypress':
     specifier: ^16.2.2
     version: 16.2.2(cypress@12.13.0)(eslint@8.41.0)(nx@16.2.1)(typescript@5.0.4)
@@ -205,6 +205,9 @@ devDependencies:
   cypress:
     specifier: 12.13.0
     version: 12.13.0
+  dotenv:
+    specifier: ^16.3.1
+    version: 16.3.1
   esbuild:
     specifier: 0.17.19
     version: 0.17.19
@@ -3737,7 +3740,7 @@ packages:
       - encoding
     dev: true
 
-  /@nx-tools/container-metadata@4.0.3(@nrwl/devkit@15.9.4)(dotenv@16.0.3):
+  /@nx-tools/container-metadata@4.0.3(@nrwl/devkit@15.9.4)(dotenv@16.3.1):
     resolution: {integrity: sha512-B/46kwTF1HhIShrse6kJyyau7Q+UMuVSYWS9gIP8HU248OWVw4Qg1gd13qnRpNkQc/PzJQnJ/z8vQny9Pd4QVA==}
     peerDependencies:
       '@nrwl/devkit': ^12.0.0 || ^13.0.0 || ^14.0.0 || ^15.0.0
@@ -3748,7 +3751,7 @@ packages:
       '@nx-tools/core': 4.0.3(@nrwl/devkit@15.9.4)
       '@renovate/pep440': 1.0.0
       csv-parse: 4.16.3
-      dotenv: 16.0.3
+      dotenv: 16.3.1
       handlebars: 4.7.7
       moment: 2.29.4
     transitivePeerDependencies:
@@ -3765,7 +3768,7 @@ packages:
       colorette: 2.0.20
     dev: true
 
-  /@nx-tools/nx-container@4.0.3(@nrwl/devkit@15.9.4)(dotenv@16.0.3):
+  /@nx-tools/nx-container@4.0.3(@nrwl/devkit@15.9.4)(dotenv@16.3.1):
     resolution: {integrity: sha512-M+TAsQaKdHLzvpKN4AR6Kz99Sn+GwE1wRpTpgibnjEUSL/Uk6MBVHvRlQLEclsRF07LYazu7SguQkp6he9PNJg==}
     peerDependencies:
       '@nrwl/devkit': ^12.0.0 || ^13.0.0 || ^14.0.0 || ^15.0.0
@@ -3775,7 +3778,7 @@ packages:
       '@nx-tools/core': 4.0.3(@nrwl/devkit@15.9.4)
       '@swc/helpers': 0.4.14
       csv-parse: 4.16.3
-      dotenv: 16.0.3
+      dotenv: 16.3.1
       handlebars: 4.7.7
       semver: 7.5.0
       tmp: 0.2.1
@@ -7496,6 +7499,12 @@ packages:
   /dotenv@16.0.3:
     resolution: {integrity: sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==}
     engines: {node: '>=12'}
+    dev: false
+
+  /dotenv@16.3.1:
+    resolution: {integrity: sha512-IPzF4w4/Rd94bA9imS68tZBaYyBWSCE47V1RGuMrB94iyTOIEwRmVL2x/4An+6mETpLrKJ5hQkB8W4kFAadeIQ==}
+    engines: {node: '>=12'}
+    dev: true
 
   /dprint-node@1.0.7:
     resolution: {integrity: sha512-NTZOW9A7ipb0n7z7nC3wftvsbceircwVHSgzobJsEQa+7RnOMbhrfX5IflA6CtC4GA63DSAiHYXa4JKEy9F7cA==}

@@ -12,7 +12,8 @@ services:
 
   front-app:
     volumes:
-      - ./nginx.conf:/etc/nginx/default.conf
+    #      - ./default.conf:/etc/nginx/default.conf
+      - ./default.conf.template:/etc/nginx/templates/default.conf.template:ro
     build:
       context: "."
       dockerfile: Dockerfile
@@ -21,10 +22,11 @@ services:
         - DIST_PATH=dist/apps/frontend/solid-app
     container_name: front-app
     environment:
-      - VITE_HOST=http://localhost:8082
-#      - UPSTREAM_HOST=nest-app
-#      - UPSTREAM_PORT="8082"
-#      - UPSTREAM_NAME=backend
+      #      - VITE_HOST=http://localhost:8082
+      - UPSTREAM_HOST=nest-app
+      - UPSTREAM_PORT="8082"
+      - UPSTREAM_NAME=backend
+      - KEY=secret1
     ports:
       - "8090:80"
   nest-app:
@@ -40,6 +42,7 @@ services:
     container_name: nest-app
     environment:
       - MONGO_URI=mongodb://db/compose
+#      - MONGO_URI=mongodb+srv://yurikrupnik:T4eXKj1RBI4VnszC@cluster0.rdmew.mongodb.net/
       - REDIS_HOST=redis
       - NODE_ENV=production
       - GRPC_HOST=grpc-app
@@ -61,6 +64,7 @@ services:
       - MONGO_URI=mongodb://db/compose
       - REDIS_HOST=redis
       - NODE_ENV=production
+      - PORT=9090
     depends_on:
       - db
       - redis

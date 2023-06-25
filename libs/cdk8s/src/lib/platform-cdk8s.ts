@@ -1,8 +1,8 @@
-import { Construct } from 'constructs';
-import { Names } from 'cdk8s';
-import { KubeDeployment, KubeService, IntOrString } from '../../imports/k8s';
-import { ConfigMap } from 'cdk8s-plus-25';
-import { createNginxConfig } from './nginx-config';
+import { Construct } from "constructs";
+import { Names } from "cdk8s";
+import { KubeDeployment, KubeService, IntOrString } from "../../imports/k8s";
+import { ConfigMap } from "cdk8s-plus-25";
+import { createNginxConfig } from "./nginx-config";
 
 export interface WebServiceProps {
   /**
@@ -58,34 +58,36 @@ export class WebService extends Construct {
   constructor(scope: Construct, id: string, props: WebServiceProps) {
     super(scope, id);
 
-    const name = props.name || 'default-name';
+    const name = props.name || "default-name";
     const port = props.port || 8080;
-    const namespace = props.namespace || 'default';
+    const namespace = props.namespace || "default";
     const containerPort = props.containerPort || 8080;
     // const label = { app: Names.toDnsLabel(this) };
     const label = { app: Names.toLabelValue(this) };
     const replicas = props.replicas ?? 1;
-    const type = props.type ?? 'ClusterIP';
-    const service = new KubeService(this, 'service', {
+    const type = props.type ?? "ClusterIP";
+    const service = new KubeService(this, "service", {
       metadata: {
         name: `${name}-service`,
         namespace,
       },
       spec: {
         type: type,
-        ports: [{ port, targetPort: IntOrString.fromNumber(containerPort) }],
+        ports: [
+          { port, targetPort: IntOrString.fromNumber(containerPort), name },
+        ],
         selector: label,
       },
     });
 
-    const isUi = name.includes('client');
+    const isUi = name.includes("client");
     let nginxConfig = null;
     let proxyEnvs = null;
 
-    if (name.includes('client')) {
-      proxyEnvs = new ConfigMap(this, 'proxy-envs', {
+    if (name.includes("client")) {
+      proxyEnvs = new ConfigMap(this, "proxy-envs", {
         metadata: {
-          name: 'proxy-envs',
+          name: "proxy-envs",
           namespace,
         },
         data: {
@@ -94,12 +96,12 @@ export class WebService extends Construct {
           // upstream_port: service.metadata.toJson().port,
           upstream_port: port.toString(),
           // upstream_portas: service.toJson().data,
-          upstream_name: 'backend',
+          upstream_name: "backend",
         },
       });
-      proxyEnvs.addData('my-klry', 'shit value');
+      proxyEnvs.addData("my-klry", "shit value");
       // s.addBinaryData("ar", "sd") // should be base64
-      nginxConfig = new ConfigMap(this, 'nginx-config', {
+      nginxConfig = new ConfigMap(this, "nginx-config", {
         metadata: {
           finalizers: [],
           labels: {
@@ -107,18 +109,18 @@ export class WebService extends Construct {
             // label3: IntOrString.fromString('label-value3').value,
             // label2: 'label-value2',
           },
-          name: 'nginx-config',
+          name: "nginx-config",
           annotations: {
-            annotation1: 'annotation1',
-            annotation2: 'annotation2',
+            annotation1: "annotation1",
+            annotation2: "annotation2",
           },
           namespace: namespace,
         },
         data: {
-          'default.conf.template': createNginxConfig([
+          "default.conf.template": createNginxConfig([
             {
-              name: 'test',
-              host: 'teset',
+              name: "test",
+              host: "teset",
               port: port.toString(),
             },
             {
@@ -132,7 +134,7 @@ export class WebService extends Construct {
             //     port: "12345"
             // }
           ]),
-          stam: 'my data here',
+          stam: "my data here",
           // "nginx-config":
           // "more-data": "more of my data here"
         },
@@ -140,7 +142,7 @@ export class WebService extends Construct {
     }
 
     // console.log('service', service.toJson())
-    new KubeDeployment(this, 'deployment', {
+    new KubeDeployment(this, "deployment", {
       metadata: {
         namespace,
         name,
@@ -152,27 +154,31 @@ export class WebService extends Construct {
         },
         template: {
           metadata: {
-            labels: label,  annotations: {
+            labels: label,
+            annotations: {
               // should be on argo app
               "argocd-image-updater.argoproj.io/image-list": "some/image:2.x-0",
-              "argocd-image-updater.argoproj.io/<image>.update-strategy": "semver",
-              "argocd-image-updater.argoproj.io/myimage.update-strategy": "latest",
-              "argocd-image-updater.argoproj.io/myimage.ignore-tags": "latest, master",
-              annotation2: 'annotation2',
-            }
+              "argocd-image-updater.argoproj.io/<image>.update-strategy":
+                "semver",
+              "argocd-image-updater.argoproj.io/myimage.update-strategy":
+                "latest",
+              "argocd-image-updater.argoproj.io/myimage.ignore-tags":
+                "latest, master",
+              annotation2: "annotation2",
+            },
           },
           spec: {
             containers: [
               {
-                name: 'app',
+                name: "app",
                 image: props.image,
                 // image: 'nginx:latest',
                 // image: "mongo",
                 ports: [{ containerPort }],
                 volumeMounts: [
                   {
-                    name: 'nginx-config',
-                    mountPath: '/etc/nginx/templates',
+                    name: "nginx-config",
+                    mountPath: "/etc/nginx/templates",
                   },
                 ],
                 // env: [{

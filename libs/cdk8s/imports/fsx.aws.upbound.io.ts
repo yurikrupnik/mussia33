@@ -3791,7 +3791,7 @@ export interface OntapFileSystemSpecForProvider {
   readonly tags?: { [key: string]: string };
 
   /**
-   * Sets the throughput capacity (in MBps) for the file system that you're creating. Valid values are 128, 256, 512, 1024, and 2048.
+   * Sets the throughput capacity (in MBps) for the file system that you're creating. Valid values are 128, 256, 512, 1024, 2048, and 4096.
    *
    * @schema OntapFileSystemSpecForProvider#throughputCapacity
    */

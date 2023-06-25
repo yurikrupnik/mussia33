@@ -7592,7 +7592,7 @@ export interface V2ServiceSpecForProviderTemplate {
   readonly annotations?: { [key: string]: string };
 
   /**
-   * Holds the single container that defines the unit of execution for this task. Structure is documented below.
+   * Holds the containers that define the unit of execution for this Service. Structure is documented below.
    *
    * @schema V2ServiceSpecForProviderTemplate#containers
    */

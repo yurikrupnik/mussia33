@@ -12,9 +12,9 @@ imports:
   - github:upbound/provider-aws
   - github:crossplane/crossplane
 #  - github:kubernetes-sigs/kustomize
-#  - github:upbound/provider-azure
+  - github:upbound/provider-azure
 
-#  - github:robusta-dev/robusta
+  - github:robusta-dev/robusta
 
 #  - github:crossplane/crossplane-runtime
 #  - github:dapr/dapr

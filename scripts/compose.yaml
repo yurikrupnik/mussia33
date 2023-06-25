@@ -1,4 +1,4 @@
-version: "3.9"
+version: "3.8"
 services:
   db:
     image: "mongo"
@@ -9,18 +9,3 @@ services:
     image: "redis:alpine"
     ports:
       - "6379:6379"
-
-  nest-app:
-    build:
-      context: ../
-      args:
-        - DIST_PATH=dist/apps/node/nest-app
-        - REDIS_HOST=redis
-    container_name: nest-app
-    environment:
-      - MONGO_URI=mongodb://db/compose
-    ports:
-      - 8080:8080
-#    command: npm run start
-    depends_on:
-      - db

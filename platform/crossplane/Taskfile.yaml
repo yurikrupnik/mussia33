@@ -14,7 +14,7 @@ tasks:
     dir: platform/crossplane
     cmds:
       - helm repo add crossplane-stable https://charts.crossplane.io/stable && helm repo update
-      - helm install crossplane --namespace crossplane-system --create-namespace crossplane-stable/crossplane
+      - helm install crossplane -n crossplane-system --create-namespace crossplane-stable/crossplane
       - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
       - kubectl get pods -n crossplane-system
       - kubectl get deployments -n crossplane-system

@@ -2196,13 +2196,6 @@ export enum DomainIdentitySpecDeletionPolicy {
  */
 export interface DomainIdentitySpecForProvider {
   /**
-   * The domain name to assign to SES
-   *
-   * @schema DomainIdentitySpecForProvider#domain
-   */
-  readonly domain?: string;
-
-  /**
    * Region is the region you'd like your resource to be created in.
    *
    * @schema DomainIdentitySpecForProvider#region
@@ -2218,7 +2211,6 @@ export interface DomainIdentitySpecForProvider {
 export function toJson_DomainIdentitySpecForProvider(obj: DomainIdentitySpecForProvider | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
-    'domain': obj.domain,
     'region': obj.region,
   };
   // filter undefined values

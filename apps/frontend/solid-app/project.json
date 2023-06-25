@@ -10,7 +10,7 @@
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/frontend/solid-app",
-        "frameworkConfigFile": "@nxext/solid/plugins/vite"
+        "configFile": "vite.config.ts"
       },
       "configurations": {
         "production": {}
@@ -20,7 +20,7 @@
       "executor": "@nxext/vite:dev",
       "options": {
         "outputPath": "dist/apps/frontend/solid-app",
-        "frameworkConfigFile": "@nxext/solid/plugins/vite"
+        "configFile": "vite.config.ts"
       }
     },
     "lint": {

@@ -1,0 +1,20 @@
+runtime: nodejs18
+service: default
+
+handlers:
+  # Proxy requests to the /api endpoint to the Cloud Run backend
+  - url: /api/.*
+    script: auto
+
+  # Serve all static files with URLs ending with a file extension
+  - url: /(.*\..+)$
+    static_files: \1
+    upload: (.*\..+)$
+
+  # Catch-all handler to serve index.html
+  - url: /.*
+    static_files: index.html
+    upload: index.html
+
+env_variables:
+  VITE_HOST: https://nest-app-nwupi7u2ja-lm.a.run.app

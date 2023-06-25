@@ -838,6 +838,11 @@ export interface ClusterExternalSecretSpecExternalSecretSpecTargetTemplate {
   readonly engineVersion?: string;
 
   /**
+   * @schema ClusterExternalSecretSpecExternalSecretSpecTargetTemplate#mergePolicy
+   */
+  readonly mergePolicy?: string;
+
+  /**
    * ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
    *
    * @schema ClusterExternalSecretSpecExternalSecretSpecTargetTemplate#metadata
@@ -865,6 +870,7 @@ export function toJson_ClusterExternalSecretSpecExternalSecretSpecTargetTemplate
   const result = {
     'data': ((obj.data) === undefined) ? undefined : (Object.entries(obj.data).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'engineVersion': obj.engineVersion,
+    'mergePolicy': obj.mergePolicy,
     'metadata': toJson_ClusterExternalSecretSpecExternalSecretSpecTargetTemplateMetadata(obj.metadata),
     'templateFrom': obj.templateFrom?.map(y => toJson_ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTemplateFrom(y)),
     'type': obj.type,
@@ -1403,7 +1409,7 @@ export function toJson_ClusterSecretStoreProps(obj: ClusterSecretStoreProps | un
  */
 export interface ClusterSecretStoreSpec {
   /**
-   * Used to select the correct KES controller (think: ingress.ingressClassName) The KES controller is instantiated with a specific controller name and filters ES based on this property
+   * Used to select the correct ESO controller (think: ingress.ingressClassName) The ESO controller is instantiated with a specific controller name and filters ES based on this property
    *
    * @schema ClusterSecretStoreSpec#controller
    */
@@ -1490,7 +1496,7 @@ export interface ClusterSecretStoreSpecProvider {
   readonly gcpsm?: ClusterSecretStoreSpecProviderGcpsm;
 
   /**
-   * Gitlab configures this store to sync secrets using Gitlab Variables provider
+   * GitLab configures this store to sync secrets using GitLab Variables provider
    *
    * @schema ClusterSecretStoreSpecProvider#gitlab
    */
@@ -1666,11 +1672,6 @@ export interface ClusterSecretStoreSpecProviderAlibaba {
   readonly auth: ClusterSecretStoreSpecProviderAlibabaAuth;
 
   /**
-   * @schema ClusterSecretStoreSpecProviderAlibaba#endpoint
-   */
-  readonly endpoint?: string;
-
-  /**
    * Alibaba Region to be used for the provider
    *
    * @schema ClusterSecretStoreSpecProviderAlibaba#regionID
@@ -1687,7 +1688,6 @@ export function toJson_ClusterSecretStoreSpecProviderAlibaba(obj: ClusterSecretS
   if (obj === undefined) { return undefined; }
   const result = {
     'auth': toJson_ClusterSecretStoreSpecProviderAlibabaAuth(obj.auth),
-    'endpoint': obj.endpoint,
     'regionID': obj.regionId,
   };
   // filter undefined values
@@ -1882,7 +1882,7 @@ export function toJson_ClusterSecretStoreSpecProviderGcpsm(obj: ClusterSecretSto
 /* eslint-enable max-len, quote-props */
 
 /**
- * Gitlab configures this store to sync secrets using Gitlab Variables provider
+ * GitLab configures this store to sync secrets using GitLab Variables provider
  *
  * @schema ClusterSecretStoreSpecProviderGitlab
  */
@@ -2382,11 +2382,18 @@ export function toJson_ClusterSecretStoreSpecProviderAkeylessCaProvider(obj: Clu
  */
 export interface ClusterSecretStoreSpecProviderAlibabaAuth {
   /**
+   * Authenticate against Alibaba using RRSA.
+   *
+   * @schema ClusterSecretStoreSpecProviderAlibabaAuth#rrsa
+   */
+  readonly rrsa?: ClusterSecretStoreSpecProviderAlibabaAuthRrsa;
+
+  /**
    * AlibabaAuthSecretRef holds secret references for Alibaba credentials.
    *
    * @schema ClusterSecretStoreSpecProviderAlibabaAuth#secretRef
    */
-  readonly secretRef: ClusterSecretStoreSpecProviderAlibabaAuthSecretRef;
+  readonly secretRef?: ClusterSecretStoreSpecProviderAlibabaAuthSecretRef;
 
 }
 
@@ -2397,6 +2404,7 @@ export interface ClusterSecretStoreSpecProviderAlibabaAuth {
 export function toJson_ClusterSecretStoreSpecProviderAlibabaAuth(obj: ClusterSecretStoreSpecProviderAlibabaAuth | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'rrsa': toJson_ClusterSecretStoreSpecProviderAlibabaAuthRrsa(obj.rrsa),
     'secretRef': toJson_ClusterSecretStoreSpecProviderAlibabaAuthSecretRef(obj.secretRef),
   };
   // filter undefined values
@@ -3232,6 +3240,51 @@ export enum ClusterSecretStoreSpecProviderAkeylessCaProviderType {
   /** ConfigMap */
   CONFIG_MAP = "ConfigMap",
 }
+
+/**
+ * Authenticate against Alibaba using RRSA.
+ *
+ * @schema ClusterSecretStoreSpecProviderAlibabaAuthRrsa
+ */
+export interface ClusterSecretStoreSpecProviderAlibabaAuthRrsa {
+  /**
+   * @schema ClusterSecretStoreSpecProviderAlibabaAuthRrsa#oidcProviderArn
+   */
+  readonly oidcProviderArn: string;
+
+  /**
+   * @schema ClusterSecretStoreSpecProviderAlibabaAuthRrsa#oidcTokenFilePath
+   */
+  readonly oidcTokenFilePath: string;
+
+  /**
+   * @schema ClusterSecretStoreSpecProviderAlibabaAuthRrsa#roleArn
+   */
+  readonly roleArn: string;
+
+  /**
+   * @schema ClusterSecretStoreSpecProviderAlibabaAuthRrsa#sessionName
+   */
+  readonly sessionName: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreSpecProviderAlibabaAuthRrsa' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreSpecProviderAlibabaAuthRrsa(obj: ClusterSecretStoreSpecProviderAlibabaAuthRrsa | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'oidcProviderArn': obj.oidcProviderArn,
+    'oidcTokenFilePath': obj.oidcTokenFilePath,
+    'roleArn': obj.roleArn,
+    'sessionName': obj.sessionName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * AlibabaAuthSecretRef holds secret references for Alibaba credentials.
@@ -5597,7 +5650,7 @@ export interface ClusterSecretStoreV1Beta1Spec {
   readonly conditions?: ClusterSecretStoreV1Beta1SpecConditions[];
 
   /**
-   * Used to select the correct KES controller (think: ingress.ingressClassName) The KES controller is instantiated with a specific controller name and filters ES based on this property
+   * Used to select the correct ESO controller (think: ingress.ingressClassName) The ESO controller is instantiated with a specific controller name and filters ES based on this property
    *
    * @schema ClusterSecretStoreV1Beta1Spec#controller
    */
@@ -5737,7 +5790,7 @@ export interface ClusterSecretStoreV1Beta1SpecProvider {
   readonly gcpsm?: ClusterSecretStoreV1Beta1SpecProviderGcpsm;
 
   /**
-   * Gitlab configures this store to sync secrets using Gitlab Variables provider
+   * GitLab configures this store to sync secrets using GitLab Variables provider
    *
    * @schema ClusterSecretStoreV1Beta1SpecProvider#gitlab
    */
@@ -5991,11 +6044,6 @@ export interface ClusterSecretStoreV1Beta1SpecProviderAlibaba {
   readonly auth: ClusterSecretStoreV1Beta1SpecProviderAlibabaAuth;
 
   /**
-   * @schema ClusterSecretStoreV1Beta1SpecProviderAlibaba#endpoint
-   */
-  readonly endpoint?: string;
-
-  /**
    * Alibaba Region to be used for the provider
    *
    * @schema ClusterSecretStoreV1Beta1SpecProviderAlibaba#regionID
@@ -6012,7 +6060,6 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderAlibaba(obj: Cluster
   if (obj === undefined) { return undefined; }
   const result = {
     'auth': toJson_ClusterSecretStoreV1Beta1SpecProviderAlibabaAuth(obj.auth),
-    'endpoint': obj.endpoint,
     'regionID': obj.regionId,
   };
   // filter undefined values
@@ -6039,6 +6086,13 @@ export interface ClusterSecretStoreV1Beta1SpecProviderAws {
    * @schema ClusterSecretStoreV1Beta1SpecProviderAws#auth
    */
   readonly auth?: ClusterSecretStoreV1Beta1SpecProviderAwsAuth;
+
+  /**
+   * AWS External ID set on assumed IAM roles
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderAws#externalID
+   */
+  readonly externalId?: string;
 
   /**
    * AWS Region to be used for the provider
@@ -6072,6 +6126,7 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderAws(obj: ClusterSecr
   const result = {
     'additionalRoles': obj.additionalRoles?.map(y => y),
     'auth': toJson_ClusterSecretStoreV1Beta1SpecProviderAwsAuth(obj.auth),
+    'externalID': obj.externalId,
     'region': obj.region,
     'role': obj.role,
     'service': obj.service,
@@ -6284,7 +6339,7 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderGcpsm(obj: ClusterSe
 /* eslint-enable max-len, quote-props */
 
 /**
- * Gitlab configures this store to sync secrets using Gitlab Variables provider
+ * GitLab configures this store to sync secrets using GitLab Variables provider
  *
  * @schema ClusterSecretStoreV1Beta1SpecProviderGitlab
  */
@@ -7093,11 +7148,18 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderAkeylessCaProvider(o
  */
 export interface ClusterSecretStoreV1Beta1SpecProviderAlibabaAuth {
   /**
+   * Authenticate against Alibaba using RRSA.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderAlibabaAuth#rrsa
+   */
+  readonly rrsa?: ClusterSecretStoreV1Beta1SpecProviderAlibabaAuthRrsa;
+
+  /**
    * AlibabaAuthSecretRef holds secret references for Alibaba credentials.
    *
    * @schema ClusterSecretStoreV1Beta1SpecProviderAlibabaAuth#secretRef
    */
-  readonly secretRef: ClusterSecretStoreV1Beta1SpecProviderAlibabaAuthSecretRef;
+  readonly secretRef?: ClusterSecretStoreV1Beta1SpecProviderAlibabaAuthSecretRef;
 
 }
 
@@ -7108,6 +7170,7 @@ export interface ClusterSecretStoreV1Beta1SpecProviderAlibabaAuth {
 export function toJson_ClusterSecretStoreV1Beta1SpecProviderAlibabaAuth(obj: ClusterSecretStoreV1Beta1SpecProviderAlibabaAuth | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'rrsa': toJson_ClusterSecretStoreV1Beta1SpecProviderAlibabaAuthRrsa(obj.rrsa),
     'secretRef': toJson_ClusterSecretStoreV1Beta1SpecProviderAlibabaAuthSecretRef(obj.secretRef),
   };
   // filter undefined values
@@ -7816,6 +7879,13 @@ export interface ClusterSecretStoreV1Beta1SpecProviderVaultAuth {
   readonly cert?: ClusterSecretStoreV1Beta1SpecProviderVaultAuthCert;
 
   /**
+   * Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials AWS IAM authentication method
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuth#iam
+   */
+  readonly iam?: ClusterSecretStoreV1Beta1SpecProviderVaultAuthIam;
+
+  /**
    * Jwt authenticates with Vault by passing role and JWT token using the JWT/OIDC authentication method
    *
    * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuth#jwt
@@ -7854,6 +7924,7 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuth(obj: Clust
   const result = {
     'appRole': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRole(obj.appRole),
     'cert': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthCert(obj.cert),
+    'iam': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthIam(obj.iam),
     'jwt': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthJwt(obj.jwt),
     'kubernetes': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthKubernetes(obj.kubernetes),
     'ldap': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthLdap(obj.ldap),
@@ -8271,6 +8342,51 @@ export enum ClusterSecretStoreV1Beta1SpecProviderAkeylessCaProviderType {
   /** ConfigMap */
   CONFIG_MAP = "ConfigMap",
 }
+
+/**
+ * Authenticate against Alibaba using RRSA.
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderAlibabaAuthRrsa
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderAlibabaAuthRrsa {
+  /**
+   * @schema ClusterSecretStoreV1Beta1SpecProviderAlibabaAuthRrsa#oidcProviderArn
+   */
+  readonly oidcProviderArn: string;
+
+  /**
+   * @schema ClusterSecretStoreV1Beta1SpecProviderAlibabaAuthRrsa#oidcTokenFilePath
+   */
+  readonly oidcTokenFilePath: string;
+
+  /**
+   * @schema ClusterSecretStoreV1Beta1SpecProviderAlibabaAuthRrsa#roleArn
+   */
+  readonly roleArn: string;
+
+  /**
+   * @schema ClusterSecretStoreV1Beta1SpecProviderAlibabaAuthRrsa#sessionName
+   */
+  readonly sessionName: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderAlibabaAuthRrsa' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderAlibabaAuthRrsa(obj: ClusterSecretStoreV1Beta1SpecProviderAlibabaAuthRrsa | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'oidcProviderArn': obj.oidcProviderArn,
+    'oidcTokenFilePath': obj.oidcTokenFilePath,
+    'roleArn': obj.roleArn,
+    'sessionName': obj.sessionName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * AlibabaAuthSecretRef holds secret references for Alibaba credentials.
@@ -9052,7 +9168,14 @@ export interface ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRole {
    *
    * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRole#roleId
    */
-  readonly roleId: string;
+  readonly roleId?: string;
+
+  /**
+   * Reference to a key in a Secret that contains the App Role ID used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role id.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRole#roleRef
+   */
+  readonly roleRef?: ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef;
 
   /**
    * Reference to a key in a Secret that contains the App Role secret used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role secret.
@@ -9072,6 +9195,7 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRole(obj
   const result = {
     'path': obj.path,
     'roleId': obj.roleId,
+    'roleRef': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef(obj.roleRef),
     'secretRef': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRoleSecretRef(obj.secretRef),
   };
   // filter undefined values
@@ -9110,6 +9234,91 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthCert(obj: C
   const result = {
     'clientCert': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthCertClientCert(obj.clientCert),
     'secretRef': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthCertSecretRef(obj.secretRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials AWS IAM authentication method
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIam
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderVaultAuthIam {
+  /**
+   * AWS External ID set on assumed IAM roles
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIam#externalID
+   */
+  readonly externalId?: string;
+
+  /**
+   * Specify a service account with IRSA enabled
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIam#jwt
+   */
+  readonly jwt?: ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwt;
+
+  /**
+   * Path where the AWS auth method is enabled in Vault, e.g: "aws"
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIam#path
+   */
+  readonly path?: string;
+
+  /**
+   * AWS region
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIam#region
+   */
+  readonly region?: string;
+
+  /**
+   * This is the AWS role to be assumed before talking to vault
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIam#role
+   */
+  readonly role?: string;
+
+  /**
+   * Specify credentials in a Secret object
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIam#secretRef
+   */
+  readonly secretRef?: ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef;
+
+  /**
+   * X-Vault-AWS-IAM-Server-ID is an additional header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: https://developer.hashicorp.com/vault/docs/auth/aws
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIam#vaultAwsIamServerID
+   */
+  readonly vaultAwsIamServerId?: string;
+
+  /**
+   * Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIam#vaultRole
+   */
+  readonly vaultRole: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderVaultAuthIam' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthIam(obj: ClusterSecretStoreV1Beta1SpecProviderVaultAuthIam | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'externalID': obj.externalId,
+    'jwt': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwt(obj.jwt),
+    'path': obj.path,
+    'region': obj.region,
+    'role': obj.role,
+    'secretRef': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef(obj.secretRef),
+    'vaultAwsIamServerID': obj.vaultAwsIamServerId,
+    'vaultRole': obj.vaultRole,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -10564,6 +10773,51 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderOracleAuthSecretRefP
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Reference to a key in a Secret that contains the App Role ID used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role id.
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef(obj: ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Reference to a key in a Secret that contains the App Role secret used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role secret.
  *
  * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthAppRoleSecretRef
@@ -10692,6 +10946,80 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthCertSecretR
     'key': obj.key,
     'name': obj.name,
     'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Specify a service account with IRSA enabled
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwt
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwt {
+  /**
+   * A reference to a ServiceAccount resource.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwt#serviceAccountRef
+   */
+  readonly serviceAccountRef?: ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwt(obj: ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'serviceAccountRef': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef(obj.serviceAccountRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Specify credentials in a Secret object
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef {
+  /**
+   * The AccessKeyID is used for authentication
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef#accessKeyIDSecretRef
+   */
+  readonly accessKeyIdSecretRef?: ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef;
+
+  /**
+   * The SecretAccessKey is used for authentication
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef#secretAccessKeySecretRef
+   */
+  readonly secretAccessKeySecretRef?: ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef;
+
+  /**
+   * The SessionToken used for authentication This must be defined if AccessKeyID and SecretAccessKey are temporary credentials see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef#sessionTokenSecretRef
+   */
+  readonly sessionTokenSecretRef?: ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef(obj: ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessKeyIDSecretRef': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef(obj.accessKeyIdSecretRef),
+    'secretAccessKeySecretRef': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef(obj.secretAccessKeySecretRef),
+    'sessionTokenSecretRef': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef(obj.sessionTokenSecretRef),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -10914,6 +11242,186 @@ export interface ClusterSecretStoreV1Beta1SpecProviderVaultAuthLdapSecretRef {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthLdapSecretRef(obj: ClusterSecretStoreV1Beta1SpecProviderVaultAuthLdapSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A reference to a ServiceAccount resource.
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef {
+  /**
+   * Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef#audiences
+   */
+  readonly audiences?: string[];
+
+  /**
+   * The name of the ServiceAccount resource being referred to.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef(obj: ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audiences': obj.audiences?.map(y => y),
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * The AccessKeyID is used for authentication
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef(obj: ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * The SecretAccessKey is used for authentication
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef(obj: ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * The SessionToken used for authentication This must be defined if AccessKeyID and SecretAccessKey are temporary credentials see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef(obj: ClusterSecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'key': obj.key,
@@ -12288,6 +12796,11 @@ export interface ExternalSecretV1Beta1SpecTargetTemplate {
   readonly engineVersion?: string;
 
   /**
+   * @schema ExternalSecretV1Beta1SpecTargetTemplate#mergePolicy
+   */
+  readonly mergePolicy?: string;
+
+  /**
    * ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
    *
    * @schema ExternalSecretV1Beta1SpecTargetTemplate#metadata
@@ -12315,6 +12828,7 @@ export function toJson_ExternalSecretV1Beta1SpecTargetTemplate(obj: ExternalSecr
   const result = {
     'data': ((obj.data) === undefined) ? undefined : (Object.entries(obj.data).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'engineVersion': obj.engineVersion,
+    'mergePolicy': obj.mergePolicy,
     'metadata': toJson_ExternalSecretV1Beta1SpecTargetTemplateMetadata(obj.metadata),
     'templateFrom': obj.templateFrom?.map(y => toJson_ExternalSecretV1Beta1SpecTargetTemplateTemplateFrom(y)),
     'type': obj.type,
@@ -13114,6 +13628,13 @@ export function toJson_PushSecretSpecSelectorSecret(obj: PushSecretSpecSelectorS
  */
 export interface PushSecretSpecDataMatchRemoteRef {
   /**
+   * Name of the property in the resulting secret
+   *
+   * @schema PushSecretSpecDataMatchRemoteRef#property
+   */
+  readonly property?: string;
+
+  /**
    * Name of the resulting provider secret.
    *
    * @schema PushSecretSpecDataMatchRemoteRef#remoteKey
@@ -13129,6 +13650,7 @@ export interface PushSecretSpecDataMatchRemoteRef {
 export function toJson_PushSecretSpecDataMatchRemoteRef(obj: PushSecretSpecDataMatchRemoteRef | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'property': obj.property,
     'remoteKey': obj.remoteKey,
   };
   // filter undefined values
@@ -13278,7 +13800,7 @@ export function toJson_SecretStoreProps(obj: SecretStoreProps | undefined): Reco
  */
 export interface SecretStoreSpec {
   /**
-   * Used to select the correct KES controller (think: ingress.ingressClassName) The KES controller is instantiated with a specific controller name and filters ES based on this property
+   * Used to select the correct ESO controller (think: ingress.ingressClassName) The ESO controller is instantiated with a specific controller name and filters ES based on this property
    *
    * @schema SecretStoreSpec#controller
    */
@@ -13365,7 +13887,7 @@ export interface SecretStoreSpecProvider {
   readonly gcpsm?: SecretStoreSpecProviderGcpsm;
 
   /**
-   * Gitlab configures this store to sync secrets using Gitlab Variables provider
+   * GitLab configures this store to sync secrets using GitLab Variables provider
    *
    * @schema SecretStoreSpecProvider#gitlab
    */
@@ -13541,11 +14063,6 @@ export interface SecretStoreSpecProviderAlibaba {
   readonly auth: SecretStoreSpecProviderAlibabaAuth;
 
   /**
-   * @schema SecretStoreSpecProviderAlibaba#endpoint
-   */
-  readonly endpoint?: string;
-
-  /**
    * Alibaba Region to be used for the provider
    *
    * @schema SecretStoreSpecProviderAlibaba#regionID
@@ -13562,7 +14079,6 @@ export function toJson_SecretStoreSpecProviderAlibaba(obj: SecretStoreSpecProvid
   if (obj === undefined) { return undefined; }
   const result = {
     'auth': toJson_SecretStoreSpecProviderAlibabaAuth(obj.auth),
-    'endpoint': obj.endpoint,
     'regionID': obj.regionId,
   };
   // filter undefined values
@@ -13757,7 +14273,7 @@ export function toJson_SecretStoreSpecProviderGcpsm(obj: SecretStoreSpecProvider
 /* eslint-enable max-len, quote-props */
 
 /**
- * Gitlab configures this store to sync secrets using Gitlab Variables provider
+ * GitLab configures this store to sync secrets using GitLab Variables provider
  *
  * @schema SecretStoreSpecProviderGitlab
  */
@@ -14257,11 +14773,18 @@ export function toJson_SecretStoreSpecProviderAkeylessCaProvider(obj: SecretStor
  */
 export interface SecretStoreSpecProviderAlibabaAuth {
   /**
+   * Authenticate against Alibaba using RRSA.
+   *
+   * @schema SecretStoreSpecProviderAlibabaAuth#rrsa
+   */
+  readonly rrsa?: SecretStoreSpecProviderAlibabaAuthRrsa;
+
+  /**
    * AlibabaAuthSecretRef holds secret references for Alibaba credentials.
    *
    * @schema SecretStoreSpecProviderAlibabaAuth#secretRef
    */
-  readonly secretRef: SecretStoreSpecProviderAlibabaAuthSecretRef;
+  readonly secretRef?: SecretStoreSpecProviderAlibabaAuthSecretRef;
 
 }
 
@@ -14272,6 +14795,7 @@ export interface SecretStoreSpecProviderAlibabaAuth {
 export function toJson_SecretStoreSpecProviderAlibabaAuth(obj: SecretStoreSpecProviderAlibabaAuth | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'rrsa': toJson_SecretStoreSpecProviderAlibabaAuthRrsa(obj.rrsa),
     'secretRef': toJson_SecretStoreSpecProviderAlibabaAuthSecretRef(obj.secretRef),
   };
   // filter undefined values
@@ -15107,6 +15631,51 @@ export enum SecretStoreSpecProviderAkeylessCaProviderType {
   /** ConfigMap */
   CONFIG_MAP = "ConfigMap",
 }
+
+/**
+ * Authenticate against Alibaba using RRSA.
+ *
+ * @schema SecretStoreSpecProviderAlibabaAuthRrsa
+ */
+export interface SecretStoreSpecProviderAlibabaAuthRrsa {
+  /**
+   * @schema SecretStoreSpecProviderAlibabaAuthRrsa#oidcProviderArn
+   */
+  readonly oidcProviderArn: string;
+
+  /**
+   * @schema SecretStoreSpecProviderAlibabaAuthRrsa#oidcTokenFilePath
+   */
+  readonly oidcTokenFilePath: string;
+
+  /**
+   * @schema SecretStoreSpecProviderAlibabaAuthRrsa#roleArn
+   */
+  readonly roleArn: string;
+
+  /**
+   * @schema SecretStoreSpecProviderAlibabaAuthRrsa#sessionName
+   */
+  readonly sessionName: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreSpecProviderAlibabaAuthRrsa' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreSpecProviderAlibabaAuthRrsa(obj: SecretStoreSpecProviderAlibabaAuthRrsa | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'oidcProviderArn': obj.oidcProviderArn,
+    'oidcTokenFilePath': obj.oidcTokenFilePath,
+    'roleArn': obj.roleArn,
+    'sessionName': obj.sessionName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * AlibabaAuthSecretRef holds secret references for Alibaba credentials.
@@ -17472,7 +18041,7 @@ export interface SecretStoreV1Beta1Spec {
   readonly conditions?: SecretStoreV1Beta1SpecConditions[];
 
   /**
-   * Used to select the correct KES controller (think: ingress.ingressClassName) The KES controller is instantiated with a specific controller name and filters ES based on this property
+   * Used to select the correct ESO controller (think: ingress.ingressClassName) The ESO controller is instantiated with a specific controller name and filters ES based on this property
    *
    * @schema SecretStoreV1Beta1Spec#controller
    */
@@ -17612,7 +18181,7 @@ export interface SecretStoreV1Beta1SpecProvider {
   readonly gcpsm?: SecretStoreV1Beta1SpecProviderGcpsm;
 
   /**
-   * Gitlab configures this store to sync secrets using Gitlab Variables provider
+   * GitLab configures this store to sync secrets using GitLab Variables provider
    *
    * @schema SecretStoreV1Beta1SpecProvider#gitlab
    */
@@ -17866,11 +18435,6 @@ export interface SecretStoreV1Beta1SpecProviderAlibaba {
   readonly auth: SecretStoreV1Beta1SpecProviderAlibabaAuth;
 
   /**
-   * @schema SecretStoreV1Beta1SpecProviderAlibaba#endpoint
-   */
-  readonly endpoint?: string;
-
-  /**
    * Alibaba Region to be used for the provider
    *
    * @schema SecretStoreV1Beta1SpecProviderAlibaba#regionID
@@ -17887,7 +18451,6 @@ export function toJson_SecretStoreV1Beta1SpecProviderAlibaba(obj: SecretStoreV1B
   if (obj === undefined) { return undefined; }
   const result = {
     'auth': toJson_SecretStoreV1Beta1SpecProviderAlibabaAuth(obj.auth),
-    'endpoint': obj.endpoint,
     'regionID': obj.regionId,
   };
   // filter undefined values
@@ -17914,6 +18477,13 @@ export interface SecretStoreV1Beta1SpecProviderAws {
    * @schema SecretStoreV1Beta1SpecProviderAws#auth
    */
   readonly auth?: SecretStoreV1Beta1SpecProviderAwsAuth;
+
+  /**
+   * AWS External ID set on assumed IAM roles
+   *
+   * @schema SecretStoreV1Beta1SpecProviderAws#externalID
+   */
+  readonly externalId?: string;
 
   /**
    * AWS Region to be used for the provider
@@ -17947,6 +18517,7 @@ export function toJson_SecretStoreV1Beta1SpecProviderAws(obj: SecretStoreV1Beta1
   const result = {
     'additionalRoles': obj.additionalRoles?.map(y => y),
     'auth': toJson_SecretStoreV1Beta1SpecProviderAwsAuth(obj.auth),
+    'externalID': obj.externalId,
     'region': obj.region,
     'role': obj.role,
     'service': obj.service,
@@ -18159,7 +18730,7 @@ export function toJson_SecretStoreV1Beta1SpecProviderGcpsm(obj: SecretStoreV1Bet
 /* eslint-enable max-len, quote-props */
 
 /**
- * Gitlab configures this store to sync secrets using Gitlab Variables provider
+ * GitLab configures this store to sync secrets using GitLab Variables provider
  *
  * @schema SecretStoreV1Beta1SpecProviderGitlab
  */
@@ -18968,11 +19539,18 @@ export function toJson_SecretStoreV1Beta1SpecProviderAkeylessCaProvider(obj: Sec
  */
 export interface SecretStoreV1Beta1SpecProviderAlibabaAuth {
   /**
+   * Authenticate against Alibaba using RRSA.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderAlibabaAuth#rrsa
+   */
+  readonly rrsa?: SecretStoreV1Beta1SpecProviderAlibabaAuthRrsa;
+
+  /**
    * AlibabaAuthSecretRef holds secret references for Alibaba credentials.
    *
    * @schema SecretStoreV1Beta1SpecProviderAlibabaAuth#secretRef
    */
-  readonly secretRef: SecretStoreV1Beta1SpecProviderAlibabaAuthSecretRef;
+  readonly secretRef?: SecretStoreV1Beta1SpecProviderAlibabaAuthSecretRef;
 
 }
 
@@ -18983,6 +19561,7 @@ export interface SecretStoreV1Beta1SpecProviderAlibabaAuth {
 export function toJson_SecretStoreV1Beta1SpecProviderAlibabaAuth(obj: SecretStoreV1Beta1SpecProviderAlibabaAuth | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'rrsa': toJson_SecretStoreV1Beta1SpecProviderAlibabaAuthRrsa(obj.rrsa),
     'secretRef': toJson_SecretStoreV1Beta1SpecProviderAlibabaAuthSecretRef(obj.secretRef),
   };
   // filter undefined values
@@ -19691,6 +20270,13 @@ export interface SecretStoreV1Beta1SpecProviderVaultAuth {
   readonly cert?: SecretStoreV1Beta1SpecProviderVaultAuthCert;
 
   /**
+   * Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials AWS IAM authentication method
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuth#iam
+   */
+  readonly iam?: SecretStoreV1Beta1SpecProviderVaultAuthIam;
+
+  /**
    * Jwt authenticates with Vault by passing role and JWT token using the JWT/OIDC authentication method
    *
    * @schema SecretStoreV1Beta1SpecProviderVaultAuth#jwt
@@ -19729,6 +20315,7 @@ export function toJson_SecretStoreV1Beta1SpecProviderVaultAuth(obj: SecretStoreV
   const result = {
     'appRole': toJson_SecretStoreV1Beta1SpecProviderVaultAuthAppRole(obj.appRole),
     'cert': toJson_SecretStoreV1Beta1SpecProviderVaultAuthCert(obj.cert),
+    'iam': toJson_SecretStoreV1Beta1SpecProviderVaultAuthIam(obj.iam),
     'jwt': toJson_SecretStoreV1Beta1SpecProviderVaultAuthJwt(obj.jwt),
     'kubernetes': toJson_SecretStoreV1Beta1SpecProviderVaultAuthKubernetes(obj.kubernetes),
     'ldap': toJson_SecretStoreV1Beta1SpecProviderVaultAuthLdap(obj.ldap),
@@ -20146,6 +20733,51 @@ export enum SecretStoreV1Beta1SpecProviderAkeylessCaProviderType {
   /** ConfigMap */
   CONFIG_MAP = "ConfigMap",
 }
+
+/**
+ * Authenticate against Alibaba using RRSA.
+ *
+ * @schema SecretStoreV1Beta1SpecProviderAlibabaAuthRrsa
+ */
+export interface SecretStoreV1Beta1SpecProviderAlibabaAuthRrsa {
+  /**
+   * @schema SecretStoreV1Beta1SpecProviderAlibabaAuthRrsa#oidcProviderArn
+   */
+  readonly oidcProviderArn: string;
+
+  /**
+   * @schema SecretStoreV1Beta1SpecProviderAlibabaAuthRrsa#oidcTokenFilePath
+   */
+  readonly oidcTokenFilePath: string;
+
+  /**
+   * @schema SecretStoreV1Beta1SpecProviderAlibabaAuthRrsa#roleArn
+   */
+  readonly roleArn: string;
+
+  /**
+   * @schema SecretStoreV1Beta1SpecProviderAlibabaAuthRrsa#sessionName
+   */
+  readonly sessionName: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderAlibabaAuthRrsa' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderAlibabaAuthRrsa(obj: SecretStoreV1Beta1SpecProviderAlibabaAuthRrsa | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'oidcProviderArn': obj.oidcProviderArn,
+    'oidcTokenFilePath': obj.oidcTokenFilePath,
+    'roleArn': obj.roleArn,
+    'sessionName': obj.sessionName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * AlibabaAuthSecretRef holds secret references for Alibaba credentials.
@@ -20927,7 +21559,14 @@ export interface SecretStoreV1Beta1SpecProviderVaultAuthAppRole {
    *
    * @schema SecretStoreV1Beta1SpecProviderVaultAuthAppRole#roleId
    */
-  readonly roleId: string;
+  readonly roleId?: string;
+
+  /**
+   * Reference to a key in a Secret that contains the App Role ID used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role id.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthAppRole#roleRef
+   */
+  readonly roleRef?: SecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef;
 
   /**
    * Reference to a key in a Secret that contains the App Role secret used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role secret.
@@ -20947,6 +21586,7 @@ export function toJson_SecretStoreV1Beta1SpecProviderVaultAuthAppRole(obj: Secre
   const result = {
     'path': obj.path,
     'roleId': obj.roleId,
+    'roleRef': toJson_SecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef(obj.roleRef),
     'secretRef': toJson_SecretStoreV1Beta1SpecProviderVaultAuthAppRoleSecretRef(obj.secretRef),
   };
   // filter undefined values
@@ -20985,6 +21625,91 @@ export function toJson_SecretStoreV1Beta1SpecProviderVaultAuthCert(obj: SecretSt
   const result = {
     'clientCert': toJson_SecretStoreV1Beta1SpecProviderVaultAuthCertClientCert(obj.clientCert),
     'secretRef': toJson_SecretStoreV1Beta1SpecProviderVaultAuthCertSecretRef(obj.secretRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials AWS IAM authentication method
+ *
+ * @schema SecretStoreV1Beta1SpecProviderVaultAuthIam
+ */
+export interface SecretStoreV1Beta1SpecProviderVaultAuthIam {
+  /**
+   * AWS External ID set on assumed IAM roles
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIam#externalID
+   */
+  readonly externalId?: string;
+
+  /**
+   * Specify a service account with IRSA enabled
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIam#jwt
+   */
+  readonly jwt?: SecretStoreV1Beta1SpecProviderVaultAuthIamJwt;
+
+  /**
+   * Path where the AWS auth method is enabled in Vault, e.g: "aws"
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIam#path
+   */
+  readonly path?: string;
+
+  /**
+   * AWS region
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIam#region
+   */
+  readonly region?: string;
+
+  /**
+   * This is the AWS role to be assumed before talking to vault
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIam#role
+   */
+  readonly role?: string;
+
+  /**
+   * Specify credentials in a Secret object
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIam#secretRef
+   */
+  readonly secretRef?: SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef;
+
+  /**
+   * X-Vault-AWS-IAM-Server-ID is an additional header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: https://developer.hashicorp.com/vault/docs/auth/aws
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIam#vaultAwsIamServerID
+   */
+  readonly vaultAwsIamServerId?: string;
+
+  /**
+   * Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIam#vaultRole
+   */
+  readonly vaultRole: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderVaultAuthIam' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderVaultAuthIam(obj: SecretStoreV1Beta1SpecProviderVaultAuthIam | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'externalID': obj.externalId,
+    'jwt': toJson_SecretStoreV1Beta1SpecProviderVaultAuthIamJwt(obj.jwt),
+    'path': obj.path,
+    'region': obj.region,
+    'role': obj.role,
+    'secretRef': toJson_SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef(obj.secretRef),
+    'vaultAwsIamServerID': obj.vaultAwsIamServerId,
+    'vaultRole': obj.vaultRole,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -22439,6 +23164,51 @@ export function toJson_SecretStoreV1Beta1SpecProviderOracleAuthSecretRefPrivatek
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Reference to a key in a Secret that contains the App Role ID used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role id.
+ *
+ * @schema SecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef
+ */
+export interface SecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef(obj: SecretStoreV1Beta1SpecProviderVaultAuthAppRoleRoleRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Reference to a key in a Secret that contains the App Role secret used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role secret.
  *
  * @schema SecretStoreV1Beta1SpecProviderVaultAuthAppRoleSecretRef
@@ -22567,6 +23337,80 @@ export function toJson_SecretStoreV1Beta1SpecProviderVaultAuthCertSecretRef(obj:
     'key': obj.key,
     'name': obj.name,
     'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Specify a service account with IRSA enabled
+ *
+ * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamJwt
+ */
+export interface SecretStoreV1Beta1SpecProviderVaultAuthIamJwt {
+  /**
+   * A reference to a ServiceAccount resource.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamJwt#serviceAccountRef
+   */
+  readonly serviceAccountRef?: SecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderVaultAuthIamJwt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderVaultAuthIamJwt(obj: SecretStoreV1Beta1SpecProviderVaultAuthIamJwt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'serviceAccountRef': toJson_SecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef(obj.serviceAccountRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Specify credentials in a Secret object
+ *
+ * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef
+ */
+export interface SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef {
+  /**
+   * The AccessKeyID is used for authentication
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef#accessKeyIDSecretRef
+   */
+  readonly accessKeyIdSecretRef?: SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef;
+
+  /**
+   * The SecretAccessKey is used for authentication
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef#secretAccessKeySecretRef
+   */
+  readonly secretAccessKeySecretRef?: SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef;
+
+  /**
+   * The SessionToken used for authentication This must be defined if AccessKeyID and SecretAccessKey are temporary credentials see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef#sessionTokenSecretRef
+   */
+  readonly sessionTokenSecretRef?: SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef(obj: SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessKeyIDSecretRef': toJson_SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef(obj.accessKeyIdSecretRef),
+    'secretAccessKeySecretRef': toJson_SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef(obj.secretAccessKeySecretRef),
+    'sessionTokenSecretRef': toJson_SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef(obj.sessionTokenSecretRef),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -22789,6 +23633,186 @@ export interface SecretStoreV1Beta1SpecProviderVaultAuthLdapSecretRef {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SecretStoreV1Beta1SpecProviderVaultAuthLdapSecretRef(obj: SecretStoreV1Beta1SpecProviderVaultAuthLdapSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A reference to a ServiceAccount resource.
+ *
+ * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef
+ */
+export interface SecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef {
+  /**
+   * Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef#audiences
+   */
+  readonly audiences?: string[];
+
+  /**
+   * The name of the ServiceAccount resource being referred to.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef(obj: SecretStoreV1Beta1SpecProviderVaultAuthIamJwtServiceAccountRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audiences': obj.audiences?.map(y => y),
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * The AccessKeyID is used for authentication
+ *
+ * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef
+ */
+export interface SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef(obj: SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefAccessKeyIdSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * The SecretAccessKey is used for authentication
+ *
+ * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef
+ */
+export interface SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef(obj: SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSecretAccessKeySecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * The SessionToken used for authentication This must be defined if AccessKeyID and SecretAccessKey are temporary credentials see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html
+ *
+ * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef
+ */
+export interface SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef(obj: SecretStoreV1Beta1SpecProviderVaultAuthIamSecretRefSessionTokenSecretRef | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'key': obj.key,

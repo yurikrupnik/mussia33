@@ -2918,7 +2918,7 @@ export enum MetricStreamSpecDeletionPolicy {
  */
 export interface MetricStreamSpecForProvider {
   /**
-   * List of exclusive metric filters. If you specify this parameter, the stream sends metrics from all metric namespaces except for the namespaces that you specify here. Conflicts with include_filter.
+   * List of exclusive metric filters. If you specify this parameter, the stream sends metrics from all metric namespaces except for the namespaces and the conditional metric names that you specify here. If you don't specify metric names or provide empty metric names whole metric namespace is excluded. Conflicts with include_filter.
    *
    * @schema MetricStreamSpecForProvider#excludeFilter
    */
@@ -2946,7 +2946,7 @@ export interface MetricStreamSpecForProvider {
   readonly firehoseArnSelector?: MetricStreamSpecForProviderFirehoseArnSelector;
 
   /**
-   * List of inclusive metric filters. If you specify this parameter, the stream sends only the metrics from the metric namespaces that you specify here. Conflicts with exclude_filter.
+   * List of inclusive metric filters. If you specify this parameter, the stream sends only the conditional metric names from the metric namespaces that you specify here. If you don't specify metric names or provide empty metric names whole metric namespace is included. Conflicts with exclude_filter.
    *
    * @schema MetricStreamSpecForProvider#includeFilter
    */
@@ -3219,6 +3219,13 @@ export function toJson_MetricStreamSpecWriteConnectionSecretToRef(obj: MetricStr
  */
 export interface MetricStreamSpecForProviderExcludeFilter {
   /**
+   * An array that defines the metrics you want to exclude for this metric namespace
+   *
+   * @schema MetricStreamSpecForProviderExcludeFilter#metricNames
+   */
+  readonly metricNames?: string[];
+
+  /**
    * Name of the metric namespace in the filter.
    *
    * @schema MetricStreamSpecForProviderExcludeFilter#namespace
@@ -3234,6 +3241,7 @@ export interface MetricStreamSpecForProviderExcludeFilter {
 export function toJson_MetricStreamSpecForProviderExcludeFilter(obj: MetricStreamSpecForProviderExcludeFilter | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'metricNames': obj.metricNames?.map(y => y),
     'namespace': obj.namespace,
   };
   // filter undefined values
@@ -3328,6 +3336,13 @@ export function toJson_MetricStreamSpecForProviderFirehoseArnSelector(obj: Metri
  */
 export interface MetricStreamSpecForProviderIncludeFilter {
   /**
+   * An array that defines the metrics you want to include for this metric namespace
+   *
+   * @schema MetricStreamSpecForProviderIncludeFilter#metricNames
+   */
+  readonly metricNames?: string[];
+
+  /**
    * Name of the metric namespace in the filter.
    *
    * @schema MetricStreamSpecForProviderIncludeFilter#namespace
@@ -3343,6 +3358,7 @@ export interface MetricStreamSpecForProviderIncludeFilter {
 export function toJson_MetricStreamSpecForProviderIncludeFilter(obj: MetricStreamSpecForProviderIncludeFilter | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'metricNames': obj.metricNames?.map(y => y),
     'namespace': obj.namespace,
   };
   // filter undefined values

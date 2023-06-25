@@ -1186,6 +1186,14 @@ export interface CertificateAuthoritySpecForProvider {
   readonly enabled?: boolean;
 
   /**
+   * Cryptographic key management compliance standard used for handling CA keys. Defaults to FIPS_140_2_LEVEL_3_OR_HIGHER. Valid values: FIPS_140_2_LEVEL_3_OR_HIGHER and FIPS_140_2_LEVEL_2_OR_HIGHER. Supported standard for each region can be found in the Storage and security compliance of AWS Private CA private keys Documentation.
+   *
+   * @default FIPS_140_2_LEVEL_3_OR_HIGHER. Valid values: FIPS_140_2_LEVEL_3_OR_HIGHER and FIPS_140_2_LEVEL_2_OR_HIGHER. Supported standard for each region can be found in the Storage and security compliance of AWS Private CA private keys Documentation.
+   * @schema CertificateAuthoritySpecForProvider#keyStorageSecurityStandard
+   */
+  readonly keyStorageSecurityStandard?: string;
+
+  /**
    * Number of days to make a CA restorable after it has been deleted, must be between 7 to 30 days, with default to 30 days.
    *
    * @schema CertificateAuthoritySpecForProvider#permanentDeletionTimeInDays
@@ -1240,6 +1248,7 @@ export function toJson_CertificateAuthoritySpecForProvider(obj: CertificateAutho
   const result = {
     'certificateAuthorityConfiguration': obj.certificateAuthorityConfiguration?.map(y => toJson_CertificateAuthoritySpecForProviderCertificateAuthorityConfiguration(y)),
     'enabled': obj.enabled,
+    'keyStorageSecurityStandard': obj.keyStorageSecurityStandard,
     'permanentDeletionTimeInDays': obj.permanentDeletionTimeInDays,
     'region': obj.region,
     'revocationConfiguration': obj.revocationConfiguration?.map(y => toJson_CertificateAuthoritySpecForProviderRevocationConfiguration(y)),
