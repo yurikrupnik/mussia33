@@ -25,9 +25,9 @@ jobs:
 #          override-ci-command: pnpm i
 #          cache-path: ~/.pnpm-store
       - nx/set-shas
-      - run: npx nx-cloud start-ci-run --stop-agents-after="build"
+#      - run: npx nx-cloud start-ci-run --stop-agents-after="build"
 
-      - run: npx nx-cloud record -- npx nx format:check
+#      - run: npx nx-cloud record -- npx nx format:check
       - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t lint --parallel=3 & npx nx affected --base=$NX_BASE --head=$NX_HEAD -t test --parallel=3 --configuration=ci & npx nx affected --base=$NX_BASE --head=$NX_HEAD -t build --parallel=3
 workflows:
   build:
