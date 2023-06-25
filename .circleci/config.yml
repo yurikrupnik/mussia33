@@ -1,6 +1,7 @@
 version: 2.1
 orbs:
   nx: nrwl/nx@1.5.1
+  pnpm-release-management: rkesters/pnpm-release-management@0.0.1
 jobs:
   agent:
     docker:
@@ -19,7 +20,7 @@ jobs:
       - image: cimg/node:lts-browsers
     steps:
       - checkout
-      - run: npm ci
+      - run: pnpm i
       - nx/set-shas
       - run: npx nx-cloud start-ci-run --stop-agents-after="build"
 
