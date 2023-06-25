@@ -61,7 +61,7 @@ jobs:
       - checkout
       - run: cargo test
       - run: ls
-      - run: ls submodules
+      - run: ls submodules/tauri-app
 workflows:
   build:
     jobs:
