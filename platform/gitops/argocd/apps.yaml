@@ -32,7 +32,7 @@ spec:
   source:
     chart: external-secrets
     repoURL: https://charts.external-secrets.io/
-    targetRevision: 0.8.3
+    targetRevision: 0.9.0
     helm:
       releaseName: external-secrets
   destination:
@@ -93,30 +93,30 @@ spec:
 #      selfHeal: true
 #      prune: true
 #      allowEmpty: true
-#---
-#apiVersion: argoproj.io/v1alpha1
-#kind: Application
-#metadata:
-# name: robusta
-# namespace: argocd
-#spec:
-# project: default
-# source:
-#   chart: robusta
-#   repoURL: https://robusta-charts.storage.googleapis.com/
-#   targetRevision: 0.10.15
-#   helm:
-#     releaseName: robusta
-# destination:
-#   server: "https://kubernetes.default.svc"
-#   namespace: robusta
-# syncPolicy:
-#   automated:
-#     selfHeal: true
-#     prune: true
-#     allowEmpty: true
-#   syncOptions:
-#     - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+ name: robusta
+ namespace: argocd
+spec:
+ project: default
+ source:
+   chart: robusta
+   repoURL: https://robusta-charts.storage.googleapis.com/
+   targetRevision: 0.10.17
+   helm:
+     releaseName: robusta
+ destination:
+   server: "https://kubernetes.default.svc"
+   namespace: robusta
+ syncPolicy:
+   automated:
+     selfHeal: true
+     prune: true
+     allowEmpty: true
+   syncOptions:
+     - CreateNamespace=true
 #syncPolicy:
 #   syncOptions:
 #       - CreateNamespace=true
@@ -135,7 +135,7 @@ spec:
   source:
     chart: argo-rollouts
     repoURL: https://argoproj.github.io/argo-helm
-    targetRevision: 2.26.1
+    targetRevision: 2.30.0
     helm:
       releaseName: argo-rollouts
   destination:
@@ -194,52 +194,52 @@ spec:
 #    automated:
 #      selfHeal: true
 #      prune: true
-# ---
-# apiVersion: argoproj.io/v1alpha1
-# kind: Application
-# metadata:
-#   name: fiber-mongo-application
-#   namespace: argocd
-# spec:
-#   project: default
-#   source:
-#     repoURL: https://github.com/yurikrupnik/fiber-mongo.git
-#     targetRevision: HEAD
-#     path: k8s/base
-#   destination:
-#     server: https://kubernetes.default.svc
-#     namespace: fiber-mongo
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+ name: fiber-mongo-application
+ namespace: argocd
+spec:
+ project: default
+ source:
+   repoURL: https://github.com/yurikrupnik/fiber-mongo.git
+   targetRevision: HEAD
+   path: k8s/base
+ destination:
+   server: https://kubernetes.default.svc
+   namespace: fiber-mongo
 
-#   syncPolicy:
-#     syncOptions:
-#       - CreateNamespace=true
+ syncPolicy:
+   syncOptions:
+     - CreateNamespace=true
 
-#     automated:
-#       selfHeal: true
-#       prune: true
-#---
-#apiVersion: argoproj.io/v1alpha1
-#kind: Application
-#metadata:
-# name: go-commands
-# namespace: argocd
-#spec:
-# project: default
-# source:
-#   repoURL: https://github.com/yurikrupnik/go-commands.git
-#   targetRevision: HEAD
-#   path: k8s/base
-# destination:
-#   server: https://kubernetes.default.svc
-#   namespace: go-commands
-#
-# syncPolicy:
-#   syncOptions:
-#     - CreateNamespace=true
-#
-#   automated:
-#     selfHeal: true
-#     prune: true
+   automated:
+     selfHeal: true
+     prune: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+ name: go-commands
+ namespace: argocd
+spec:
+ project: default
+ source:
+   repoURL: https://github.com/yurikrupnik/go-commands.git
+   targetRevision: HEAD
+   path: k8s/base
+ destination:
+   server: https://kubernetes.default.svc
+   namespace: go-commands
+
+ syncPolicy:
+   syncOptions:
+     - CreateNamespace=true
+
+   automated:
+     selfHeal: true
+     prune: true
 ---
 #apiVersion: argoproj.io/v1alpha1
 #kind: Application
@@ -276,7 +276,7 @@ spec:
   source:
     chart: crossplane
     repoURL: https://charts.crossplane.io/stable
-    targetRevision: "1.11.3"
+    targetRevision: "1.12.0"
   destination:
     namespace: crossplane-system
     server: https://kubernetes.default.svc
@@ -311,31 +311,55 @@ spec:
      allowEmpty: true
    syncOptions:
      - CreateNamespace=true
-#---
-#apiVersion: argoproj.io/v1alpha1
-#kind: Application
-#metadata:
-#  name: istio-base
-#  namespace: argocd
-#  finalizers:
-#    - resources-finalizer.argocd.argoproj.io
-#spec:
-#  project: default
-#  source:
-#    chart: base
-#    repoURL: https://istio-release.storage.googleapis.com/charts
-#    targetRevision: "1.17.2"
-#  destination:
-#    namespace: istio-system
-#    server: https://kubernetes.default.svc
-#  syncPolicy:
-#    automated:
-#      selfHeal: true
-#      prune: true
-#      allowEmpty: true
-#    syncOptions:
-#      - CreateNamespace=true
-#---
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dapr
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: dapr
+    repoURL: https://charts.wener.tech
+    targetRevision: "1.11.1"
+  destination:
+    namespace: dapr-system
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istio-base
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: base
+    repoURL: https://istio-release.storage.googleapis.com/charts
+    targetRevision: "1.18.0"
+  destination:
+    namespace: istio-system
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true
+---
 #apiVersion: argoproj.io/v1alpha1
 #kind: Application
 #metadata:

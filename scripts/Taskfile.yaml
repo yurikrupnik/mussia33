@@ -6,11 +6,14 @@ vars:
   GREETING: Hello, World!
 
 tasks:
-  up:
+  compose:up:
     cmds:
       - docker-compose up -d
     dir: scripts
-  down:
+  compose:down:
     cmds:
       - docker-compose down
     dir: scripts
+  gcloud-set:
+    cmds:
+      - gcloud config list

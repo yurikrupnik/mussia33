@@ -13,10 +13,10 @@ local_resource('compose', cmd='task compose:up', deps=['scripts/compose.yaml'], 
 # k8s_yaml(kustomize('_proto/'))
 # Local dev resources
 # include('./libs/cdk8s/Tiltfile')
-include('./apps/frontend/solid-app/Tiltfile')
-include('./apps/node/nest-app/Tiltfile')
-include('./apps/node/node-users-redis/Tiltfile')
-include('./apps/node/node-users-grpc/Tiltfile')
+# include('./apps/frontend/solid-app/Tiltfile')
+# include('./apps/node/nest-app/Tiltfile')
+# include('./apps/node/node-users-redis/Tiltfile')
+# include('./apps/node/node-users-grpc/Tiltfile')
 
 # local_resource('local-tauri-app', cmd='cargo tauri dev', dir="/examples/personal-desktop-app" deps=['/examples/personal-desktop-app'], labels=['tauri'])
 # local_resource('local-kubernetes-operator', cmd='cargo tauri dev', dir="/examples/personal-desktop-app" deps=['/examples/personal-desktop-app'], labels=['tauri'])

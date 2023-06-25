@@ -7,7 +7,7 @@ includes:
   crossplane: ./platform/crossplane
   kubevela: ./platform/kubevela
   argocd: ./platform/gitops/argocd
-  compose: ./scripts
+  scripts: ./scripts
 
 vars:
   GREETING: Hello, World!
@@ -47,9 +47,9 @@ tasks:
     cmds:
       - minikube start
       - minikube addons enable gcp-auth
-#      - task: argocd:install
-#      - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
-#      - task: argocd:apply
+      - task: argocd:install
+      - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
+      - task: argocd:apply
       - tilt up
   minikube-stop:
     cmds:
