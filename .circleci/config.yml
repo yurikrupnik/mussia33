@@ -20,9 +20,10 @@ jobs:
       - image: cimg/node:lts-browsers
     steps:
       - checkout
-      - node/install-packages:
-          override-ci-command: pnpm i
-          cache-path: ~/.pnpm-store
+      - run: pnpm i
+#      - node/install-packages:
+#          override-ci-command: pnpm i
+#          cache-path: ~/.pnpm-store
       - nx/set-shas
       - run: npx nx-cloud start-ci-run --stop-agents-after="build"
 
