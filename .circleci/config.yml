@@ -22,9 +22,9 @@ jobs:
           no_output_timeout: 60m
   main:
     docker:
+      - image: cimg/node:lts-browsers
       - image: denoland/deno:1.10.3
       - image: cimg/rust:1.70.0
-      - image: cimg/node:lts-browsers
     steps:
       - checkout
       - run: pnpm i
