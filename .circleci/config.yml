@@ -57,6 +57,7 @@ jobs:
   test:
     docker:
       - image: cimg/rust:1.70.0
+      - image: cimg/node:lts-browsers
     steps:
       - checkout
       - run: cargo test
