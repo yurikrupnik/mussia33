@@ -6,7 +6,6 @@ jobs:
   main:
     docker:
       - image: cimg/node:lts-browsers
-      - image: cimg/rust:1.70.0
     steps:
       - checkout
       - run: pnpm i
