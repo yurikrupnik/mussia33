@@ -1,7 +1,10 @@
 version: 2.1
 orbs:
   nx: nrwl/nx@1.5.1
+  go: circleci/go@1.7.3
   pnpm-release-management: rkesters/pnpm-release-management@0.0.1
+  slack: circleci/slack@4.12.5
+  aws-cli: circleci/aws-cli@4.0.0
 jobs:
   agent:
     docker:
@@ -29,6 +32,22 @@ jobs:
 #          override-ci-command: pnpm i
 #          cache-path: ~/.pnpm-store
       - nx/set-shas
+      - slack/notify:
+          custom: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "plain_text",
+                      "text": "*This is a text notification*",
+                      "emoji": true
+                    }
+                  ]
+                }
+              ]
+            }
 #      - run: npx nx-cloud start-ci-run --stop-agents-after="build"
 #      - run: deno info
 #      - run: npx nx-cloud record -- npx nx format:check
