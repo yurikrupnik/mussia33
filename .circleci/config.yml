@@ -68,3 +68,4 @@ workflows:
             parameters:
               ordinal: [1, 2, 3]
       - main
+      - test
