@@ -6,6 +6,7 @@ jobs:
   agent:
     docker:
       - image: cimg/node:lts-browsers
+      - image: denoland/deno:1.10.3
     parameters:
       ordinal:
         type: integer
