@@ -11,7 +11,7 @@ jobs:
         type: integer
     steps:
       - checkout
-      - run: npm ci
+      - run: pnpm i
       - run:
           command: npx nx-cloud start-agent
           no_output_timeout: 60m
@@ -20,7 +20,9 @@ jobs:
       - image: cimg/node:lts-browsers
     steps:
       - checkout
-      - run: pnpm i
+      - node/install-packages:
+          override-ci-command: pnpm i
+          cache-path: ~/.pnpm-store
       - nx/set-shas
       - run: npx nx-cloud start-ci-run --stop-agents-after="build"
 
