@@ -27,8 +27,9 @@ jobs:
       - image: cimg/base:stable
     steps:
       - checkout
+      - node/install-packages:
+          pkg-manager: pnpm
       - node/install:
-          install-yarn: true
           node-version: '18.5'
       - run: node --version
   agent:
@@ -86,6 +87,7 @@ jobs:
     steps:
       - checkout
       - run: cargo test
+      - run: pnpm nx run-many --target=build --max-parallel=2
       - run: ls
       - run: ls submodules/tauri-app
 #      - run: pnpm nx run-many --target=build --max-parallel=3 --prod
