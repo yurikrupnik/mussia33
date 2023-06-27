@@ -1,3 +1,15 @@
 [submodule "submodules/tauri-app"]
 	path = submodules/tauri-app
 	url = https://github.com/yurikrupnik/tauri-app.git
+[submodule "submodules/first-rust-app"]
+	path = submodules/first-rust-app
+	url = https://github.com/yurikrupnik/first-rust-app
+[submodule "submodules/go-commands"]
+	path = submodules/go-commands
+	url = https://github.com/yurikrupnik/go-commands
+[submodule "submodules/gitops"]
+	path = submodules/gitops
+	url = https://github.com/yurikrupnik/gitops
+[submodule "submodules/sdp-demo"]
+	path = submodules/sdp-demo
+	url = https://github.com/yurikrupnik/sdp-demo
