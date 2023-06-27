@@ -88,6 +88,7 @@ jobs:
       - checkout
 #      - run: cargo clippy
       - run: cargo test
+      - run: npm -v
 #      - run: pnpm nx run-many --target=build --max-parallel=2
       - run: ls
       - run: ls submodules/tauri-app
