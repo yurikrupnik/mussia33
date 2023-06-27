@@ -7494,6 +7494,13 @@ export interface JobTriggerSpecForProviderInspectJobActions {
   readonly publishSummaryToCscc?: any[];
 
   /**
+   * Enable Stackdriver metric dlp.googleapis.com/findingCount.
+   *
+   * @schema JobTriggerSpecForProviderInspectJobActions#publishToStackdriver
+   */
+  readonly publishToStackdriver?: any[];
+
+  /**
    * If set, the detailed findings will be persisted to the specified OutputStorageConfig. Only a single instance of this action can be specified. Compatible with: Inspect, Risk Structure is documented below.
    *
    * @schema JobTriggerSpecForProviderInspectJobActions#saveFindings
@@ -7514,6 +7521,7 @@ export function toJson_JobTriggerSpecForProviderInspectJobActions(obj: JobTrigge
     'pubSub': obj.pubSub?.map(y => toJson_JobTriggerSpecForProviderInspectJobActionsPubSub(y)),
     'publishFindingsToCloudDataCatalog': obj.publishFindingsToCloudDataCatalog?.map(y => y),
     'publishSummaryToCscc': obj.publishSummaryToCscc?.map(y => y),
+    'publishToStackdriver': obj.publishToStackdriver?.map(y => y),
     'saveFindings': obj.saveFindings?.map(y => toJson_JobTriggerSpecForProviderInspectJobActionsSaveFindings(y)),
   };
   // filter undefined values

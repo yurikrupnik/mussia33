@@ -1038,11 +1038,11 @@ export interface TriggerSpecForProviderSourceToBuild {
   readonly repoType: string;
 
   /**
-   * The URI of the repo .
+   * The URI of the repo.
    *
    * @schema TriggerSpecForProviderSourceToBuild#uri
    */
-  readonly uri: string;
+  readonly uri?: string;
 
 }
 
@@ -1675,6 +1675,20 @@ export function toJson_TriggerSpecForProviderBuildSource(obj: TriggerSpecForProv
  */
 export interface TriggerSpecForProviderBuildStep {
   /**
+   * Allow this build step to fail without failing the entire build if and only if the exit code is one of the specified codes. If allowFailure is also specified, this field will take precedence.
+   *
+   * @schema TriggerSpecForProviderBuildStep#allowExitCodes
+   */
+  readonly allowExitCodes?: number[];
+
+  /**
+   * Allow this build step to fail without failing the entire build. If false, the entire build will fail if this step fails. Otherwise, the build will succeed, but this step will still have a failure status. Error information will be reported in the failureDetail field. allowExitCodes takes precedence over this field.
+   *
+   * @schema TriggerSpecForProviderBuildStep#allowFailure
+   */
+  readonly allowFailure?: boolean;
+
+  /**
    * A list of arguments that will be presented to the step when it is started. If the image used to run the step's container has an entrypoint, the args are used as arguments to that entrypoint. If the image does not define an entrypoint, the first element in args is used as the entrypoint, and the remainder will be used as arguments.
    *
    * @schema TriggerSpecForProviderBuildStep#args
@@ -1767,6 +1781,8 @@ export interface TriggerSpecForProviderBuildStep {
 export function toJson_TriggerSpecForProviderBuildStep(obj: TriggerSpecForProviderBuildStep | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'allowExitCodes': obj.allowExitCodes?.map(y => y),
+    'allowFailure': obj.allowFailure,
     'args': obj.args?.map(y => y),
     'dir': obj.dir,
     'entrypoint': obj.entrypoint,
