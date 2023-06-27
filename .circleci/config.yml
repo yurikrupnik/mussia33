@@ -16,7 +16,7 @@ jobs:
         type: integer
     steps:
       - checkout
-      - run: pnpm i
+      - run: npm i
       - run:
           command: npx nx-cloud start-agent
           no_output_timeout: 60m
