@@ -3,11 +3,12 @@
 version: '3'
 
 includes:
-  cluster: ./platform/cluster
-  crossplane: ./platform/crossplane
-  kubevela: ./platform/kubevela
-  argocd: ./platform/gitops/argocd
-  compose: ./scripts
+#  cluster: ./platform/cluster
+#  crossplane: ./platform/crossplane
+#  kubevela: ./platform/kubevela
+#  argocd: ./platform/gitops/argocd
+#  compose: ./scripts
+  sdp-demo: ./submodules/sdp-demo
 
 vars:
   GREETING: Hello, World!
@@ -39,7 +40,8 @@ tasks:
       - task: crossplane:create-resources
   protoc:
     cmds:
-      - protoc --rust_out ./libs/rust/grpc/src/generated --go_out ./libs/go/ --plugin=node_modules/ts-proto/protoc-gen-ts_proto --ts_proto_opt=nestJs=true,addGrpcMetadata=true,addNestjsRestParameter=true --ts_proto_out=./libs/node/grpc/src ./_proto/*.proto --ts_proto_opt=esModuleInterop=true
+#      - --rust_out ./libs/rust/grpc/src/generated
+      - protoc --go_out ./libs/go/ --plugin=node_modules/ts-proto/protoc-gen-ts_proto --ts_proto_opt=nestJs=true,addGrpcMetadata=true,addNestjsRestParameter=true --ts_proto_out=./libs/node/grpc/src ./_proto/*.proto --ts_proto_opt=esModuleInterop=true
   image-pull-secret:
     cmds:
       - kubectl create secret docker-registry my-registry-secret --docker-server=europe-central2-docker.pkg.dev --docker-username=_json_key --docker-password="$(cat mussia-infra-a6504e8e275d.json)" --docker-email=container-puller-sa@mussia-infra.iam.gserviceaccount.com
