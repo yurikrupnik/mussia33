@@ -57,6 +57,7 @@ tasks:
     cmds:
       - tilt down
       - minikube stop
+      - up ctp attach remote-virtual -a hashheddan | KUBECONFIG=kubeconfig.yaml up uxp connect -
   minikube-delete:
     cmds:
       - tilt down
