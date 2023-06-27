@@ -7,6 +7,21 @@ orbs:
 #  slack: circleci/slack@4.12.5
 #  aws-cli: circleci/aws-cli@4.0.0
 jobs:
+  build_and_test: # this can be any name you choose
+    executor: node/default # use the default executor defined within the orb
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: pnpm
+      - run:
+          command: pnpm test
+          name: Run tests
+      - run:
+          command: pnpm build
+          name: Build app
+      - persist_to_workspace:
+          root: ~/project
+          paths: .
   install-node-example:
     docker:
       - image: cimg/base:stable
