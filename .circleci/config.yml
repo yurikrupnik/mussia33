@@ -2,10 +2,20 @@ version: 2.1
 orbs:
   nx: nrwl/nx@1.5.1
   go: circleci/go@1.7.3
+  node: circleci/node@5.1.0
   pnpm-release-management: rkesters/pnpm-release-management@0.0.1
 #  slack: circleci/slack@4.12.5
 #  aws-cli: circleci/aws-cli@4.0.0
 jobs:
+  install-node-example:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - node/install:
+          install-yarn: true
+          node-version: '18.5'
+      - run: node --version
   agent:
     docker:
       - image: denoland/deno:1.10.3
@@ -73,3 +83,4 @@ workflows:
               ordinal: [1, 2]
       - main
       - test
+      - install-node-example
