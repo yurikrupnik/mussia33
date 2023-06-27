@@ -13,10 +13,11 @@ local_resource('pnpm', cmd='pnpm install', deps=['package.json'], labels=['pnpm'
 # k8s_yaml(kustomize('_proto/'))
 # Local dev resources
 # include('./libs/cdk8s/Tiltfile')
-# include('./apps/frontend/solid-app/Tiltfile')
-# include('./apps/node/nest-app/Tiltfile')
-# include('./apps/node/node-users-redis/Tiltfile')
-# include('./apps/node/node-users-grpc/Tiltfile')
+include('./apps/frontend/solid-app/Tiltfile')
+include('./apps/node/nest-app/Tiltfile')
+include('./apps/node/node-users-redis/Tiltfile')
+include('./apps/node/node-users-grpc/Tiltfile')
+include('./submodules/tauri-app/Tiltfile')
 
 # local_resource('local-tauri-app', cmd='cargo tauri dev', dir="/examples/personal-desktop-app" deps=['/examples/personal-desktop-app'], labels=['tauri'])
 # local_resource('local-kubernetes-operator', cmd='cargo tauri dev', dir="/examples/personal-desktop-app" deps=['/examples/personal-desktop-app'], labels=['tauri'])
