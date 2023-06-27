@@ -5,6 +5,13 @@ GCP_PROJECT := `gcloud config get-value project`
 default:
     @just --list --unsorted
 
+git-sub:
+  git submodule update --init --recursive
+
+git-add:
+  git submodule add https://github.com/yurikrupnik/sdp-demo sdp-demo
+git-remove:
+  git submodule add https://github.com/yurikrupnik/sdp-demo sdp-demo
 # todo with all ts configs!
 # https://github.com/stephenh/ts-proto#nestjs-support
 daily:

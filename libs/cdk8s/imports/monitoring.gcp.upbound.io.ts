@@ -452,6 +452,13 @@ export interface AlertPolicySpecForProviderAlertStrategy {
   readonly autoClose?: string;
 
   /**
+   * Control over how the notification channels in notification_channels are notified when this alert fires, on a per-channel basis. Structure is documented below.
+   *
+   * @schema AlertPolicySpecForProviderAlertStrategy#notificationChannelStrategy
+   */
+  readonly notificationChannelStrategy?: AlertPolicySpecForProviderAlertStrategyNotificationChannelStrategy[];
+
+  /**
    * Required for alert policies with a LogMatch condition. This limit is not implemented for alert policies that are not log-based. Structure is documented below.
    *
    * @schema AlertPolicySpecForProviderAlertStrategy#notificationRateLimit
@@ -468,6 +475,7 @@ export function toJson_AlertPolicySpecForProviderAlertStrategy(obj: AlertPolicyS
   if (obj === undefined) { return undefined; }
   const result = {
     'autoClose': obj.autoClose,
+    'notificationChannelStrategy': obj.notificationChannelStrategy?.map(y => toJson_AlertPolicySpecForProviderAlertStrategyNotificationChannelStrategy(y)),
     'notificationRateLimit': obj.notificationRateLimit?.map(y => toJson_AlertPolicySpecForProviderAlertStrategyNotificationRateLimit(y)),
   };
   // filter undefined values
@@ -726,6 +734,41 @@ export function toJson_AlertPolicySpecPublishConnectionDetailsToMetadata(obj: Al
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema AlertPolicySpecForProviderAlertStrategyNotificationChannelStrategy
+ */
+export interface AlertPolicySpecForProviderAlertStrategyNotificationChannelStrategy {
+  /**
+   * The notification channels that these settings apply to. Each of these correspond to the name field in one of the NotificationChannel objects referenced in the notification_channels field of this AlertPolicy. The format is projects/[PROJECT_ID_OR_NUMBER]/notificationChannels/[CHANNEL_ID]
+   *
+   * @schema AlertPolicySpecForProviderAlertStrategyNotificationChannelStrategy#notificationChannelNames
+   */
+  readonly notificationChannelNames?: string[];
+
+  /**
+   * The frequency at which to send reminder notifications for open incidents.
+   *
+   * @schema AlertPolicySpecForProviderAlertStrategyNotificationChannelStrategy#renotifyInterval
+   */
+  readonly renotifyInterval?: string;
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecForProviderAlertStrategyNotificationChannelStrategy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecForProviderAlertStrategyNotificationChannelStrategy(obj: AlertPolicySpecForProviderAlertStrategyNotificationChannelStrategy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'notificationChannelNames': obj.notificationChannelNames?.map(y => y),
+    'renotifyInterval': obj.renotifyInterval,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema AlertPolicySpecForProviderAlertStrategyNotificationRateLimit
  */
 export interface AlertPolicySpecForProviderAlertStrategyNotificationRateLimit {
@@ -943,6 +986,13 @@ export interface AlertPolicySpecForProviderConditionsConditionThreshold {
   readonly filter?: string;
 
   /**
+   * When this field is present, the MetricThreshold condition forecasts whether the time series is predicted to violate the threshold within the forecastHorizon. When this field is not set, the MetricThreshold tests the current value of the timeseries against the threshold. Structure is documented below.
+   *
+   * @schema AlertPolicySpecForProviderConditionsConditionThreshold#forecastOptions
+   */
+  readonly forecastOptions?: AlertPolicySpecForProviderConditionsConditionThresholdForecastOptions[];
+
+  /**
    * A value against which to compare the time series.
    *
    * @schema AlertPolicySpecForProviderConditionsConditionThreshold#thresholdValue
@@ -972,6 +1022,7 @@ export function toJson_AlertPolicySpecForProviderConditionsConditionThreshold(ob
     'duration': obj.duration,
     'evaluationMissingData': obj.evaluationMissingData,
     'filter': obj.filter,
+    'forecastOptions': obj.forecastOptions?.map(y => toJson_AlertPolicySpecForProviderConditionsConditionThresholdForecastOptions(y)),
     'thresholdValue': obj.thresholdValue,
     'trigger': obj.trigger?.map(y => toJson_AlertPolicySpecForProviderConditionsConditionThresholdTrigger(y)),
   };
@@ -1282,6 +1333,33 @@ export function toJson_AlertPolicySpecForProviderConditionsConditionThresholdDen
     'crossSeriesReducer': obj.crossSeriesReducer,
     'groupByFields': obj.groupByFields?.map(y => y),
     'perSeriesAligner': obj.perSeriesAligner,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AlertPolicySpecForProviderConditionsConditionThresholdForecastOptions
+ */
+export interface AlertPolicySpecForProviderConditionsConditionThresholdForecastOptions {
+  /**
+   * The length of time into the future to forecast whether a timeseries will violate the threshold. If the predicted value is found to violate the threshold, and the violation is observed in all forecasts made for the Configured duration, then the timeseries is considered to be failing.
+   *
+   * @schema AlertPolicySpecForProviderConditionsConditionThresholdForecastOptions#forecastHorizon
+   */
+  readonly forecastHorizon: string;
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecForProviderConditionsConditionThresholdForecastOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecForProviderConditionsConditionThresholdForecastOptions(obj: AlertPolicySpecForProviderConditionsConditionThresholdForecastOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'forecastHorizon': obj.forecastHorizon,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});

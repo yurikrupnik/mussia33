@@ -992,6 +992,13 @@ export function toJson_FakeProps(obj: FakeProps | undefined): Record<string, any
  */
 export interface FakeSpec {
   /**
+   * Used to select the correct ESO controller (think: ingress.ingressClassName) The ESO controller is instantiated with a specific controller name and filters VDS based on this property
+   *
+   * @schema FakeSpec#controller
+   */
+  readonly controller?: string;
+
+  /**
    * Data defines the static data returned by this generator.
    *
    * @schema FakeSpec#data
@@ -1007,6 +1014,7 @@ export interface FakeSpec {
 export function toJson_FakeSpec(obj: FakeSpec | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'controller': obj.controller,
     'data': ((obj.data) === undefined) ? undefined : (Object.entries(obj.data).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
   };
   // filter undefined values
@@ -1583,6 +1591,13 @@ export function toJson_VaultDynamicSecretProps(obj: VaultDynamicSecretProps | un
  */
 export interface VaultDynamicSecretSpec {
   /**
+   * Used to select the correct ESO controller (think: ingress.ingressClassName) The ESO controller is instantiated with a specific controller name and filters VDS based on this property
+   *
+   * @schema VaultDynamicSecretSpec#controller
+   */
+  readonly controller?: string;
+
+  /**
    * Vault API method to use (GET/POST/other)
    *
    * @schema VaultDynamicSecretSpec#method
@@ -1610,6 +1625,13 @@ export interface VaultDynamicSecretSpec {
    */
   readonly provider: VaultDynamicSecretSpecProvider;
 
+  /**
+   * Result type defines which data is returned from the generator. By default it is the "data" section of the Vault API response. When using e.g. /auth/token/create the "data" section is empty but the "auth" section contains the generated token. Please refer to the vault docs regarding the result data structure.
+   *
+   * @schema VaultDynamicSecretSpec#resultType
+   */
+  readonly resultType?: string;
+
 }
 
 /**
@@ -1619,10 +1641,12 @@ export interface VaultDynamicSecretSpec {
 export function toJson_VaultDynamicSecretSpec(obj: VaultDynamicSecretSpec | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'controller': obj.controller,
     'method': obj.method,
     'parameters': obj.parameters,
     'path': obj.path,
     'provider': toJson_VaultDynamicSecretSpecProvider(obj.provider),
+    'resultType': obj.resultType,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1743,6 +1767,13 @@ export interface VaultDynamicSecretSpecProviderAuth {
   readonly cert?: VaultDynamicSecretSpecProviderAuthCert;
 
   /**
+   * Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials AWS IAM authentication method
+   *
+   * @schema VaultDynamicSecretSpecProviderAuth#iam
+   */
+  readonly iam?: VaultDynamicSecretSpecProviderAuthIam;
+
+  /**
    * Jwt authenticates with Vault by passing role and JWT token using the JWT/OIDC authentication method
    *
    * @schema VaultDynamicSecretSpecProviderAuth#jwt
@@ -1781,6 +1812,7 @@ export function toJson_VaultDynamicSecretSpecProviderAuth(obj: VaultDynamicSecre
   const result = {
     'appRole': toJson_VaultDynamicSecretSpecProviderAuthAppRole(obj.appRole),
     'cert': toJson_VaultDynamicSecretSpecProviderAuthCert(obj.cert),
+    'iam': toJson_VaultDynamicSecretSpecProviderAuthIam(obj.iam),
     'jwt': toJson_VaultDynamicSecretSpecProviderAuthJwt(obj.jwt),
     'kubernetes': toJson_VaultDynamicSecretSpecProviderAuthKubernetes(obj.kubernetes),
     'ldap': toJson_VaultDynamicSecretSpecProviderAuthLdap(obj.ldap),
@@ -1874,7 +1906,14 @@ export interface VaultDynamicSecretSpecProviderAuthAppRole {
    *
    * @schema VaultDynamicSecretSpecProviderAuthAppRole#roleId
    */
-  readonly roleId: string;
+  readonly roleId?: string;
+
+  /**
+   * Reference to a key in a Secret that contains the App Role ID used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role id.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthAppRole#roleRef
+   */
+  readonly roleRef?: VaultDynamicSecretSpecProviderAuthAppRoleRoleRef;
 
   /**
    * Reference to a key in a Secret that contains the App Role secret used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role secret.
@@ -1894,6 +1933,7 @@ export function toJson_VaultDynamicSecretSpecProviderAuthAppRole(obj: VaultDynam
   const result = {
     'path': obj.path,
     'roleId': obj.roleId,
+    'roleRef': toJson_VaultDynamicSecretSpecProviderAuthAppRoleRoleRef(obj.roleRef),
     'secretRef': toJson_VaultDynamicSecretSpecProviderAuthAppRoleSecretRef(obj.secretRef),
   };
   // filter undefined values
@@ -1932,6 +1972,91 @@ export function toJson_VaultDynamicSecretSpecProviderAuthCert(obj: VaultDynamicS
   const result = {
     'clientCert': toJson_VaultDynamicSecretSpecProviderAuthCertClientCert(obj.clientCert),
     'secretRef': toJson_VaultDynamicSecretSpecProviderAuthCertSecretRef(obj.secretRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials AWS IAM authentication method
+ *
+ * @schema VaultDynamicSecretSpecProviderAuthIam
+ */
+export interface VaultDynamicSecretSpecProviderAuthIam {
+  /**
+   * AWS External ID set on assumed IAM roles
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIam#externalID
+   */
+  readonly externalId?: string;
+
+  /**
+   * Specify a service account with IRSA enabled
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIam#jwt
+   */
+  readonly jwt?: VaultDynamicSecretSpecProviderAuthIamJwt;
+
+  /**
+   * Path where the AWS auth method is enabled in Vault, e.g: "aws"
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIam#path
+   */
+  readonly path?: string;
+
+  /**
+   * AWS region
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIam#region
+   */
+  readonly region?: string;
+
+  /**
+   * This is the AWS role to be assumed before talking to vault
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIam#role
+   */
+  readonly role?: string;
+
+  /**
+   * Specify credentials in a Secret object
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIam#secretRef
+   */
+  readonly secretRef?: VaultDynamicSecretSpecProviderAuthIamSecretRef;
+
+  /**
+   * X-Vault-AWS-IAM-Server-ID is an additional header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: https://developer.hashicorp.com/vault/docs/auth/aws
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIam#vaultAwsIamServerID
+   */
+  readonly vaultAwsIamServerId?: string;
+
+  /**
+   * Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIam#vaultRole
+   */
+  readonly vaultRole: string;
+
+}
+
+/**
+ * Converts an object of type 'VaultDynamicSecretSpecProviderAuthIam' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VaultDynamicSecretSpecProviderAuthIam(obj: VaultDynamicSecretSpecProviderAuthIam | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'externalID': obj.externalId,
+    'jwt': toJson_VaultDynamicSecretSpecProviderAuthIamJwt(obj.jwt),
+    'path': obj.path,
+    'region': obj.region,
+    'role': obj.role,
+    'secretRef': toJson_VaultDynamicSecretSpecProviderAuthIamSecretRef(obj.secretRef),
+    'vaultAwsIamServerID': obj.vaultAwsIamServerId,
+    'vaultRole': obj.vaultRole,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2147,6 +2272,51 @@ export enum VaultDynamicSecretSpecProviderCaProviderType {
 }
 
 /**
+ * Reference to a key in a Secret that contains the App Role ID used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role id.
+ *
+ * @schema VaultDynamicSecretSpecProviderAuthAppRoleRoleRef
+ */
+export interface VaultDynamicSecretSpecProviderAuthAppRoleRoleRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthAppRoleRoleRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthAppRoleRoleRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthAppRoleRoleRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'VaultDynamicSecretSpecProviderAuthAppRoleRoleRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VaultDynamicSecretSpecProviderAuthAppRoleRoleRef(obj: VaultDynamicSecretSpecProviderAuthAppRoleRoleRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Reference to a key in a Secret that contains the App Role secret used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role secret.
  *
  * @schema VaultDynamicSecretSpecProviderAuthAppRoleSecretRef
@@ -2275,6 +2445,80 @@ export function toJson_VaultDynamicSecretSpecProviderAuthCertSecretRef(obj: Vaul
     'key': obj.key,
     'name': obj.name,
     'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Specify a service account with IRSA enabled
+ *
+ * @schema VaultDynamicSecretSpecProviderAuthIamJwt
+ */
+export interface VaultDynamicSecretSpecProviderAuthIamJwt {
+  /**
+   * A reference to a ServiceAccount resource.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIamJwt#serviceAccountRef
+   */
+  readonly serviceAccountRef?: VaultDynamicSecretSpecProviderAuthIamJwtServiceAccountRef;
+
+}
+
+/**
+ * Converts an object of type 'VaultDynamicSecretSpecProviderAuthIamJwt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VaultDynamicSecretSpecProviderAuthIamJwt(obj: VaultDynamicSecretSpecProviderAuthIamJwt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'serviceAccountRef': toJson_VaultDynamicSecretSpecProviderAuthIamJwtServiceAccountRef(obj.serviceAccountRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Specify credentials in a Secret object
+ *
+ * @schema VaultDynamicSecretSpecProviderAuthIamSecretRef
+ */
+export interface VaultDynamicSecretSpecProviderAuthIamSecretRef {
+  /**
+   * The AccessKeyID is used for authentication
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIamSecretRef#accessKeyIDSecretRef
+   */
+  readonly accessKeyIdSecretRef?: VaultDynamicSecretSpecProviderAuthIamSecretRefAccessKeyIdSecretRef;
+
+  /**
+   * The SecretAccessKey is used for authentication
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIamSecretRef#secretAccessKeySecretRef
+   */
+  readonly secretAccessKeySecretRef?: VaultDynamicSecretSpecProviderAuthIamSecretRefSecretAccessKeySecretRef;
+
+  /**
+   * The SessionToken used for authentication This must be defined if AccessKeyID and SecretAccessKey are temporary credentials see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIamSecretRef#sessionTokenSecretRef
+   */
+  readonly sessionTokenSecretRef?: VaultDynamicSecretSpecProviderAuthIamSecretRefSessionTokenSecretRef;
+
+}
+
+/**
+ * Converts an object of type 'VaultDynamicSecretSpecProviderAuthIamSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VaultDynamicSecretSpecProviderAuthIamSecretRef(obj: VaultDynamicSecretSpecProviderAuthIamSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessKeyIDSecretRef': toJson_VaultDynamicSecretSpecProviderAuthIamSecretRefAccessKeyIdSecretRef(obj.accessKeyIdSecretRef),
+    'secretAccessKeySecretRef': toJson_VaultDynamicSecretSpecProviderAuthIamSecretRefSecretAccessKeySecretRef(obj.secretAccessKeySecretRef),
+    'sessionTokenSecretRef': toJson_VaultDynamicSecretSpecProviderAuthIamSecretRefSessionTokenSecretRef(obj.sessionTokenSecretRef),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2497,6 +2741,186 @@ export interface VaultDynamicSecretSpecProviderAuthLdapSecretRef {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_VaultDynamicSecretSpecProviderAuthLdapSecretRef(obj: VaultDynamicSecretSpecProviderAuthLdapSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A reference to a ServiceAccount resource.
+ *
+ * @schema VaultDynamicSecretSpecProviderAuthIamJwtServiceAccountRef
+ */
+export interface VaultDynamicSecretSpecProviderAuthIamJwtServiceAccountRef {
+  /**
+   * Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIamJwtServiceAccountRef#audiences
+   */
+  readonly audiences?: string[];
+
+  /**
+   * The name of the ServiceAccount resource being referred to.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIamJwtServiceAccountRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIamJwtServiceAccountRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'VaultDynamicSecretSpecProviderAuthIamJwtServiceAccountRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VaultDynamicSecretSpecProviderAuthIamJwtServiceAccountRef(obj: VaultDynamicSecretSpecProviderAuthIamJwtServiceAccountRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audiences': obj.audiences?.map(y => y),
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * The AccessKeyID is used for authentication
+ *
+ * @schema VaultDynamicSecretSpecProviderAuthIamSecretRefAccessKeyIdSecretRef
+ */
+export interface VaultDynamicSecretSpecProviderAuthIamSecretRefAccessKeyIdSecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIamSecretRefAccessKeyIdSecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIamSecretRefAccessKeyIdSecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIamSecretRefAccessKeyIdSecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'VaultDynamicSecretSpecProviderAuthIamSecretRefAccessKeyIdSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VaultDynamicSecretSpecProviderAuthIamSecretRefAccessKeyIdSecretRef(obj: VaultDynamicSecretSpecProviderAuthIamSecretRefAccessKeyIdSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * The SecretAccessKey is used for authentication
+ *
+ * @schema VaultDynamicSecretSpecProviderAuthIamSecretRefSecretAccessKeySecretRef
+ */
+export interface VaultDynamicSecretSpecProviderAuthIamSecretRefSecretAccessKeySecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIamSecretRefSecretAccessKeySecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIamSecretRefSecretAccessKeySecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIamSecretRefSecretAccessKeySecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'VaultDynamicSecretSpecProviderAuthIamSecretRefSecretAccessKeySecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VaultDynamicSecretSpecProviderAuthIamSecretRefSecretAccessKeySecretRef(obj: VaultDynamicSecretSpecProviderAuthIamSecretRefSecretAccessKeySecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * The SessionToken used for authentication This must be defined if AccessKeyID and SecretAccessKey are temporary credentials see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html
+ *
+ * @schema VaultDynamicSecretSpecProviderAuthIamSecretRefSessionTokenSecretRef
+ */
+export interface VaultDynamicSecretSpecProviderAuthIamSecretRefSessionTokenSecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIamSecretRefSessionTokenSecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIamSecretRefSessionTokenSecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthIamSecretRefSessionTokenSecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'VaultDynamicSecretSpecProviderAuthIamSecretRefSessionTokenSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VaultDynamicSecretSpecProviderAuthIamSecretRefSessionTokenSecretRef(obj: VaultDynamicSecretSpecProviderAuthIamSecretRefSessionTokenSecretRef | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'key': obj.key,

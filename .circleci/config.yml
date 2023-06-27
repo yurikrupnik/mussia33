@@ -1,0 +1,115 @@
+version: 2.1
+orbs:
+  nx: nrwl/nx@1.5.1
+  go: circleci/go@1.7.3
+  node: circleci/node@5.1.0
+  pnpm-release-management: rkesters/pnpm-release-management@0.0.1
+#  slack: circleci/slack@4.12.5
+#  aws-cli: circleci/aws-cli@4.0.0
+jobs:
+  build_and_test: # this can be any name you choose
+    executor: node/default # use the default executor defined within the orb
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: pnpm
+      - run:
+          command: pnpm test
+          name: Run tests
+      - run:
+          command: pnpm build
+          name: Build app
+      - persist_to_workspace:
+          root: ~/project
+          paths: .
+  install-node-example:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+#      - node/install-packages:
+#          pkg-manager: pnpm
+      - node/install:
+          node-version: '18.5'
+      - run: node --version
+  agent:
+    docker:
+      - image: denoland/deno:1.10.3
+      - image: cimg/rust:1.70.0
+      - image: cimg/node:lts-browsers
+    parameters:
+      ordinal:
+        type: integer
+    steps:
+      - checkout
+      - run: npm i
+      - run:
+          command: npx nx-cloud start-agent
+          no_output_timeout: 60m
+  main:
+    docker:
+      - image: cimg/node:lts-browsers
+      - image: denoland/deno:1.10.3
+      - image: cimg/rust:1.70.0
+    steps:
+      - checkout
+      - run: pnpm i
+#      - node/install-packages:
+#          override-ci-command: pnpm i
+#          cache-path: ~/.pnpm-store
+      - nx/set-shas
+#      - slack/notify:
+#          custom: |
+#            {
+#              "blocks": [
+#                {
+#                  "type": "section",
+#                  "fields": [
+#                    {
+#                      "type": "plain_text",
+#                      "text": "*This is a text notification*",
+#                      "emoji": true
+#                    }
+#                  ]
+#                }
+#              ]
+#            }
+#      - run: npx nx-cloud start-ci-run --stop-agents-after="build"
+#      - run: deno info
+#      - run: npx nx-cloud record -- npx nx format:check
+#      - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t lint --parallel=3
+      # - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t test --parallel=3 --configuration=ci
+      # - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t build --parallel=3
+  test:
+    docker:
+      - image: cimg/rust:1.70.0
+      - image: cimg/node:lts-browsers
+    steps:
+      - checkout
+#      - run: cargo clippy
+      - run: cargo test
+#      - run: npm -v # fails todo
+#      - run: pnpm nx run-many --target=build --max-parallel=2
+      - run: ls
+      - run: ls submodules/tauri-app
+#      - run: pnpm nx run-many --target=build --max-parallel=3 --prod
+workflows:
+  build:
+    jobs:
+#      - agent:
+#          matrix:
+#            parameters:
+#              ordinal: [1, 2]
+      - main
+      - test
+      - install-node-example
+#  build_test_deploy: # this can be any name you choose
+#    jobs:
+##      - build_and_test
+#      - deploy:
+##          requires:
+##            - build_and_test # only deploy if the build_and_test job has completed
+#          filters:
+#            branches:
+#              only: main # only deploy when on main
+
