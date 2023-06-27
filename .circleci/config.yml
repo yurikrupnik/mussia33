@@ -70,6 +70,6 @@ workflows:
       - agent:
           matrix:
             parameters:
-              ordinal: [1, 2, 3]
+              ordinal: [1, 2]
       - main
       - test
