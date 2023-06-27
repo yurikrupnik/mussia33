@@ -86,6 +86,7 @@ jobs:
       - image: cimg/node:lts-browsers
     steps:
       - checkout
+      - run: cargo clippy
       - run: cargo test
       - run: pnpm nx run-many --target=build --max-parallel=2
       - run: ls
