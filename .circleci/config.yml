@@ -27,8 +27,8 @@ jobs:
       - image: cimg/base:stable
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: pnpm
+#      - node/install-packages:
+#          pkg-manager: pnpm
       - node/install:
           node-version: '18.5'
       - run: node --version
