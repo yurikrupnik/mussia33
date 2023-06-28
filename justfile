@@ -29,10 +29,15 @@ local-cluster-mongodb-docker-compose:
 task1:
   task -t k8s/Taskfile.yaml up
 
-create-local-cluster:
-  -ctlptl create cluster kind --registry=ctlptl-registry
-  just install-linkerd
-  just run-titl-cluster
+start:
+  -ctlptl create cluster minikube --registry=ctlptl-registry
+  minikube addons enable gcp-auth
+#  tilt up
+stop:
+  #tilt down
+  ctlptl delete cluster minikube
+#  just install-linkerd
+#  just run-titl-cluster
 
 install-linkerd:
   linkerd install --crds | kubectl apply -f -
