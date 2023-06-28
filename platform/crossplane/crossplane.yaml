@@ -3,7 +3,7 @@ kind: Configuration
 metadata:
   name: krupnik-ref-multi-k8s
   annotations:
-    meta.crossplane.io/maintainer: Jared Watts <jared@upbound.io>
+    meta.crossplane.io/maintainer: Yuri Krupnik <krupnik.yuri@gmail.com>
     meta.crossplane.io/source: github.com/upbound/krupnik-ref-multi-k8s
     meta.crossplane.io/license: Apache-2.0
     meta.crossplane.io/description: |
@@ -54,7 +54,7 @@ metadata:
 
     # TODO(negz): Remove these older style annotations once annotation consumers
     # have had a chance to update.
-    company: Upbound
+    company: Krupnik
     maintainer: Yuri Krupnik <krupnik.yuri@gmail.com>
     keywords: aws, gcp, azure, cloud-native, kubernetes, example, platform, reference
     source: github.com/yurikrupnik/krupnik-ref-multi-k8s

@@ -3,11 +3,11 @@
 version: '3'
 
 includes:
-#  cluster: ./platform/cluster
-#  crossplane: ./platform/crossplane
-#  kubevela: ./platform/kubevela
-#  argocd: ./platform/gitops/argocd
-#  compose: ./scripts
+  cluster: ./platform/cluster
+  crossplane: ./platform/crossplane
+  kubevela: ./platform/kubevela
+  argocd: ./platform/gitops/argocd
+  compose: ./scripts
   sdp-demo: ./submodules/sdp-demo
 
 vars:
