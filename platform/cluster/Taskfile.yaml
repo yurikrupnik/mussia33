@@ -61,10 +61,11 @@ tasks:
       - ctlptl delete cluster k3d-simulate-dev1
   single-core:up:
     cmds:
-      - ctlptl create cluster k3d
+      - ctlptl create cluster minikube
+      - minikube addons enable gcp-auth
   single-core:down:
     cmds:
-      - ctlptl delete cluster k3d
+      - ctlptl delete cluster minikube
   multi-core:up:
     cmds:
       - k3d cluster create multiserver --servers 3
