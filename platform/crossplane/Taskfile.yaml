@@ -12,16 +12,26 @@ tasks:
       - up xpkg build --ignore "examples/*"
       - up xpkg build --ignore "examples/*"
     silent: true
+  setup:
+    dir: platform/crossplane
+    cmds:
+       - task: install
+       - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
+       - kubectl get pods -n crossplane-system
+       - kubectl get deployments -n crossplane-system
+       - task: create-secret
+       - task: create-gcp-provider
+       - task: create-resources
   install:
     dir: platform/crossplane
     cmds:
-      - up uxp install -n upbound-test
+#      - up uxp install -n upbound-test
 
-#      - helm repo add crossplane-stable https://charts.crossplane.io/stable && helm repo update
-#      - helm install crossplane --namespace crossplane-system --create-namespace crossplane-stable/crossplane
-#      - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
-#      - kubectl get pods -n crossplane-system
-#      - kubectl get deployments -n crossplane-system
+      - helm repo add crossplane-stable https://charts.crossplane.io/stable && helm repo update
+      - helm install crossplane --namespace crossplane-system --create-namespace crossplane-stable/crossplane
+      - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
+      - kubectl get pods -n crossplane-system
+      - kubectl get deployments -n crossplane-system
   create-secret:
     cmds:
       - kubectl create secret generic aws-secret -n crossplane-system --from-file=creds=./aws_creds.txt
@@ -30,17 +40,19 @@ tasks:
     dir: platform/crossplane
     cmds:
       - kubectl apply -f gcpProvider.yaml
-      - kubectl wait "providers.pkg.crossplane.io/provider-gcp" --for=condition=Installed --timeout=180s
-      - kubectl wait "providers.pkg.crossplane.io/provider-gcp" --for=condition=Healthy --timeout=180s
-      - kubectl wait "providers.pkg.crossplane.io/provider-aws" --for=condition=Installed --timeout=180s
-      - kubectl wait "providers.pkg.crossplane.io/provider-aws" --for=condition=Healthy --timeout=180s
+      - kubectl wait "providers.pkg.crossplane.io/provider-gcp" --for=condition=Installed --timeout=300s
+      - kubectl wait "providers.pkg.crossplane.io/provider-gcp" --for=condition=Healthy --timeout=300s
+      - kubectl wait "providers.pkg.crossplane.io/provider-aws" --for=condition=Installed --timeout=300s
+      - kubectl wait "providers.pkg.crossplane.io/provider-aws" --for=condition=Healthy --timeout=300s
       - kubectl get providers
       - kubectl apply -f gcpProviderConfig.yaml
   create-resources:
     dir: platform/crossplane
     cmds:
-      - kubectl apply -f gcpBucket.yaml
-      - kubectl apply -f gcpTopic.yaml
+      - kubectl apply -f composition.yaml
+      - kubectl apply -f compositeResourceDefinition.yaml
+#      - kubectl apply -f gcpBucket.yaml
+#      - kubectl apply -f gcpTopic.yaml
   get-buckets:
     cmds:
       - kubectl get bucket

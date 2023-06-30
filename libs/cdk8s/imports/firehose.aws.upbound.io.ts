@@ -1460,9 +1460,9 @@ export interface DeliveryStreamSpecForProviderSplunkConfiguration {
   /**
    * The GUID that you obtain from your Splunk cluster when you create a new HEC endpoint.
    *
-   * @schema DeliveryStreamSpecForProviderSplunkConfiguration#hecToken
+   * @schema DeliveryStreamSpecForProviderSplunkConfiguration#hecTokenSecretRef
    */
-  readonly hecToken: string;
+  readonly hecTokenSecretRef: DeliveryStreamSpecForProviderSplunkConfigurationHecTokenSecretRef;
 
   /**
    * The data processing configuration.  More details are given below.
@@ -1498,7 +1498,7 @@ export function toJson_DeliveryStreamSpecForProviderSplunkConfiguration(obj: Del
     'hecAcknowledgmentTimeout': obj.hecAcknowledgmentTimeout,
     'hecEndpoint': obj.hecEndpoint,
     'hecEndpointType': obj.hecEndpointType,
-    'hecToken': obj.hecToken,
+    'hecTokenSecretRef': toJson_DeliveryStreamSpecForProviderSplunkConfigurationHecTokenSecretRef(obj.hecTokenSecretRef),
     'processingConfiguration': obj.processingConfiguration?.map(y => toJson_DeliveryStreamSpecForProviderSplunkConfigurationProcessingConfiguration(y)),
     'retryDuration': obj.retryDuration,
     's3BackupMode': obj.s3BackupMode,
@@ -3511,6 +3511,51 @@ export function toJson_DeliveryStreamSpecForProviderSplunkConfigurationCloudwatc
     'enabled': obj.enabled,
     'logGroupName': obj.logGroupName,
     'logStreamName': obj.logStreamName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * The GUID that you obtain from your Splunk cluster when you create a new HEC endpoint.
+ *
+ * @schema DeliveryStreamSpecForProviderSplunkConfigurationHecTokenSecretRef
+ */
+export interface DeliveryStreamSpecForProviderSplunkConfigurationHecTokenSecretRef {
+  /**
+   * The key to select.
+   *
+   * @schema DeliveryStreamSpecForProviderSplunkConfigurationHecTokenSecretRef#key
+   */
+  readonly key: string;
+
+  /**
+   * Name of the secret.
+   *
+   * @schema DeliveryStreamSpecForProviderSplunkConfigurationHecTokenSecretRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the secret.
+   *
+   * @schema DeliveryStreamSpecForProviderSplunkConfigurationHecTokenSecretRef#namespace
+   */
+  readonly namespace: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecForProviderSplunkConfigurationHecTokenSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecForProviderSplunkConfigurationHecTokenSecretRef(obj: DeliveryStreamSpecForProviderSplunkConfigurationHecTokenSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});

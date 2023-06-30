@@ -7,6 +7,7 @@ includes:
   crossplane: ./platform/crossplane
   kubevela: ./platform/kubevela
   argocd: ./platform/gitops/argocd
+  fluxcd: ./platform/gitops/fluxcd
   compose: ./scripts
   sdp-demo: ./submodules/sdp-demo
 
@@ -28,16 +29,7 @@ tasks:
   tilt:down:
     cmds:
       - tilt down
-#  tilt:down:
 
-  setup:crossplane:
-    cmds:
-      - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
-      - kubectl get pods -n crossplane-system
-      - kubectl get deployments -n crossplane-system
-      - task: crossplane:create-secret
-      - task: crossplane:create-gcp-provider
-      - task: crossplane:create-resources
   protoc:
     cmds:
 #      - --rust_out ./libs/rust/grpc/src/generated
@@ -45,32 +37,18 @@ tasks:
   image-pull-secret:
     cmds:
       - kubectl create secret docker-registry my-registry-secret --docker-server=europe-central2-docker.pkg.dev --docker-username=_json_key --docker-password="$(cat mussia-infra-a6504e8e275d.json)" --docker-email=container-puller-sa@mussia-infra.iam.gserviceaccount.com
-  minikube-start:
-    cmds:
-      - minikube start
-      - minikube addons enable gcp-auth
-#      - task: argocd:install
-#      - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
-#      - task: argocd:apply
-      - tilt up
-  minikube-stop:
-    cmds:
-      - tilt down
-      - minikube stop
-      - up ctp attach remote-virtual -a hashheddan | KUBECONFIG=kubeconfig.yaml up uxp connect -
-  minikube-delete:
-    cmds:
-      - tilt down
-      - minikube delete
   start:
     deps:
       - cluster:single-core:up
     cmds:
-#     - task: crossplane:install
+#     - up uxp install
+     - task: crossplane:setup
+#      - up ctp attach remote-virtual -a hashheddan | KUBECONFIG=kubeconfig.yaml up uxp connect -
 #     - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
-     - task: argocd:install
      - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
-     - task: argocd:apply
+     - task: kubevela:install
+#     - task: argocd:install
+#     - task: argocd:apply
 #     - task: argocd:get-secret
 #     - helm install kubeshark kubeshark/kubeshark
 #     - task: kubevela:install
@@ -78,15 +56,13 @@ tasks:
      - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
      - kubectl get pods -n crossplane-system
      - kubectl get deployments -n crossplane-system
-     - task: crossplane:create-secret
-     - task: crossplane:create-gcp-provider
-     - task: crossplane:create-resources
+     - task: tilt:up
 #     - task: kubevela:apply
 #     - kubectl port-forward -n kubeshark service/kubeshark-hub 8898:80
 #     - kubectl port-forward -n kubeshark service/kubeshark-front 8899:80
 #     - kubectl schemahero install
 #     - argocd app sync previews
-     - task: tilt:up
+#     - task: tilt:up
 
 #      - kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.44.0/release.yaml
 #      - kubectl apply --filename https://github.com/shipwright-io/build/releases/download/v0.11.0/release.yaml
@@ -98,7 +74,7 @@ tasks:
 #      - helm repo add kubevela https://charts.kubevela.net/core
 #      - helm repo update
 #      - helm install --create-namespace -n vela-system kubevela kubevela/vela-core --wait
-#      - task: tilt:up
+
   stop:
     deps:
       - task: tilt:down

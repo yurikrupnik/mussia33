@@ -6,14 +6,12 @@ vars:
   GREETING: Hello, World!
 
 tasks:
-  default:
-    cmds:
-      - echo "{{.GREETING}}"
-    silent: true
   install:
     cmds:
-      - vela install -y
-      - vela addon enable ~/.vela/addons/velaux
+#      - vela install -y
+      - helm install --create-namespace -n vela-system kubevela kubevela/vela-core --wait
+      - vela addon enable velaux
+#      - vela addon enable fluxcd
 #      - vela port-forward addon-velaux -n vela-system 8080:80
   apply:
     dir: platform/kubevela

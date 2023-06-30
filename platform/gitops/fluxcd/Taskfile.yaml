@@ -10,3 +10,12 @@ tasks:
     cmds:
       - echo "{{.GREETING}}"
     silent: true
+  apply:
+    dir: platform/gitops/fluxcd
+    cmds:
+      - ls
+      - kubectl apply -f apps.yaml
+  delete:
+    dir: platform/gitops/fluxcd
+    cmds:
+      - kubectl delete -f apps.yaml

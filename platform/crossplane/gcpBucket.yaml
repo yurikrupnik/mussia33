@@ -42,7 +42,7 @@ spec:
     location: US
     storageClass: MULTI_REGIONAL
     labels:
-      arios: sadsd
+      iac: crossplane
       team: backend
   providerConfigRef:
     name: default
@@ -54,6 +54,7 @@ metadata:
   name: crossplane-bucket-alina
   labels:
     docs.crossplane.io/example: provider-gcp
+    iac: crossplane
   annotations:
     crossplane.io/external-name: alina-temp-bucket
 spec:
@@ -92,6 +93,7 @@ metadata:
   annotations:
     meta.upbound.io/example-id: bigquery/v1beta1/datatransferconfig
   labels:
+    iac: crossplane
     testing.upbound.io/example-name: alinaa
   name: "alina-dev"
 spec:
@@ -110,6 +112,7 @@ metadata:
     meta.upbound.io/example-id: bigquery/v1beta1/datatransferconfig
   labels:
     testing.upbound.io/example-name: aris
+    iac: crossplane
   name: "aris"
 spec:
   forProvider:
@@ -118,6 +121,7 @@ spec:
     friendlyName: Aris
     labels:
       env: default
+      iac: crossplane
     location: EU
 ---
 apiVersion: container.gcp.upbound.io/v1beta1
