@@ -1,0 +1,4 @@
+# run locally - not docker
+local_resource('cargo-watch', cmd='cargo run', deps=['.'], labels=['cargo'])
+
+# TODO: docker run locally - build  image locally

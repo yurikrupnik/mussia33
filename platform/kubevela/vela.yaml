@@ -1,6 +1,27 @@
 apiVersion: core.oam.dev/v1beta1
 kind: Application
 metadata:
+  name: nginx-service
+spec:
+  components:
+    - name: nginx-server
+      type: webservice
+      properties:
+        image: yurikrupnik/nest-app:main
+        ports:
+          - port: 80
+            expose: true
+    - name: api-server
+      type: webservice
+      properties:
+        image: yurikrupnik/nest-app:main
+        ports:
+          - port: 8080
+            expose: true
+---
+apiVersion: core.oam.dev/v1beta1
+kind: Application
+metadata:
   name: first-vela-app
 spec:
   components:
@@ -8,7 +29,7 @@ spec:
       type: webservice
       properties:
 #        image: yurikrupnik/frontend-host
-        image: yurikrupnik/fiber-app:pr-32
+        image: yurikrupnik/nest-app:sha-f8de8b1
         ports:
          - port: 8080
            expose: true
@@ -20,7 +41,7 @@ spec:
           properties:
             domain: localhost
             http:
-              "/": 80
+              "/": 8080
   policies:
     - name: target-default
       type: topology
@@ -53,7 +74,7 @@ spec:
         type: deploy
         properties:
           policies: ["target-prod", "deploy-ha"]
-#---
+---
 #apiVersion: core.oam.dev/v1beta1
 #kind: Application
 #metadata:
@@ -63,8 +84,8 @@ spec:
 #    - name: job-go-commands
 #      type: job
 #      properties:
-#        image: yurikrupnik/go-commands
----
+#        image: yurikrupnik/go-commands:v0.0.14
+#---
 apiVersion: core.oam.dev/v1beta1
 kind: Application
 metadata:
@@ -74,7 +95,7 @@ spec:
     - name: fiber-mongo
       type: webservice
       properties:
-        image: yurikrupnik/fiber-mongo
+        image: yurikrupnik/nest-app:main
         ports:
           - port: 8080
             expose: true
@@ -82,6 +103,11 @@ spec:
         - type: scaler
           properties:
             replicas: 1
+        - type: ingress
+          properties:
+            domain: localhost
+            http:
+              "/": 80
 #    - name: nest-app
 #      type: webservice
 #      properties:

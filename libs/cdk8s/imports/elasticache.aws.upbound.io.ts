@@ -298,14 +298,14 @@ export interface ClusterSpecForProvider {
   readonly parameterGroupName?: string;
 
   /**
-   * Reference to a ParameterGroup to populate parameterGroupName.
+   * Reference to a ParameterGroup in elasticache to populate parameterGroupName.
    *
    * @schema ClusterSpecForProvider#parameterGroupNameRef
    */
   readonly parameterGroupNameRef?: ClusterSpecForProviderParameterGroupNameRef;
 
   /**
-   * Selector for a ParameterGroup to populate parameterGroupName.
+   * Selector for a ParameterGroup in elasticache to populate parameterGroupName.
    *
    * @schema ClusterSpecForProvider#parameterGroupNameSelector
    */
@@ -345,6 +345,34 @@ export interface ClusterSpecForProvider {
    * @schema ClusterSpecForProvider#replicationGroupId
    */
   readonly replicationGroupId?: string;
+
+  /**
+   * Reference to a ReplicationGroup in elasticache to populate replicationGroupId.
+   *
+   * @schema ClusterSpecForProvider#replicationGroupIdRef
+   */
+  readonly replicationGroupIdRef?: ClusterSpecForProviderReplicationGroupIdRef;
+
+  /**
+   * Selector for a ReplicationGroup in elasticache to populate replicationGroupId.
+   *
+   * @schema ClusterSpecForProvider#replicationGroupIdSelector
+   */
+  readonly replicationGroupIdSelector?: ClusterSpecForProviderReplicationGroupIdSelector;
+
+  /**
+   * References to SecurityGroup in ec2 to populate securityGroupIds.
+   *
+   * @schema ClusterSpecForProvider#securityGroupIdRefs
+   */
+  readonly securityGroupIdRefs?: ClusterSpecForProviderSecurityGroupIdRefs[];
+
+  /**
+   * Selector for a list of SecurityGroup in ec2 to populate securityGroupIds.
+   *
+   * @schema ClusterSpecForProvider#securityGroupIdSelector
+   */
+  readonly securityGroupIdSelector?: ClusterSpecForProviderSecurityGroupIdSelector;
 
   /**
    * –  One or more VPC security groups associated with the cache cluster
@@ -396,14 +424,14 @@ export interface ClusterSpecForProvider {
   readonly subnetGroupName?: string;
 
   /**
-   * Reference to a SubnetGroup to populate subnetGroupName.
+   * Reference to a SubnetGroup in elasticache to populate subnetGroupName.
    *
    * @schema ClusterSpecForProvider#subnetGroupNameRef
    */
   readonly subnetGroupNameRef?: ClusterSpecForProviderSubnetGroupNameRef;
 
   /**
-   * Selector for a SubnetGroup to populate subnetGroupName.
+   * Selector for a SubnetGroup in elasticache to populate subnetGroupName.
    *
    * @schema ClusterSpecForProvider#subnetGroupNameSelector
    */
@@ -448,6 +476,10 @@ export function toJson_ClusterSpecForProvider(obj: ClusterSpecForProvider | unde
     'preferredOutpostArn': obj.preferredOutpostArn,
     'region': obj.region,
     'replicationGroupId': obj.replicationGroupId,
+    'replicationGroupIdRef': toJson_ClusterSpecForProviderReplicationGroupIdRef(obj.replicationGroupIdRef),
+    'replicationGroupIdSelector': toJson_ClusterSpecForProviderReplicationGroupIdSelector(obj.replicationGroupIdSelector),
+    'securityGroupIdRefs': obj.securityGroupIdRefs?.map(y => toJson_ClusterSpecForProviderSecurityGroupIdRefs(y)),
+    'securityGroupIdSelector': toJson_ClusterSpecForProviderSecurityGroupIdSelector(obj.securityGroupIdSelector),
     'securityGroupIds': obj.securityGroupIds?.map(y => y),
     'securityGroupNames': obj.securityGroupNames?.map(y => y),
     'snapshotArns': obj.snapshotArns?.map(y => y),
@@ -686,7 +718,7 @@ export function toJson_ClusterSpecForProviderLogDeliveryConfiguration(obj: Clust
 /* eslint-enable max-len, quote-props */
 
 /**
- * Reference to a ParameterGroup to populate parameterGroupName.
+ * Reference to a ParameterGroup in elasticache to populate parameterGroupName.
  *
  * @schema ClusterSpecForProviderParameterGroupNameRef
  */
@@ -723,7 +755,7 @@ export function toJson_ClusterSpecForProviderParameterGroupNameRef(obj: ClusterS
 /* eslint-enable max-len, quote-props */
 
 /**
- * Selector for a ParameterGroup to populate parameterGroupName.
+ * Selector for a ParameterGroup in elasticache to populate parameterGroupName.
  *
  * @schema ClusterSpecForProviderParameterGroupNameSelector
  */
@@ -768,7 +800,171 @@ export function toJson_ClusterSpecForProviderParameterGroupNameSelector(obj: Clu
 /* eslint-enable max-len, quote-props */
 
 /**
- * Reference to a SubnetGroup to populate subnetGroupName.
+ * Reference to a ReplicationGroup in elasticache to populate replicationGroupId.
+ *
+ * @schema ClusterSpecForProviderReplicationGroupIdRef
+ */
+export interface ClusterSpecForProviderReplicationGroupIdRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema ClusterSpecForProviderReplicationGroupIdRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema ClusterSpecForProviderReplicationGroupIdRef#policy
+   */
+  readonly policy?: ClusterSpecForProviderReplicationGroupIdRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderReplicationGroupIdRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderReplicationGroupIdRef(obj: ClusterSpecForProviderReplicationGroupIdRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_ClusterSpecForProviderReplicationGroupIdRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a ReplicationGroup in elasticache to populate replicationGroupId.
+ *
+ * @schema ClusterSpecForProviderReplicationGroupIdSelector
+ */
+export interface ClusterSpecForProviderReplicationGroupIdSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema ClusterSpecForProviderReplicationGroupIdSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema ClusterSpecForProviderReplicationGroupIdSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema ClusterSpecForProviderReplicationGroupIdSelector#policy
+   */
+  readonly policy?: ClusterSpecForProviderReplicationGroupIdSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderReplicationGroupIdSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderReplicationGroupIdSelector(obj: ClusterSpecForProviderReplicationGroupIdSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_ClusterSpecForProviderReplicationGroupIdSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A Reference to a named object.
+ *
+ * @schema ClusterSpecForProviderSecurityGroupIdRefs
+ */
+export interface ClusterSpecForProviderSecurityGroupIdRefs {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema ClusterSpecForProviderSecurityGroupIdRefs#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema ClusterSpecForProviderSecurityGroupIdRefs#policy
+   */
+  readonly policy?: ClusterSpecForProviderSecurityGroupIdRefsPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderSecurityGroupIdRefs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderSecurityGroupIdRefs(obj: ClusterSpecForProviderSecurityGroupIdRefs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_ClusterSpecForProviderSecurityGroupIdRefsPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a list of SecurityGroup in ec2 to populate securityGroupIds.
+ *
+ * @schema ClusterSpecForProviderSecurityGroupIdSelector
+ */
+export interface ClusterSpecForProviderSecurityGroupIdSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema ClusterSpecForProviderSecurityGroupIdSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema ClusterSpecForProviderSecurityGroupIdSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema ClusterSpecForProviderSecurityGroupIdSelector#policy
+   */
+  readonly policy?: ClusterSpecForProviderSecurityGroupIdSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderSecurityGroupIdSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderSecurityGroupIdSelector(obj: ClusterSpecForProviderSecurityGroupIdSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_ClusterSpecForProviderSecurityGroupIdSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a SubnetGroup in elasticache to populate subnetGroupName.
  *
  * @schema ClusterSpecForProviderSubnetGroupNameRef
  */
@@ -805,7 +1001,7 @@ export function toJson_ClusterSpecForProviderSubnetGroupNameRef(obj: ClusterSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * Selector for a SubnetGroup to populate subnetGroupName.
+ * Selector for a SubnetGroup in elasticache to populate subnetGroupName.
  *
  * @schema ClusterSpecForProviderSubnetGroupNameSelector
  */
@@ -1082,6 +1278,154 @@ export function toJson_ClusterSpecForProviderParameterGroupNameSelectorPolicy(ob
 /**
  * Policies for referencing.
  *
+ * @schema ClusterSpecForProviderReplicationGroupIdRefPolicy
+ */
+export interface ClusterSpecForProviderReplicationGroupIdRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ClusterSpecForProviderReplicationGroupIdRefPolicy#resolution
+   */
+  readonly resolution?: ClusterSpecForProviderReplicationGroupIdRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ClusterSpecForProviderReplicationGroupIdRefPolicy#resolve
+   */
+  readonly resolve?: ClusterSpecForProviderReplicationGroupIdRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderReplicationGroupIdRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderReplicationGroupIdRefPolicy(obj: ClusterSpecForProviderReplicationGroupIdRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema ClusterSpecForProviderReplicationGroupIdSelectorPolicy
+ */
+export interface ClusterSpecForProviderReplicationGroupIdSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ClusterSpecForProviderReplicationGroupIdSelectorPolicy#resolution
+   */
+  readonly resolution?: ClusterSpecForProviderReplicationGroupIdSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ClusterSpecForProviderReplicationGroupIdSelectorPolicy#resolve
+   */
+  readonly resolve?: ClusterSpecForProviderReplicationGroupIdSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderReplicationGroupIdSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderReplicationGroupIdSelectorPolicy(obj: ClusterSpecForProviderReplicationGroupIdSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema ClusterSpecForProviderSecurityGroupIdRefsPolicy
+ */
+export interface ClusterSpecForProviderSecurityGroupIdRefsPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ClusterSpecForProviderSecurityGroupIdRefsPolicy#resolution
+   */
+  readonly resolution?: ClusterSpecForProviderSecurityGroupIdRefsPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ClusterSpecForProviderSecurityGroupIdRefsPolicy#resolve
+   */
+  readonly resolve?: ClusterSpecForProviderSecurityGroupIdRefsPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderSecurityGroupIdRefsPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderSecurityGroupIdRefsPolicy(obj: ClusterSpecForProviderSecurityGroupIdRefsPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema ClusterSpecForProviderSecurityGroupIdSelectorPolicy
+ */
+export interface ClusterSpecForProviderSecurityGroupIdSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ClusterSpecForProviderSecurityGroupIdSelectorPolicy#resolution
+   */
+  readonly resolution?: ClusterSpecForProviderSecurityGroupIdSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ClusterSpecForProviderSecurityGroupIdSelectorPolicy#resolve
+   */
+  readonly resolve?: ClusterSpecForProviderSecurityGroupIdSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderSecurityGroupIdSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderSecurityGroupIdSelectorPolicy(obj: ClusterSpecForProviderSecurityGroupIdSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
  * @schema ClusterSpecForProviderSubnetGroupNameRefPolicy
  */
 export interface ClusterSpecForProviderSubnetGroupNameRefPolicy {
@@ -1280,6 +1624,102 @@ export enum ClusterSpecForProviderParameterGroupNameSelectorPolicyResolution {
  * @schema ClusterSpecForProviderParameterGroupNameSelectorPolicyResolve
  */
 export enum ClusterSpecForProviderParameterGroupNameSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ClusterSpecForProviderReplicationGroupIdRefPolicyResolution
+ */
+export enum ClusterSpecForProviderReplicationGroupIdRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ClusterSpecForProviderReplicationGroupIdRefPolicyResolve
+ */
+export enum ClusterSpecForProviderReplicationGroupIdRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ClusterSpecForProviderReplicationGroupIdSelectorPolicyResolution
+ */
+export enum ClusterSpecForProviderReplicationGroupIdSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ClusterSpecForProviderReplicationGroupIdSelectorPolicyResolve
+ */
+export enum ClusterSpecForProviderReplicationGroupIdSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ClusterSpecForProviderSecurityGroupIdRefsPolicyResolution
+ */
+export enum ClusterSpecForProviderSecurityGroupIdRefsPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ClusterSpecForProviderSecurityGroupIdRefsPolicyResolve
+ */
+export enum ClusterSpecForProviderSecurityGroupIdRefsPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ClusterSpecForProviderSecurityGroupIdSelectorPolicyResolution
+ */
+export enum ClusterSpecForProviderSecurityGroupIdSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ClusterSpecForProviderSecurityGroupIdSelectorPolicyResolve
+ */
+export enum ClusterSpecForProviderSecurityGroupIdSelectorPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
