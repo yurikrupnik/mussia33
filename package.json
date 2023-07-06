@@ -64,7 +64,7 @@
     "@grpc/grpc-js": "^1.8.14",
     "@grpc/proto-loader": "^0.7.7",
     "@nestjs/common": "9.4.3",
-    "@nestjs/config": "^2.3.2",
+    "@nestjs/config": "^3.0.0",
     "@nestjs/core": "9.4.3",
     "@nestjs/microservices": "^9.4.2",
     "@nestjs/mongoose": "^10.0.0",
