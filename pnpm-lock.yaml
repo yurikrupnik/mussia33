@@ -146,8 +146,8 @@ devDependencies:
     specifier: ^16.2.2
     version: 16.2.2(cypress@12.17.0)(eslint@8.44.0)(nx@16.2.1)(typescript@5.1.3)
   '@nx/deno':
-    specifier: 16.2.0
-    version: 16.2.0(nx@16.2.1)(typescript@5.1.3)
+    specifier: 16.4.0
+    version: 16.4.0(nx@16.2.1)(typescript@5.1.3)
   '@nx/esbuild':
     specifier: ^16.2.2
     version: 16.2.2(esbuild@0.18.11)(nx@16.2.1)(typescript@5.1.3)
@@ -2730,10 +2730,10 @@ packages:
       - typescript
     dev: true
 
-  /@nrwl/deno@16.2.0(nx@16.2.1)(typescript@5.1.3):
-    resolution: {integrity: sha512-lfAD+zho++wp6MHK1Zf7TP/ZAwJD83h1ohIHROxUFOq8JNaqNFaC1ggdRLuSt5KJhqCTfADUQt+0p2IIkwXwcQ==}
+  /@nrwl/deno@16.4.0(nx@16.2.1)(typescript@5.1.3):
+    resolution: {integrity: sha512-1ie/nOiNmEmoUA4TeaZU59XEaQURmTaFTB2iSurYciEGtLk2oTCCkdJpVnNSdyKbgbAlbUVQXW/OSsXI+B1etQ==}
     dependencies:
-      '@nx/deno': 16.2.0(nx@16.2.1)(typescript@5.1.3)
+      '@nx/deno': 16.4.0(nx@16.2.1)(typescript@5.1.3)
     transitivePeerDependencies:
       - '@babel/traverse'
       - '@swc-node/register'
@@ -2847,14 +2847,6 @@ packages:
       semver: 7.3.4
       tmp: 0.2.1
       tslib: 2.5.3
-    dev: true
-
-  /@nrwl/devkit@16.2.1(nx@16.2.1):
-    resolution: {integrity: sha512-yeNEccQzDuL+/thbS2XTq8MtD0KDrI92gXIPSrS/Q6QnDNJGz6T2kRe/mJWrcfrDFm/L61MsAlGXobElhceNMw==}
-    dependencies:
-      '@nx/devkit': 16.2.1(nx@16.2.1)
-    transitivePeerDependencies:
-      - nx
     dev: true
 
   /@nrwl/devkit@16.2.2(nx@16.2.1):
@@ -3812,11 +3804,11 @@ packages:
       - typescript
     dev: true
 
-  /@nx/deno@16.2.0(nx@16.2.1)(typescript@5.1.3):
-    resolution: {integrity: sha512-FLOZbeJ+Tdp/oS9EV0YJoUFyfu/VWRmQHAnoAX2XEBQtqq8PeNwqivsNEmsEVJeLczasFNvheH4HWoVYjKcK2w==}
+  /@nx/deno@16.4.0(nx@16.2.1)(typescript@5.1.3):
+    resolution: {integrity: sha512-AeQFRWGgCq2jfdZMgr4s9mILuQJNi95RH0hfG6RqAQIkkDxjvpdCqpTQiE3vguhgrzHzcTp/y1IzMtnyh0kR1g==}
     dependencies:
-      '@nrwl/deno': 16.2.0(nx@16.2.1)(typescript@5.1.3)
-      '@nx/devkit': 16.2.1(nx@16.2.1)
+      '@nrwl/deno': 16.4.0(nx@16.2.1)(typescript@5.1.3)
+      '@nx/devkit': 16.2.2(nx@16.2.1)
       '@nx/js': 16.2.2(nx@16.2.1)(typescript@5.1.3)
       chalk: 4.1.2
       enquirer: 2.3.6
@@ -3829,20 +3821,6 @@ packages:
       - nx
       - supports-color
       - typescript
-    dev: true
-
-  /@nx/devkit@16.2.1(nx@16.2.1):
-    resolution: {integrity: sha512-OrnFkU+lrSP/MdQW6C07aMlLyMp98oZMyfZ6h721T66zvuDfchhG2RXLX/Rb2t1lgZ+oMBKwvxxUKMRpHKPekA==}
-    peerDependencies:
-      nx: '>= 15 <= 17'
-    dependencies:
-      '@nrwl/devkit': 16.2.1(nx@16.2.1)
-      ejs: 3.1.9
-      ignore: 5.2.4
-      nx: 16.2.1
-      semver: 7.3.4
-      tmp: 0.2.1
-      tslib: 2.5.3
     dev: true
 
   /@nx/devkit@16.2.2(nx@16.2.1):
