@@ -137,8 +137,8 @@ devDependencies:
     specifier: ^2.7.0
     version: 2.7.0
   '@nx-tools/container-metadata':
-    specifier: ^4.0.3
-    version: 4.0.3(@nrwl/devkit@15.9.4)(dotenv@16.1.4)
+    specifier: ^5.0.0
+    version: 5.0.0(@nx/devkit@16.2.2)(dotenv@16.1.4)
   '@nx-tools/nx-container':
     specifier: ^4.0.3
     version: 4.0.3(@nrwl/devkit@15.9.4)(dotenv@16.1.4)
@@ -2798,7 +2798,7 @@ packages:
       ignore: 5.2.4
       nx: 16.2.1
       semver: 7.3.4
-      tslib: 2.5.3
+      tslib: 2.6.0
     transitivePeerDependencies:
       - typescript
     dev: true
@@ -2846,7 +2846,7 @@ packages:
       nx: 15.8.9
       semver: 7.3.4
       tmp: 0.2.1
-      tslib: 2.5.3
+      tslib: 2.6.0
     transitivePeerDependencies:
       - typescript
     dev: true
@@ -2862,7 +2862,7 @@ packages:
       nx: 16.2.1
       semver: 7.3.4
       tmp: 0.2.1
-      tslib: 2.5.3
+      tslib: 2.6.0
     transitivePeerDependencies:
       - typescript
     dev: true
@@ -3671,7 +3671,7 @@ packages:
       rxjs: 6.6.7
       semver: 7.3.4
       tmp: 0.2.1
-      tslib: 2.5.3
+      tslib: 2.6.0
       yargs: 17.7.1
       yargs-parser: 21.1.1
     transitivePeerDependencies:
@@ -3773,31 +3773,46 @@ packages:
       fs-extra: 9.1.0
     dev: true
 
-  /@nx-tools/ci-context@4.0.3(@nrwl/devkit@15.9.4):
-    resolution: {integrity: sha512-6ek2afI4E//qAZbjVaqLaqfA3rKkS4EDDQ0/9de1rFgcJlmN5B5hHT5nR0t9ijL46i6FaVWFc5dbdozCO9Zhxg==}
+  /@nx-tools/ci-context@5.0.0(@nx/devkit@16.2.2):
+    resolution: {integrity: sha512-r/lqAohXqwtFNNmHL35aQIDtNUS468z89W2PUqGHWQO/RiTZ4gtBpBvYTvPlVIrV/8UmiNo4Ky5K12NmXuGYLg==}
+    peerDependencies:
+      '@nx/devkit': ^16.0.0
     dependencies:
+      '@actions/exec': 1.1.1
       '@actions/github': 5.1.1
-      '@nx-tools/core': 4.0.3(@nrwl/devkit@15.9.4)
+      '@nx-tools/core': 5.0.0(@nx/devkit@16.2.2)(tslib@2.5.3)
+      '@nx/devkit': 16.2.2(nx@16.2.1)
+      '@octokit/openapi-types': 12.11.0
+      chalk: 4.1.2
       ci-info: 3.8.0
+      properties-file: 2.2.4
+      tslib: 2.5.3
     transitivePeerDependencies:
-      - '@nrwl/devkit'
       - encoding
     dev: true
 
-  /@nx-tools/container-metadata@4.0.3(@nrwl/devkit@15.9.4)(dotenv@16.1.4):
-    resolution: {integrity: sha512-B/46kwTF1HhIShrse6kJyyau7Q+UMuVSYWS9gIP8HU248OWVw4Qg1gd13qnRpNkQc/PzJQnJ/z8vQny9Pd4QVA==}
+  /@nx-tools/container-metadata@5.0.0(@nx/devkit@16.2.2)(dotenv@16.1.4):
+    resolution: {integrity: sha512-R0dOHSlRBbR1UG+9x2rPZoOsCRs8pqrDHTIaPzJQp9ACltM24geitRXuUJ12MpKtuL48iXhuoO5pFh+S4szMBg==}
     peerDependencies:
-      '@nrwl/devkit': ^12.0.0 || ^13.0.0 || ^14.0.0 || ^15.0.0
+      '@nx/devkit': ^16.0.0
       dotenv: '>=10.0.0'
     dependencies:
-      '@nrwl/devkit': 15.9.4(nx@16.2.1)
-      '@nx-tools/ci-context': 4.0.3(@nrwl/devkit@15.9.4)
-      '@nx-tools/core': 4.0.3(@nrwl/devkit@15.9.4)
+      '@actions/exec': 1.1.1
+      '@actions/github': 5.1.1
+      '@nx-tools/ci-context': 5.0.0(@nx/devkit@16.2.2)
+      '@nx-tools/core': 5.0.0(@nx/devkit@16.2.2)(tslib@2.5.3)
+      '@nx/devkit': 16.2.2(nx@16.2.1)
+      '@octokit/openapi-types': 12.11.0
       '@renovate/pep440': 1.0.0
-      csv-parse: 4.16.3
+      chalk: 4.1.2
+      ci-info: 3.8.0
+      csv-parse: 5.4.0
       dotenv: 16.1.4
       handlebars: 4.7.7
-      moment: 2.29.4
+      moment-timezone: 0.5.43
+      properties-file: 2.2.4
+      semver: 7.5.1
+      tslib: 2.5.3
     transitivePeerDependencies:
       - encoding
     dev: true
@@ -3810,6 +3825,19 @@ packages:
       '@actions/exec': 1.1.1
       '@nrwl/devkit': 15.9.4(nx@16.2.1)
       colorette: 2.0.20
+    dev: true
+
+  /@nx-tools/core@5.0.0(@nx/devkit@16.2.2)(tslib@2.5.3):
+    resolution: {integrity: sha512-0iBwqWgb38cfLJ0IEKXuTjVCzmfkYyt26395NONS1pxKvaJITlXVvfgIcRZ51crYXVbLEJhYpJ00zMG2aWiuNg==}
+    peerDependencies:
+      '@nx/devkit': ^16.0.0
+      tslib: 2.5.3
+    dependencies:
+      '@actions/exec': 1.1.1
+      '@nx/devkit': 16.2.2(nx@16.2.1)
+      chalk: 4.1.2
+      ci-info: 3.8.0
+      tslib: 2.5.3
     dev: true
 
   /@nx-tools/nx-container@4.0.3(@nrwl/devkit@15.9.4)(dotenv@16.1.4):
@@ -3900,7 +3928,7 @@ packages:
       nx: 16.2.1
       semver: 7.3.4
       tmp: 0.2.1
-      tslib: 2.5.3
+      tslib: 2.6.0
     dev: true
 
   /@nx/devkit@16.2.2(nx@16.2.2):
@@ -3914,7 +3942,7 @@ packages:
       nx: 16.2.2
       semver: 7.3.4
       tmp: 0.2.1
-      tslib: 2.5.3
+      tslib: 2.6.0
     dev: true
 
   /@nx/esbuild@16.2.2(esbuild@0.18.11)(nx@16.2.1)(typescript@5.1.3):
@@ -4895,7 +4923,7 @@ packages:
   /@swc/helpers@0.5.1:
     resolution: {integrity: sha512-sJ902EfIzn1Fa+qYmjdQqh8tPsoxyBz+8yBKC2HKUxyezKJFwPGOn7pv4WY6QuQW//ySQi5lJjA/ZT9sNWWNTg==}
     dependencies:
-      tslib: 2.5.3
+      tslib: 2.6.0
     dev: true
 
   /@testing-library/dom@8.20.0:
@@ -7201,6 +7229,10 @@ packages:
 
   /csv-parse@4.16.3:
     resolution: {integrity: sha512-cO1I/zmz4w2dcKHVvpCr7JVRu8/FymG5OEpmvsZYlccYolPBLoVGKUHgNoc4ZGkFeFlWGEDmMyBM+TTqRdW/wg==}
+    dev: true
+
+  /csv-parse@5.4.0:
+    resolution: {integrity: sha512-JiQosUWiOFgp4hQn0an+SBoV9IKdqzhROM0iiN4LB7UpfJBlsSJlWl9nq4zGgxgMAzHJ6V4t29VAVD+3+2NJAg==}
     dev: true
 
   /cypress@12.17.1:
@@ -10546,6 +10578,12 @@ packages:
     resolution: {integrity: sha512-ySViT69/76t8VhE1xXHK6Ch4NcDd26gx0MzKXLO+F7NOtnqH68d9zF94nT8ZWSxXh8ELOERsnJO/sWt1xZYw5A==}
     dev: false
 
+  /moment-timezone@0.5.43:
+    resolution: {integrity: sha512-72j3aNyuIsDxdF1i7CEgV2FfxM1r6aaqJyLB2vwb33mXYyoyLly+F1zbWqhA3/bVIoJ4szlUoMbUnVdid32NUQ==}
+    dependencies:
+      moment: 2.29.4
+    dev: true
+
   /moment@2.29.4:
     resolution: {integrity: sha512-5LC9SOxjSc2HF6vO2CyuTDNivEdoz2IvyJJGj6X8DJ0eFyfszE0QiEd+iXmBvUP3WHxSjFH/vIsA0EN00cgr8w==}
     dev: true
@@ -11882,6 +11920,11 @@ packages:
       sisteransi: 1.0.5
     dev: true
 
+  /properties-file@2.2.4:
+    resolution: {integrity: sha512-+DOHK/QgbEeyu96G5MB1Sc1dfdPr/E5dpD6BexTn0XYVLn6VZhfYmWQRaz7sMjrj4nEdIaWX+tYaDboEnk50GQ==}
+    engines: {node: ^14.18.1 || >=16.0.0}
+    dev: true
+
   /proto3-json-serializer@1.1.1:
     resolution: {integrity: sha512-AwAuY4g9nxx0u52DnSMkqqgyLHaW/XaPLtaAo3y/ZCfeaQB/g4YDH4kb8Wc/mWzWvu0YjOznVnfn373MVZZrgw==}
     engines: {node: '>=12.0.0'}
@@ -12469,6 +12512,14 @@ packages:
 
   /semver@7.5.0:
     resolution: {integrity: sha512-+XC0AD/R7Q2mPSRuy2Id0+CGTZ98+8f+KvwirxOKIEyid+XSx6HbC63p+O4IndTHuX5Z+JxQ0TghCkO5Cg/2HA==}
+    engines: {node: '>=10'}
+    hasBin: true
+    dependencies:
+      lru-cache: 6.0.0
+    dev: true
+
+  /semver@7.5.1:
+    resolution: {integrity: sha512-Wvss5ivl8TMRZXXESstBA4uR5iXgEN/VC5/sOcuXdVLzcdkz4HWetIoRfG5gb5X+ij/G9rw9YoGn3QoQ8OCSpw==}
     engines: {node: '>=10'}
     hasBin: true
     dependencies:
