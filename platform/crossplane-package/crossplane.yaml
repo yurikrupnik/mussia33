@@ -27,7 +27,6 @@ metadata:
 #    friendly-kind-name.meta.crossplane.io/eks.multik8s.platformref.crossplane.io: EKS Cluster
 #    friendly-kind-name.meta.crossplane.io/gke.multik8s.platformref.crossplane.io: GKE Cluster
 
-    # TODO(negz): Remove these older style annotations once annotation consumers
     # have had a chance to update.
     company: Krupnik
     maintainer: Yuri Krupnik <krupnik.yuri@gmail.com>
