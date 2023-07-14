@@ -1,0 +1,158 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: aws.compositenetworks.multicloud.platformref.yurikrupnik.com
+  labels:
+    provider: AWS
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+    kind: CompositeNetwork
+  resources:
+    - base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: VPC
+        spec:
+          forProvider:
+            region: us-west-2
+            cidrBlock: 192.168.0.0/16
+            enableDnsSupport: true
+            enableDnsHostNames: true
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multicloud.platformref.yurikrupnik.com/network-id]
+    - base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: InternetGateway
+        spec:
+          forProvider:
+            region: us-west-2
+            vpcIdSelector:
+              matchControllerRef: true
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multicloud.platformref.yurikrupnik.com/network-id]
+    - base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: Subnet
+        metadata:
+          labels:
+            zone: us-west-2a
+            access: public
+        spec:
+          forProvider:
+            region: us-west-2
+            mapPublicIPOnLaunch: true
+            cidrBlock: 192.168.0.0/18
+            vpcIdSelector:
+              matchControllerRef: true
+            availabilityZone: us-west-2a
+            tags:
+              kubernetes.io/role/elb: "1"
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multicloud.platformref.yurikrupnik.com/network-id]
+    - base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: Subnet
+        metadata:
+          labels:
+            zone: us-west-2b
+            access: public
+        spec:
+          forProvider:
+            region: us-west-2
+            mapPublicIPOnLaunch: true
+            cidrBlock: 192.168.64.0/18
+            vpcIdSelector:
+              matchControllerRef: true
+            availabilityZone: us-west-2b
+            tags:
+              kubernetes.io/role/elb: "1"
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multicloud.platformref.yurikrupnik.com/network-id]
+    - base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: Subnet
+        metadata:
+          labels:
+            zone: us-west-2a
+            access: private
+        spec:
+          forProvider:
+            region: us-west-2
+            cidrBlock: 192.168.128.0/18
+            vpcIdSelector:
+              matchControllerRef: true
+            availabilityZone: us-west-2a
+            tags:
+              kubernetes.io/role/elb: "1"
+              shared: ""
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multicloud.platformref.yurikrupnik.com/network-id]
+        - fromFieldPath: spec.clusterRef.id
+          toFieldPath: spec.forProvider.tags[kubernetes.io/role/elb]
+          transforms:
+            - type: string
+              string:
+                fmt: "kubernetes.io/cluster/%s"
+    - base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: Subnet
+        metadata:
+          labels:
+            zone: us-west-2b
+            access: private
+        spec:
+          forProvider:
+            region: us-west-2
+            cidrBlock: 192.168.192.0/18
+            vpcIdSelector:
+              matchControllerRef: true
+            availabilityZone: us-west-2b
+            tags:
+              kubernetes.io/role/elb: "1"
+              shared: ""
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multicloud.platformref.yurikrupnik.com/network-id]
+        - fromFieldPath: spec.clusterRef.id
+          toFieldPath: spec.forProvider.tags[kubernetes.io/role/elb]
+          transforms:
+            - type: string
+              string:
+                fmt: "kubernetes.io/cluster/%s"
+    - base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: RouteTable
+        spec:
+          forProvider:
+            region: us-west-2
+            vpcIdSelector:
+              matchControllerRef: true
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multicloud.platformref.yurikrupnik.com/network-id]
+    - base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: SecurityGroup
+        spec:
+          forProvider:
+            region: us-west-2
+            vpcIdSelector:
+              matchControllerRef: true
+            groupName: multik8s-cluster
+            description: Allow access to PostgreSQL
+            ingress:
+              - fromPort: 5432
+                toPort: 5432
+                ipProtocol: tcp
+                ipRanges:
+                  - cidrIp: 0.0.0.0/0
+                    description: Everywhere
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multicloud.platformref.yurikrupnik.com/network-id]

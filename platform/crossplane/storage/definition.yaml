@@ -1,12 +1,15 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: CompositeResourceDefinition
 metadata:
-  name: xtopicbuckets.custom-api.example.org
+  name: compositestorages.multicloud.platformref.yurikrupnik.com
 spec:
-  group: custom-api.example.org
+  claimNames:
+    kind: Storage
+    plural: storages
+  group: multicloud.platformref.yurikrupnik.com
   names:
-    kind: XTopicBucket
-    plural: xtopicbuckets
+    kind: CompositeStorage
+    plural: compositestorages
   versions:
     - name: v1alpha1
       served: true
@@ -20,11 +23,6 @@ spec:
               properties:
                 location:
                   type: string
-                  oneOf:
-                    - pattern: '^EU$'
-                    - pattern: '^US$'
+                  description: Location where the bucket should be created.
               required:
                 - location
-  claimNames:
-    kind: TopicBucket
-    plural: topicbuckets

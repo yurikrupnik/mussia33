@@ -10,23 +10,18 @@ tasks:
     cmds:
       - echo "{{.GREETING}}"
       - up xpkg build --ignore "examples/*"
-      - up xpkg build --ignore "examples/*"
     silent: true
   setup:
     dir: platform/crossplane
     cmds:
        - task: install
-       - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
-       - kubectl get pods -n crossplane-system
-       - kubectl get deployments -n crossplane-system
        - task: create-secret
        - task: create-gcp-provider
        - task: create-resources
   install:
     dir: platform/crossplane
     cmds:
-#      - up uxp install -n upbound-test
-
+#      - up uxp install
       - helm repo add crossplane-stable https://charts.crossplane.io/stable && helm repo update
       - helm install crossplane --namespace crossplane-system --create-namespace crossplane-stable/crossplane
       - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
@@ -40,22 +35,29 @@ tasks:
     dir: platform/crossplane
     cmds:
       - kubectl apply -f gcpProvider.yaml
-      - kubectl wait "providers.pkg.crossplane.io/provider-gcp" --for=condition=Installed --timeout=300s
-      - kubectl wait "providers.pkg.crossplane.io/provider-gcp" --for=condition=Healthy --timeout=300s
-      - kubectl wait "providers.pkg.crossplane.io/provider-aws" --for=condition=Installed --timeout=300s
-      - kubectl wait "providers.pkg.crossplane.io/provider-aws" --for=condition=Healthy --timeout=300s
+      - kubectl get providers
+      - sleep 60
+      - kubectl wait "providers.pkg.crossplane.io/provider-gcp" --for=condition=Installed --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-aws" --for=condition=Installed --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-gcp" --for=condition=Healthy --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-aws" --for=condition=Healthy --timeout=600s
       - kubectl get providers
       - kubectl apply -f gcpProviderConfig.yaml
   create-resources:
     dir: platform/crossplane
     cmds:
-      - kubectl apply -f composition.yaml
       - kubectl apply -f compositeResourceDefinition.yaml
-#      - kubectl apply -f gcpBucket.yaml
-#      - kubectl apply -f gcpTopic.yaml
+      - kubectl apply -f composition.yaml
+      - kubectl apply -f network/definition.yaml
+      - kubectl apply -f network/composition-aws.yaml
+      - kubectl apply -f network/composition-gcp.yaml
+      - kubectl apply -f storage/definition.yaml
+      - kubectl apply -f storage/composition-aws.yaml
+      - kubectl apply -f storage/composition-gcp.yaml
   get-buckets:
     cmds:
       - kubectl get bucket
+      - kubectl get buckets.storage.gcp.upbound.io
   delete-schemas:
     cmds:
       - kubectl delete schema --selector testing.upbound.io/example-name=trigger
@@ -73,6 +75,7 @@ tasks:
       - kubectl get xrd
       - kubectl get composite
       - kubectl get composition
+      - kubectl get managed
       - kubectl get xdatasetwithbucket
   delete-composite:
     cmds:

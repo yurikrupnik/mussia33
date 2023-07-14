@@ -1,0 +1,29 @@
+apiVersion: storage.gcp.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  labels:
+    provider: gcp
+    region: eu
+  name: app1-data-bucket-c839000f
+spec:
+  forProvider:
+    labels:
+      iac: crossplane
+      provider: gcp
+    location: eu
+---
+apiVersion: pubsub.gcp.upbound.io/v1beta1
+kind: Schema
+metadata:
+  name: app1-example-schema-c878d201
+spec:
+  forProvider:
+    definition: '{"type":"record","name":"Avro","fields":[{"name":"StringField","type":"string"},{"name":"FloatField","type":"float"},{"name":"BooleanField","type":"boolean"}]}'
+    type: AVRO
+---
+apiVersion: pubsub.gcp.upbound.io/v1beta1
+kind: Topic
+metadata:
+  name: app1-k8s-topic-c8a2a0a6
+spec:
+  forProvider: {}

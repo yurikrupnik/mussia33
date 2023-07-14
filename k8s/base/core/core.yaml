@@ -1,0 +1,66 @@
+# Managed resource - GCP only!
+apiVersion: storage.gcp.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  annotations:
+    meta.upbound.io/example-id: storage/v1beta1/notification
+  labels:
+    testing.upbound.io/example-name: project-usage-tracking-bucket-1
+  name: project-usage-tracking-bucket-1
+spec:
+  forProvider:
+    location: US
+---
+# Custom resource - GCP only!
+apiVersion: custom-api.example.org/v1alpha1
+kind: TopicBucket
+metadata:
+  name: claimed-topic-with-bucket
+spec:
+  location: EU
+---
+
+# Custom resource - Multi cloud!
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Storage
+metadata:
+  name: storage-gcp
+spec:
+  location: us-west1
+  compositionSelector:
+    matchLabels:
+      provider: GCP
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Storage
+metadata:
+  name: storage-aws
+spec:
+  location: us-west-2
+  compositionSelector:
+    matchLabels:
+      provider: AWS
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Network
+metadata:
+  name: network-gcp
+spec:
+  id: multik8s-network-gcp
+  clusterRef:
+    id: multik8s-cluster-gcp
+  compositionSelector:
+    matchLabels:
+      provider: GCP
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Network
+metadata:
+  name: network-aws
+spec:
+  id: multik8s-network-aws
+  clusterRef:
+    id: multik8s-cluster-aws
+  compositionSelector:
+    matchLabels:
+      provider: AWS

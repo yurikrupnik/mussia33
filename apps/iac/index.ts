@@ -7,13 +7,22 @@ import * as pulumi from "@pulumi/pulumi";
 // import * as k8s from "@pulumi/kubernetes";
 import * as gcp from "@pulumi/gcp";
 // import * as gcp from "@pulumi/datadog";
-import { ServicesResource } from "./src/servicesResource";
-import { NetworkResource } from "./src/network";
-import { ArtifactoryResource } from "./src/artifactory";
-import { GcpFunction } from "./src/gcpFunction";
-import { WorkloadIdentityResource } from "./src/workloadIdentity";
-import { GkeClusterResource } from "./src/cluster";
-import { Providers, Subscriptions } from "../../libs/node/shared/src";
+import {ServicesResource} from "./src/servicesResource";
+import {NetworkResource} from "./src/network";
+import {ArtifactoryResource} from "./src/artifactory";
+import {GcpFunction} from "./src/gcpFunction";
+import {WorkloadIdentityResource} from "./src/workloadIdentity";
+import {Providers, Subscriptions} from "../../libs/node/shared/src";
+// new GkeClusterResource("first-gke-cluster", {
+//   provider: Providers.gcp,
+//
+//   // clusterArgs: {
+//   //   name: "my-cluster-test",
+//   //   project,
+//   //   location: "us-central1"
+//   // }
+// })
+// import * as aws from "@pulumi/aws";
 
 const config = new pulumi.Config("core");
 const nodeCount = config.get("nodeCount");
@@ -52,17 +61,6 @@ const project = gcpConfig.get("project");
 //   // handle: "new@example.com",
 //   name: "New User",
 // })
-
-// new GkeClusterResource("first-gke-cluster", {
-//   provider: Providers.gcp,
-//
-//   // clusterArgs: {
-//   //   name: "my-cluster-test",
-//   //   project,
-//   //   location: "us-central1"
-//   // }
-// })
-import * as slack from "@pulumi/slack";
 
 // Create a new Slack channel
 // const channel = new slack.Conversation("acc-test", {
@@ -202,7 +200,7 @@ const servicesNames = [
 
 const gcpFunctionServices = new ServicesResource("GcpFunctionServices", {
   services: servicesNames,
-  provider: Providers.gcp,
+  provider: Providers.GCP,
 });
 
 const functionsPath = "../../dist/apps/node/";
@@ -232,9 +230,6 @@ const functions: GcpFunction[] = [
 //     parent: gcpFunctionServices.firstService,
 //   });
 // });
-
-// import * as aws from "@pulumi/aws";
-import { Repository, RepositoryArgs } from "@pulumi/aws/ecr";
 //
 // const bucket = new aws.s3.Bucket("bucket", {
 //   acl: "private",
@@ -264,7 +259,7 @@ import { Repository, RepositoryArgs } from "@pulumi/aws/ecr";
 const secretManager = new ServicesResource(
   "secretManagerServices",
   {
-    provider: Providers.gcp,
+    provider: Providers.GCP,
     services: ["secretmanager.googleapis.com"],
   },
   {}
@@ -273,7 +268,7 @@ const secretManager = new ServicesResource(
 const eventarc = new ServicesResource(
   "eventArcServices",
   {
-    provider: Providers.gcp,
+    provider: Providers.GCP,
     services: ["eventarc.googleapis.com"],
   },
   {}
@@ -418,6 +413,7 @@ const artifactRegistry = new gcp.projects.Service(
 const dockerRegistry = new ArtifactoryResource(
   "docker-registry",
   {
+    provider: Providers.GCP,
     repositoryArgs: {
       mode: "STANDARD_REPOSITORY",
       project,
@@ -440,7 +436,7 @@ const mesh = new gcp.projects.Service("mesh.googleapis.com", {
 const computeServices = new ServicesResource(
   "computeServices",
   {
-    provider: Providers.gcp,
+    provider: Providers.GCP,
     services: ["compute.googleapis.com"],
   },
   {}
@@ -458,7 +454,7 @@ new NetworkResource(
 const migrationServices = new ServicesResource(
   "migrationServices",
   {
-    provider: Providers.gcp,
+    provider: Providers.GCP,
     services: ["datamigration.googleapis.com"],
   },
   {}

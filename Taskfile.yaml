@@ -8,7 +8,7 @@ includes:
   kubevela: ./platform/kubevela
   argocd: ./platform/gitops/argocd
   fluxcd: ./platform/gitops/fluxcd
-  compose: ./scripts
+  scripts: ./scripts
   sdp-demo: ./submodules/sdp-demo
 
 vars:
@@ -46,17 +46,18 @@ tasks:
 #      - up ctp attach remote-virtual -a hashheddan | KUBECONFIG=kubeconfig.yaml up uxp connect -
 #     - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
      - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
-     - task: kubevela:install
+#     - task: kubevela:install
 #     - task: argocd:install
 #     - task: argocd:apply
 #     - task: argocd:get-secret
 #     - helm install kubeshark kubeshark/kubeshark
 #     - task: kubevela:install
-     - sleep 60
-     - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
-     - kubectl get pods -n crossplane-system
-     - kubectl get deployments -n crossplane-system
-     - task: tilt:up
+#     - sleep 60
+#     - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
+#     - kubectl get pods -n crossplane-system
+#     - kubectl get deployments -n crossplane-system
+#     - task: tilt:up
+#     - kubectl get crd --output json | cdk8s import /dev/stdin --language typescript
 #     - task: kubevela:apply
 #     - kubectl port-forward -n kubeshark service/kubeshark-hub 8898:80
 #     - kubectl port-forward -n kubeshark service/kubeshark-front 8899:80
