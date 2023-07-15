@@ -19,9 +19,7 @@ imports:
 
 #  - github:crossplane/crossplane-runtime
 #  - github:dapr/dapr
-#  - github:argoproj/argo-cds
 #  - github:argoproj/argo-workflows
 #  - github:argoproj/argo-rollouts
 #  - github:argoproj/argo-events
 #  - github:argoproj/argocd-image-updater
-#  - github:external-secrets/external-secrets

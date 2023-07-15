@@ -1,0 +1,222 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xnetworks.custom-api.example.org
+spec:
+  claimNames:
+    kind: Network
+    plural: xNetworks
+  group: custom-api.example.org
+  names:
+    kind: XNetwork
+    plural: xnetworks
+  versions:
+    - name: v1alpha1
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          properties:
+            spec:
+              properties:
+                location:
+                  oneOf:
+                    - pattern: ^EU$
+                    - pattern: ^US$
+                  type: string
+              type: object
+          type: object
+      served: true
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  labels:
+    provider: GCP
+  name: gcp.networks
+spec:
+  compositeTypeRef:
+    apiVersion: custom-api.example.org/v1alpha1
+    kind: XNetwork
+  resources:
+    - base:
+        apiVersion: storage.gcp.upbound.io/v1beta1
+        kind: Bucket
+        metadata:
+          labels:
+            provider: gcp
+            region: eu
+        spec:
+          forProvider:
+            labels:
+              iac: crossplane
+              module: bigdata
+              provider: gcp
+            location: europe-west1
+      name: crossplane-yuri-network-storage
+      patches:
+        - fromFieldPath: spec.location
+          toFieldPath: spec.forProvider.location
+    - base:
+        apiVersion: compute.gcp.upbound.io/v1beta1
+        kind: Network
+        metadata:
+          name: my-network
+        spec:
+          forProvider:
+            autoCreateSubnetworks: false
+      name: crossplane-yuri-network-vpc
+    - base:
+        apiVersion: compute.gcp.upbound.io/v1beta1
+        kind: Subnetwork
+        metadata: {}
+        spec:
+          forProvider:
+            description: my euro subnet
+            ipCidrRange: 172.16.0.0/16
+            networkSelector:
+              matchControllerRef: true
+            privateIpGoogleAccess: true
+            region: us-west2
+      name: crossplane-yuri-network-subnet
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  labels:
+    provider: AWS
+  name: aws.networks
+spec:
+  compositeTypeRef:
+    apiVersion: custom-api.example.org/v1alpha1
+    kind: XNetwork
+  resources:
+    - base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: VPC
+        spec:
+          forProvider:
+            cidrBlock: 192.168.0.0/16
+            region: us-west-2
+      name: crossplane-yuri-network-storage
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]
+    - base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: InternetGateway
+        metadata:
+          name: my-network
+        spec:
+          forProvider:
+            region: us-west-2
+            vpcIdSelector:
+              matchControllerRef: true
+      name: crossplane-yuri-network-vpc
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]
+    - base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: Subnet
+        metadata:
+          labels:
+            access: public
+            zone: us-west-2a
+        spec:
+          forProvider:
+            availabilityZone: us-west-2a
+            cidrBlock: 192.168.0.0/18
+            mapPublicIpOnLaunch: true
+            region: us-west-2
+            tags:
+              kubernetes.io/role/elb: "1"
+            vpcIdSelector:
+              matchControllerRef: true
+      name: crossplane-yuri-network-subnet
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]
+    - base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: Subnet
+        metadata:
+          labels:
+            access: public
+            zone: us-west-2a
+        spec:
+          forProvider:
+            availabilityZone: us-west-2a
+            cidrBlock: 192.168.128.0/18
+            mapPublicIpOnLaunch: true
+            region: us-west-2
+            tags:
+              kubernetes.io/role/elb: "1"
+            vpcIdSelector:
+              matchControllerRef: true
+      name: crossplane-yuri-network-subnet1
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]
+        - fromFieldPath: spec.clusterRef.id
+          toFieldPath: spec.forProvider.tags[0].key
+          transforms:
+            - string:
+                fmt: kubernetes.io/cluster/%s
+              type: string
+    - base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: Subnet
+        metadata:
+          labels:
+            access: private
+            zone: us-west-2b
+        spec:
+          forProvider:
+            availabilityZone: us-west-2b
+            cidrBlock: 192.168.192.0/18
+            mapPublicIpOnLaunch: true
+            region: us-west-2
+            tags:
+              kubernetes.io/role/elb: "1"
+              shared: ""
+            vpcIdSelector:
+              matchControllerRef: true
+      name: crossplane-yuri-network-subnet2
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]
+        - fromFieldPath: spec.clusterRef.id
+          toFieldPath: spec.forProvider.tags[0].key
+          transforms:
+            - string:
+                fmt: kubernetes.io/cluster/%s
+              type: string
+    - base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: RouteTable
+        spec:
+          forProvider:
+            region: us-west-2
+            vpcIdSelector:
+              matchControllerRef: true
+      name: crossplane-yuri-network-subnet3
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]
+    - base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: SecurityGroup
+        metadata: {}
+        spec:
+          forProvider:
+            description: Allow access to PostgreSQL
+            region: us-west-2
+            vpcIdSelector:
+              matchControllerRef: true
+      name: crossplane-yuri-network-group
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: users
+spec: {}

@@ -12,7 +12,6 @@ import { NetworkResource } from "./src/network";
 import { ArtifactoryResource } from "./src/artifactory";
 import { GcpFunction } from "./src/gcpFunction";
 import { WorkloadIdentityResource } from "./src/workloadIdentity";
-import { GkeClusterResource } from "./src/cluster";
 import { Providers, Subscriptions } from "../../libs/node/shared/src";
 
 const config = new pulumi.Config("core");
@@ -22,6 +21,29 @@ const nodeCount = config.get("nodeCount");
 const gcpConfig = new pulumi.Config("gcp");
 const region = gcpConfig.get("region");
 const project = gcpConfig.get("project");
+
+const sa = new gcp.serviceaccount.Account("secret-puller", {
+  project,
+  accountId: "secret-puller",
+  disabled: false,
+  description: "Secrets Puller service account",
+  displayName: "Secrets Puller",
+});
+
+new gcp.projects.IAMBinding("secret-puller-binding", {
+  project: project,
+  members: [sa.email.apply((email) => `serviceAccount:${email}`)],
+  role: "roles/secretmanager.secretAccessor",
+});
+
+new gcp.projects.IAMBinding("secret-puller-binding-token-creator", {
+  project: project,
+  members: [sa.email.apply((email) => `serviceAccount:${email}`)],
+  role: "roles/iam.serviceAccountTokenCreator",
+});
+
+// run to add
+// gcloud iam service-accounts add-iam-policy-binding secret-puller@mussia-infra.iam.gserviceaccount.com --role roles/iam.workloadIdentityUser --member "serviceAccount:mussia-infra.svc.id.goog[external-secrets/secret-puller]"
 
 // import * as k8s from "@pulumi/kubernetes";
 
@@ -52,17 +74,6 @@ const project = gcpConfig.get("project");
 //   // handle: "new@example.com",
 //   name: "New User",
 // })
-
-// new GkeClusterResource("first-gke-cluster", {
-//   provider: Providers.gcp,
-//
-//   // clusterArgs: {
-//   //   name: "my-cluster-test",
-//   //   project,
-//   //   location: "us-central1"
-//   // }
-// })
-import * as slack from "@pulumi/slack";
 
 // Create a new Slack channel
 // const channel = new slack.Conversation("acc-test", {
@@ -202,7 +213,7 @@ const servicesNames = [
 
 const gcpFunctionServices = new ServicesResource("GcpFunctionServices", {
   services: servicesNames,
-  provider: Providers.gcp,
+  provider: Providers.GCP,
 });
 
 const functionsPath = "../../dist/apps/node/";
@@ -232,9 +243,6 @@ const functions: GcpFunction[] = [
 //     parent: gcpFunctionServices.firstService,
 //   });
 // });
-
-// import * as aws from "@pulumi/aws";
-import { Repository, RepositoryArgs } from "@pulumi/aws/ecr";
 //
 // const bucket = new aws.s3.Bucket("bucket", {
 //   acl: "private",
@@ -264,7 +272,7 @@ import { Repository, RepositoryArgs } from "@pulumi/aws/ecr";
 const secretManager = new ServicesResource(
   "secretManagerServices",
   {
-    provider: Providers.gcp,
+    provider: Providers.GCP,
     services: ["secretmanager.googleapis.com"],
   },
   {}
@@ -273,7 +281,7 @@ const secretManager = new ServicesResource(
 const eventarc = new ServicesResource(
   "eventArcServices",
   {
-    provider: Providers.gcp,
+    provider: Providers.GCP,
     services: ["eventarc.googleapis.com"],
   },
   {}
@@ -412,23 +420,22 @@ const artifactRegistry = new gcp.projects.Service(
   }
 );
 
-// let useast1 = new aws.Provider("useast1", { region: "us-east-1" });
-// let myk8s = new kubernetes.Provider("myk8s", { context: "test-ci" });
-
 const dockerRegistry = new ArtifactoryResource(
   "docker-registry",
   {
     repositoryArgs: {
       mode: "STANDARD_REPOSITORY",
       project,
-      labels: {},
+      labels: {
+        iac: "pulumi",
+      },
       repositoryId: "container-repository",
       location: region,
       format: "DOCKER",
       description: "Example docker repository.",
     },
-  }
-  // { parent: artifactRegistry, dependsOn: [artifactRegistry] }
+  },
+  { parent: artifactRegistry, dependsOn: [artifactRegistry] }
 );
 
 const mesh = new gcp.projects.Service("mesh.googleapis.com", {
@@ -440,7 +447,7 @@ const mesh = new gcp.projects.Service("mesh.googleapis.com", {
 const computeServices = new ServicesResource(
   "computeServices",
   {
-    provider: Providers.gcp,
+    provider: Providers.GCP,
     services: ["compute.googleapis.com"],
   },
   {}
@@ -458,7 +465,7 @@ new NetworkResource(
 const migrationServices = new ServicesResource(
   "migrationServices",
   {
-    provider: Providers.gcp,
+    provider: Providers.GCP,
     services: ["datamigration.googleapis.com"],
   },
   {}
@@ -551,7 +558,6 @@ new gcp.projects.IAMBinding("artifact-registry-reader", {
   role: "roles/artifactregistry.reader",
 });
 
-export const dockerRepo1 = pulumi.interpolate`${region}-docker.pkg.dev/${project}/${dockerRegistry.dockerRepo}`;
 export const dockerRepo = dockerRegistry.dockerRepo;
 export const workloadName = workloadIdentity.workload_identity_provider;
 export const workloadSAEmail = workloadIdentity.saEmail;

@@ -23,15 +23,7 @@ spec:
                   oneOf:
                     - pattern: '^EU$'
                     - pattern: '^US$'
-#                    testing starts here
-#                provider:
-#                  type: string
-#                  oneOf:
-#                    - pattern: '^gcp$'
-#                    - pattern: '^aws$'
-#                    testing ends here
               required:
-#                - provider
                 - location
   claimNames:
     kind: TopicBucket

@@ -61,8 +61,10 @@ tasks:
       - ctlptl delete cluster k3d-simulate-dev1
   single-core:up:
     cmds:
-      - ctlptl create cluster minikube
-      - minikube addons enable gcp-auth
+      - kind create cluster
+#      - ctlptl create cluster minikube
+#      - minikube start
+#      - minikube addons enable gcp-auth
   single-core:down:
     cmds:
       - ctlptl delete cluster minikube

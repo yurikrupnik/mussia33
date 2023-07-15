@@ -1,0 +1,24 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: gcp.compositestorages.multicloud.platformref.yurikrupnik.com
+  labels:
+    provider: GCP
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+    kind: CompositeStorage
+  resources:
+    - base:
+        apiVersion: storage.gcp.upbound.io/v1beta1
+        kind: Bucket
+        metadata:
+          name: yuriks-bucket-via-crossplane
+        spec:
+          forProvider:
+            location: US
+      patches:
+        - fromFieldPath: spec.forProvider.location
+          toFieldPath: spec.forProvider.location
+

@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: external-secrets
+  namespace: es
+  annotations:
+    iam.gke.io/gcp-service-account: secret-puller@mussia-infra.iam.gserviceaccount.com
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ClusterSecretStore
+metadata:
+  name: gcp-store
+spec:
+  provider:
+    gcpsm:
+      projectID: mussia-infra
+      auth:
+        workloadIdentity:
+          # name of the cluster region
+          clusterLocation: europe-central2
+          # name of the GKE cluster
+          clusterName: autopilot-cluster-1
+          # projectID of the cluster (if omitted defaults to spec.provider.gcpsm.projectID)
+          #          clusterProjectID: my-cluster-project
+          # reference the sa from above
+          serviceAccountRef:
+            name: external-secrets
+            namespace: es
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: workload-identity-test
+  namespace: es
+spec:
+  containers:
+    - image: google/cloud-sdk:slim
+      name: workload-identity-test
+      command: ["sleep","infinity"]
+  serviceAccountName: external-secrets
+  nodeSelector:
+    iam.gke.io/gke-metadata-server-enabled: "true"
