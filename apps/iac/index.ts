@@ -7,22 +7,12 @@ import * as pulumi from "@pulumi/pulumi";
 // import * as k8s from "@pulumi/kubernetes";
 import * as gcp from "@pulumi/gcp";
 // import * as gcp from "@pulumi/datadog";
-import {ServicesResource} from "./src/servicesResource";
-import {NetworkResource} from "./src/network";
-import {ArtifactoryResource} from "./src/artifactory";
-import {GcpFunction} from "./src/gcpFunction";
-import {WorkloadIdentityResource} from "./src/workloadIdentity";
-import {Providers, Subscriptions} from "../../libs/node/shared/src";
-// new GkeClusterResource("first-gke-cluster", {
-//   provider: Providers.gcp,
-//
-//   // clusterArgs: {
-//   //   name: "my-cluster-test",
-//   //   project,
-//   //   location: "us-central1"
-//   // }
-// })
-// import * as aws from "@pulumi/aws";
+import { ServicesResource } from "./src/servicesResource";
+import { NetworkResource } from "./src/network";
+import { ArtifactoryResource } from "./src/artifactory";
+import { GcpFunction } from "./src/gcpFunction";
+import { WorkloadIdentityResource } from "./src/workloadIdentity";
+import { Providers, Subscriptions } from "../../libs/node/shared/src";
 
 const config = new pulumi.Config("core");
 const nodeCount = config.get("nodeCount");
@@ -31,6 +21,29 @@ const nodeCount = config.get("nodeCount");
 const gcpConfig = new pulumi.Config("gcp");
 const region = gcpConfig.get("region");
 const project = gcpConfig.get("project");
+
+const sa = new gcp.serviceaccount.Account("secret-puller", {
+  project,
+  accountId: "secret-puller",
+  disabled: false,
+  description: "Secrets Puller service account",
+  displayName: "Secrets Puller",
+});
+
+new gcp.projects.IAMBinding("secret-puller-binding", {
+  project: project,
+  members: [sa.email.apply((email) => `serviceAccount:${email}`)],
+  role: "roles/secretmanager.secretAccessor",
+});
+
+new gcp.projects.IAMBinding("secret-puller-binding-token-creator", {
+  project: project,
+  members: [sa.email.apply((email) => `serviceAccount:${email}`)],
+  role: "roles/iam.serviceAccountTokenCreator",
+});
+
+// run to add
+// gcloud iam service-accounts add-iam-policy-binding secret-puller@mussia-infra.iam.gserviceaccount.com --role roles/iam.workloadIdentityUser --member "serviceAccount:mussia-infra.svc.id.goog[external-secrets/secret-puller]"
 
 // import * as k8s from "@pulumi/kubernetes";
 
@@ -407,24 +420,22 @@ const artifactRegistry = new gcp.projects.Service(
   }
 );
 
-// let useast1 = new aws.Provider("useast1", { region: "us-east-1" });
-// let myk8s = new kubernetes.Provider("myk8s", { context: "test-ci" });
-
 const dockerRegistry = new ArtifactoryResource(
   "docker-registry",
   {
-    provider: Providers.GCP,
     repositoryArgs: {
       mode: "STANDARD_REPOSITORY",
       project,
-      labels: {},
+      labels: {
+        iac: "pulumi",
+      },
       repositoryId: "container-repository",
       location: region,
       format: "DOCKER",
       description: "Example docker repository.",
     },
-  }
-  // { parent: artifactRegistry, dependsOn: [artifactRegistry] }
+  },
+  { parent: artifactRegistry, dependsOn: [artifactRegistry] }
 );
 
 const mesh = new gcp.projects.Service("mesh.googleapis.com", {
@@ -547,7 +558,6 @@ new gcp.projects.IAMBinding("artifact-registry-reader", {
   role: "roles/artifactregistry.reader",
 });
 
-export const dockerRepo1 = pulumi.interpolate`${region}-docker.pkg.dev/${project}/${dockerRegistry.dockerRepo}`;
 export const dockerRepo = dockerRegistry.dockerRepo;
 export const workloadName = workloadIdentity.workload_identity_provider;
 export const workloadSAEmail = workloadIdentity.saEmail;
