@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  nx: nrwl/nx@1.5.1
+  nx: nrwl/nx@1.6.1
   go: circleci/go@1.7.3
   node: circleci/node@5.1.0
   pnpm-release-management: rkesters/pnpm-release-management@0.0.1
@@ -34,7 +34,7 @@ jobs:
 #      - run: node --version
   agent:
     docker:
-      - image: denoland/deno:1.10.3
+      - image: denoland/deno:1.35.0
       - image: cimg/rust:1.70.0
       - image: cimg/node:lts-browsers
     parameters:
@@ -49,7 +49,7 @@ jobs:
   main:
     docker:
       - image: cimg/node:lts-browsers
-      - image: denoland/deno:1.10.3
+      - image: denoland/deno:1.35.0
       - image: cimg/rust:1.70.0
     steps:
       - checkout
