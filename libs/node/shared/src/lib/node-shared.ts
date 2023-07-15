@@ -20,6 +20,7 @@ export enum Subscriptions1 {
 
 export enum Topics {
   "user-added",
+  "users-added" = "user-added",
 }
 
 interface PubSubTopics {
@@ -30,6 +31,7 @@ export const topics: PubSubTopics = {
   topic1: ["sub1", "sub2"],
   topic2: ["sub1", "sub2"],
   [Subscriptions.user]: ["added", "removed"],
+  [Topics["users-added"]]: ["added", "removed"],
 };
 
 // export enum Topics {
