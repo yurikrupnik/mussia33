@@ -33,7 +33,7 @@ pub struct Todo {
   /// Unique id for the todo item.
   #[schema(example = 1)]
   id: i32,
-  /// Description of the taks to do.
+  /// Description of the task to do.
   #[schema(example = "Remember to buy groceries")]
   value: String,
   /// Mark is the task done or not
