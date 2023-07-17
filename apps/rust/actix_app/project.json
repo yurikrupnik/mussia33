@@ -59,8 +59,8 @@
       "options": {
         "push": true,
         "file": "./Dockerfile",
-        "target": "rust",
-        "platforms": ["linux/amd64", "linux/arm64"],
+        "target": "alpine",
+        "platforms": ["linux/amd64"],
         "build-args": ["DIST_PATH=dist/target/rust_actix_app/release/rust_actix_app"],
         "metadata": {
           "images": ["yurikrupnik/rust_actix_app", "$REGISTRY/rust_actix_app"],
