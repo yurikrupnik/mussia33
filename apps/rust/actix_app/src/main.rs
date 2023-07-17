@@ -20,6 +20,7 @@ async fn main() -> std::io::Result<()> {
 
   // let openapi = ApiDoc::openapi();
   // let openapi1 = ApiDoc1::openapi();
+  let port = env::var("PORT").unwrap_or("8080".to_string()).parse::<u16>().unwrap();
   let uri = env::var("MONGO_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
   let client = Client::with_uri_str(uri).await.expect("failed to connect");
   let store = web::Data::new(todo::TodoStore::default());
@@ -64,7 +65,7 @@ async fn main() -> std::io::Result<()> {
         ),
       ]))
   })
-    .bind(("0.0.0.0", 8080))?
+    .bind(("0.0.0.0", port))?
     .run()
     .await
 }
