@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 mongodb = "2.6.0"
-serde = "1.0.171"
+serde = "1.0.173"
 async-trait = { version = "0.1.71" }
 futures = "0.3.28"
 utoipa = { version = "3.3.0" }
