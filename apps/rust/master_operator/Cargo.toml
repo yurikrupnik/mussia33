@@ -12,7 +12,7 @@ k8s-openapi = { version = "0.18.0", features = ["v1_25"] }
 kube = { version = "0.83.0", features = ["derive", "runtime"] }
 log = "0.4.19"
 schemars = "0.8.12"
-serde = { version = "1.0.173", features = ["derive"] }
+serde = { version = "1.0.174", features = ["derive"] }
 serde_json = "1.0.103"
 serde_yaml = "0.9.24"
 thiserror = "1.0.43"
