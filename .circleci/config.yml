@@ -34,7 +34,7 @@ jobs:
 #      - run: node --version
   agent:
     docker:
-      - image: denoland/deno:1.35.1
+      - image: denoland/deno:1.35.2
       - image: cimg/rust:1.70.0
       - image: cimg/node:lts-browsers
     parameters:
@@ -49,7 +49,7 @@ jobs:
   main:
     docker:
       - image: cimg/node:lts-browsers
-      - image: denoland/deno:1.35.1
+      - image: denoland/deno:1.35.2
       - image: cimg/rust:1.70.0
     steps:
       - checkout
