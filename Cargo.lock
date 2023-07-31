@@ -1231,6 +1231,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "google-cloud-gax"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8bdaaa4bc036e8318274d1b25f0f2265b3e95418b765fd1ea1c7ef938fd69bd"
+dependencies = [
+ "google-cloud-token",
+ "http",
+ "thiserror",
+ "tokio",
+ "tokio-retry",
+ "tonic 0.9.2",
+ "tower",
+ "tracing",
+]
+
+[[package]]
 name = "google-cloud-googleapis"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1260,7 +1276,7 @@ checksum = "37e003dba63baafcfdf003c9813a6b66077c69a41dcfaee2058ca0d0d3011e68"
 dependencies = [
  "async-channel",
  "async-stream",
- "google-cloud-gax",
+ "google-cloud-gax 0.14.2",
  "google-cloud-googleapis",
  "google-cloud-token",
  "prost-types",
@@ -2005,7 +2021,7 @@ dependencies = [
  "actix-web",
  "futures-util",
  "google-cloud-default",
- "google-cloud-gax",
+ "google-cloud-gax 0.15.0",
  "google-cloud-pubsub",
  "serde",
  "serde_derive",
