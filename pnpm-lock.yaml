@@ -149,8 +149,8 @@ devDependencies:
     specifier: ^16.2.2
     version: 16.5.5(cypress@12.17.1)(eslint@8.44.0)(nx@16.2.1)(typescript@5.1.6)
   '@nx/deno':
-    specifier: 16.2.0
-    version: 16.2.0(nx@16.2.1)(typescript@5.1.6)
+    specifier: 16.4.0
+    version: 16.4.0(nx@16.2.1)(typescript@5.1.6)
   '@nx/esbuild':
     specifier: ^16.2.2
     version: 16.5.5(esbuild@0.18.14)(nx@16.2.1)(typescript@5.1.6)
@@ -2802,10 +2802,10 @@ packages:
       - verdaccio
     dev: true
 
-  /@nrwl/deno@16.2.0(nx@16.2.1)(typescript@5.1.6):
-    resolution: {integrity: sha512-lfAD+zho++wp6MHK1Zf7TP/ZAwJD83h1ohIHROxUFOq8JNaqNFaC1ggdRLuSt5KJhqCTfADUQt+0p2IIkwXwcQ==}
+  /@nrwl/deno@16.4.0(nx@16.2.1)(typescript@5.1.6):
+    resolution: {integrity: sha512-1ie/nOiNmEmoUA4TeaZU59XEaQURmTaFTB2iSurYciEGtLk2oTCCkdJpVnNSdyKbgbAlbUVQXW/OSsXI+B1etQ==}
     dependencies:
-      '@nx/deno': 16.2.0(nx@16.2.1)(typescript@5.1.6)
+      '@nx/deno': 16.4.0(nx@16.2.1)(typescript@5.1.6)
     transitivePeerDependencies:
       - '@babel/traverse'
       - '@swc-node/register'
@@ -3673,10 +3673,10 @@ packages:
       - verdaccio
     dev: true
 
-  /@nx/deno@16.2.0(nx@16.2.1)(typescript@5.1.6):
-    resolution: {integrity: sha512-FLOZbeJ+Tdp/oS9EV0YJoUFyfu/VWRmQHAnoAX2XEBQtqq8PeNwqivsNEmsEVJeLczasFNvheH4HWoVYjKcK2w==}
+  /@nx/deno@16.4.0(nx@16.2.1)(typescript@5.1.6):
+    resolution: {integrity: sha512-AeQFRWGgCq2jfdZMgr4s9mILuQJNi95RH0hfG6RqAQIkkDxjvpdCqpTQiE3vguhgrzHzcTp/y1IzMtnyh0kR1g==}
     dependencies:
-      '@nrwl/deno': 16.2.0(nx@16.2.1)(typescript@5.1.6)
+      '@nrwl/deno': 16.4.0(nx@16.2.1)(typescript@5.1.6)
       '@nx/devkit': 16.5.5(nx@16.2.1)
       '@nx/js': 16.5.5(nx@16.2.1)(typescript@5.1.6)
       chalk: 4.1.2
@@ -5459,7 +5459,7 @@ packages:
       debug: 4.3.4(supports-color@8.1.1)
       globby: 11.1.0
       is-glob: 4.0.3
-      semver: 7.5.3
+      semver: 7.5.4
       tsutils: 3.21.0(typescript@5.1.6)
       typescript: 5.1.6
     transitivePeerDependencies:
@@ -5500,7 +5500,7 @@ packages:
       '@typescript-eslint/typescript-estree': 5.62.0(typescript@5.1.6)
       eslint: 8.44.0
       eslint-scope: 5.1.1
-      semver: 7.5.3
+      semver: 7.5.4
     transitivePeerDependencies:
       - supports-color
       - typescript
@@ -6780,6 +6780,7 @@ packages:
   /cli-spinners@2.9.0:
     resolution: {integrity: sha512-4/aL9X3Wh0yiMQlE+eeRhWP6vclO3QRtw1JHKIT0FFUs5FjpFmESqtMvYZ0+lbzBw900b95mS0hohy+qn2VK/g==}
     engines: {node: '>=6'}
+    requiresBuild: true
 
   /cli-table3@0.6.3:
     resolution: {integrity: sha512-w5Jac5SykAeZJKntOxJCrm63Eg5/4dhMWIcuTbo9rpE+brgaSZo0RuNJZeOyMgsUdhDeojvgyQLmjI+K50ZGyg==}
@@ -6824,6 +6825,7 @@ packages:
   /clone@1.0.4:
     resolution: {integrity: sha512-JQHZ2QMW6l3aH/j6xCqQThY/9OH4D/9ls34cgkUBiEeocRTU04tHfKPBsUK1PqZCUQM7GiA0IIXJSuXHI64Kbg==}
     engines: {node: '>=0.8'}
+    requiresBuild: true
 
   /cluster-key-slot@1.1.2:
     resolution: {integrity: sha512-RMr0FhtfXemyinomL4hrWcYJxmX6deFdCxpJzhDttxgO1+bcCnkk+9drydLVDmAMG7NE6aN/fl4F7ucU/90gAA==}
@@ -7451,6 +7453,7 @@ packages:
 
   /defaults@1.0.4:
     resolution: {integrity: sha512-eFuaLoy/Rxalv2kr+lqMlUnrDWV+3j4pljOIJgLIhI058IQfWJ7vXhyEIHu+HtC738klGALYxOKDO0bQP3tg8A==}
+    requiresBuild: true
     dependencies:
       clone: 1.0.4
 
@@ -9334,6 +9337,7 @@ packages:
   /is-interactive@1.0.0:
     resolution: {integrity: sha512-2HvIEKRoqS62guEC+qBjpvRubdX910WCMuJTZ+I9yvqKU2/12eSL549HMwtabb4oupdj2sMP50k+XJfB/8JE6w==}
     engines: {node: '>=8'}
+    requiresBuild: true
 
   /is-map@2.0.2:
     resolution: {integrity: sha512-cOZFQQozTha1f4MxLFzlgKYPTyj26picdZTx82hbc/Xf4K/tZOOXSCkMvU4pKioRXGDLJRn0GM7Upe7kR721yg==}
@@ -10174,7 +10178,7 @@ packages:
       acorn: 8.10.0
       eslint-visitor-keys: 3.4.2
       espree: 9.6.1
-      semver: 7.5.3
+      semver: 7.5.4
     dev: true
 
   /jsonc-parser@3.2.0:
@@ -14217,6 +14221,7 @@ packages:
 
   /wcwidth@1.0.1:
     resolution: {integrity: sha512-XHPEwS0q6TaxcvG85+8EYkbiCux2XtWG2mkc47Ng2A77BQu9+DqIOJldST4HgPkuea7dvKSj5VgX3P1d4rW8Tg==}
+    requiresBuild: true
     dependencies:
       defaults: 1.0.4
 
