@@ -50,7 +50,7 @@
     "docker": {
       "executor": "@nx-tools/nx-container:build",
       "options": {
-        "push": false,
+        "push": true,
         "file": "./Dockerfile.rust",
         "target": "rust",
         "build-args": ["APP_NAME=rust_actix_app"],
