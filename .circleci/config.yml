@@ -7,7 +7,7 @@ jobs:
       - image: cimg/node:lts-browsers
     steps:
       - checkout
-      - run: npm ci
+      - run: pnpm i
       - nx/set-shas
 
       - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t lint --parallel=3
