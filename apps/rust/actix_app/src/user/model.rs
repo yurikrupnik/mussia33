@@ -1,4 +1,4 @@
-use mongo::serialize_object_id;
+use crate::mongo::serialize_object_id;
 use mongodb::bson::oid::ObjectId;
 use plurals::{Lang, Plural};
 use serde::{Deserialize, Serialize};
@@ -34,16 +34,20 @@ pub struct User {
     id: Id,
     #[schema(default = "Jon")]
     #[validate(length(min = 2))]
-    #[serde(rename = "firstName")]
-    pub first_name: String,
+    // #[serde(rename = "firstName")]
+    pub name: String,
     #[schema(default = "Doe")]
     #[serde(rename = "lastName")]
     pub last_name: String,
     #[schema(default = "job-doe")]
-    pub username: String,
+    pub password: String,
     #[schema(default = "job-doe@test.com")]
     #[validate(email(message = "Must be an email"))]
     pub email: String,
+    #[serde(rename = "tenantId")]
+    pub tenant_id: String,
+    pub provider: String,
+    pub role: String,
 }
 
 impl User {

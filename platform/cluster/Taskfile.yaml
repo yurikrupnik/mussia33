@@ -1,76 +1,38 @@
-# https://taskfile.dev
-
 version: '3'
-
 vars:
-  GREETING: Hello, World!
   CLUSTER_TYPE: kind
-
+  INGRESS_TYPE: ingress
 tasks:
-  default:
-    cmds:
-      - echo from Platform "{{.GREETING}}"
-    silent: true
   kind-local-cluster:up:
-    #    dir: '{{.USER_WORKING_DIR}}'
     desc: Create kind 4 cores local cluster.
-    aliases:
-      - kind:up
-    dir: platform/cluster
     summary: Create Kind Cluster
+    aliases:
+      - create
+    dir: platform/cluster
     preconditions:
       - test -f cluster.yaml
     cmds:
-      - kind create cluster --name simulate-staging1 --config cluster.yaml
-  k3d-local-cluster:up:
-    desc: Create k3d single core local cluster.
-    #    dir: '{{.USER_WORKING_DIR}}'
-    dir: platform
-    summary: |
-      Release your project to github
-
-      It will build your project before starting the release.
-      Please make sure that you have set GITHUB_TOKEN before starting.
-#    preconditions:
-#      - test -f cluster.yaml
-    cmds:
-      - ctlptl create cluster k3d --name=k3d-simulate-dev1 --registry=ctlptl-registry
+#      - ctlptl create cluster kind --registry=ctlptl-registry
+      - kind create cluster --config cluster.yaml
+      - task: ingress
   kind-local-cluster:down:
-    #    dir: '{{.USER_WORKING_DIR}}'
-    desc: Delete kind 4 cores local cluster.
+    desc: Delete Kind Cluster.
+    summary: Delete Kind Cluster.
     aliases:
-      - kind:down
-    dir: platform/cluster
-    summary: Create Kind Cluster
-    preconditions:
-      - test -f cluster.yaml
+      - delete
     cmds:
-      - kind delete cluster --name simulate-staging1
-  k3d-local-cluster:down:
-    desc: Delete k3d single core local cluster.
-    #    dir: '{{.USER_WORKING_DIR}}'
-    dir: platform
-    summary: |
-      Release your project to github
+      - kind delete cluster
 
-      It will build your project before starting the release.
-      Please make sure that you have set GITHUB_TOKEN before starting.
-    #    preconditions:
-    #      - test -f cluster.yaml
+  ingress:
     cmds:
-      - ctlptl delete cluster k3d-simulate-dev1
-  single-core:up:
+      - kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+      - kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
+
+# TODO finish testing
+  apigateway:
     cmds:
-      - kind create cluster
-#      - ctlptl create cluster minikube
-#      - minikube start
-#      - minikube addons enable gcp-auth
-  single-core:down:
+      - kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v0.7.1/standard-install.yaml
+
+  istio:
     cmds:
-      - ctlptl delete cluster minikube
-  multi-core:up:
-    cmds:
-      - k3d cluster create multiserver --servers 3
-  multi-core:down:
-    cmds:
-      - k3d cluster delete multiserver
+      - echo

@@ -2,6 +2,14 @@ upstream ${UPSTREAM_NAME} {
     server ${UPSTREAM_HOST}:${UPSTREAM_PORT};
 }
 
+upstream ${UPSTREAM_NAME_RUST} {
+    server ${UPSTREAM_HOST_RUST}:${UPSTREAM_PORT};
+}
+
+upstream ${UPSTREAM_NAME_GO} {
+    server ${UPSTREAM_HOST_GO}:${UPSTREAM_PORT};
+}
+
 server {
         listen       80;
         listen  [::]:80;
@@ -27,6 +35,14 @@ server {
         location /api {
             proxy_redirect  http://${UPSTREAM_NAME}/  /api/;
             proxy_pass http://${UPSTREAM_NAME};
+        }
+        location /api-r {
+            proxy_redirect  http://${UPSTREAM_NAME_RUST}/  /api/;
+            proxy_pass http://${UPSTREAM_NAME_RUST};
+        }
+        location /api-g {
+            proxy_redirect  http://${UPSTREAM_NAME_GO}/  /api/;
+            proxy_pass http://${UPSTREAM_NAME_GO};
         }
         #error_page  404              /404.html;
 

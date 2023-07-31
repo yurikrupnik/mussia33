@@ -3,7 +3,7 @@ resources:
   - service-account.yaml
   - service.yml
   - deployment.yml
-  # - ingress.yaml
+  - ingress.yaml
 commonLabels:
   demo: web-host
   service: web-host

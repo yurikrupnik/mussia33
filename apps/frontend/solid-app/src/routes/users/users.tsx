@@ -9,6 +9,14 @@ function getUsers() {
   return instance.get<User[]>("/api/users").then((r: any) => r.data);
 }
 
+function getUsersRust() {
+  return instance.get<User[]>("/api-r/users").then((r: any) => r.data);
+}
+
+function getUsersGo() {
+  return instance.get<User[]>("/api-g/users").then((r: any) => r.data);
+}
+
 function getUsersRedis() {
   return instance.get("/api/redis-users").then((r: any) => r.data);
 }
@@ -34,6 +42,14 @@ const Users = () => {
     initialValue: [],
   });
 
+  const [rustData] = createResource(getUsersRust, {
+    initialValue: [],
+  });
+
+  const [goData] = createResource(getUsersGo, {
+    initialValue: [],
+  });
+
   const deleteItem = (id: string) => {
     deleteUser(id).then(() => {
       refetch();
@@ -49,7 +65,35 @@ const Users = () => {
         Toggled <strong>{state.context.count}</strong> times
       </code>
       <div>
-        data here
+        <h1>Rust data</h1>
+        <For each={rustData()}>
+          {(item: any) => {
+            return (
+              <div class="flex items-stretch">
+                <div class="py-6 w-full">{item.name}</div>
+                <div class="py-6 w-full">{item.email}</div>
+                <div class="py-6 w-full">
+                  <button onclick={() => deleteItem(item._id)}>Delete</button>
+                </div>
+              </div>
+            );
+          }}
+        </For>
+        <h1>Go data</h1>
+        <For each={goData()}>
+          {(item: any) => {
+            return (
+              <div class="flex items-stretch">
+                <div class="py-6 w-full">{item.name}</div>
+                <div class="py-6 w-full">{item.email}</div>
+                <div class="py-6 w-full">
+                  <button onclick={() => deleteItem(item._id)}>Delete</button>
+                </div>
+              </div>
+            );
+          }}
+        </For>
+        <h1>Node data</h1>
         <For each={data()}>
           {(item: any) => {
             return (

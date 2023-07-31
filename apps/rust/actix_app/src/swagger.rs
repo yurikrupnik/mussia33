@@ -3,7 +3,7 @@ use actix_web::{
     HttpResponse,
 };
 use futures::future::LocalBoxFuture;
-use mongo::ErrorResponse;
+use crate::mongo::ErrorResponse;
 use std::future::{self, Ready};
 use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},

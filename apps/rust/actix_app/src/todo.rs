@@ -4,7 +4,7 @@ use actix_web::{
   web::{Data, Json, Path, Query, ServiceConfig},
   HttpResponse, Responder,
 };
-use mongo::ErrorResponse;
+use crate::mongo::ErrorResponse;
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use utoipa::{IntoParams, ToSchema};

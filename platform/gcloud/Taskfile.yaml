@@ -3,10 +3,28 @@
 version: '3'
 
 vars:
-  GREETING: Hello, World!
+  #  ACCOUNT: krupnik.yuri@gmail.com
+  #  PROJECT: mussia-infra
+  PROJECT: yuri-sandbox
+  ACCOUNT: yurik@sela.co.il
 
 tasks:
-  default:
-    cmds:
-      - echo "{{.GREETING}}"
+  set-gcp:
+    aliases:
+      - config
+    summary: |
+      Set gcloud account and project
     silent: true
+    desc: |
+      Set gcloud account and project
+    cmds:
+      - gcloud config set account {{.ACCOUNT}}
+      - gcloud config set project {{.PROJECT}}
+      - gcloud auth list
+      - gcloud config list
+  get-identity:
+    cmds:
+      - gcloud auth print-identity-token
+  get-access:
+    cmds:
+      - gcloud auth print-access-token

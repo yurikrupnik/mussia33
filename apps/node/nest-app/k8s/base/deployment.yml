@@ -2,10 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: node-nest-app
-#  namespace: mussia30
   labels:
     app: node-nest-app
-    version: v1
 spec:
   replicas: 1
 
@@ -14,15 +12,13 @@ spec:
       name: node-nest-app
       labels:
         app: node-nest-app
-        version: v1
       annotations:
         "linkerd.io/inject": "enabled"
-        "consul.hashicorp.com/connect-inject": "true"
-        "consul.hashicorp.com/connect-service": "node-nest-app"
-        "consul.hashicorp.com/connect-service-protocol": "http"
-        "consul.hashicorp.com/service-meta-version": "v.1.1"
         "prometheus.io/scrape": "true"
-        "prometheus.io/port": "9102"
+        "prometheus.io/port": "8080"
+#        "prometheus.io/port": "9090"
+#        "prometheus.io/port": "9091"
+#        "prometheus.io/port": "9100"
     spec:
       serviceAccountName: node-nest-app
       restartPolicy: Always
@@ -30,6 +26,13 @@ spec:
         - name: node-nest-app
           image: yurikrupnik/node-nest-app:latest
           imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "500m"
+            limits:
+              memory: "256Mi"
+              cpu: "1000m"
           env:
             - name: GRPC_TRACE
               value: "all"
@@ -60,4 +63,3 @@ spec:
   selector:
     matchLabels:
       app: node-nest-app
-      version: v1

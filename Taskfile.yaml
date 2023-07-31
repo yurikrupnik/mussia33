@@ -6,6 +6,7 @@ includes:
   cluster: ./platform/cluster
   crossplane: ./platform/crossplane
   kubevela: ./platform/kubevela
+  gcloud: ./platform/gcloud
   argocd: ./platform/gitops/argocd
   fluxcd: ./platform/gitops/fluxcd
   scripts: ./scripts
@@ -21,7 +22,8 @@ tasks:
     silent: true
   wrk:
     cmds:
-      - wrk -t8 -c256 -d30s http://127.0.0.1:8082/api/users
+      - wrk -t8 -c256 -d30s http://127.0.0.1:5201/api/users
+      - wrk -t8 -c256 -d30s http://127.0.0.1:5301/api/users
 
   tilt:up:
     cmds:
@@ -39,13 +41,17 @@ tasks:
       - kubectl create secret docker-registry my-registry-secret --docker-server=europe-central2-docker.pkg.dev --docker-username=_json_key --docker-password="$(cat mussia-infra-a6504e8e275d.json)" --docker-email=container-puller-sa@mussia-infra.iam.gserviceaccount.com
   start:
     deps:
-      - cluster:single-core:up
+      - cluster:kind-local-cluster:up
     cmds:
 #     - up uxp install
-     - task: crossplane:setup
+#     - task: crossplane:setup
 #      - up ctp attach remote-virtual -a hashheddan | KUBECONFIG=kubeconfig.yaml up uxp connect -
 #     - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
-     - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
+#     - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
+#     - kind create cluster --config=platform/cluster/cluster.yaml # cluster with ingress
+     - helm install my-cadvisor ckotzbauer/cadvisor
+     - helm install prometheus-release prometheus-community/kube-prometheus-stack
+     - kubectl get secret my-release-grafana-admin --namespace default -o jsonpath="{.data.GF_SECURITY_ADMIN_PASSWORD}" | base64 -d
 #     - task: kubevela:install
 #     - task: argocd:install
 #     - task: argocd:apply
@@ -56,14 +62,13 @@ tasks:
 #     - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
 #     - kubectl get pods -n crossplane-system
 #     - kubectl get deployments -n crossplane-system
-#     - task: tilt:up
 #     - kubectl get crd --output json | cdk8s import /dev/stdin --language typescript
 #     - task: kubevela:apply
 #     - kubectl port-forward -n kubeshark service/kubeshark-hub 8898:80
 #     - kubectl port-forward -n kubeshark service/kubeshark-front 8899:80
 #     - kubectl schemahero install
 #     - argocd app sync previews
-#     - task: tilt:up
+     - task: tilt:up
 
 #      - kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.44.0/release.yaml
 #      - kubectl apply --filename https://github.com/shipwright-io/build/releases/download/v0.11.0/release.yaml
@@ -79,4 +84,6 @@ tasks:
   stop:
     deps:
       - task: tilt:down
-      - cluster:single-core:down
+    cmds:
+      - task: cluster:delete
+#      - task: cluster:kind-local-cluster:down

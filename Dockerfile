@@ -1,32 +1,7 @@
 
-FROM docker.io/node:lts-alpine as node-deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat
-#RUN test -n "$DIST_PATH" || (echo "DIST_PATH not set" && false)
-WORKDIR /usr/src/app
-COPY ./$DIST_PATH/package*.json .
-RUN npm install --only=production
-
-# Production image, copy all the files and run nest
-FROM docker.io/node:lts-alpine as node-new
-RUN apk add --no-cache dumb-init
-ENV NODE_ENV production
-ENV PORT 8080
-#RUN test -n "$DIST_PATH" || (echo "DIST_PATH not set" && false)
-WORKDIR /usr/src/app
-COPY --from=node-deps /usr/src/app/node_modules ./node_modules
-COPY --from=node-deps /usr/src/app/package.json ./package.json
-COPY ./$DIST_PATH .
-RUN chown -R node:node .
-USER node
-EXPOSE ${PORT}
-CMD ["dumb-init", "node", "main.js"]
-
-
 # Done!
 FROM docker.io/node:lts-alpine AS node
 WORKDIR /app
-#COPY _proto ./app
 ARG DIST_PATH
 RUN test -n "$DIST_PATH" || (echo "DIST_PATH not set" && false)
 ENV NODE_ENV=$NODE_ENV
@@ -52,8 +27,6 @@ CMD ["nginx", "-g", "daemon off;"]
 FROM scratch AS scratch
 WORKDIR /
 ARG DIST_PATH
-RUN test -n "$DIST_PATH" || (echo "DIST_PATH not set" && false)
-ARG ENTRY_NAME=app
 ENV PORT=8080
 COPY $DIST_PATH ./app
 EXPOSE ${PORT}
@@ -80,11 +53,20 @@ ENV PORT=8080
 EXPOSE ${PORT}
 CMD ["run", "--allow-net", "--allow-env", "main.js"]
 
-FROM debian:buster-slim AS rust
-WORKDIR /
-ARG DIST_PATH
-RUN test -n "$DIST_PATH" || (echo "DIST_PATH not set" && false)
-COPY $DIST_PATH /bin/app
-ENV PORT=8080
-EXPOSE ${PORT}
-CMD app
+# TODO check why this way it's 10.9GB vs 21.9MB
+#FROM messense/rust-musl-cross:x86_64-musl AS builder
+#WORKDIR /
+#ARG APP_NAME
+#COPY ./Cargo.toml .
+#COPY ./Cargo.lock .
+#COPY ./nx.json .
+#COPY ./apps/rust ./apps/rust
+#COPY ./libs/rust ./libs/rust
+#RUN cargo build --release -p $APP_NAME --target x86_64-unknown-linux-musl
+#
+#FROM scratch AS rust
+#ARG APP_NAME
+#COPY --from=builder /target/x86_64-unknown-linux-musl/release/$APP_NAME  /app
+#ENV PORT=8080
+#EXPOSE ${PORT}
+#ENTRYPOINT ["/app"]

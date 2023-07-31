@@ -17,12 +17,7 @@ spec:
         version: v1
       annotations:
         "linkerd.io/inject": "enabled"
-        "consul.hashicorp.com/connect-inject": "true"
-        "consul.hashicorp.com/connect-service": "frontend-solid-app"
-        "consul.hashicorp.com/connect-service-protocol": "http"
-        "consul.hashicorp.com/service-meta-version": "v.1.1"
         "prometheus.io/scrape": "true"
-        "prometheus.io/port": "9102"
     spec:
       serviceAccountName: frontend-solid-app
       containers:
@@ -34,6 +29,13 @@ spec:
           image: yurikrupnik/frontend-solid-app:latest
 #          image: nginx:latest
           imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
           volumeMounts:
 #            #            - mountPath: /etc/nginx/conf.d
             - mountPath: /etc/nginx/templates
@@ -44,6 +46,7 @@ spec:
                 configMapKeyRef:
                   key: upstream_host
                   name: proxy-envs
+#                  name: proxy-envs-rust
             - name: UPSTREAM_PORT
               valueFrom:
                 configMapKeyRef:
@@ -54,7 +57,29 @@ spec:
                 configMapKeyRef:
                   key: upstream_name
                   name: proxy-envs
-
+#                  name: proxy-envs-rust
+# rust
+            - name: UPSTREAM_HOST_RUST
+              valueFrom:
+                configMapKeyRef:
+                  key: upstream_host
+                  name: proxy-envs-rust
+            - name: UPSTREAM_NAME_RUST
+              valueFrom:
+                configMapKeyRef:
+                  key: upstream_name
+                  name: proxy-envs-rust
+# go
+            - name: UPSTREAM_HOST_GO
+              valueFrom:
+                configMapKeyRef:
+                  key: upstream_host
+                  name: proxy-envs-go
+            - name: UPSTREAM_NAME_GO
+              valueFrom:
+                configMapKeyRef:
+                  key: upstream_name
+                  name: proxy-envs-go
 
       restartPolicy: Always
       volumes:
@@ -64,6 +89,12 @@ spec:
         - name: proxy-envs
           configMap:
             name: proxy-envs
+        - name: proxy-envs-rust
+          configMap:
+            name: proxy-envs-rust
+        - name: proxy-envs-go
+          configMap:
+            name: proxy-envs-go
   selector:
     matchLabels:
       app: frontend-solid-app

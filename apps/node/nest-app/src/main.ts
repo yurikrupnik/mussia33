@@ -1,3 +1,4 @@
+import { register, collectDefaultMetrics, Registry } from "prom-client";
 import { VersioningType, ValidationPipe, Logger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import helmet from "helmet";
@@ -11,6 +12,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
   });
+  // Register Prometheus metrics
+  // const collectDefaultMetrics = collectDefaultMetrics;
+  // const register = new Registry();
+  collectDefaultMetrics({});
   // start custom config here
   const globalPrefix = "api";
   const configService = app.get(ConfigService);
@@ -19,7 +24,7 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
-    })
+    }),
   );
   app.enableVersioning({
     type: VersioningType.URI,
@@ -46,7 +51,7 @@ async function bootstrap() {
 
   await app.listen(port, () => {
     logger.log(
-      `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`
+      `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`,
     );
   });
 }

@@ -1,0 +1,26 @@
+local_resource(
+  'build-fiber-app',
+  dir="../../..",
+  cmd='pnpm nx run go-fiber-app:build',
+  deps=['.', '../../../libs/go'],
+  resource_deps=["pnpm"],
+  ignore=["k8s"],
+  env={"GOOS":"linux","GOARCH":"amd64"},
+  labels=["pnpm"],
+)
+# scratch does not work with mongo! remote!
+docker_build(
+  "yurikrupnik/fiber-app",
+  "../../..",
+  target="alpine",
+  build_args={"DIST_PATH":"dist/apps/go/fiber-app"},
+  only=["dist/apps/go/fiber-app"],
+  # live_update=[
+  #   sync('./dist/apps/users/api', '/app'),
+  #   # sync('../../../dist/apps/users/api', '/app')
+  # ],
+)
+
+k8s_yaml(kustomize('k8s/base'))
+
+k8s_resource("fiber-app", port_forwards="5001:8080")

@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: master-operator
+  labels:
+    app: master-operator
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: master-operator
+      labels:
+        app: master-operator
+        version: v1
+      annotations:
+        "prometheus.io/scrape": "true"
+        "prometheus.io/port": "9102"
+    spec:
+      serviceAccountName: master-operator
+      restartPolicy: Always
+      containers:
+        - name: master-operator
+          image: yurikrupnik/master-operator:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          env:
+            - name: MONGO_URI
+              value: "mongodb://host.docker.internal"
+  selector:
+    matchLabels:
+      app: master-operator

@@ -1,4 +1,12 @@
 # run locally - not docker
-local_resource('cargo-watch', cmd='cargo run', deps=['.'], labels=['cargo'])
+# local_resource('cargo-watch', cmd='cargo run', deps=['.'], labels=['cargo'])
 
 # TODO: docker run locally - build  image locally
+
+
+docker_build(
+  "yurikrupnik/master-operator",
+  ".",
+)
+
+k8s_yaml(kustomize('k8s/base'))

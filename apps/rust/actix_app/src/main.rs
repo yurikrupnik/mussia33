@@ -2,15 +2,21 @@ mod product;
 mod swagger;
 mod todo;
 mod user;
+mod mongo; // only for docker local
 
 use actix_cors::Cors;
-use actix_web::{middleware::Logger, web, App, HttpServer};
+use actix_web::{middleware::Logger, web, App, HttpServer, HttpResponse};
 use env_logger::Env;
 use mongodb::Client;
 use std::env;
 use swagger::{ApiDoc, ApiDoc1};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::{SwaggerUi, Url};
+
+async fn get_status() -> HttpResponse {
+  HttpResponse::Ok()
+    .body("data")
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -31,12 +37,13 @@ async fn main() -> std::io::Result<()> {
     let cors = Cors::default()
       // .allowed_origin("http://localhost:5173")
       .allowed_origin_fn(|origin, _req_head| {
-        print!("origin {}, url {}", origin.is_empty(), _req_head.uri);
+        print!("origin!! {}, url!! {}", origin.is_empty(), _req_head.uri);
         true
       })
       .allowed_methods(vec!["GET", "POST", "DELETE", "PUT"])
       .max_age(3600);
     App::new()
+      .route("/status", web::get().to(get_status))
       .service(
         web::scope("/api")
           .app_data(client_data.clone())

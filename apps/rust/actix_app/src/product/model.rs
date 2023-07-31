@@ -1,4 +1,4 @@
-use mongo::serialize_object_id;
+use crate::mongo::serialize_object_id;
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
