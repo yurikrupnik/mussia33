@@ -1,10 +1,13 @@
 version: 2.1
 orbs:
   nx: nrwl/nx@1.5.1
+  go: circleci/go@1.7.3
+  rust: circleci/rust@1.6.0
 jobs:
   main:
     docker:
       - image: cimg/node:lts-browsers
+      - image: denoland/deno:1.10.3
     steps:
       - checkout
       - run: pnpm i
