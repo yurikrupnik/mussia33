@@ -6,17 +6,19 @@ orbs:
 jobs:
   main:
     docker:
-      - image: cimg/node:lts-browsers
-      - image: denoland/deno:alpine
+#      - image: cimg/node:lts-browsers
+      - image: docker:17.05.0-ce-git
+#      - image: denoland/deno:alpine
     steps:
       - checkout
-      - run: pnpm i
-      - nx/set-shas
-
+      - setup_remote_docker
+#      - run: pnpm i
+#      - nx/set-shas
+      - docker build --target rust . -t first-rust-app1 --build-arg APP_NAME=rust_actix_app
 #      - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t lint --parallel=3
 #      - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t test --parallel=3 --configuration=ci
 #      - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t build --parallel=3
-      - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t docker --parallel=3
+#      - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t docker --parallel=3
 workflows:
   build:
     jobs:
