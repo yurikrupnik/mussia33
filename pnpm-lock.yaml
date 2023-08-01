@@ -130,9 +130,6 @@ devDependencies:
   '@nestjs/testing':
     specifier: 10.1.0
     version: 10.1.0(@nestjs/common@10.1.0)(@nestjs/core@10.1.0)(@nestjs/microservices@10.1.2)(@nestjs/platform-express@10.1.0)
-  '@nrwl/nx-cloud':
-    specifier: 16.0.5
-    version: 16.0.5
   '@nx-extend/pulumi':
     specifier: ^0.1.1
     version: 0.1.2(eslint@8.44.0)(nx@16.2.1)(prettier@3.0.0)(typescript@5.1.6)
@@ -235,6 +232,9 @@ devDependencies:
   nx:
     specifier: 16.2.1
     version: 16.2.1
+  nx-cloud:
+    specifier: 16.0.5
+    version: 16.0.5
   postcss:
     specifier: ^8.4.21
     version: 8.4.27
@@ -6641,6 +6641,7 @@ packages:
     dependencies:
       cdk8s: 2.29.0(constructs@10.2.69)
       constructs: 10.2.69
+      minimatch: 3.1.2
     dev: false
     bundledDependencies:
       - minimatch
@@ -6652,6 +6653,9 @@ packages:
       constructs: ^10
     dependencies:
       constructs: 10.2.69
+      fast-json-patch: 3.1.1
+      follow-redirects: 1.15.2
+      yaml: 2.3.1
     optionalDependencies:
       backport: 8.5.0
     transitivePeerDependencies:
@@ -8268,6 +8272,10 @@ packages:
       glob-parent: 5.1.2
       merge2: 1.4.1
       micromatch: 4.0.5
+
+  /fast-json-patch@3.1.1:
+    resolution: {integrity: sha512-vf6IHUX2SBcA+5/+4883dsIjpBTqmfBjmYiWK1savxQmFk4JfBMLa7ynTYOs1Rolp/T1betJxHiGD3g1Mn8lUQ==}
+    dev: false
 
   /fast-json-stable-stringify@2.1.0:
     resolution: {integrity: sha512-lhd/wF+Lk98HZoTCtlVraHtfh5XYijIjalXck7saUtuanSDyLMxnHhSXEDJqHxD7msR8D0uCmqlkwjCV8xvwHw==}
@@ -14611,7 +14619,6 @@ packages:
   /yaml@2.3.1:
     resolution: {integrity: sha512-2eHWfjaoXgTBC2jNM1LRef62VQa0umtvRiDSk6HSzW7RvS5YtkabJrwYLLEKWBc8a5U2PTSCs+dJjUTJdlHsWQ==}
     engines: {node: '>= 14'}
-    dev: true
 
   /yargs-parser@21.1.1:
     resolution: {integrity: sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==}
