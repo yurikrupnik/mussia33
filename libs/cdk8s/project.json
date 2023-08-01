@@ -6,25 +6,35 @@
   "targets": {
     "build": {
       "executor": "@nx/js:tsc",
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "options": {
         "outputPath": "dist/libs/cdk8s",
         "tsConfig": "libs/cdk8s/tsconfig.lib.json",
         "packageJson": "libs/cdk8s/package.json",
         "main": "libs/cdk8s/src/index.ts",
-        "assets": ["libs/cdk8s/*.md"]
+        "assets": [
+          "libs/cdk8s/*.md"
+        ]
       }
     },
     "lint": {
       "executor": "@nx/linter:eslint",
-      "outputs": ["{options.outputFile}"],
+      "outputs": [
+        "{options.outputFile}"
+      ],
       "options": {
-        "lintFilePatterns": ["libs/cdk8s/**/*.ts"]
+        "lintFilePatterns": [
+          "libs/cdk8s/**/*.ts"
+        ]
       }
     },
     "test": {
       "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "outputs": [
+        "{workspaceRoot}/coverage/{projectRoot}"
+      ],
       "options": {
         "jestConfig": "libs/cdk8s/jest.config.ts",
         "passWithNoTests": true

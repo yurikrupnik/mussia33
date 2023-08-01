@@ -6,7 +6,9 @@
   "targets": {
     "build": {
       "executor": "@nx/deno:emit",
-      "outputs": ["dist/apps/deno/nest-app"],
+      "outputs": [
+        "{workspaceRoot}/dist/apps/deno/nest-app"
+      ],
       "options": {
         "main": "apps/deno/nest-app/src/main.ts",
         "outputFile": "dist/apps/deno/nest-app/main.js",
@@ -22,7 +24,9 @@
     },
     "test": {
       "executor": "@nx/deno:test",
-      "outputs": ["coverage/apps/deno/nest-app"],
+      "outputs": [
+        "{workspaceRoot}/coverage/apps/deno/nest-app"
+      ],
       "options": {
         "coverageDirectory": "coverage/apps/deno/nest-app",
         "denoConfig": "apps/deno/nest-app/deno.json"
@@ -39,7 +43,6 @@
       "dependsOn": [
         {
           "target": "build",
-          "projects": "self",
           "params": "forward"
         }
       ],
@@ -47,10 +50,17 @@
         "push": true,
         "file": "./Dockerfile",
         "target": "deno",
-        "platforms": ["linux/amd64"],
-        "build-args": ["DIST_PATH=dist/apps/deno/nest-app"],
+        "platforms": [
+          "linux/amd64"
+        ],
+        "build-args": [
+          "DIST_PATH=dist/apps/deno/nest-app"
+        ],
         "metadata": {
-          "images": ["yurikrupnik/deno-nest-app", "$REGISTRY/deno-nest-app"],
+          "images": [
+            "yurikrupnik/deno-nest-app",
+            "$REGISTRY/deno-nest-app"
+          ],
           "tags": [
             "type=schedule",
             "type=ref,event=branch",
