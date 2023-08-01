@@ -6,7 +6,9 @@
   "targets": {
     "build": {
       "executor": "@monodon/rust:build",
-      "outputs": ["{options.target-dir}"],
+      "outputs": [
+        "{options.target-dir}"
+      ],
       "options": {
         "target-dir": "dist/target/rust_master_operator"
       },
@@ -18,7 +20,9 @@
     },
     "test": {
       "executor": "@monodon/rust:test",
-      "outputs": ["{options.target-dir}"],
+      "outputs": [
+        "{options.target-dir}"
+      ],
       "options": {
         "target-dir": "dist/target/rust_master_operator"
       },
@@ -30,14 +34,18 @@
     },
     "lint": {
       "executor": "@monodon/rust:lint",
-      "outputs": ["{options.target-dir}"],
+      "outputs": [
+        "{options.target-dir}"
+      ],
       "options": {
         "target-dir": "dist/target/rust_master_operator"
       }
     },
     "run": {
       "executor": "@monodon/rust:run",
-      "outputs": ["{options.target-dir}"],
+      "outputs": [
+        "{options.target-dir}"
+      ],
       "options": {
         "target-dir": "dist/target/rust_master_operator"
       },
@@ -48,5 +56,7 @@
       }
     }
   },
-  "tags": ["monodon"]
+  "tags": [
+    "monodon"
+  ]
 }

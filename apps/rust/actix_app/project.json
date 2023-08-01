@@ -6,7 +6,9 @@
   "targets": {
     "build": {
       "executor": "@monodon/rust:build",
-      "outputs": ["{options.target-dir}"],
+      "outputs": [
+        "{options.target-dir}"
+      ],
       "options": {
         "target-dir": "dist/target/rust_actix_app"
       },
@@ -18,7 +20,9 @@
     },
     "test": {
       "executor": "@monodon/rust:test",
-      "outputs": ["{options.target-dir}"],
+      "outputs": [
+        "{options.target-dir}"
+      ],
       "options": {
         "target-dir": "dist/target/rust_actix_app"
       },
@@ -30,14 +34,18 @@
     },
     "lint": {
       "executor": "@monodon/rust:lint",
-      "outputs": ["{options.target-dir}"],
+      "outputs": [
+        "{options.target-dir}"
+      ],
       "options": {
         "target-dir": "dist/target/rust_actix_app"
       }
     },
     "run": {
       "executor": "@monodon/rust:run",
-      "outputs": ["{options.target-dir}"],
+      "outputs": [
+        "{options.target-dir}"
+      ],
       "options": {
         "target-dir": "dist/target/rust_actix_app"
       },
@@ -53,9 +61,14 @@
         "push": true,
         "file": "./Dockerfile.rust",
         "target": "rust",
-        "build-args": ["APP_NAME=rust_actix_app"],
+        "build-args": [
+          "APP_NAME=rust_actix_app"
+        ],
         "metadata": {
-          "images": ["yurikrupnik/actix-app", "$REGISTRY/actix-app"],
+          "images": [
+            "yurikrupnik/actix-app",
+            "$REGISTRY/actix-app"
+          ],
           "tags": [
             "type=schedule",
             "type=ref,event=branch",
