@@ -4,7 +4,7 @@
   "sourceRoot": "libs/cdk8s/src",
   "projectType": "library",
   "targets": {
-    "build1": {
+    "build": {
       "executor": "@nx/js:tsc",
       "outputs": [
         "{options.outputPath}"
@@ -19,7 +19,7 @@
         ]
       }
     },
-    "lint1": {
+    "lint": {
       "executor": "@nx/linter:eslint",
       "outputs": [
         "{options.outputFile}"
