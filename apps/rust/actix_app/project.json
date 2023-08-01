@@ -50,12 +50,12 @@
     "docker": {
       "executor": "@nx-tools/nx-container:build",
       "options": {
-        "push": false,
+        "push": true,
         "file": "./Dockerfile.rust",
         "target": "rust",
         "build-args": ["APP_NAME=rust_actix_app"],
         "metadata": {
-          "images": ["yurikrupnik/actix-app-core1", "$REGISTRY/actix-app"],
+          "images": ["yurikrupnik/actix-app", "$REGISTRY/actix-app"],
           "tags": [
             "type=schedule",
             "type=ref,event=branch",
