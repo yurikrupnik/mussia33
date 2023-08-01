@@ -1,7 +1,7 @@
 import { App, Chart, ChartProps, Helm } from "cdk8s";
 // import {MyChart}  from './src/deployment';
 import { Construct } from "constructs";
-import { Application, ApplicationV1Beta1 } from "../imports/core.oam.dev";
+// import { Application, ApplicationV1Beta1 } from "../imports/core.oam.dev";
 // import {  } from "../imports/aws.upbound.io";
 // import { Topic, Schema } from "../imports/sql.gcp.upbound.io";
 // import { Topic, Schema } from "../imports/storage.gcp.upbound.io";
@@ -15,7 +15,14 @@ import { Application, ApplicationV1Beta1 } from "../imports/core.oam.dev";
 // when array of imports in tsconfig.base.json, does not show type but works also
 // import { IntOrString } from '@nx-multi-cloud/imports/k8s';
 import { IntOrString } from "../imports/k8s";
-import { ConfigMap, Namespace, ServiceAccount, Pod, Deployment, Container } from "cdk8s-plus-25";
+import {
+  ConfigMap,
+  Namespace,
+  ServiceAccount,
+  Pod,
+  Deployment,
+  Container,
+} from "cdk8s-plus-25";
 // import { doit } from '@nx-multi-cloud/k8s-shit';
 // import { platformCdk8s } from '@mussia30/platform/cdk8s';
 // fails
@@ -25,12 +32,22 @@ import { Topic, Schema } from "../imports/pubsub.gcp.upbound.io";
 // import { Bucket as AWSBucket, BucketProps as AWSBucketProps, BucketSpec as AWSBucketSpec, BucketSpecDeletionPolicy } from "../imports/s3.aws.upbound.io";
 import { Bucket as GCSBucket } from "../imports/storage.gcp.upbound.io";
 import { Network, Subnetwork } from "../imports/compute.gcp.upbound.io";
-import { Vpc, InternetGateway, Subnet, RouteTable, SecurityGroup } from "../imports/ec2.aws.upbound.io";
+import {
+  Vpc,
+  InternetGateway,
+  Subnet,
+  RouteTable,
+  SecurityGroup,
+} from "../imports/ec2.aws.upbound.io";
 // import { Queue } from "../imports/sqs.aws.upbound.io";
 // import { Topic as SNSTopic } from "../imports/sns.aws.upbound.io";
 
 // import { XTopicBucket } from '../imports/custom-api.example.org';
-import {CompositeResourceDefinition, Composition, CompositionSpecResourcesPatchesTransformsType } from '../imports/apiextensions.crossplane.io'
+import {
+  CompositeResourceDefinition,
+  Composition,
+  CompositionSpecResourcesPatchesTransformsType,
+} from "../imports/apiextensions.crossplane.io";
 
 export class MyChart extends Chart {
   constructor(scope: Construct, id: string, props: ChartProps = {}) {
@@ -43,12 +60,12 @@ export class MyChart extends Chart {
         // writeConnectionSecretsToNamespace: 'crossplane-system',
         group: "custom-api.example.org",
         names: {
-          kind: 'XNetwork',
-          plural: 'xnetworks'
+          kind: "XNetwork",
+          plural: "xnetworks",
         },
         claimNames: {
           kind: "Network",
-          plural: "xNetworks"
+          plural: "xNetworks",
         },
 
         versions: [
@@ -58,29 +75,29 @@ export class MyChart extends Chart {
             referenceable: true,
             schema: {
               openApiv3Schema: {
-                type: 'object',
+                type: "object",
                 properties: {
                   spec: {
-                    type: 'object',
+                    type: "object",
                     properties: {
                       location: {
                         type: "string",
                         oneOf: [
                           {
-                            pattern: '^EU$'
+                            pattern: "^EU$",
                           },
                           {
-                            pattern: '^US$'
-                          }
-                        ]
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        ]
+                            pattern: "^US$",
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        ],
       },
     });
 
@@ -107,29 +124,29 @@ export class MyChart extends Chart {
     //   },
     // });
 
-    new Composition(this, 'gcp-network', {
+    new Composition(this, "gcp-network", {
       metadata: {
-        name: 'gcp.networks',
+        name: "gcp.networks",
         labels: {
-          provider: 'GCP'
-        }
+          provider: "GCP",
+        },
       },
       spec: {
         compositeTypeRef: {
-          apiVersion: 'custom-api.example.org/v1alpha1',
-          kind: 'XNetwork'
+          apiVersion: "custom-api.example.org/v1alpha1",
+          kind: "XNetwork",
         },
         resources: [
           {
-            name: 'crossplane-yuri-network-storage',
+            name: "crossplane-yuri-network-storage",
             base: GCSBucket.manifest({
               spec: {
                 forProvider: {
                   location: "europe-west1",
                   labels: {
-                    iac: 'crossplane',
-                    provider: 'gcp',
-                    module: "bigdata"
+                    iac: "crossplane",
+                    provider: "gcp",
+                    module: "bigdata",
                   },
                 },
 
@@ -139,7 +156,7 @@ export class MyChart extends Chart {
               },
               metadata: {
                 labels: {
-                  provider: 'gcp',
+                  provider: "gcp",
                   region: "eu",
                 },
               },
@@ -147,25 +164,25 @@ export class MyChart extends Chart {
             patches: [
               {
                 fromFieldPath: "spec.location",
-                toFieldPath: "spec.forProvider.location"
-              }
-            ]
+                toFieldPath: "spec.forProvider.location",
+              },
+            ],
           },
           {
-            name: 'crossplane-yuri-network-vpc',
+            name: "crossplane-yuri-network-vpc",
             base: Network.manifest({
               metadata: {
-                name: "my-network"
+                name: "my-network",
               },
               spec: {
                 forProvider: {
-                  autoCreateSubnetworks: false
-                }
+                  autoCreateSubnetworks: false,
+                },
               },
             }),
           },
           {
-            name: 'crossplane-yuri-network-subnet',
+            name: "crossplane-yuri-network-subnet",
             base: Subnetwork.manifest({
               metadata: {},
               // reclaimPolicy: 'Delete',
@@ -174,10 +191,10 @@ export class MyChart extends Chart {
                   description: "my euro subnet",
                   region: "us-west2",
                   privateIpGoogleAccess: true,
-                  ipCidrRange: '172.16.0.0/16',
+                  ipCidrRange: "172.16.0.0/16",
                   // network: 'my-first-vpc'
                   networkSelector: {
-                    matchControllerRef: true
+                    matchControllerRef: true,
                   },
                   // secondaryIpRanges: [
                   //   {
@@ -189,30 +206,30 @@ export class MyChart extends Chart {
                   //     ipCidrRange: "10.204.0.0/16"
                   //   }
                   // ],
-                }
+                },
               },
             }),
           },
-        ]
-      }
+        ],
+      },
     });
 
-    new Composition(this, 'aws-network', {
+    new Composition(this, "aws-network", {
       metadata: {
-        name: 'aws.networks',
+        name: "aws.networks",
         labels: {
-          provider: 'AWS'
-        }
+          provider: "AWS",
+        },
       },
       spec: {
         // writeConnectionSecretsToNamespace: "crossplane-system",
         compositeTypeRef: {
-          apiVersion: 'custom-api.example.org/v1alpha1',
-          kind: 'XNetwork'
+          apiVersion: "custom-api.example.org/v1alpha1",
+          kind: "XNetwork",
         },
         resources: [
           {
-            name: 'crossplane-yuri-network-storage',
+            name: "crossplane-yuri-network-storage",
             base: Vpc.manifest({
               spec: {
                 forProvider: {
@@ -226,40 +243,42 @@ export class MyChart extends Chart {
             patches: [
               {
                 fromFieldPath: "spec.id",
-                toFieldPath: "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]"
-              }
-            ]
+                toFieldPath:
+                  "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
+              },
+            ],
           },
           {
-            name: 'crossplane-yuri-network-vpc',
+            name: "crossplane-yuri-network-vpc",
             base: InternetGateway.manifest({
               metadata: {
-                name: "my-network"
+                name: "my-network",
               },
               spec: {
                 forProvider: {
-                  region: 'us-west-2',
+                  region: "us-west-2",
                   vpcIdSelector: {
-                    matchControllerRef: true
-                  }
-                }
+                    matchControllerRef: true,
+                  },
+                },
               },
             }),
             patches: [
               {
                 fromFieldPath: "spec.id",
-                toFieldPath: "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]"
-              }
-            ]
+                toFieldPath:
+                  "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
+              },
+            ],
           },
           {
-            name: 'crossplane-yuri-network-subnet',
+            name: "crossplane-yuri-network-subnet",
             base: Subnet.manifest({
               metadata: {
                 labels: {
-                  zone: 'us-west-2a',
-                  access: 'public'
-                }
+                  zone: "us-west-2a",
+                  access: "public",
+                },
               },
               // reclaimPolicy: 'Delete',
               spec: {
@@ -270,28 +289,29 @@ export class MyChart extends Chart {
                   vpcIdSelector: {
                     matchControllerRef: true,
                   },
-                  availabilityZone: 'us-west-2a',
+                  availabilityZone: "us-west-2a",
                   tags: {
-                    'kubernetes.io/role/elb': '1',
-                  }
-                }
+                    "kubernetes.io/role/elb": "1",
+                  },
+                },
               },
             }),
             patches: [
               {
                 fromFieldPath: "spec.id",
-                toFieldPath: "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]"
-              }
-            ]
+                toFieldPath:
+                  "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
+              },
+            ],
           },
           {
-            name: 'crossplane-yuri-network-subnet1',
+            name: "crossplane-yuri-network-subnet1",
             base: Subnet.manifest({
               metadata: {
                 labels: {
-                  zone: 'us-west-2a',
-                  access: 'public'
-                }
+                  zone: "us-west-2a",
+                  access: "public",
+                },
               },
               // reclaimPolicy: 'Delete',
               spec: {
@@ -302,40 +322,41 @@ export class MyChart extends Chart {
                   vpcIdSelector: {
                     matchControllerRef: true,
                   },
-                  availabilityZone: 'us-west-2a',
+                  availabilityZone: "us-west-2a",
                   tags: {
-                    'kubernetes.io/role/elb': '1',
-                  }
-                }
+                    "kubernetes.io/role/elb": "1",
+                  },
+                },
               },
             }),
             patches: [
               {
                 fromFieldPath: "spec.id",
-                toFieldPath: "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]"
+                toFieldPath:
+                  "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
               },
               {
-                fromFieldPath: 'spec.clusterRef.id',
-                toFieldPath: 'spec.forProvider.tags[0].key',
+                fromFieldPath: "spec.clusterRef.id",
+                toFieldPath: "spec.forProvider.tags[0].key",
                 transforms: [
                   {
                     type: CompositionSpecResourcesPatchesTransformsType.STRING,
                     string: {
-                      fmt: "kubernetes.io/cluster/%s"
-                    }
-                  }
-                ]
-              }
-            ]
+                      fmt: "kubernetes.io/cluster/%s",
+                    },
+                  },
+                ],
+              },
+            ],
           },
           {
-            name: 'crossplane-yuri-network-subnet2',
+            name: "crossplane-yuri-network-subnet2",
             base: Subnet.manifest({
               metadata: {
                 labels: {
-                  zone: 'us-west-2b',
-                  access: 'private'
-                }
+                  zone: "us-west-2b",
+                  access: "private",
+                },
               },
               // reclaimPolicy: 'Delete',
               spec: {
@@ -346,41 +367,42 @@ export class MyChart extends Chart {
                   vpcIdSelector: {
                     matchControllerRef: true,
                   },
-                  availabilityZone: 'us-west-2b',
+                  availabilityZone: "us-west-2b",
                   tags: {
-                    'kubernetes.io/role/elb': '1',
-                    shared: ''
-                  }
-                }
+                    "kubernetes.io/role/elb": "1",
+                    shared: "",
+                  },
+                },
               },
             }),
             patches: [
               {
                 fromFieldPath: "spec.id",
-                toFieldPath: "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]"
+                toFieldPath:
+                  "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
               },
               {
-                fromFieldPath: 'spec.clusterRef.id',
-                toFieldPath: 'spec.forProvider.tags[0].key',
+                fromFieldPath: "spec.clusterRef.id",
+                toFieldPath: "spec.forProvider.tags[0].key",
                 transforms: [
                   {
                     type: CompositionSpecResourcesPatchesTransformsType.STRING,
                     string: {
-                      fmt: "kubernetes.io/cluster/%s"
-                    }
-                  }
-                ]
-              }
-            ]
+                      fmt: "kubernetes.io/cluster/%s",
+                    },
+                  },
+                ],
+              },
+            ],
           },
           {
-            name: 'crossplane-yuri-network-subnet3',
+            name: "crossplane-yuri-network-subnet3",
             base: RouteTable.manifest({
               spec: {
                 forProvider: {
-                  region: 'us-west-2',
+                  region: "us-west-2",
                   vpcIdSelector: {
-                    matchControllerRef: true
+                    matchControllerRef: true,
                   },
                   // routes: {
                   //   destinationCidrBlock: '0.0.0.0/0',
@@ -426,28 +448,27 @@ export class MyChart extends Chart {
                   //     }
                   //   }
                   // ]
-                }
+                },
               },
             }),
             patches: [
               {
                 fromFieldPath: "spec.id",
-                toFieldPath: "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]"
+                toFieldPath:
+                  "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
               },
-            ]
+            ],
           },
           {
-            name: 'crossplane-yuri-network-group',
+            name: "crossplane-yuri-network-group",
             base: SecurityGroup.manifest({
-              metadata: {
-
-              },
+              metadata: {},
               spec: {
                 forProvider: {
-                  region: 'us-west-2',
+                  region: "us-west-2",
                   // name: "my-group1",
                   vpcIdSelector: {
-                    matchControllerRef: true
+                    matchControllerRef: true,
                   },
                   // groupName: "multik8s-cluster",
                   description: "Allow access to PostgreSQL",
@@ -460,13 +481,12 @@ export class MyChart extends Chart {
                   //   }
                   // ]
                 },
-              }
+              },
             }),
-          }
-        ]
-      }
+          },
+        ],
+      },
     });
-
 
     // TODO resolve - ref https://cdk8s.io/docs/latest/basics/helm/
     // new Helm(this, 'redis', {
@@ -494,9 +514,9 @@ export class MyChart extends Chart {
     //   console.log('deploymentApiObject.name', deploymentApiObject.name);
     // }
     // serviceAccount.permissions.
-    const namespace = new Namespace(this, 'namespace', {
+    const namespace = new Namespace(this, "namespace", {
       metadata: {
-        name: 'users',
+        name: "users",
         // namespace: 'users',
         annotations: {},
         labels: {},
@@ -511,13 +531,13 @@ export class SecondChart extends Chart {
   constructor(scope: Construct, id: string, props: ChartProps = {}) {
     super(scope, id, props);
 
-    const b = new GCSBucket(this, 'data-bucket', {
+    const b = new GCSBucket(this, "data-bucket", {
       spec: {
         forProvider: {
           location: "eu",
           labels: {
-            iac: 'crossplane',
-            provider: 'gcp',
+            iac: "crossplane",
+            provider: "gcp",
             // module: "bigdata"
           },
         },
@@ -528,7 +548,7 @@ export class SecondChart extends Chart {
       },
       metadata: {
         labels: {
-          provider: 'gcp',
+          provider: "gcp",
           region: "eu",
         },
       },
@@ -711,7 +731,6 @@ export class SecondChart extends Chart {
     //   },
     // });
 
-
     // const kustomization = new Manifest(this, "my-kustomization");
     // kustomization.synth();
   }
@@ -721,7 +740,7 @@ export class SecondChart extends Chart {
 //   outdir: `${__dirname}/dist-output/`
 // });
 const app1 = new App({});
-new MyChart(app1, 'cdk8s-example', {
+new MyChart(app1, "cdk8s-example", {
   // replicas: 1
   // image: "shit",
   // tag: "latest",
