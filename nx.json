@@ -1,7 +1,6 @@
 {
   "plugins": [
-    "@monodon/rust",
-    "@nx/deno"
+    "@monodon/rust"
   ],
   "npmScope": "mussia33",
   "targetDefaults": {
