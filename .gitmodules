@@ -10,6 +10,3 @@
 [submodule "submodules/gitops"]
 	path = submodules/gitops
 	url = https://github.com/yurikrupnik/gitops
-[submodule "submodules/sdp-demo"]
-	path = submodules/sdp-demo
-	url = https://github.com/yurikrupnik/sdp-demo
