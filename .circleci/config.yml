@@ -9,8 +9,8 @@ jobs:
 #      - image: cimg/node:lts-browsers
 #      - image: docker:17.05.0-ce-git
       - image: node:18
-      - image: cimg/go
-      - image: cimg/rust
+      - image: cimg/go:1.20.7
+      - image: cimg/rust:1.71.1
 #      - image: denoland/deno:alpine
     steps:
       - checkout
