@@ -12,13 +12,13 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-#      - run: pnpm i
-#      - nx/set-shas
+      - run: pnpm i
+      - nx/set-shas
 #      - run: docker build --target rust . -t first-rust-app1 --build-arg APP_NAME=rust_actix_app
-#      - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t lint --parallel=3
-#      - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t test --parallel=3 --configuration=ci
-#      - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t build --parallel=3
-#      - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t docker --parallel=3
+      - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t lint --parallel=3
+      - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t test --parallel=3 --configuration=ci
+      - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t build --parallel=3
+      - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t docker --parallel=3
 workflows:
   build:
     jobs:
