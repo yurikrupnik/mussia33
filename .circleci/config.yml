@@ -9,6 +9,8 @@ jobs:
 #      - image: cimg/node:lts-browsers
 #      - image: docker:17.05.0-ce-git
       - image: node:18
+      - image: cimg/go:1.15.10
+      - image: cimg/rust:1.71.1
 #      - image: denoland/deno:alpine
     steps:
       - checkout
@@ -30,8 +32,17 @@ jobs:
           key: pnpm-packages-{{ checksum "pnpm-lock.yaml" }}
           paths:
             - node_modules
+      - restore_cache:
+          keys:
+            - go-mod-v4-{{ checksum "go.sum" }}
+      - run:
+          name: Install Dependencies
+          command: go get ./...
+      - save_cache:
+          key: go-mod-v4-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
       - setup_remote_docker
-      - run: pnpm i
       - nx/set-shas
 #      - run: docker build --target rust . -t first-rust-app1 --build-arg APP_NAME=rust_actix_app
       - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t lint --parallel=3
