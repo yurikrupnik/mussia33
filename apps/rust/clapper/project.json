@@ -1,0 +1,87 @@
+{
+  "name": "rust_clapper",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/rust/clapper/src",
+  "targets": {
+    "build": {
+      "executor": "@monodon/rust:build",
+      "outputs": [
+        "{options.target-dir}"
+      ],
+      "options": {
+        "target-dir": "dist/target/rust_clapper"
+      },
+      "configurations": {
+        "production": {
+          "release": true
+        }
+      }
+    },
+    "test": {
+      "executor": "@monodon/rust:test",
+      "outputs": [
+        "{options.target-dir}"
+      ],
+      "options": {
+        "target-dir": "dist/target/rust_clapper"
+      },
+      "configurations": {
+        "production": {
+          "release": true
+        }
+      }
+    },
+    "lint": {
+      "executor": "@monodon/rust:lint",
+      "outputs": [
+        "{options.target-dir}"
+      ],
+      "options": {
+        "target-dir": "dist/target/rust_clapper"
+      }
+    },
+    "run": {
+      "executor": "@monodon/rust:run",
+      "outputs": [
+        "{options.target-dir}"
+      ],
+      "options": {
+        "target-dir": "dist/target/rust_clapper"
+      },
+      "configurations": {
+        "production": {
+          "release": true
+        }
+      }
+    },
+    "docker": {
+      "executor": "@nx-tools/nx-container:build",
+      "options": {
+        "push": true,
+        "file": "./Dockerfile.rust",
+        "target": "rust",
+        "build-args": [
+          "APP_NAME=rust_clapper"
+        ],
+        "metadata": {
+          "images": [
+            "yurikrupnik/clapper",
+            "$REGISTRY/clapper"
+          ],
+          "tags": [
+            "type=schedule",
+            "type=ref,event=branch",
+            "type=ref,event=tag",
+            "type=ref,event=pr",
+            "type=semver,pattern={{version}}",
+            "type=semver,pattern={{major}}.{{minor}}",
+            "type=semver,pattern={{major}}",
+            "type=sha"
+          ]
+        }
+      }
+    }
+  },
+  "tags": []
+}
