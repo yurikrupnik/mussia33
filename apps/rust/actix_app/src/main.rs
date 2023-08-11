@@ -15,7 +15,7 @@ use utoipa_swagger_ui::{SwaggerUi, Url};
 
 async fn get_status() -> HttpResponse {
   HttpResponse::Ok()
-    .body("data")
+    .body("data here")
 }
 
 #[actix_web::main]

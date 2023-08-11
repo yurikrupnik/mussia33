@@ -58,12 +58,12 @@ func main() {
 	log.Panic(app.Listen(result))
 }
 
-func registerCustomMetrics() {
-	// If you have custom metrics, you can register them here.
-	// For example:
-	// customMetric := prometheus.NewCounter(prometheus.CounterOpts{
-	// 	Name: "my_custom_metric",
-	// 	Help: "Description of my custom metric.",
-	// })
-	// prometheus.MustRegister(customMetric)
-}
+//func registerCustomMetrics() {
+// If you have custom metrics, you can register them here.
+// For example:
+// customMetric := prometheus.NewCounter(prometheus.CounterOpts{
+// 	Name: "my_custom_metric",
+// 	Help: "Description of my custom metric.",
+// })
+// prometheus.MustRegister(customMetric)
+//}

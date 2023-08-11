@@ -18,4 +18,4 @@ spec:
       #            namespace: gcp-auth              # secret name containing SA key
       #            key: key  # key name containing SA key
       #            key: key  # key name containing SA key
-      projectID: mussia-infras
+      projectID: mussia-infra

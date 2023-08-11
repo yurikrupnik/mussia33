@@ -18,6 +18,7 @@ local_resource('pnpm', cmd='pnpm install', deps=['package.json'], labels=['pnpm'
 k8s_yaml(kustomize('_proto/'))
 # include('./apps/rust/master_operator/Tiltfile')
 include('./apps/rust/actix_app/Tiltfile')
+include('./apps/rust/clapper/Tiltfile')
 include('./apps/go/fiber-app/Tiltfile')
 include('./apps/frontend/solid-app/Tiltfile')
 include('./apps/node/nest-app/Tiltfile')
@@ -25,7 +26,8 @@ include('./apps/node/node-users-redis/Tiltfile')
 # include('./apps/node/node-users-grpc/Tiltfile')
 # include('./submodules/tauri-app/Tiltfile') # include if not started via cli
 # include('./submodules/first-rust-app/Tiltfile')
-
+k8s_yaml(kustomize('k8s/overlays/dev'))
+# k8s_yaml(kustomize('k8s/overlays/prod'))
 # local_resource('local-tauri-app', cmd='cargo tauri dev', dir="/examples/personal-desktop-app" deps=['/examples/personal-desktop-app'], labels=['tauri'])
 # local_resource('local-kubernetes-operator', cmd='cargo tauri dev', dir="/examples/personal-desktop-app" deps=['/examples/personal-desktop-app'], labels=['tauri'])
 
@@ -35,17 +37,3 @@ include('./apps/node/node-users-redis/Tiltfile')
 
 
 # k8s_resource("my-release-grafana", port_forwards="3322:3000")
-
-
-
-# docker_build(
-#   "actix-app1",
-# #   "../../..",
-#   ".",
-#   # dockerfile_contents="../../..",
-#   dockerfile="Dockerfile.rust",
-#   build_args={"APP_NAME":"rust_actix_app"},
-#   target="rust",
-# #   only=["apps/rust/actix-app"],
-# )
-# k8s_resource("actix-app1", port_forwards="5301:8080")

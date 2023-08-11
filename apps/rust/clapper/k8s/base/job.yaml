@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: ds
+  name: clapper-cron-job
 spec:
   schedule: "* * * * *"
   jobTemplate:

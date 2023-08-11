@@ -44,7 +44,7 @@ async function bootstrap() {
 
   const logger = app.get(Logger);
   const docs = app.get(SwaggerModule);
-  docs.setup(app, globalPrefix, "Nodejs Rest API", "General use api docss!");
+  docs.setup(app, globalPrefix, "Nodejs Rest API", "General use api docs!");
 
   const port = configService.get("PORT") || 8080;
   // const port = process.env.PORT || 8080;

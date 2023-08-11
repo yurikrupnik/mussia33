@@ -5,7 +5,6 @@ metadata:
 #  namespace: mussia30
   labels:
     app: frontend-solid-app
-    version: v1
 spec:
   replicas: 1
 
@@ -14,7 +13,6 @@ spec:
       name: frontend-solid-app
       labels:
         app: frontend-solid-app
-        version: v1
       annotations:
         "linkerd.io/inject": "enabled"
         "prometheus.io/scrape": "true"
@@ -98,4 +96,3 @@ spec:
   selector:
     matchLabels:
       app: frontend-solid-app
-      version: v1

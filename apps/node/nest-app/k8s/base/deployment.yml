@@ -12,13 +12,6 @@ spec:
       name: node-nest-app
       labels:
         app: node-nest-app
-      annotations:
-        "linkerd.io/inject": "enabled"
-        "prometheus.io/scrape": "true"
-        "prometheus.io/port": "8080"
-#        "prometheus.io/port": "9090"
-#        "prometheus.io/port": "9091"
-#        "prometheus.io/port": "9100"
     spec:
       serviceAccountName: node-nest-app
       restartPolicy: Always
@@ -34,12 +27,15 @@ spec:
               memory: "256Mi"
               cpu: "1000m"
           env:
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  key: mongo-uri
+                  name: mongo-uri
             - name: GRPC_TRACE
               value: "all"
             - name: GRPC_VERBOSITY
               value: "DEBUG"
-            - name: MONGO_URI
-              value: "mongodb://host.docker.internal"
             - name: REDIS_HOST
               value: "host.docker.internal"
             - name: GRPC_HOST

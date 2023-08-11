@@ -16,12 +16,4 @@ docker_build(
   target="node",
   build_args={"DIST_PATH":"dist/apps/node/node-users-redis"},
   only=["dist/apps/node/node-users-redis"],
-  # live_update=[
-  #   sync('./dist/apps/users/api', '/app'),
-  #   # sync('../../../dist/apps/users/api', '/app')
-  # ],
 )
-
-k8s_yaml(kustomize('k8s/base'))
-
-

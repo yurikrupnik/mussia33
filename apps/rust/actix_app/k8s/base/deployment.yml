@@ -31,7 +31,10 @@ spec:
               cpu: "500m"
           env:
             - name: MONGO_URI
-              value: "mongodb://host.docker.internal"
+              valueFrom:
+                secretKeyRef:
+                  key: mongo-uri
+                  name: mongo-uri
   selector:
     matchLabels:
       app: actix-app

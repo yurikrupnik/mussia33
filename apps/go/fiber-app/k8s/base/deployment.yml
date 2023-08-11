@@ -11,10 +11,6 @@ spec:
       name: fiber-app
       labels:
         app: fiber-app
-        version: v1
-      annotations:
-        "prometheus.io/scrape": "true"
-#        "prometheus.io/port": "8080"
     spec:
       serviceAccountName: fiber-app
       restartPolicy: Always
@@ -34,7 +30,10 @@ spec:
               cpu: "500m"
           env:
             - name: MONGO_URI
-              value: "mongodb://host.docker.internal"
+              valueFrom:
+                secretKeyRef:
+                  key: mongo-uri
+                  name: mongo-uri
   selector:
     matchLabels:
       app: fiber-app

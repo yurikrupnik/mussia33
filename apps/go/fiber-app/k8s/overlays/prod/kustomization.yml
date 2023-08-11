@@ -1,0 +1,6 @@
+resources:
+  - ../../base
+  - hpa.yaml
+  # - ingress.yaml
+#patches:
+#  -

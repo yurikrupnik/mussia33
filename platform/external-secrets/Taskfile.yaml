@@ -55,6 +55,15 @@ tasks:
       - kubectl -n external-secrets wait deployment external-secrets-cert-controller --for=condition=Available --timeout=180s
   #      - kubectl apply -f store-cluster.yaml
   #      - kubectl apply -f secrets-cluster.yaml
+  using-local:
+    cmds:
+      - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
+      - kubectl create namespace es
+      - kubectl -n external-secrets wait deployment external-secrets-webhook --for=condition=Available --timeout=180s
+      - kubectl -n external-secrets wait deployment external-secrets-cert-controller --for=condition=Available --timeout=180s
+      - kubectl create secret generic secret-puller --from-file=creds=./secret-puller-key.json
+      - kubectl apply -f platform/external-secrets/store1.yaml
+      - kubectl apply -f platform/external-secrets/secrets.yaml
   using-gke:
     cmds:
       - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
