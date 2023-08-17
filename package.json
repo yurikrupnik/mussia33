@@ -4,6 +4,7 @@
   "license": "MIT",
   "scripts": {
     "nx": "nx",
+    "do": "echo doit",
     "postinstall": "node ./tools/scripts/patch-nx-cli.js"
   },
   "private": true,
