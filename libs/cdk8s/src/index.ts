@@ -39,6 +39,7 @@ import {
   RouteTable,
   SecurityGroup,
 } from "../imports/ec2.aws.upbound.io";
+import { ExternalSecret } from "../imports/external-secrets.io";
 // import { Queue } from "../imports/sqs.aws.upbound.io";
 // import { Topic as SNSTopic } from "../imports/sns.aws.upbound.io";
 

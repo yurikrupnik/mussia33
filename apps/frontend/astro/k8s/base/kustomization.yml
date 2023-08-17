@@ -1,0 +1,26 @@
+resources:
+  - ns.yaml
+  - configMap.yml
+  - service-account.yaml
+  - service.yml
+  - deployment.yml
+  - ingress.yaml
+namespace: internal
+configMapGenerator:
+  - name: nginx-config
+    files:
+      - default.conf.template
+#namePrefix: demo
+#nameSuffix: api
+#commonAnnotations:
+#  "consul.hashicorp.com/connect-inject": "true"
+#  "consul.hashicorp.com/connect-service": "users-client-test"
+#  "consul.hashicorp.com/connect-service-protocol": "http"
+#  "consul.hashicorp.com/service-meta-version": "v.1.1"
+#  "prometheus.io/scrape": "true"
+#  "prometheus.io/port": "9102"
+#
+#labels:
+#  - pairs:
+#      kubernetes.io/metadata.shit: lol-server
+#      kubernetes.io/metadata.app: omg-server

@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: astro-service
+  labels:
+    run: astro-service
+#    release: prometheus
+  annotations:
+    "prometheus.io/scrape": "true"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80
+  selector:
+    app: astro

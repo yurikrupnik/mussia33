@@ -1,0 +1,10 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  install:
+    cmds:
+      - kubectl create namespace monitoring
+      - helm install prometheus-release prometheus-community/kube-prometheus-stack --namespace monitoring
+      - kubectl get secret prometheus-release-grafana --namespace monitoring -o jsonpath="{.data.admin-password}" | base64 -d

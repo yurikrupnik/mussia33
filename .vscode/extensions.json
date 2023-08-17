@@ -4,6 +4,7 @@
     "esbenp.prettier-vscode",
     "firsttris.vscode-jest-runner",
     "dbaeumer.vscode-eslint",
-    "denoland.vscode-deno"
+    "denoland.vscode-deno",
+    "astro-build.astro-vscode"
   ]
 }

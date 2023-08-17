@@ -27,7 +27,7 @@ pub struct Pagination {
 // #[serde(deny_unknown_fields)]
 // #[serde(rename_all = "snake_case")]
 /// Request to update existing `User` item.
-#[derive(Clone, ToSchema, Debug, PartialEq, Eq, Deserialize, Serialize, Validate, TS)]
+#[derive(Debug, Clone, PartialEq, Eq, ToSchema, Deserialize, Serialize, Validate, TS)]
 #[ts(export)]
 pub struct User {
     #[serde(flatten)]

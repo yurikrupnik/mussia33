@@ -1,3 +1,6 @@
+mod echo;
+mod crd;
+
 use k8s_openapi::api::batch::v1::Job;
 use kube::{
   api::{Api, DeleteParams, PostParams},

@@ -4,6 +4,7 @@ metadata:
   name: frontend-solid-app-service
   labels:
     run: frontend-solid-app-service
+#    release: prometheus
   annotations:
     "prometheus.io/scrape": "true"
 spec:

@@ -1,0 +1,154 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: astro
+  annotations:
+#    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - http:
+        paths:
+          - pathType: Prefix
+            path: /docs
+            backend:
+              service:
+                name: astro-service
+                port:
+                  number: 80
+---
+#apiVersion: networking.k8s.io/v1
+#kind: Ingress
+#metadata:
+#  name: rust-ingress
+##  namespace: monitoring
+#  annotations:
+#    nginx.ingress.kubernetes.io/rewrite-target: /$2
+#spec:
+#  rules:
+#    - http:
+#        paths:
+#          - pathType: Prefix
+#            path: /alertmanager(/|$)(.*)
+#            backend:
+#              service:
+#                name: alertmanager-operated
+#                port:
+#                  number: 9093
+#          - pathType: Prefix
+#            path: /rust(/|$)(.*)
+#            backend:
+#              service:
+#                name: actix-app-service
+#                port:
+#                  number: 8080
+#          - pathType: Prefix
+#            path: /go(/|$)(.*)
+#            backend:
+#              service:
+#                name: fiber-app-service
+#                port:
+#                  number: 8080
+#          - pathType: Prefix
+#            path: /vela(/|$)(.*)
+#            backend:
+#              service:
+#                name: velaux-server
+#                port:
+#                  number: 8000
+#
+#---
+## TODO fix!
+#apiVersion: networking.k8s.io/v1
+#kind: Ingress
+#metadata:
+#  name: helpers-ingress
+#  annotations:
+#    nginx.ingress.kubernetes.io/rewrite-target: /
+#    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+#    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+#    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+##    nginx.ingress.kubernetes.io/rewrite-target: /$1
+##    nginx.ingress.kubernetes.io/rewrite-target: /$2
+#spec:
+#  rules:
+#    - http:
+#        paths:
+##          - pathType: Prefix
+#          - pathType: Exact
+##            path: /kubeshark(/|$)(.*)
+#            path: /kubeshark
+#            backend:
+#              service:
+#                name: kubeshark-front
+#                port:
+#                  number: 80
+#          - pathType: Exact
+#            #            path: /containers
+##            path: /grafanaa(/|$)(.*)
+#            path: /grafana
+#            backend:
+#              service:
+#                name: prometheus-release-grafana
+#                port:
+#                  number: 3000
+##          - pathType: Exact
+#          - pathType: Prefix
+#            #            path: /containers
+#            path: /monitor(/|$)(.*)
+#            backend:
+#              service:
+##                name: prometheus-operated
+#                name: cadvisor
+#                port:
+##                  number: 9090
+#                  number: 8080
+
+
+
+
+#apiVersion: networking.istio.io/v1alpha3
+#kind: Gateway
+#metadata:
+#  name: solid-gateway
+##  namespace: istio-system
+#spec:
+#  selector:
+#    istio: ingressgateway # use istio default controller
+#  servers:
+#    - port:
+#        number: 80
+#        name: http
+#        protocol: HTTP
+#      hosts:
+#        - "*"
+#---
+#apiVersion: networking.istio.io/v1alpha3
+#kind: VirtualService
+#metadata:
+#  name: node-api-rest
+##  namespace: istio-system
+#spec:
+#  hosts:
+#    - "*"
+#  gateways:
+#    - solid-gateway
+#  http:
+#    - match:
+#        - uri:
+#            exact: /api/users
+#      #        - uri:
+#      #            prefix: /static
+#      #        - uri:
+#      #            exact: /login
+#      #        - uri:
+#      #            exact: /logout
+#      #        - uri:
+#      #            prefix: /api/v1/products
+#      route:
+#        - destination:
+#            #            host: argocd-server.argocd.svc.cluster.local
+#            host: node-nest-app-service.default.svc.cluster.local
+#            #            host: prometheus.istio-system.svc.cluster.local
+#            port:
+#              number: 8080

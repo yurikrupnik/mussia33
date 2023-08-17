@@ -1,0 +1,36 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: proxy-envs
+data:
+  upstream_host: "astro-service"
+  upstream_port: "8080"
+  upstream_name: "backend"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: proxy-envs-rust
+data:
+  upstream_host: "actix-app-service"
+  upstream_port: "8080"
+  upstream_name: "backend-rust"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: proxy-envs-go
+data:
+  upstream_host: "fiber-app-service"
+  upstream_port: "8080"
+  upstream_name: "backend-go"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: proxy-env-node
+data:
+  upstream_host: "node-nest-app-service"
+  upstream_port: "8080"
+  upstream_name: "backend"

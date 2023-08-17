@@ -22,6 +22,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: rust-ingress
+#  namespace: monitoring
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
@@ -86,7 +87,7 @@ spec:
           - pathType: Exact
             #            path: /containers
 #            path: /grafanaa(/|$)(.*)
-            path: /grafanaa
+            path: /grafana
             backend:
               service:
                 name: prometheus-release-grafana

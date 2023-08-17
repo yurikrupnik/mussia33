@@ -37,7 +37,8 @@ spec:
                   key: mongo-uri
                   name: mongo-uri
             - name: REDIS_HOST
-              value: "host.docker.internal"
+              value: "redis-service.default.svc.cluster.local"
+#              value: "host.docker.internal"
       restartPolicy: Always
   selector:
     matchLabels:

@@ -1,8 +1,10 @@
 
 resources:
+  - mongodb.yaml
+  - redis.yaml
   - ../../../apps/go/fiber-app/k8s/overlays/dev
   - ../../../apps/node/nest-app/k8s/overlays/dev
   - ../../../apps/node/node-users-redis/k8s/overlays/dev
   - ../../../apps/rust/actix_app/k8s/overlays/dev
   - ../../../apps/frontend/solid-app/k8s/overlays/dev
-
+  - ../../../apps/frontend/astro/k8s/overlays/dev

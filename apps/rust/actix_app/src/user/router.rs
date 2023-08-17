@@ -1,28 +1,28 @@
 use crate::user;
 use crate::user::handlers::{add_user, delete_user, drop_users, get_user, update_user, user_list};
-use actix_web::{web, HttpResponse};
+use actix_web::{web::{ServiceConfig,Data},web, HttpResponse};
 use futures::executor::block_on;
 use crate::mongo::MongoRepo;
 use serde::{de::DeserializeOwned, Serialize};
 // use std::{future::Future, pin::Pin};
 
-async fn inits<T>(cfg: &mut web::ServiceConfig, db: &str, collection: &str)
+async fn inits<T>(cfg: &mut ServiceConfig, db: &str, collection: &str)
 where
     T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static,
 {
     let repository = MongoRepo::<T>::init(db, collection).await;
-    let data: web::Data<MongoRepo<T>> = web::Data::new(repository);
+    let data: Data<MongoRepo<T>> = Data::new(repository);
     cfg.app_data(data);
 }
 
 pub fn create_config_by_type<T>(
     db: &'static str,
     collection: &'static str,
-) -> impl FnOnce(&mut web::ServiceConfig) + 'static
+) -> impl FnOnce(&mut ServiceConfig) + 'static
 where
     T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static,
 {
-    move |cfg: &mut web::ServiceConfig| {
+    move |cfg: &mut ServiceConfig| {
         block_on(inits::<T>(cfg, db, collection));
         // let url = format!("/{}", collection);
         let url = format!("/{collection}");

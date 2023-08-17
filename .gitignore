@@ -39,3 +39,4 @@ testem.log
 Thumbs.db
 
 wapm_packages
+.astro

@@ -7,6 +7,9 @@ includes:
   crossplane: ./platform/crossplane
   kubevela: ./platform/kubevela
   gcloud: ./platform/gcloud
+  monitoring: ./platform/monitoring
+  db: ./platform/db
+  secrets: ./platform/external-secrets
   argocd: ./platform/gitops/argocd
   fluxcd: ./platform/gitops/fluxcd
   scripts: ./scripts
@@ -47,11 +50,10 @@ tasks:
 #     - task: crossplane:setup
 #      - up ctp attach remote-virtual -a hashheddan | KUBECONFIG=kubeconfig.yaml up uxp connect -
 #     - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
-#     - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
 #     - kind create cluster --config=platform/cluster/cluster.yaml # cluster with ingress
 #     - helm install my-cadvisor ckotzbauer/cadvisor
-     - helm install prometheus-release prometheus-community/kube-prometheus-stack
-#     - kubectl get secret my-release-grafana-admin --namespace default -o jsonpath="{.data.GF_SECURITY_ADMIN_PASSWORD}" | base64 -d
+     - task: monitoring:install
+     - task: secrets:using-local
 #     - task: kubevela:install
 #     - task: argocd:install
 #     - task: argocd:apply
@@ -73,9 +75,6 @@ tasks:
 #      - kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.44.0/release.yaml
 #      - kubectl apply --filename https://github.com/shipwright-io/build/releases/download/v0.11.0/release.yaml
 #      - kubectl apply --filename https://github.com/shipwright-io/build/releases/download/v0.11.0/sample-strategies.yaml
-#      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
-#      - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
-#      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
 #      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
 #      - helm repo add kubevela https://charts.kubevela.net/core
 #      - helm repo update

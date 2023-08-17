@@ -1,7 +1,8 @@
 {
   "plugins": [
     "@monodon/rust",
-    "@nx/deno"
+    "@nx/deno",
+    "@nxtensions/astro"
   ],
   "npmScope": "mussia33",
   "targetDefaults": {
@@ -27,6 +28,18 @@
         "{workspaceRoot}/.eslintrc.json",
         "{workspaceRoot}/.eslintignore"
       ]
+    },
+    "check": {
+      "inputs": [
+        "production",
+        "^production"
+      ]
+    },
+    "e2e": {
+      "inputs": [
+        "default",
+        "^production"
+      ]
     }
   },
   "tasksRunnerOptions": {
@@ -37,7 +50,8 @@
           "build",
           "lint",
           "test",
-          "e2e"
+          "e2e",
+          "check"
         ],
         "accessToken": "NWM5YzA1ZDctNjcxNy00NjVjLWE3ZWItZjJmNDI0MmFkNmJlfHJlYWQtd3JpdGU="
       }

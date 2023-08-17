@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: astro
+#  namespace: mussia30
+  labels:
+    app: astro
+spec:
+  replicas: 1
+
+  template:
+    metadata:
+      name: astro
+      labels:
+        app: astro
+      annotations:
+        "linkerd.io/inject": "enabled"
+        "prometheus.io/scrape": "true"
+    spec:
+      serviceAccountName: astro
+      containers:
+        - name: astro
+          ports:
+            - containerPort: 80
+              name: http
+          #          image: europe-west1-docker.pkg.dev/maya-mussia/nx-go-playground/astro:latest
+          image: yurikrupnik/astro:latest
+#          image: nginx:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+#          volumeMounts:
+##            #            - mountPath: /etc/nginx/conf.d
+#            - mountPath: /etc/nginx/templates
+#              name: nginx-config
+#          env: # not` working only front end
+#            - name: UPSTREAM_HOST
+#              valueFrom:
+#                configMapKeyRef:
+#                  key: upstream_host
+#                  name: proxy-envs
+##                  name: proxy-envs-rust
+#            - name: UPSTREAM_PORT
+#              valueFrom:
+#                configMapKeyRef:
+#                  key: upstream_port
+#                  name: proxy-envs
+#            - name: UPSTREAM_NAME
+#              valueFrom:
+#                configMapKeyRef:
+#                  key: upstream_name
+#                  name: proxy-envs
+##                  name: proxy-envs-rust
+## rust
+#            - name: UPSTREAM_HOST_RUST
+#              valueFrom:
+#                configMapKeyRef:
+#                  key: upstream_host
+#                  name: proxy-envs-rust
+#            - name: UPSTREAM_NAME_RUST
+#              valueFrom:
+#                configMapKeyRef:
+#                  key: upstream_name
+#                  name: proxy-envs-rust
+## go
+#            - name: UPSTREAM_HOST_GO
+#              valueFrom:
+#                configMapKeyRef:
+#                  key: upstream_host
+#                  name: proxy-envs-go
+#            - name: UPSTREAM_NAME_GO
+#              valueFrom:
+#                configMapKeyRef:
+#                  key: upstream_name
+#                  name: proxy-envs-go
+#            - name: UPSTREAM_HOST_NODE
+#              valueFrom:
+#                configMapKeyRef:
+#                  key: upstream_host
+#                  name: proxy-envs-node
+#            - name: UPSTREAM_NAME_NODE
+#              valueFrom:
+#                configMapKeyRef:
+#                  key: upstream_name
+#                  name: proxy-envs-node
+
+      restartPolicy: Always
+#      volumes:
+#        - name: nginx-config
+#          configMap:
+#            name: nginx-config
+#        - name: proxy-envs
+#          configMap:
+#            name: proxy-envs
+#        - name: proxy-envs-rust
+#          configMap:
+#            name: proxy-envs-rust
+#        - name: proxy-envs-go
+#          configMap:
+#            name: proxy-envs-go
+#        - name: proxy-envs-node
+#          configMap:
+#            name: proxy-envs-node
+  selector:
+    matchLabels:
+      app: astro

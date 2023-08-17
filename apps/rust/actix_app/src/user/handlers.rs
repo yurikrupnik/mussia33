@@ -82,6 +82,12 @@ pub async fn get_user(db: web::Data<MongoRepo<User>>, path: web::Path<String>) -
         return HttpResponse::BadRequest().body("invalid ID");
     };
     let result = db.find_by_id(&id).await;
+  // match result.validate() {
+  //   Ok(_) => (),
+  //   Err(e) => {
+  //     return HttpResponse::BadRequest().json(e.errors());
+  //   }
+  // }
     match result {
         Ok(Some(payload)) => HttpResponse::Ok().json(payload),
         Ok(None) => HttpResponse::NotFound().json(ErrorResponse::NotFound(format!("id = {}", &id))),
@@ -175,7 +181,7 @@ security(
 )
 )]
 pub async fn update_user(path: web::Path<String>, body: web::Json<User>) -> impl Responder {
-    let id = path.as_str();
+    let id = path.into_inner();
     if id.is_empty() || id.len() != 24 {
         return HttpResponse::BadRequest().body("invalid ID");
     };
