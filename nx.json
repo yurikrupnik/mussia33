@@ -1,10 +1,25 @@
 {
+  "implicitDependencies": {
+    "go.mod": "*"
+  },
   "plugins": [
     "@monodon/rust",
     "@nx/deno",
     "@nxtensions/astro"
   ],
   "npmScope": "mussia33",
+  "namedInputs": {
+    "default": [
+      "{projectRoot}/**/*",
+      "sharedGlobals"
+    ],
+    "sharedGlobals": [
+      "{workspaceRoot}/go.mod"
+    ],
+    "production": [
+      "default"
+    ]
+  },
   "targetDefaults": {
     "build": {
       "dependsOn": [
@@ -56,18 +71,5 @@
         "accessToken": "NWM5YzA1ZDctNjcxNy00NjVjLWE3ZWItZjJmNDI0MmFkNmJlfHJlYWQtd3JpdGU="
       }
     }
-  },
-  "$schema": "./node_modules/nx/schemas/nx-schema.json",
-  "namedInputs": {
-    "default": [
-      "{projectRoot}/**/*",
-      "sharedGlobals"
-    ],
-    "sharedGlobals": [
-      "{workspaceRoot}/go.mod"
-    ],
-    "production": [
-      "default"
-    ]
   }
 }

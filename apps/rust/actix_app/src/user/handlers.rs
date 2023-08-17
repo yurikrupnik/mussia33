@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use crate::user::User;
 use actix_web::{web, HttpResponse, Responder};
 use crate::mongo::{ErrorResponse, MongoRepo};
@@ -23,7 +24,12 @@ params(
 )]
 pub async fn user_list<T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static>(
     db: web::Data<MongoRepo<T>>,
-) -> impl Responder {
+    // query: web::Path<String>,
+) -> impl Responder
+// where
+//   T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Display
+{
+    // println!("value is {:}", query);
     let results = db.list().await;
     match results {
         Ok(res) => HttpResponse::Ok().json(res),
@@ -48,6 +54,7 @@ responses(
 (status = 201, description = "User created successfully", body = User),
 )
 )]
+// pub async fn add_user<T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static>(
 pub async fn add_user(db: web::Data<MongoRepo<User>>, body: web::Json<User>) -> impl Responder {
     match body.validate() {
         Ok(_) => (),

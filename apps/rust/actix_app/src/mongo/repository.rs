@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use futures::TryStreamExt;
 use mongodb::{
     bson::{
@@ -7,7 +8,9 @@ use mongodb::{
     results::DeleteResult,
     Client, Collection,
 };
+use mongodb::bson::Document;
 use serde::{de::DeserializeOwned, Serialize};
+use async_trait::*;
 
 pub struct MongoRepo<T> {
     col: Collection<T>,
@@ -33,9 +36,9 @@ where
         // let new_id = item.inserted_id.as_str().unwrap();
         let obj_id = item.inserted_id.as_object_id().unwrap();
         let filter = doc! {"_id": obj_id};
-        // let result = self.find_by_id(new_id).await.expect("Error finding item");
+        // let result = self.find_by_id(filter).await.expect("Error finding item");
         // todo reuse find_by_id
-        let result = self.col.find_one(filter, None).await.expect("As");
+        let result = self.col.find_one(filter, None).await.expect("Error finding item");
         Ok(result)
     }
     pub async fn delete(&self, id: &str) -> Result<DeleteResult, Error> {
@@ -56,7 +59,11 @@ where
             .expect("Error dropping collection");
         Ok(())
     }
-    pub async fn list(&self) -> Result<Vec<T>, Error> {
+    pub async fn list(&self) -> Result<Vec<T>, Error>
+    where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static
+    {
+        // println!("query {:}",query);
         let mut cursor = self
             .col
             .find(None, None)
@@ -104,8 +111,11 @@ where
 
 // #[async_trait]
 // pub trait Api<T> {
-//     async fn get_all(&self) -> HttpResponse;
-//     async fn get_one(&self, db: MongoRepo<T>, body: web::Json<T>) -> HttpResponse;
+//     fn list(&self) -> Result<Vec<T>, Error>;
+//     fn drop_db(&self) -> Result<(), Error>;
+//     fn find_by_id(&self, id: &str) -> Result<Option<T>, Error>;
+//     fn update_by_id(&self, id: &str) -> Result<Option<T>, Error>;
+//     // fn get_one(&self, db: MongoRepo<T>, body: web::Json<T>) -> Result<Option<T>, Error>;
 //     // async fn create_item(&self, db: MongoRepo<T>, body: web::Json<T>) -> HttpResponse;
 // }
 //

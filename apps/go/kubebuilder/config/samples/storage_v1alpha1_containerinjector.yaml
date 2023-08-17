@@ -1,0 +1,12 @@
+apiVersion: storage.dev.yurikrupnik/v1alpha1
+kind: ContainerInjector
+metadata:
+  labels:
+    app.kubernetes.io/name: containerinjector
+    app.kubernetes.io/instance: containerinjector-sample
+    app.kubernetes.io/part-of: kubebuilder
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: kubebuilder
+  name: containerinjector-sample
+spec:
+  # TODO(user): Add fields here

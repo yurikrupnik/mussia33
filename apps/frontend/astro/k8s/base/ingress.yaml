@@ -10,7 +10,14 @@ spec:
     - http:
         paths:
           - pathType: Prefix
-            path: /docs
+            path: /docs(/|$)(.*)
+            backend:
+              service:
+                name: astro-service
+                port:
+                  number: 80
+          - pathType: Prefix
+            path: /friends(/|$)(.*)
             backend:
               service:
                 name: astro-service

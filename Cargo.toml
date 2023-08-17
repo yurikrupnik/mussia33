@@ -1,6 +1,7 @@
 
 [workspace]
 members = [
+    "apps/rust/metacontroller",
 	'libs/rust/grpc',
 	'libs/rust/mongo',
 	'apps/rust/mongo-api',
