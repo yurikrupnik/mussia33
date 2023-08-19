@@ -1,0 +1,55 @@
+
+local_resource(
+  'build-astro',
+  dir="../../..",
+  cmd='pnpm nx run frontend-astro:build',
+  deps=['.', '../../../libs/node'],
+  resource_deps=["pnpm"],
+  ignore=["k8s"],
+  labels=["pnpm"],
+)
+
+docker_build(
+  "yurikrupnik/astro",
+  "../../..",
+  target="nginx",
+  build_args={"DIST_PATH":"dist/apps/frontend/astro"},
+  only=["dist/apps/frontend/astro"],
+  # live_update=[
+  #   sync('./dist/apps/users/api', '/app'),
+  #   # sync('../../../dist/apps/users/api', '/app')
+  # ],
+)
+
+# load('ext://uibutton', 'cmd_button', 'location', 'text_input')
+# cmd_button(name='Test',
+#            resource='astro-host', 
+#            argv=['pnpm', 'nx', 'run', 'frontend-astro:test'],
+#            text='Unit tests',
+#            location=location.RESOURCE,
+#            icon_name='bug_report')
+
+# cmd_button(name='Lint',
+#            resource='astro-host', 
+#            argv=['pnpm', 'nx', 'run', 'frontend-astro:lint'],
+#            text='Linter',
+#            location=location.RESOURCE,
+#            icon_name='waving_hand')
+
+# cmd_button(name='Build',
+#            resource='astro-host', 
+#            argv=['pnpm', 'nx', 'run', 'frontend-astro:build'],
+#            text='Builder',
+#            location=location.RESOURCE,
+#            icon_name='build')
+
+# cmd_button(name='E2E',
+#            resource='frontend-host', 
+#            argv=['pnpm', 'nx', 'run', 'frontend-astro:e2e'],
+#            text='E2E',
+#            location=location.RESOURCE,
+#            icon_name='all_out')
+
+
+k8s_resource("astro", port_forwards="5231:80")
+

@@ -30,6 +30,42 @@
     },
     "sync": {
       "executor": "@nxtensions/astro:sync"
+    },
+    "docker": {
+      "executor": "@nx-tools/nx-container:build",
+      "dependsOn": [
+        {
+          "target": "build",
+          "params": "forward"
+        }
+      ],
+      "options": {
+        "push": true,
+        "file": "./Dockerfile",
+        "target": "nginx",
+        "platforms": [
+          "linux/amd64"
+        ],
+        "build-args": [
+          "DIST_PATH=dist/apps/frontend/astro"
+        ],
+        "metadata": {
+          "images": [
+            "yurikrupnik/astro",
+            "$REGISTRY/astro"
+          ],
+          "tags": [
+            "type=schedule",
+            "type=ref,event=branch",
+            "type=ref,event=tag",
+            "type=ref,event=pr",
+            "type=semver,pattern={{version}}",
+            "type=semver,pattern={{major}}.{{minor}}",
+            "type=semver,pattern={{major}}",
+            "type=sha"
+          ]
+        }
+      }
     }
   },
   "tags": []

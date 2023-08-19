@@ -32,13 +32,13 @@ import { Topic, Schema } from "../imports/pubsub.gcp.upbound.io";
 // import { Bucket as AWSBucket, BucketProps as AWSBucketProps, BucketSpec as AWSBucketSpec, BucketSpecDeletionPolicy } from "../imports/s3.aws.upbound.io";
 import { Bucket as GCSBucket } from "../imports/storage.gcp.upbound.io";
 import { Network, Subnetwork } from "../imports/compute.gcp.upbound.io";
-import {
-  Vpc,
-  InternetGateway,
-  Subnet,
-  RouteTable,
-  SecurityGroup,
-} from "../imports/ec2.aws.upbound.io";
+// import {
+//   Vpc,
+//   InternetGateway,
+//   Subnet,
+//   RouteTable,
+//   SecurityGroup,
+// } from "../imports/ec2.aws.upbound.io";
 import { ExternalSecret } from "../imports/external-secrets.io";
 // import { Queue } from "../imports/sqs.aws.upbound.io";
 // import { Topic as SNSTopic } from "../imports/sns.aws.upbound.io";
@@ -215,279 +215,279 @@ export class MyChart extends Chart {
       },
     });
 
-    new Composition(this, "aws-network", {
-      metadata: {
-        name: "aws.networks",
-        labels: {
-          provider: "AWS",
-        },
-      },
-      spec: {
-        // writeConnectionSecretsToNamespace: "crossplane-system",
-        compositeTypeRef: {
-          apiVersion: "custom-api.example.org/v1alpha1",
-          kind: "XNetwork",
-        },
-        resources: [
-          {
-            name: "crossplane-yuri-network-storage",
-            base: Vpc.manifest({
-              spec: {
-                forProvider: {
-                  region: "us-west-2",
-                  cidrBlock: "192.168.0.0/16",
-                  // enableDnsSupport: true,
-                  // enableDnsHostNames: true
-                },
-              },
-            }),
-            patches: [
-              {
-                fromFieldPath: "spec.id",
-                toFieldPath:
-                  "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
-              },
-            ],
-          },
-          {
-            name: "crossplane-yuri-network-vpc",
-            base: InternetGateway.manifest({
-              metadata: {
-                name: "my-network",
-              },
-              spec: {
-                forProvider: {
-                  region: "us-west-2",
-                  vpcIdSelector: {
-                    matchControllerRef: true,
-                  },
-                },
-              },
-            }),
-            patches: [
-              {
-                fromFieldPath: "spec.id",
-                toFieldPath:
-                  "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
-              },
-            ],
-          },
-          {
-            name: "crossplane-yuri-network-subnet",
-            base: Subnet.manifest({
-              metadata: {
-                labels: {
-                  zone: "us-west-2a",
-                  access: "public",
-                },
-              },
-              // reclaimPolicy: 'Delete',
-              spec: {
-                forProvider: {
-                  region: "us-west-2",
-                  mapPublicIpOnLaunch: true,
-                  cidrBlock: "192.168.0.0/18",
-                  vpcIdSelector: {
-                    matchControllerRef: true,
-                  },
-                  availabilityZone: "us-west-2a",
-                  tags: {
-                    "kubernetes.io/role/elb": "1",
-                  },
-                },
-              },
-            }),
-            patches: [
-              {
-                fromFieldPath: "spec.id",
-                toFieldPath:
-                  "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
-              },
-            ],
-          },
-          {
-            name: "crossplane-yuri-network-subnet1",
-            base: Subnet.manifest({
-              metadata: {
-                labels: {
-                  zone: "us-west-2a",
-                  access: "public",
-                },
-              },
-              // reclaimPolicy: 'Delete',
-              spec: {
-                forProvider: {
-                  region: "us-west-2",
-                  mapPublicIpOnLaunch: true,
-                  cidrBlock: "192.168.128.0/18",
-                  vpcIdSelector: {
-                    matchControllerRef: true,
-                  },
-                  availabilityZone: "us-west-2a",
-                  tags: {
-                    "kubernetes.io/role/elb": "1",
-                  },
-                },
-              },
-            }),
-            patches: [
-              {
-                fromFieldPath: "spec.id",
-                toFieldPath:
-                  "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
-              },
-              {
-                fromFieldPath: "spec.clusterRef.id",
-                toFieldPath: "spec.forProvider.tags[0].key",
-                transforms: [
-                  {
-                    type: CompositionSpecResourcesPatchesTransformsType.STRING,
-                    string: {
-                      fmt: "kubernetes.io/cluster/%s",
-                    },
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            name: "crossplane-yuri-network-subnet2",
-            base: Subnet.manifest({
-              metadata: {
-                labels: {
-                  zone: "us-west-2b",
-                  access: "private",
-                },
-              },
-              // reclaimPolicy: 'Delete',
-              spec: {
-                forProvider: {
-                  region: "us-west-2",
-                  mapPublicIpOnLaunch: true,
-                  cidrBlock: "192.168.192.0/18",
-                  vpcIdSelector: {
-                    matchControllerRef: true,
-                  },
-                  availabilityZone: "us-west-2b",
-                  tags: {
-                    "kubernetes.io/role/elb": "1",
-                    shared: "",
-                  },
-                },
-              },
-            }),
-            patches: [
-              {
-                fromFieldPath: "spec.id",
-                toFieldPath:
-                  "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
-              },
-              {
-                fromFieldPath: "spec.clusterRef.id",
-                toFieldPath: "spec.forProvider.tags[0].key",
-                transforms: [
-                  {
-                    type: CompositionSpecResourcesPatchesTransformsType.STRING,
-                    string: {
-                      fmt: "kubernetes.io/cluster/%s",
-                    },
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            name: "crossplane-yuri-network-subnet3",
-            base: RouteTable.manifest({
-              spec: {
-                forProvider: {
-                  region: "us-west-2",
-                  vpcIdSelector: {
-                    matchControllerRef: true,
-                  },
-                  // routes: {
-                  //   destinationCidrBlock: '0.0.0.0/0',
-                  //   gatewayIdSelector: {
-                  //     matchControllerRef: true
-                  //   }
-                  // },
-                  // associations: [
-                  //   {
-                  //     subnetIdSelector: {
-                  //       matchControllerRef: true,
-                  //       matchLabels: {
-                  //         zone: "us-west-2a",
-                  //         access: 'public'
-                  //       }
-                  //     }
-                  //   },
-                  //   {
-                  //     subnetIdSelector: {
-                  //       matchControllerRef: true,
-                  //       matchLabels: {
-                  //         zone: "us-west-2b",
-                  //         access: 'public'
-                  //       }
-                  //     }
-                  //   },
-                  //   {
-                  //     subnetIdSelector: {
-                  //       matchControllerRef: true,
-                  //       matchLabels: {
-                  //         zone: "us-west-2a",
-                  //         access: 'private'
-                  //       }
-                  //     }
-                  //   },
-                  //   {
-                  //     subnetIdSelector: {
-                  //       matchControllerRef: true,
-                  //       matchLabels: {
-                  //         zone: "us-west-2b",
-                  //         access: 'private'
-                  //       }
-                  //     }
-                  //   }
-                  // ]
-                },
-              },
-            }),
-            patches: [
-              {
-                fromFieldPath: "spec.id",
-                toFieldPath:
-                  "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
-              },
-            ],
-          },
-          {
-            name: "crossplane-yuri-network-group",
-            base: SecurityGroup.manifest({
-              metadata: {},
-              spec: {
-                forProvider: {
-                  region: "us-west-2",
-                  // name: "my-group1",
-                  vpcIdSelector: {
-                    matchControllerRef: true,
-                  },
-                  // groupName: "multik8s-cluster",
-                  description: "Allow access to PostgreSQL",
-                  // ingress: [
-                  //   {
-                  //     fromPort: 5432,
-                  //     toPort: 5432,
-                  //     ipProtocol: 'tcp',
-                  //     ipRanges: [{}]
-                  //   }
-                  // ]
-                },
-              },
-            }),
-          },
-        ],
-      },
-    });
+    // new Composition(this, "aws-network", {
+    //   metadata: {
+    //     name: "aws.networks",
+    //     labels: {
+    //       provider: "AWS",
+    //     },
+    //   },
+    //   spec: {
+    //     // writeConnectionSecretsToNamespace: "crossplane-system",
+    //     compositeTypeRef: {
+    //       apiVersion: "custom-api.example.org/v1alpha1",
+    //       kind: "XNetwork",
+    //     },
+    //     resources: [
+    //       {
+    //         name: "crossplane-yuri-network-storage",
+    //         base: Vpc.manifest({
+    //           spec: {
+    //             forProvider: {
+    //               region: "us-west-2",
+    //               cidrBlock: "192.168.0.0/16",
+    //               // enableDnsSupport: true,
+    //               // enableDnsHostNames: true
+    //             },
+    //           },
+    //         }),
+    //         patches: [
+    //           {
+    //             fromFieldPath: "spec.id",
+    //             toFieldPath:
+    //               "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
+    //           },
+    //         ],
+    //       },
+    //       {
+    //         name: "crossplane-yuri-network-vpc",
+    //         base: InternetGateway.manifest({
+    //           metadata: {
+    //             name: "my-network",
+    //           },
+    //           spec: {
+    //             forProvider: {
+    //               region: "us-west-2",
+    //               vpcIdSelector: {
+    //                 matchControllerRef: true,
+    //               },
+    //             },
+    //           },
+    //         }),
+    //         patches: [
+    //           {
+    //             fromFieldPath: "spec.id",
+    //             toFieldPath:
+    //               "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
+    //           },
+    //         ],
+    //       },
+    //       {
+    //         name: "crossplane-yuri-network-subnet",
+    //         base: Subnet.manifest({
+    //           metadata: {
+    //             labels: {
+    //               zone: "us-west-2a",
+    //               access: "public",
+    //             },
+    //           },
+    //           // reclaimPolicy: 'Delete',
+    //           spec: {
+    //             forProvider: {
+    //               region: "us-west-2",
+    //               mapPublicIpOnLaunch: true,
+    //               cidrBlock: "192.168.0.0/18",
+    //               vpcIdSelector: {
+    //                 matchControllerRef: true,
+    //               },
+    //               availabilityZone: "us-west-2a",
+    //               tags: {
+    //                 "kubernetes.io/role/elb": "1",
+    //               },
+    //             },
+    //           },
+    //         }),
+    //         patches: [
+    //           {
+    //             fromFieldPath: "spec.id",
+    //             toFieldPath:
+    //               "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
+    //           },
+    //         ],
+    //       },
+    //       {
+    //         name: "crossplane-yuri-network-subnet1",
+    //         base: Subnet.manifest({
+    //           metadata: {
+    //             labels: {
+    //               zone: "us-west-2a",
+    //               access: "public",
+    //             },
+    //           },
+    //           // reclaimPolicy: 'Delete',
+    //           spec: {
+    //             forProvider: {
+    //               region: "us-west-2",
+    //               mapPublicIpOnLaunch: true,
+    //               cidrBlock: "192.168.128.0/18",
+    //               vpcIdSelector: {
+    //                 matchControllerRef: true,
+    //               },
+    //               availabilityZone: "us-west-2a",
+    //               tags: {
+    //                 "kubernetes.io/role/elb": "1",
+    //               },
+    //             },
+    //           },
+    //         }),
+    //         patches: [
+    //           {
+    //             fromFieldPath: "spec.id",
+    //             toFieldPath:
+    //               "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
+    //           },
+    //           {
+    //             fromFieldPath: "spec.clusterRef.id",
+    //             toFieldPath: "spec.forProvider.tags[0].key",
+    //             transforms: [
+    //               {
+    //                 type: CompositionSpecResourcesPatchesTransformsType.STRING,
+    //                 string: {
+    //                   fmt: "kubernetes.io/cluster/%s",
+    //                 },
+    //               },
+    //             ],
+    //           },
+    //         ],
+    //       },
+    //       {
+    //         name: "crossplane-yuri-network-subnet2",
+    //         base: Subnet.manifest({
+    //           metadata: {
+    //             labels: {
+    //               zone: "us-west-2b",
+    //               access: "private",
+    //             },
+    //           },
+    //           // reclaimPolicy: 'Delete',
+    //           spec: {
+    //             forProvider: {
+    //               region: "us-west-2",
+    //               mapPublicIpOnLaunch: true,
+    //               cidrBlock: "192.168.192.0/18",
+    //               vpcIdSelector: {
+    //                 matchControllerRef: true,
+    //               },
+    //               availabilityZone: "us-west-2b",
+    //               tags: {
+    //                 "kubernetes.io/role/elb": "1",
+    //                 shared: "",
+    //               },
+    //             },
+    //           },
+    //         }),
+    //         patches: [
+    //           {
+    //             fromFieldPath: "spec.id",
+    //             toFieldPath:
+    //               "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
+    //           },
+    //           {
+    //             fromFieldPath: "spec.clusterRef.id",
+    //             toFieldPath: "spec.forProvider.tags[0].key",
+    //             transforms: [
+    //               {
+    //                 type: CompositionSpecResourcesPatchesTransformsType.STRING,
+    //                 string: {
+    //                   fmt: "kubernetes.io/cluster/%s",
+    //                 },
+    //               },
+    //             ],
+    //           },
+    //         ],
+    //       },
+    //       {
+    //         name: "crossplane-yuri-network-subnet3",
+    //         base: RouteTable.manifest({
+    //           spec: {
+    //             forProvider: {
+    //               region: "us-west-2",
+    //               vpcIdSelector: {
+    //                 matchControllerRef: true,
+    //               },
+    //               // routes: {
+    //               //   destinationCidrBlock: '0.0.0.0/0',
+    //               //   gatewayIdSelector: {
+    //               //     matchControllerRef: true
+    //               //   }
+    //               // },
+    //               // associations: [
+    //               //   {
+    //               //     subnetIdSelector: {
+    //               //       matchControllerRef: true,
+    //               //       matchLabels: {
+    //               //         zone: "us-west-2a",
+    //               //         access: 'public'
+    //               //       }
+    //               //     }
+    //               //   },
+    //               //   {
+    //               //     subnetIdSelector: {
+    //               //       matchControllerRef: true,
+    //               //       matchLabels: {
+    //               //         zone: "us-west-2b",
+    //               //         access: 'public'
+    //               //       }
+    //               //     }
+    //               //   },
+    //               //   {
+    //               //     subnetIdSelector: {
+    //               //       matchControllerRef: true,
+    //               //       matchLabels: {
+    //               //         zone: "us-west-2a",
+    //               //         access: 'private'
+    //               //       }
+    //               //     }
+    //               //   },
+    //               //   {
+    //               //     subnetIdSelector: {
+    //               //       matchControllerRef: true,
+    //               //       matchLabels: {
+    //               //         zone: "us-west-2b",
+    //               //         access: 'private'
+    //               //       }
+    //               //     }
+    //               //   }
+    //               // ]
+    //             },
+    //           },
+    //         }),
+    //         patches: [
+    //           {
+    //             fromFieldPath: "spec.id",
+    //             toFieldPath:
+    //               "metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]",
+    //           },
+    //         ],
+    //       },
+    //       {
+    //         name: "crossplane-yuri-network-group",
+    //         base: SecurityGroup.manifest({
+    //           metadata: {},
+    //           spec: {
+    //             forProvider: {
+    //               region: "us-west-2",
+    //               // name: "my-group1",
+    //               vpcIdSelector: {
+    //                 matchControllerRef: true,
+    //               },
+    //               // groupName: "multik8s-cluster",
+    //               description: "Allow access to PostgreSQL",
+    //               // ingress: [
+    //               //   {
+    //               //     fromPort: 5432,
+    //               //     toPort: 5432,
+    //               //     ipProtocol: 'tcp',
+    //               //     ipRanges: [{}]
+    //               //   }
+    //               // ]
+    //             },
+    //           },
+    //         }),
+    //       },
+    //     ],
+    //   },
+    // });
 
     // TODO resolve - ref https://cdk8s.io/docs/latest/basics/helm/
     // new Helm(this, 'redis', {

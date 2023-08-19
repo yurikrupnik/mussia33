@@ -1,12 +1,58 @@
+#steps:
+#  - name: 'gcr.io/cloud-builders/git'
+#    args: [ 'clone', 'https://github.com/yurikrupnik/mussia33' ]
+#  - name: "bomarconi/pnpm:node-lts-0.4"
+#    id: pnpm install
+#    entrypoint: pnpm
+#    args: ["install"]
+#  - name: "bomarconi/pnpm:node-lts-0.4"
+#    id: pnpm build
+#    entrypoint: pnpm
+#    args: [ "nx affected --target=build --parallel --max-parallel=3 --prod" ]
+##    args: [ "run nx run-many --all --target=build" ]
 steps:
-  - name: 'gcr.io/cloud-builders/git'
-    args: [ 'clone', 'https://github.com/yurikrupnik/mussia33' ]
-  - name: "bomarconi/pnpm:node-lts-0.4"
-    id: pnpm install
-    entrypoint: pnpm
-    args: ["install"]
-  - name: "bomarconi/pnpm:node-lts-0.4"
-    id: pnpm build
-    entrypoint: pnpm
-    args: [ "nx affected --target=build --parallel --max-parallel=3 --prod" ]
-#    args: [ "run nx run-many --all --target=build" ]
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - ./packages/service1
+      - "-t"
+      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
+      #          - packages/services/billing
+      - "--build-arg"
+      - modulePath=/packages/service1
+    id: Build
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
+    id: Push
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    args:
+      - run
+      - deploy
+      - $_SERVICE_NAME
+      - "--platform=managed"
+      - "--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
+      - >-
+        --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID,$_LABELS
+      - "--region=$_DEPLOY_REGION"
+      - "--quiet"
+    id: Deploy
+    entrypoint: gcloud
+
+substitutions:
+  _NODE_VERSION: 16.2.0 #default value
+  _GCR_HOSTNAME: eu.gcr.io
+  _PLATFORM: managed
+  _SERVICE_NAME: service1
+  _DEPLOY_REGION: europe-west1
+
+images:
+  - "$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA"
+options:
+  substitutionOption: ALLOW_LOOSE
+
+tags:
+  - gcp-cloud-build-deploy-cloud-run
+  - gcp-cloud-build-deploy-cloud-run-managed
+  - service1

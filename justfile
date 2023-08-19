@@ -20,7 +20,11 @@ daily:
 cue:
   cue import platform/crossplane/storage/composition-gcp.yaml
   cue eval platform/crossplane/storage/composition-gcp.cue
-
+  timoni mod init master .
+  timoni build -n testing test shit/cluster -o yaml
+  timoni mod push . oci://docker.io/yurikrupnik/timoni-first-test --version "0.0.1"
+  go get github.com/crossplane/crossplane/apis/apiextensions/v1
+  cue get github.com/crossplane/crossplane/apis/apiextensions/v1
 cloud:
   gcloud builds submit --region=REGION --config [CONFIG_FILE_PATH] .
 
