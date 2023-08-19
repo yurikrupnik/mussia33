@@ -1,0 +1,396 @@
+name: "Node.js CI"
+
+on: {
+	push: {
+		branches: ["main"]
+		tags: [
+			"*.*.*",
+		]
+	}
+	pull_request: branches: ["main"]
+}
+env: GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+jobs: {
+	lint: {
+		"runs-on": "ubuntu-latest"
+		steps: [{
+			uses: "actions/checkout@v3"
+			with: "fetch-depth": 0
+		}, {
+			name: "Derive appropriate SHAs for base and head for `nx affected` commands"
+			uses: "nrwl/nx-set-shas@v3"
+		}, {
+			uses: "denoland/setup-deno@v1"
+			with: "deno-version": "v1.x"
+		}, {
+			uses: "actions/setup-go@v4"
+			with: {
+				"go-version":   "1.20.0"
+				run_install:    true
+				"check-latest": true
+				cache:          true
+			}
+		}, {
+			run: "rustup toolchain install stable --profile minimal"
+		}, {
+			run: "rustup show"
+		}, {
+			uses: "Swatinem/rust-cache@v2"
+		}, {
+			name: "Use Node.js ${{ matrix.node-version }}"
+			uses: "actions/setup-node@v3"
+			with: "node-version": 18
+		}, {
+			uses: "pnpm/action-setup@v2"
+			name: "Install pnpm"
+			id:   "pnpm-install"
+			with: {
+				version:     7
+				run_install: false
+			}
+		}, {
+			name:  "Get pnpm store directory"
+			id:    "pnpm-cache"
+			shell: "bash"
+			run: """
+				echo \"STORE_PATH=$(pnpm store path)\" >> $GITHUB_OUTPUT
+
+				"""
+		}, {
+			uses: "actions/cache@v3"
+			name: "Setup pnpm cache"
+			with: {
+				path: "${{ steps.pnpm-cache.outputs.STORE_PATH }}"
+				key:  "${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}"
+				"restore-keys": """
+					${{ runner.os }}-pnpm-store-
+
+					"""
+			}
+		}, {
+			name: "Install dependencies"
+			run:  "pnpm install --no-frozen-lockfile"
+		}, {
+			run: "pnpm nx affected --target=lint --parallel --max-parallel=3"
+		}]
+	}
+	build: {
+		"runs-on": "ubuntu-latest"
+		steps: [{
+			uses: "actions/checkout@v3"
+			with: "fetch-depth": 0
+		}, {
+			name: "Derive appropriate SHAs for base and head for `nx affected` commands"
+			uses: "nrwl/nx-set-shas@v3"
+		}, {
+			uses: "denoland/setup-deno@v1"
+			with: "deno-version": "v1.x"
+		}, {
+			uses: "actions/setup-go@v4"
+			with: {
+				"go-version":   "1.20.0"
+				run_install:    true
+				"check-latest": true
+				cache:          true
+			}
+		}, {
+			run: "rustup toolchain install stable --profile minimal"
+		}, {
+			run: "rustup show"
+		}, {
+			uses: "Swatinem/rust-cache@v2"
+		}, {
+			name: "Use Node.js ${{ matrix.node-version }}"
+			uses: "actions/setup-node@v3"
+			with: "node-version": 18
+		}, {
+			uses: "pnpm/action-setup@v2"
+			name: "Install pnpm"
+			id:   "pnpm-install"
+			with: {
+				version:     7
+				run_install: false
+			}
+		}, {
+			name:  "Get pnpm store directory"
+			id:    "pnpm-cache"
+			shell: "bash"
+			run: """
+				echo \"STORE_PATH=$(pnpm store path)\" >> $GITHUB_OUTPUT
+
+				"""
+		}, {
+			uses: "actions/cache@v3"
+			name: "Setup pnpm cache"
+			with: {
+				path: "${{ steps.pnpm-cache.outputs.STORE_PATH }}"
+				key:  "${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}"
+				"restore-keys": """
+					${{ runner.os }}-pnpm-store-
+
+					"""
+			}
+		}, {
+			name: "Install dependencies"
+			//        run: pnpm install --no-frozen-lockfile
+			run: "pnpm install"
+		}, {
+			run: "pnpm nx affected --target=build --parallel --max-parallel=3 --prod"
+		}]
+	}
+	test: {
+		"runs-on": "ubuntu-latest"
+		steps: [{
+			uses: "actions/checkout@v3"
+			with: "fetch-depth": 0
+		}, {
+			name: "Derive appropriate SHAs for base and head for `nx affected` commands"
+			uses: "nrwl/nx-set-shas@v3"
+		}, {
+			uses: "denoland/setup-deno@v1"
+			with: "deno-version": "v1.x"
+		}, {
+			uses: "actions/setup-go@v4"
+			with: {
+				"go-version":   "1.20.0"
+				"check-latest": true
+				cache:          true
+			}
+		}, {
+			run: "rustup toolchain install stable --profile minimal"
+		}, {
+			uses: "Swatinem/rust-cache@v2"
+		}, {
+			name: "Use Node.js"
+			uses: "actions/setup-node@v3"
+			with: "node-version": 18
+		}, {
+			uses: "pnpm/action-setup@v2"
+			name: "Install pnpm"
+			id:   "pnpm-install"
+			with: {
+				version:     7
+				run_install: false
+			}
+		}, {
+			name:  "Get pnpm store directory"
+			id:    "pnpm-cache"
+			shell: "bash"
+			run: """
+				echo \"STORE_PATH=$(pnpm store path)\" >> $GITHUB_OUTPUT
+
+				"""
+		}, {
+			uses: "actions/cache@v3"
+			name: "Setup pnpm cache"
+			with: {
+				path: "${{ steps.pnpm-cache.outputs.STORE_PATH }}"
+				key:  "${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}"
+				"restore-keys": """
+					${{ runner.os }}-pnpm-store-
+
+					"""
+			}
+		}, {
+			name: "Install dependencies"
+			run:  "pnpm install --no-frozen-lockfile"
+		}, {
+			run: "pnpm nx affected --target=test --parallel --max-parallel=3"
+		}]
+	}
+	e2e: {
+		"runs-on": "ubuntu-latest"
+		steps: [{
+			uses: "actions/checkout@v3"
+			with: "fetch-depth": 0
+		}, {
+			name: "Derive appropriate SHAs for base and head for `nx affected` commands"
+			uses: "nrwl/nx-set-shas@v3"
+		}, {
+			uses: "denoland/setup-deno@v1"
+			with: "deno-version": "v1.x"
+		}, {
+			uses: "actions/setup-go@v4"
+			with: {
+				"go-version":   "1.20.0"
+				"check-latest": true
+				cache:          true
+			}
+		}, {
+			run: "rustup toolchain install stable --profile minimal"
+		}, {
+			uses: "Swatinem/rust-cache@v2"
+		}, {
+			run: "go version"
+		}, {
+			name: "Use Node.js ${{ matrix.node-version }}"
+			uses: "actions/setup-node@v3"
+			with: "node-version": 18
+		}, {
+			uses: "pnpm/action-setup@v2"
+			name: "Install pnpm"
+			id:   "pnpm-install"
+			with: {
+				version:     7
+				run_install: false
+			}
+		}, {
+			name:  "Get pnpm store directory"
+			id:    "pnpm-cache"
+			shell: "bash"
+			run: """
+				echo \"STORE_PATH=$(pnpm store path)\" >> $GITHUB_OUTPUT
+
+				"""
+		}, {
+			uses: "actions/cache@v3"
+			name: "Setup pnpm cache"
+			with: {
+				path: "${{ steps.pnpm-cache.outputs.STORE_PATH }}"
+				key:  "${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}"
+				"restore-keys": """
+					${{ runner.os }}-pnpm-store-
+
+					"""
+			}
+		}, {
+			name: "Install dependencies"
+			run:  "pnpm install --no-frozen-lockfile"
+		}, {
+			//      - run: pnpm run cypress:install
+			run: "pnpm nx affected --target=e2e --parallel --max-parallel=3"
+		}]
+	}
+	docker: {
+		"runs-on": "ubuntu-latest"
+		permissions: {
+			contents:   "read"
+			"id-token": "write"
+		}
+		steps: [{
+			uses: "actions/checkout@v3"
+			with: "fetch-depth": 0
+		}, {
+			name: "Derive appropriate SHAs for base and head for `nx affected` commands"
+			uses: "nrwl/nx-set-shas@v3"
+		}, {
+			uses: "denoland/setup-deno@v1"
+			with: "deno-version": "v1.x"
+		}, {
+			uses: "actions/setup-go@v4"
+			with: {
+				"go-version":   "1.20.0"
+				"check-latest": true
+				cache:          true
+			}
+		}, {
+			run: "rustup toolchain install stable --profile minimal"
+		}, {
+			uses: "Swatinem/rust-cache@v2"
+		}, {
+			run: "go version"
+		}, {
+			name: "Use Node.js ${{ matrix.node-version }}"
+			uses: "actions/setup-node@v3"
+			with: "node-version": 18
+		}, {
+			uses: "pnpm/action-setup@v2"
+			name: "Install pnpm"
+			id:   "pnpm-install"
+			with: {
+				version:     7
+				run_install: false
+			}
+		}, {
+			name:  "Get pnpm store directory"
+			id:    "pnpm-cache"
+			shell: "bash"
+			run: """
+				echo \"STORE_PATH=$(pnpm store path)\" >> $GITHUB_OUTPUT
+
+				"""
+		}, {
+			uses: "actions/cache@v3"
+			name: "Setup pnpm cache"
+			with: {
+				path: "${{ steps.pnpm-cache.outputs.STORE_PATH }}"
+				key:  "${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}"
+				"restore-keys": """
+					${{ runner.os }}-pnpm-store-
+
+					"""
+			}
+		}, {
+			name: "Install dependencies"
+			run:  "pnpm install --no-frozen-lockfile"
+		}, {
+			name: "Log into registry"
+			uses: "docker/login-action@v2"
+			with: {
+				username: "${{ secrets.DOCKERHUB_USERNAME }}"
+				password: "${{ secrets.DOCKERHUB_PASSWORD }}"
+			}
+		}, {
+			// Start of gcp containers
+			uses: "docker/metadata-action@v4"
+			id:   "metadata"
+			with: images: "ghcr.io/${{ github.repository }}"
+		}, {
+			name: "Set up Cloud SDK"
+			uses: "google-github-actions/setup-gcloud@v1"
+		}, {
+			run: "gcloud config list"
+		}, {
+			id:   "auth"
+			uses: "google-github-actions/auth@v1"
+			with: {
+				workload_identity_provider: "projects/922939596495/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
+				service_account:            "container-builder-sa@mussia-infra.iam.gserviceaccount.com"
+			}
+		}, {
+			run: "gcloud --quiet auth configure-docker europe-central2-docker.pkg.dev"
+
+				// End of gcp containers
+		}, {
+			// End of gcp containers
+			name: "Container build"
+			run:  "pnpm nx affected --target=docker --parallel --max-parallel=3 --prod"
+			env: {
+				GOOS:               "linux"
+				GOARCH:             "amd64"
+				CGO_ENABLED:        0
+				INPUT_GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+				REGISTRY:           "europe-central2-docker.pkg.dev/mussia-infra/container-repository"
+			}
+		}]
+	}
+	datree: {
+		"runs-on": "ubuntu-latest"
+		env: DATREE_TOKEN: "${{ secrets.DATREE_TOKEN }}"
+		steps: [{
+			uses: "actions/checkout@v3"
+			with: "fetch-depth": 0
+		}]
+	}
+	//      - name: Run Datree Policy Check
+	//        uses: datreeio/action-datree@main
+	//        with:
+	//          path: '**/*.yaml'
+	//          cliArguments: '--only-k8s-files'
+	cluster: {
+		"runs-on": "ubuntu-latest"
+		//    env:
+		steps: [{
+			uses: "actions/checkout@v3"
+			with: "fetch-depth": 0
+		}, {
+			name: "Kind Cluster"
+			uses: "helm/kind-action@v1.8.0"
+		}, {
+			run: "kubectl cluster-info"
+		}, {
+			name: "Install Task"
+			uses: "arduino/setup-task@v1"
+		}]
+	}
+}

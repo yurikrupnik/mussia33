@@ -2,6 +2,9 @@ configMapGenerator:
   - name: proto-configs
     options:
       disableNameSuffixHash: true
+    literals:
+      - FOO=Bar
+      - YAM=Dam
     files:
       - service.proto
       - users.proto
