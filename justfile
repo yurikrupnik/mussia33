@@ -17,6 +17,10 @@ git-remove:
 daily:
   echo "daily stuffs"
 
+cue:
+  cue import platform/crossplane/storage/composition-gcp.yaml
+  cue eval platform/crossplane/storage/composition-gcp.cue
+
 cloud:
   gcloud builds submit --region=REGION --config [CONFIG_FILE_PATH] .
 

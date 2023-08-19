@@ -42,6 +42,15 @@ new gcp.projects.IAMBinding("secret-puller-binding-token-creator", {
   role: "roles/iam.serviceAccountTokenCreator",
 });
 
+// TODO find out why that string!
+const str = "mussia-infra.svc.id.goog[external-secrets/secret-puller]";
+new gcp.projects.IAMBinding("secret-puller-binding-token-something", {
+  project: project,
+  members: [sa.email.apply((email) => `serviceAccount:${str}`)],
+  role: "roles/iam.workloadIdentityUser",
+});
+
+// sa.
 // run to add
 // gcloud iam service-accounts add-iam-policy-binding secret-puller@mussia-infra.iam.gserviceaccount.com --role roles/iam.workloadIdentityUser --member "serviceAccount:mussia-infra.svc.id.goog[external-secrets/secret-puller]"
 
@@ -131,17 +140,17 @@ const cloudKMS = new gcp.projects.Service("cloudkms.googleapis.com", {
   project,
 });
 
-// const keyRing = new gcp.kms.KeyRing("keyring", {
-//   name: "first-keyring",
-//   project,
-//   location: "europe",
-// });
+const keyRing = new gcp.kms.KeyRing("keyring", {
+  name: "first-keyring",
+  project,
+  location: "europe",
+});
 
-// const example_key = new gcp.kms.CryptoKey("example-key", {
-//   name: "first-key",
-//   keyRing: keyRing.id,
-//   rotationPeriod: "100000s",
-// });
+const example_key = new gcp.kms.CryptoKey("example-key", {
+  name: "first-key",
+  keyRing: keyRing.id,
+  rotationPeriod: "100000s",
+});
 //
 // const example_asymmetric_sign_key = new gcp.kms.CryptoKey(
 //   "example-asymmetric-sign-key",
@@ -275,7 +284,7 @@ const secretManager = new ServicesResource(
     provider: Providers.GCP,
     services: ["secretmanager.googleapis.com"],
   },
-  {}
+  {},
 );
 
 const eventarc = new ServicesResource(
@@ -284,7 +293,7 @@ const eventarc = new ServicesResource(
     provider: Providers.GCP,
     services: ["eventarc.googleapis.com"],
   },
-  {}
+  {},
 );
 
 const _project = gcp.organizations.getProject({});
@@ -294,7 +303,7 @@ new gcp.projects.IAMBinding("pubsub-token-creator", {
   members: [
     _project.then(
       (project) =>
-        `serviceAccount:service-${project.number}@gcp-sa-pubsub.iam.gserviceaccount.com`
+        `serviceAccount:service-${project.number}@gcp-sa-pubsub.iam.gserviceaccount.com`,
     ),
   ],
   role: "roles/iam.serviceAccountTokenCreator",
@@ -326,7 +335,7 @@ const deadLetter = new gcp.pubsub.Topic(
   },
   {
     // provider: Providers.gcp
-  }
+  },
 );
 
 const userAdded = new gcp.pubsub.Topic("user-added", {
@@ -367,7 +376,7 @@ const eventarcpublishing = new gcp.projects.Service(
   {
     disableDependentServices: true,
     service: "eventarcpublishing.googleapis.com",
-  }
+  },
 );
 
 const iamcredentials = new gcp.projects.Service(
@@ -375,7 +384,7 @@ const iamcredentials = new gcp.projects.Service(
   {
     disableDependentServices: true,
     service: "iamcredentials.googleapis.com",
-  }
+  },
 );
 const workloadIdentity = new WorkloadIdentityResource(
   "WorkloadIdentityResource",
@@ -387,7 +396,7 @@ const workloadIdentity = new WorkloadIdentityResource(
     ],
     project,
   },
-  { dependsOn: [iamcredentials], parent: iamcredentials }
+  { dependsOn: [iamcredentials], parent: iamcredentials },
 );
 
 const cloudScheduler = new gcp.projects.Service(
@@ -395,7 +404,7 @@ const cloudScheduler = new gcp.projects.Service(
   {
     disableDependentServices: true,
     service: "cloudscheduler.googleapis.com",
-  }
+  },
 );
 
 const binaryAuthorization = new gcp.projects.Service(
@@ -403,7 +412,7 @@ const binaryAuthorization = new gcp.projects.Service(
   {
     disableDependentServices: true,
     service: "binaryauthorization.googleapis.com",
-  }
+  },
 );
 
 // high price
@@ -417,7 +426,7 @@ const artifactRegistry = new gcp.projects.Service(
   {
     disableDependentServices: true,
     service: "artifactregistry.googleapis.com",
-  }
+  },
 );
 
 const dockerRegistry = new ArtifactoryResource(
@@ -435,7 +444,7 @@ const dockerRegistry = new ArtifactoryResource(
       description: "Example docker repository.",
     },
   },
-  { parent: artifactRegistry, dependsOn: [artifactRegistry] }
+  { parent: artifactRegistry, dependsOn: [artifactRegistry] },
 );
 
 const mesh = new gcp.projects.Service("mesh.googleapis.com", {
@@ -450,7 +459,7 @@ const computeServices = new ServicesResource(
     provider: Providers.GCP,
     services: ["compute.googleapis.com"],
   },
-  {}
+  {},
 );
 
 new NetworkResource(
@@ -459,7 +468,7 @@ new NetworkResource(
     region,
     project,
   },
-  { dependsOn: computeServices }
+  { dependsOn: computeServices },
 );
 // DB SQL
 const migrationServices = new ServicesResource(
@@ -468,7 +477,7 @@ const migrationServices = new ServicesResource(
     provider: Providers.GCP,
     services: ["datamigration.googleapis.com"],
   },
-  {}
+  {},
 );
 
 // const instance = new gcp.sql.DatabaseInstance("instance", {
@@ -521,21 +530,117 @@ const migrationServices = new ServicesResource(
 // });
 
 // start compute k8s
-// const cluster = new gcp.container.Cluster("autopilot", {
-//   name: "autopilot-dev",
+const k8sNotification = new gcp.pubsub.Topic(
+  "k8s-notification",
+  {
+    name: "k8s-notification",
+  },
+  {
+    // provider: Providers.gcp
+  },
+);
+// const clusterAutopilot = new gcp.container.Cluster("autopilot", {
+//   name: "manager-cluster",
 //   project,
 //   location: region,
-//   description: "Development europe autopilot cluster",
+//   // resourceLabels: {
+//   //   app: "dsa"
+//   // },
+//   description: "Manager europe autopilot cluster",
 //   enableAutopilot: true,
 //   // network: vpcNetwork.id,
 //   // clusterAutoscaling: {
 //   //   enabled: false,
 //   // },
 //   // initialNodeCount: 3,
-//   // notificationConfig: {
-//   //   pubsub: "",
+//   notificationConfig: {
+//     pubsub: {
+//       enabled: true,
+//       topic: k8sNotification.id,
+//     },
+//   },
+// });
+
+const k8sSa = new gcp.serviceaccount.Account("k8s-manager-sa", {
+  project,
+  accountId: "k8s-manager-sa",
+  disabled: false,
+  description: "Kubernetes containers manager sa",
+  displayName: "Kubernetes manager",
+});
+
+new gcp.projects.IAMBinding("k8s-manager-role", {
+  project: project,
+  members: [k8sSa.email.apply((email) => `serviceAccount:${email}`)],
+  role: "roles/container.developer",
+});
+
+// const engineVersion = gcp.container
+//   .getEngineVersions()
+//   .then((v) => v.latestMasterVersion);
+// const cluster = new gcp.container.Cluster("n1-standard", {
+//   initialNodeCount: 2,
+//   minMasterVersion: engineVersion,
+//   nodeVersion: engineVersion,
+//   notificationConfig: {
+//     pubsub: {
+//       enabled: true,
+//       topic: k8sNotification.id,
+//     },
+//   },
+//   costManagementConfig: {
+//     enabled: true,
+//   },
+//   removeDefaultNodePool: true,
+//   // servi
+//   // loggingConfig: {
+//   // enableComponents: true,
+//   // },
+//   // nodeConfig: {
+//   //   machineType: "n2-standard-4",
+//   //   oauthScopes: [
+//   //     "https://www.googleapis.com/auth/compute",
+//   //     "https://www.googleapis.com/auth/devstorage.read_only",
+//   //     "https://www.googleapis.com/auth/logging.write",
+//   //     "https://www.googleapis.com/auth/monitoring",
+//   //   ],
 //   // },
 // });
+
+// const node0 = new gcp.container.NodePool("base-nodepool", {
+//   name: "base-nodepool",
+//   cluster: cluster.id,
+//   nodeCount: 2,
+//   nodeConfig: {
+//     machineType: "n2-standard-4",
+//     labels: {
+//       app: "web",
+//       work: "compute",
+//     },
+//     // serviceAccount: k8sSa.accountId,
+//     // bootDiskKmsKey: ''},
+//     // preemptible: true,
+//   },
+// });
+
+// const node1 = new gcp.container.NodePool("spot-nodepool", {
+//   name: "spot-nodepool",
+//   cluster: cluster.id,
+//   nodeCount: 2,
+//   nodeConfig: {
+//     machineType: "n1-standard-1",
+//     labels: {
+//       app: "spot",
+//       work: "batch",
+//     },
+//     // serviceAccount: k8sSa.accountId,
+//     // bootDiskKmsKey: ''},
+//     preemptible: true,
+//   },
+// });
+
+// Export the Cluster name
+// export const clusterName = cluster.name;
 // end compute k8s
 // export const connectorId = vpcConnector.id;
 
@@ -547,7 +652,7 @@ const containerReaderSa = new gcp.serviceaccount.Account(
     disabled: false,
     description: "Kubernetes containers puller sa",
     displayName: "Container puller",
-  }
+  },
 );
 
 new gcp.projects.IAMBinding("artifact-registry-reader", {

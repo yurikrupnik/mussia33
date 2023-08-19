@@ -16,4 +16,5 @@ tasks:
   apply:
     dir: platform/kubevela
     cmds:
+      - kubectl -n vela-system wait deployment kubevela-vela-core --for=condition=Available --timeout=180s
       - kubectl apply -f vela.yaml

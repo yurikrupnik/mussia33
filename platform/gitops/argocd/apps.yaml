@@ -45,6 +45,78 @@ spec:
       selfHeal: true
       prune: true
       allowEmpty: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argo-rollouts
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: argo-rollouts
+    repoURL: https://argoproj.github.io/argo-helm
+    targetRevision: 2.26.1
+    helm:
+      releaseName: argo-rollouts
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: argo-rollouts
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+    automated:
+      selfHeal: true
+      prune: true
+      allowEmpty: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: crossplane
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: crossplane
+    repoURL: https://charts.crossplane.io/stable
+    targetRevision: "1.11.3"
+  destination:
+    namespace: crossplane-system
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kubevela
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: vela-core
+    repoURL: https://charts.kubevela.net/core
+    targetRevision: "1.8.1"
+  destination:
+    namespace: vela-system
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true
 #---
 #apiVersion: argoproj.io/v1alpha1
 #kind: Application
@@ -124,30 +196,7 @@ spec:
 #     selfHeal: true
 #     prune: true
 #     allowEmpty: true
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: argo-rollouts
-  namespace: argocd
-spec:
-  project: default
-  source:
-    chart: argo-rollouts
-    repoURL: https://argoproj.github.io/argo-helm
-    targetRevision: 2.26.1
-    helm:
-      releaseName: argo-rollouts
-  destination:
-    server: "https://kubernetes.default.svc"
-    namespace: argo-rollouts
-  syncPolicy:
-    syncOptions:
-      - CreateNamespace=true
-    automated:
-      selfHeal: true
-      prune: true
-      allowEmpty: true
+
 #---
 #apiVersion: argoproj.io/v1alpha1
 #kind: Application
@@ -263,54 +312,7 @@ spec:
 #    automated:
 #      selfHeal: true
 #      prune: true
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: crossplane
-  namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-spec:
-  project: default
-  source:
-    chart: crossplane
-    repoURL: https://charts.crossplane.io/stable
-    targetRevision: "1.11.3"
-  destination:
-    namespace: crossplane-system
-    server: https://kubernetes.default.svc
-  syncPolicy:
-    automated:
-      selfHeal: true
-      prune: true
-      allowEmpty: true
-    syncOptions:
-      - CreateNamespace=true
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
- name: kubevela
- namespace: argocd
- finalizers:
-   - resources-finalizer.argocd.argoproj.io
-spec:
- project: default
- source:
-   chart: vela-core
-   repoURL: https://charts.kubevela.net/core
-   targetRevision: "1.8.1"
- destination:
-   namespace: vela-system
-   server: https://kubernetes.default.svc
- syncPolicy:
-   automated:
-     selfHeal: true
-     prune: true
-     allowEmpty: true
-   syncOptions:
-     - CreateNamespace=true
+
 #---
 #apiVersion: argoproj.io/v1alpha1
 #kind: Application

@@ -52,13 +52,13 @@ tasks:
 #     - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
 #     - kind create cluster --config=platform/cluster/cluster.yaml # cluster with ingress
 #     - helm install my-cadvisor ckotzbauer/cadvisor
-     - task: monitoring:install
-     - task: secrets:using-local
+     - task: argocd:install
 #     - task: kubevela:install
-#     - task: argocd:install
-#     - task: argocd:apply
-#     - task: argocd:get-secret
+     - task: argocd:apply
+     - task: argocd:get-secret
 #     - helm install kubeshark kubeshark/kubeshark
+#     - task: monitoring:install
+#     - task: secrets:using-local
 #     - task: kubevela:install
 #     - sleep 60
 #     - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s

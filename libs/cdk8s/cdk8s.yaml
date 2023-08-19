@@ -12,10 +12,12 @@ imports:
   - github:upbound/provider-aws
   - github:crossplane/crossplane
   - github:fluxcd/flux2s
+#  - github:kyverno/kyverno
+#  - github:kedacore/keda
 #  - github:kubernetes-sigs/kustomize
 #  - github:upbound/provider-azure
 
-#  - github:robusta-dev/robusta
+  - github:robusta-dev/robusta
 
 #  - github:crossplane/crossplane-runtime
 #  - github:dapr/dapr

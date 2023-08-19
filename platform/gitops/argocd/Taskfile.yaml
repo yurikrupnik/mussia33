@@ -17,6 +17,7 @@ tasks:
   apply:
     dir: platform/gitops/argocd
     cmds:
+      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
       - kubectl apply -f apps.yaml
   get-secret:
     cmds:

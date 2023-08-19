@@ -7,14 +7,23 @@ spec:
     - name: nginx-server
       type: webservice
       properties:
-        image: yurikrupnik/nest-app:main
+        image: yurikrupnik/frontend-solid-apps
         ports:
           - port: 80
             expose: true
+      traits:
+        - type: autoscaler
+          properties:
+            min: 3
+        - type: ingress
+          properties:
+            domain: localhost
+            http:
+              "/": 80
     - name: api-server
       type: webservice
       properties:
-        image: yurikrupnik/nest-app:main
+        image: yurikrupnik/actix-app:main
         ports:
           - port: 8080
             expose: true
@@ -28,20 +37,26 @@ spec:
     - name: express-server
       type: webservice
       properties:
-#        image: yurikrupnik/frontend-host
-        image: yurikrupnik/nest-app:sha-f8de8b1
+        image: yurikrupnik/solid-app:main
         ports:
-         - port: 8080
+         - port: 80
            expose: true
-      traits:
-        - type: scaler
-          properties:
-            replicas: 1
-        - type: ingress
-          properties:
-            domain: localhost
-            http:
-              "/": 8080
+    - name: express-server
+      type: webservice
+      properties:
+        image: yurikrupnik/astro:main
+        ports:
+          - port: 80
+            expose: true
+#      traits:
+#        - type: scaler
+#          properties:
+#            replicas: 1
+#        - type: ingress
+#          properties:
+#            domain: localhost
+#            http:
+#              "/": 8080
   policies:
     - name: target-default
       type: topology
@@ -75,17 +90,28 @@ spec:
         properties:
           policies: ["target-prod", "deploy-ha"]
 ---
-#apiVersion: core.oam.dev/v1beta1
-#kind: Application
-#metadata:
-#  name: job-go-commands
-#spec:
-#  components:
-#    - name: job-go-commands
-#      type: job
-#      properties:
-#        image: yurikrupnik/go-commands:v0.0.14
-#---
+apiVersion: core.oam.dev/v1beta1
+kind: Application
+metadata:
+  name: go-commands
+spec:
+  components:
+    - name: go-commands
+      type: cron-task
+      properties:
+        image: yurikrupnik/go-commands:v0.0.14
+---
+apiVersion: core.oam.dev/v1beta1
+kind: Application
+metadata:
+  name: clapper
+spec:
+  components:
+    - name: clapper
+      type: task # task, raw, k8s-objects
+      properties:
+        image: yurikrupnik/clapper
+---
 apiVersion: core.oam.dev/v1beta1
 kind: Application
 metadata:

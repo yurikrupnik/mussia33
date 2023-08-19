@@ -2,6 +2,7 @@
 resources:
   - mongodb.yaml
   - redis.yaml
+#  - ../../base
   - ../../../apps/go/fiber-app/k8s/overlays/dev
   - ../../../apps/node/nest-app/k8s/overlays/dev
   - ../../../apps/node/node-users-redis/k8s/overlays/dev
