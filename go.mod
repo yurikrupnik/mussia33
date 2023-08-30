@@ -7,7 +7,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.47.0
 	github.com/jessicalins/instrumentation-practices-examples/middleware v0.0.0-20221107214607-4a1cf17820a6
 	github.com/prometheus/client_golang v1.16.0
-	go.mongodb.org/mongo-driver v1.12.0
+	go.mongodb.org/mongo-driver v1.12.1
 	google.golang.org/protobuf v1.31.0
 )
 
