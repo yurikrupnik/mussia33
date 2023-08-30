@@ -12,7 +12,7 @@ tasks:
     preconditions:
       - test -f cluster.yaml
     cmds:
-#      - ctlptl create cluster kind --registry=ctlptl-registry
+#      - ctlptl create cluster {{.CLUSTER_TYPE}} --registry=ctlptl-registry
       - kind create cluster --config cluster.yaml
       - task: ingress
   kind-local-cluster:down:
@@ -34,5 +34,9 @@ tasks:
       - kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v0.7.1/standard-install.yaml
 
   istio:
+    cmds:
+      - echo
+
+  linkerd:
     cmds:
       - echo
