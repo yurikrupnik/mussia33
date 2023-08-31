@@ -14,7 +14,7 @@ serde_json = { version = "1.0.105", features = ["arbitrary_precision"] }
 #env_logger = "0.10.0"
 #log = "0.4"
 #futures = "0.3"
-google-cloud-pubsub = "0.18.0"
+google-cloud-pubsub = "0.19.0"
 #google-cloud-googleapis = "0.8.0"
 google-cloud-gax = "0.15.0"
 google-cloud-default = "0.4.0"
