@@ -14,7 +14,7 @@ serde_json = { version = "1.0.105", features = ["arbitrary_precision"] }
 env_logger = "0.10.0"
 log = "0.4"
 futures = "0.3.28"
-utoipa = { version = "3.3.0", features = ["actix_extras"] }
+utoipa = { version = "3.5.0", features = ["actix_extras"] }
 utoipa-swagger-ui = { version = "3.1.5", features = ["actix-web"] }
 validator = { version = "0.16.1", features = ["derive"] }
 actix-cors = "0.6.4"
