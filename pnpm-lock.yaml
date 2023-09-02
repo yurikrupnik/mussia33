@@ -146,8 +146,8 @@ devDependencies:
     specifier: 16.7.4
     version: 16.7.4(@types/node@18.16.20)(cypress@12.17.2)(eslint@8.46.0)(nx@16.7.4)(typescript@5.1.6)
   '@nx/deno':
-    specifier: 16.4.0
-    version: 16.4.0(@types/node@18.16.20)(nx@16.7.4)(typescript@5.1.6)
+    specifier: 16.7.1
+    version: 16.7.1(@types/node@18.16.20)(nx@16.7.4)(typescript@5.1.6)
   '@nx/esbuild':
     specifier: 16.7.4
     version: 16.7.4(@types/node@18.16.20)(esbuild@0.18.14)(nx@16.7.4)(typescript@5.1.6)
@@ -2794,10 +2794,10 @@ packages:
       - verdaccio
     dev: true
 
-  /@nrwl/deno@16.4.0(@types/node@18.16.20)(nx@16.7.4)(typescript@5.1.6):
-    resolution: {integrity: sha512-1ie/nOiNmEmoUA4TeaZU59XEaQURmTaFTB2iSurYciEGtLk2oTCCkdJpVnNSdyKbgbAlbUVQXW/OSsXI+B1etQ==}
+  /@nrwl/deno@16.7.1(@types/node@18.16.20)(nx@16.7.4)(typescript@5.1.6):
+    resolution: {integrity: sha512-tSBp12rwpUQKOcpeTbqf4itWkl77KKuiutr6VCtvM1i2z8nWQclxioShQiPVEODMK6o8EgKJyi/n98XYr7ScOw==}
     dependencies:
-      '@nx/deno': 16.4.0(@types/node@18.16.20)(nx@16.7.4)(typescript@5.1.6)
+      '@nx/deno': 16.7.1(@types/node@18.16.20)(nx@16.7.4)(typescript@5.1.6)
     transitivePeerDependencies:
       - '@babel/traverse'
       - '@swc-node/register'
@@ -2872,14 +2872,6 @@ packages:
     resolution: {integrity: sha512-kio+x1NonteK9Vxrgeai56+cDFkiWUl42YzLamNXORvICgVgGtcR7afdi9l7j9q2YPUuvtBos6T9YddS6YCb2g==}
     dependencies:
       '@nx/devkit': 16.4.1(nx@16.7.4)
-    transitivePeerDependencies:
-      - nx
-    dev: true
-
-  /@nrwl/devkit@16.5.5(nx@16.7.4):
-    resolution: {integrity: sha512-4ho9Vfg1YzRYZ4SMygYI9Yz1avpujd81gy/Um2Z0q8Q7Twp6Q/uG1KY9Hb7EzVXgrRcgGWdIPXuw41DpmnfWug==}
-    dependencies:
-      '@nx/devkit': 16.5.5(nx@16.7.4)
     transitivePeerDependencies:
       - nx
     dev: true
@@ -3477,11 +3469,11 @@ packages:
       - verdaccio
     dev: true
 
-  /@nx/deno@16.4.0(@types/node@18.16.20)(nx@16.7.4)(typescript@5.1.6):
-    resolution: {integrity: sha512-AeQFRWGgCq2jfdZMgr4s9mILuQJNi95RH0hfG6RqAQIkkDxjvpdCqpTQiE3vguhgrzHzcTp/y1IzMtnyh0kR1g==}
+  /@nx/deno@16.7.1(@types/node@18.16.20)(nx@16.7.4)(typescript@5.1.6):
+    resolution: {integrity: sha512-R0Nis/WIdQb0D0aleaWkVc414Te31kvqQlgX+NZHY5r72nnPmnsU1Jo4wU13B69iTMuGm4/LqfYoZgfa2YoOpQ==}
     dependencies:
-      '@nrwl/deno': 16.4.0(@types/node@18.16.20)(nx@16.7.4)(typescript@5.1.6)
-      '@nx/devkit': 16.5.5(nx@16.7.4)
+      '@nrwl/deno': 16.7.1(@types/node@18.16.20)(nx@16.7.4)(typescript@5.1.6)
+      '@nx/devkit': 16.7.4(nx@16.7.4)
       '@nx/js': 16.7.4(@types/node@18.16.20)(nx@16.7.4)(typescript@5.1.6)
       chalk: 4.1.2
       enquirer: 2.3.6
@@ -3547,20 +3539,6 @@ packages:
       nx: '>= 15 <= 17'
     dependencies:
       '@nrwl/devkit': 16.4.1(nx@16.7.4)
-      ejs: 3.1.9
-      ignore: 5.2.4
-      nx: 16.7.4
-      semver: 7.5.3
-      tmp: 0.2.1
-      tslib: 2.6.1
-    dev: true
-
-  /@nx/devkit@16.5.5(nx@16.7.4):
-    resolution: {integrity: sha512-9YaQ3s5VMgTXo5cEuaVc2b6btZU2REmHsgn/V4Gi3nSmwBHvIn86gtlh4BoBFinHpqge1chG/dC+B7yoXioQmQ==}
-    peerDependencies:
-      nx: '>= 15 <= 17'
-    dependencies:
-      '@nrwl/devkit': 16.5.5(nx@16.7.4)
       ejs: 3.1.9
       ignore: 5.2.4
       nx: 16.7.4
