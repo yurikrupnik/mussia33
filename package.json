@@ -15,7 +15,7 @@
     "@nx-tools/container-metadata": "^4.0.3",
     "@nx-tools/nx-container": "^4.0.3",
     "@nx/cypress": "16.7.4",
-    "@nx/deno": "16.7.1",
+    "@nx/deno": "16.8.1",
     "@nx/esbuild": "16.7.4",
     "@nx/eslint-plugin": "16.7.4",
     "@nx/jest": "16.7.4",
