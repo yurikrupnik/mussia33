@@ -146,8 +146,8 @@ devDependencies:
     specifier: 16.7.4
     version: 16.7.4(@types/node@18.17.14)(cypress@12.17.4)(eslint@8.48.0)(nx@16.7.4)(typescript@5.2.2)
   '@nx/deno':
-    specifier: 16.7.1
-    version: 16.7.1(@types/node@18.17.14)(nx@16.7.4)(typescript@5.2.2)
+    specifier: 16.8.1
+    version: 16.8.1(@types/node@18.17.14)(nx@16.7.4)(typescript@5.2.2)
   '@nx/esbuild':
     specifier: 16.7.4
     version: 16.7.4(@types/node@18.17.14)(esbuild@0.19.2)(nx@16.7.4)(typescript@5.2.2)
@@ -2992,10 +2992,10 @@ packages:
       - verdaccio
     dev: true
 
-  /@nrwl/deno@16.7.1(@types/node@18.17.14)(nx@16.7.4)(typescript@5.2.2):
-    resolution: {integrity: sha512-tSBp12rwpUQKOcpeTbqf4itWkl77KKuiutr6VCtvM1i2z8nWQclxioShQiPVEODMK6o8EgKJyi/n98XYr7ScOw==}
+  /@nrwl/deno@16.8.1(@types/node@18.17.14)(nx@16.7.4)(typescript@5.2.2):
+    resolution: {integrity: sha512-i7iItemEdYOuH7ULtkQzN12A/mXbIfQCMNi90gDHOXabc9GJGWNwaME0avRwctehUPZR9xHZo9lLFEr061P7hA==}
     dependencies:
-      '@nx/deno': 16.7.1(@types/node@18.17.14)(nx@16.7.4)(typescript@5.2.2)
+      '@nx/deno': 16.8.1(@types/node@18.17.14)(nx@16.7.4)(typescript@5.2.2)
     transitivePeerDependencies:
       - '@babel/traverse'
       - '@swc-node/register'
@@ -3034,7 +3034,7 @@ packages:
       nx: 15.9.4
       semver: 7.3.4
       tmp: 0.2.1
-      tslib: 2.6.1
+      tslib: 2.6.2
     dev: true
 
   /@nrwl/devkit@15.9.4(nx@16.7.4):
@@ -3047,7 +3047,7 @@ packages:
       nx: 16.7.4
       semver: 7.3.4
       tmp: 0.2.1
-      tslib: 2.6.1
+      tslib: 2.6.2
     dev: true
 
   /@nrwl/devkit@16.3.2(nx@16.3.2):
@@ -3164,7 +3164,7 @@ packages:
       minimatch: 3.0.5
       source-map-support: 0.5.19
       tree-kill: 1.2.2
-      tslib: 2.6.1
+      tslib: 2.6.2
     transitivePeerDependencies:
       - '@babel/traverse'
       - '@swc-node/register'
@@ -3220,7 +3220,7 @@ packages:
       '@phenomnomnominal/tsquery': 4.1.1(typescript@5.2.2)
       eslint: 8.48.0
       tmp: 0.2.1
-      tslib: 2.6.1
+      tslib: 2.6.2
     transitivePeerDependencies:
       - '@babel/traverse'
       - '@swc-node/register'
@@ -3419,7 +3419,7 @@ packages:
     hasBin: true
     dependencies:
       nx: 16.7.4
-      tslib: 2.6.1
+      tslib: 2.6.2
     transitivePeerDependencies:
       - '@swc-node/register'
       - '@swc/core'
@@ -3497,7 +3497,7 @@ packages:
       open: 8.4.2
       rxjs: 6.6.7
       tmp: 0.2.1
-      tslib: 2.6.1
+      tslib: 2.6.2
       yargs: 17.7.2
       yargs-parser: 21.1.1
     transitivePeerDependencies:
@@ -3667,10 +3667,10 @@ packages:
       - verdaccio
     dev: true
 
-  /@nx/deno@16.7.1(@types/node@18.17.14)(nx@16.7.4)(typescript@5.2.2):
-    resolution: {integrity: sha512-R0Nis/WIdQb0D0aleaWkVc414Te31kvqQlgX+NZHY5r72nnPmnsU1Jo4wU13B69iTMuGm4/LqfYoZgfa2YoOpQ==}
+  /@nx/deno@16.8.1(@types/node@18.17.14)(nx@16.7.4)(typescript@5.2.2):
+    resolution: {integrity: sha512-Db9JUILJyy0U2vMtcnBju1K7dBk1zrEC2Q+bFQ2PCny6CtyQHfrneZGmZargE8Jm1uQ+EK++8Dy+kKcZ6YJX8w==}
     dependencies:
-      '@nrwl/deno': 16.7.1(@types/node@18.17.14)(nx@16.7.4)(typescript@5.2.2)
+      '@nrwl/deno': 16.8.1(@types/node@18.17.14)(nx@16.7.4)(typescript@5.2.2)
       '@nx/devkit': 16.7.4(nx@16.7.4)
       '@nx/js': 16.7.4(@types/node@18.17.14)(nx@16.7.4)(typescript@5.2.2)
       chalk: 4.1.2
@@ -3757,7 +3757,7 @@ packages:
       nx: 16.7.4
       semver: 7.5.3
       tmp: 0.2.1
-      tslib: 2.6.1
+      tslib: 2.6.2
     dev: true
 
   /@nx/esbuild@16.7.4(@types/node@18.17.14)(esbuild@0.19.2)(nx@16.7.4)(typescript@5.2.2):
@@ -4451,7 +4451,7 @@ packages:
       open: 8.4.2
       rxjs: 7.8.1
       tmp: 0.2.1
-      tslib: 2.6.1
+      tslib: 2.6.2
       yargs: 17.7.2
       yargs-parser: 21.1.1
     transitivePeerDependencies:
@@ -4986,7 +4986,7 @@ packages:
   /@swc/helpers@0.4.14:
     resolution: {integrity: sha512-4C7nX/dvpzB7za4Ql9K81xK3HPxCpHMgwTZVyf+9JQ6VUbn9jjZVN7/Nkdz/Ugzs2CSjqnL/UPXroiVBVHUWUw==}
     dependencies:
-      tslib: 2.6.1
+      tslib: 2.6.2
     dev: true
 
   /@swc/helpers@0.5.1:
@@ -5736,14 +5736,14 @@ packages:
     engines: {node: '>=14.15.0'}
     dependencies:
       js-yaml: 3.14.1
-      tslib: 2.6.1
+      tslib: 2.6.2
     dev: true
 
   /@yarnpkg/parsers@3.0.0-rc.48.1:
     resolution: {integrity: sha512-qEewJouhRvaecGjbkjz9kMKn96UASbDodNrE5MYy2TrXkHcisIkbMxZdGBYfAq+s1dFtCSx/5H4k5bEkfakM+A==}
     dependencies:
       js-yaml: 3.14.1
-      tslib: 2.6.1
+      tslib: 2.6.2
     dev: true
 
   /@zkochan/js-yaml@0.0.6:
@@ -8900,7 +8900,7 @@ packages:
       graphql: ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
     dependencies:
       graphql: 16.7.1
-      tslib: 2.6.1
+      tslib: 2.6.2
     dev: false
     optional: true
 
@@ -10374,7 +10374,7 @@ packages:
     dependencies:
       copy-anything: 2.0.6
       parse-node-version: 1.0.1
-      tslib: 2.6.1
+      tslib: 2.6.2
     optionalDependencies:
       errno: 0.1.8
       graceful-fs: 4.2.11
@@ -11149,7 +11149,7 @@ packages:
       tar-stream: 2.2.0
       tmp: 0.2.1
       tsconfig-paths: 4.2.0
-      tslib: 2.6.1
+      tslib: 2.6.2
       v8-compile-cache: 2.3.0
       yargs: 17.7.2
       yargs-parser: 21.1.1
@@ -11210,7 +11210,7 @@ packages:
       tar-stream: 2.2.0
       tmp: 0.2.1
       tsconfig-paths: 4.2.0
-      tslib: 2.6.1
+      tslib: 2.6.2
       v8-compile-cache: 2.3.0
       yargs: 17.7.2
       yargs-parser: 21.1.1
@@ -11272,7 +11272,7 @@ packages:
       tar-stream: 2.2.0
       tmp: 0.2.1
       tsconfig-paths: 4.2.0
-      tslib: 2.6.1
+      tslib: 2.6.2
       v8-compile-cache: 2.3.0
       yargs: 17.7.2
       yargs-parser: 21.1.1
