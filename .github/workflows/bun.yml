@@ -33,6 +33,7 @@ jobs:
       - uses: oven-sh/setup-bun@v1
         with:
           version: 1.0.0
+          cache: true
       - name: Install dependencies
         run: bun install
       - run: bun nx affected --target=lint --parallel --max-parallel=3
@@ -59,6 +60,7 @@ jobs:
       - uses: oven-sh/setup-bun@v1
         with:
           version: 1.0.0
+          cache: true
       - name: Install dependencies
 #        run: pnpm install --no-frozen-lockfile
         run: bun install
@@ -84,6 +86,7 @@ jobs:
       - uses: oven-sh/setup-bun@v1
         with:
           version: 1.0.0
+          cache: true
       - name: Install dependencies
         run: bun install
       - run: bun nx affected --target=test --parallel --max-parallel=3
@@ -109,6 +112,7 @@ jobs:
       - uses: oven-sh/setup-bun@v1
         with:
           version: 1.0.0
+          cache: true
       - name: Install dependencies
         run: bun install
       - run: bun nx affected --target=e2e --parallel --max-parallel=3
@@ -137,6 +141,7 @@ jobs:
       - uses: oven-sh/setup-bun@v1
         with:
           version: 1.0.0
+          cache: true
       - name: Install dependencies
         run: bun install
       - name: Log into registry

@@ -37,32 +37,13 @@ jobs:
           cache: true
       - run: rustup toolchain install stable --profile minimal
       - uses: Swatinem/rust-cache@v2
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+      - uses: oven-sh/setup-bun@v1
         with:
-          node-version: 18
-      - uses: pnpm/action-setup@v2
-        name: Install pnpm
-        id: pnpm-install
-        with:
-          version: 7
-          run_install: false
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - uses: actions/cache@v3
-        name: Setup pnpm cache
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          version: 1.0.0
+          cache: true
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-      - run: pnpm nx run-many --target=lint --parallel --max-parallel=3 --all --skip-nx-cache
+        run: bun install
+      - run: bun nx run-many --target=lint --parallel --max-parallel=3 --all --skip-nx-cache
   build:
     runs-on: ubuntu-latest
     steps:
@@ -83,32 +64,13 @@ jobs:
       - run: rustup toolchain install stable --profile minimal
       - run: rustup show
       - uses: Swatinem/rust-cache@v2
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+      - uses: oven-sh/setup-bun@v1
         with:
-          node-version: 18
-      - uses: pnpm/action-setup@v2
-        name: Install pnpm
-        id: pnpm-install
-        with:
-          version: 7
-          run_install: false
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - uses: actions/cache@v3
-        name: Setup pnpm cache
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          version: 1.0.0
+          cache: true
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-      - run: pnpm nx run-many --target=build.yaml --parallel --max-parallel=3 --prod --all --skip-nx-cache
+        run: bun install --no-frozen-lockfile
+      - run: bun nx run-many --target=build.yaml --parallel --max-parallel=3 --prod --all --skip-nx-cache
   test:
     runs-on: ubuntu-latest
     steps:
@@ -127,32 +89,13 @@ jobs:
           cache: true
       - run: rustup toolchain install stable --profile minimal
       - uses: Swatinem/rust-cache@v2
-      - name: Use Node.js
-        uses: actions/setup-node@v3
+      - uses: oven-sh/setup-bun@v1
         with:
-          node-version: 18
-      - uses: pnpm/action-setup@v2
-        name: Install pnpm
-        id: pnpm-install
-        with:
-          version: 7
-          run_install: false
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - uses: actions/cache@v3
-        name: Setup pnpm cache
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          version: 1.0.0
+          cache: true
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-      - run: pnpm nx run-many --target=test --parallel --max-parallel=3 --all --skip-nx-cache
+        run: bun install --no-frozen-lockfile
+      - run: bun nx run-many --target=test --parallel --max-parallel=3 --all --skip-nx-cache
   e2e:
     runs-on: ubuntu-latest
     steps:
@@ -172,29 +115,10 @@ jobs:
       - run: rustup toolchain install stable --profile minimal
       - uses: Swatinem/rust-cache@v2
       - run: go version
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+      - uses: oven-sh/setup-bun@v1
         with:
-          node-version: 18
-      - uses: pnpm/action-setup@v2
-        name: Install pnpm
-        id: pnpm-install
-        with:
-          version: 7
-          run_install: false
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - uses: actions/cache@v3
-        name: Setup pnpm cache
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          version: 1.0.0
+          cache: true
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-      - run: pnpm nx run-many --target=e2e --parallel --max-parallel=3 --headless --all --skip-nx-cache
+        run: bun install --no-frozen-lockfile
+      - run: bun nx run-many --target=e2e --parallel --max-parallel=3 --headless --all --skip-nx-cache
