@@ -16,20 +16,20 @@ import { handleError } from "@mussia33/node/nest/errors";
 export class AppService {
   constructor(
     @InjectModel(User.name) private model: Model<UserDocument>,
-    @InjectConnection() private connection: Connection // private logger: Logger
+    @InjectConnection() private connection: Connection, // private logger: Logger
   ) {}
   getData(): { message: string } {
     return { message: "Welcome to users-service!" };
   }
-  findAll(
+  async findAll(
     query: FilterQuery<UserDocument>,
     projection: any,
-    config: QueryOptions
+    config: QueryOptions,
   ): Promise<Document<HydratedDocument<UserDocument>>[]> {
     return this.model.find(query, projection, config).catch(handleError);
   }
 
-  create(createEntityData: Partial<User>): Promise<User> {
+  async create(createEntityData: Partial<User>): Promise<User> {
     const entity = new this.model(createEntityData);
     return entity.save().catch(handleError);
   }

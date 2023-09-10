@@ -1,0 +1,7 @@
+docker_build(
+  "yurikrupnik/clapper",
+  "../../..",
+  build_args={"APP_NAME":"rust_clapper"},
+  dockerfile="../../../Dockerfile.rust",
+  target="rust",
+)

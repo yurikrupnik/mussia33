@@ -4,7 +4,6 @@ metadata:
   name: node-users-redis
   labels:
     app: node-users-redis
-    version: v1
 spec:
   replicas: 1
   template:
@@ -12,11 +11,6 @@ spec:
       name: node-users-redis
       labels:
         app: node-users-redis
-        version: v1
-      annotations:
-        "linkerd.io/inject": "enabled"
-        "prometheus.io/scrape": "true"
-        "prometheus.io/port": "9102"
     spec:
       serviceAccountName: node-users-redis
       containers:
@@ -32,11 +26,13 @@ spec:
               cpu: "500m"
           env:
             - name: MONGO_URI
-              value: "mongodb://host.docker.internal"
+              valueFrom:
+                secretKeyRef:
+                  key: mongo-uri
+                  name: mongo-uri
             - name: REDIS_HOST
-              value: "host.docker.internal"
+              value: "redis-service.default.svc.cluster.local"
       restartPolicy: Always
   selector:
     matchLabels:
       app: node-users-redis
-      version: v1
