@@ -15,7 +15,7 @@ spec:
       serviceAccountName: node-users-redis
       containers:
         - name: node-users-redis
-          image: yurikrupnik/node-users-redis:latest
+          image: yurikrupnik/node-users-redis:main
           imagePullPolicy: IfNotPresent
           resources:
             requests:

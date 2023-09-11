@@ -11,10 +11,6 @@ spec:
       name: actix-app
       labels:
         app: actix-app
-        version: v1
-      annotations:
-        "prometheus.io/scrape": "true"
-        "prometheus.io/port": "9102"
     spec:
       serviceAccountName: actix-app
       restartPolicy: Always

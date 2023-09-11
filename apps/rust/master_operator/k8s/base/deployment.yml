@@ -11,10 +11,6 @@ spec:
       name: master-operator
       labels:
         app: master-operator
-        version: v1
-      annotations:
-        "prometheus.io/scrape": "true"
-        "prometheus.io/port": "9102"
     spec:
       serviceAccountName: master-operator
       restartPolicy: Always

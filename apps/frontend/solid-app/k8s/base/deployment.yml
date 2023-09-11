@@ -18,7 +18,7 @@ spec:
           ports:
             - containerPort: 80
               name: http
-          image: yurikrupnik/frontend-solid-app:latest
+          image: yurikrupnik/frontend-solid-app:main
           imagePullPolicy: IfNotPresent
           resources:
             requests:

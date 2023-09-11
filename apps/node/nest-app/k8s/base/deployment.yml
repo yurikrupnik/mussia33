@@ -16,7 +16,7 @@ spec:
       restartPolicy: Always
       containers:
         - name: node-nest-app
-          image: yurikrupnik/node-nest-app:latest
+          image: yurikrupnik/node-nest-app:main
           imagePullPolicy: IfNotPresent
           resources:
             requests:

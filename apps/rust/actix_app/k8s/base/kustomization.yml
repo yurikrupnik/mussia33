@@ -3,10 +3,10 @@ resources:
   - service.yml
   - deployment.yml
   # - ingress.yaml
-commonLabels:
-  demo: node-nest-app
-  service: users
-  my-type: server
+#commonLabels:
+#  demo: node-nest-app
+#  service: users
+#  my-type: server
 #namespace: users
 #  - servi
 

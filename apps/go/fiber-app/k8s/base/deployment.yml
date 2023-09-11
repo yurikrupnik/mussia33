@@ -16,7 +16,7 @@ spec:
       restartPolicy: Always
       containers:
         - name: fiber-app
-          image: yurikrupnik/fiber-app:latest
+          image: yurikrupnik/fiber-app:main
           imagePullPolicy: IfNotPresent
           ports:
             - name: web
