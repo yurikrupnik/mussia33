@@ -190,6 +190,18 @@ jobs:
         run: pnpm install --no-frozen-lockfile
       #      - run: pnpm run cypress:install
       - run: pnpm nx run-many --target=e2e --parallel --max-parallel=3
+  release-on-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: rymndhng/release-on-push-action@master
+        with:
+          bump_version_scheme: minor
+          use_github_release_notes: true
   docker:
     runs-on: ubuntu-latest
     permissions:
