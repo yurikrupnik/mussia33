@@ -1,0 +1,8 @@
+resources:
+  - ../../../apps/rust/actix_app/k8s/overlays/prod
+  - ../../../apps/rust/clapper/k8s/overlays/prod
+  - ../../../apps/go/fiber-app/k8s/overlays/prod
+  - ../../../apps/node/nest-app/k8s/overlays/prod
+  - ../../../apps/node/node-users-redis/k8s/overlays/prod
+  - ../../../apps/frontend/solid-app/k8s/overlays/prod
+#  - ../../../apps/frontend/astro/k8s/overlays/prod

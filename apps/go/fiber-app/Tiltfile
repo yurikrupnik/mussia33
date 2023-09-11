@@ -21,6 +21,4 @@ docker_build(
   # ],
 )
 
-k8s_yaml(kustomize('k8s/base'))
-
 k8s_resource("fiber-app", port_forwards="5001:8080")

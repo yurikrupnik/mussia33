@@ -2664,6 +2664,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust_clapper"
+version = "0.1.0"
+dependencies = [
+ "clap",
+]
+
+[[package]]
 name = "rust_master_operator"
 version = "0.1.0"
 dependencies = [

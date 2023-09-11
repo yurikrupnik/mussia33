@@ -33,15 +33,14 @@ server {
             try_files $uri $uri/ /index.html =404;
         }
         location /api {
-            proxy_redirect  http://${UPSTREAM_NAME}/  /api/;
             proxy_pass http://${UPSTREAM_NAME};
         }
         location /api-r {
-            proxy_redirect  http://${UPSTREAM_NAME_RUST}/  /api/;
+            rewrite ^/api-r(.*)$ /api$1 break;
             proxy_pass http://${UPSTREAM_NAME_RUST};
         }
         location /api-g {
-            proxy_redirect  http://${UPSTREAM_NAME_GO}/  /api/;
+            rewrite ^/api-g(.*)$ /api$1 break;
             proxy_pass http://${UPSTREAM_NAME_GO};
         }
         #error_page  404              /404.html;
