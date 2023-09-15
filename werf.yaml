@@ -1,30 +1,47 @@
-project: example
+project: mussia33
 configVersion: 1
 ---
-environment_variables:
-  REGISTRY: "yurikrupnik"
-  APP: "front-end-app"
-image: yurikrupnik/fiber-app
+image: nest-app
 dockerfile: Dockerfile
+context: ./dist/apps/node/nest-app
+target: node
+args:
+  DIST_PATH: dist/apps/node/nest-app
+---
+image: fiber-app
+dockerfile: Dockerfile
+context: ./apps/go/fiber-app
 target: alpine
+args:
+  DIST_PATH: dist/apps/go/fiber-app
+---
+# environment_variables:
+ # REGISTRY: "yurikrupnik"
+ # APP: "nest-app"
+image: yurikrupnik/nest-app
+dockerfile: Dockerfile
+target: node
 ---
 environment_variables:
-  WERF_REPO: registry.example.org/myrepo
-  WERF_ENV: "${CI_ENVIRONMENT}"
-  WERF_ENABLE_PROCESS_EXTERMINATOR: "1"
-  REGISTRY: "yurikrupnik"
-  APP: "fiber-app"
-image: yurikrupnik/fiber-app
+ # WERF_REPO: registry.example.org/myrepo
+ # WERF_ENV: "${CI_ENVIRONMENT}"
+ # WERF_ENABLE_PROCESS_EXTERMINATOR: "1"
+ # REGISTRY: "yurikrupnik"
+ # APP: "nest"
+image: solid-app
 dockerfile: Dockerfile
-target: alpine
+context: dist/apps/frontend/solid-app
+target: nginx
+args:
+  DIST_PATH: dist/apps/frontend/solid-app
 ---
 image: "registry.werf.io/werf/werf:1.2-stable"
 image_pull_policy: always
 
-environment_variables:
-  WERF_REPO: registry.example.org/myrepo
-  WERF_ENV: "${CI_ENVIRONMENT}"
-  WERF_ENABLE_PROCESS_EXTERMINATOR: "1"
+{{/*environment_variables:*/}}
+{{/*  WERF_REPO: registry.example.org/myrepo*/}}
+{{/*  WERF_ENV: "${CI_ENVIRONMENT}"*/}}
+{{/*  WERF_ENABLE_PROCESS_EXTERMINATOR: "1"*/}}
 
 before_every_job:
   - werf cr login -u "${REGISTRY_USER:?}" -p "${REGISTRY_PASSWORD:?}" "${WERF_REPO:?}"

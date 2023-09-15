@@ -13,6 +13,31 @@ struct Args {
   count: u8,
 }
 
+#[derive(Clone, PartialEq, Eq, clap::ValueEnum)]
+enum OutputMode {
+  Pretty,
+  Yaml,
+}
+
+impl OutputMode {
+  fn as_str(&self) -> &'static str {
+    match self {
+      Self::Pretty => "pretty",
+      Self::Yaml => "yaml",
+    }
+  }
+}
+
+#[derive(Clone, PartialEq, Eq, Debug, clap::ValueEnum)]
+enum Verb {
+  Get,
+  Delete,
+  Edit,
+  Watch,
+  Apply,
+}
+
+
 fn main() {
   let args = Args::parse();
 

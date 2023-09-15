@@ -15,7 +15,7 @@ use utoipa_swagger_ui::{SwaggerUi, Url};
 // use std::fmt::Display;
 // use futures::task::Spawn;
 use kube::{api::{Api, ResourceExt, ListParams}, Error};
-use k8s_openapi::api::core::v1::Pod;
+use k8s_openapi::api::core::v1::{Pod, PodSpec};
 use k8s_openapi::Metadata;
 // use serde_json::Value::String;
 
@@ -62,9 +62,17 @@ async fn kube_data() -> Result<(), Error> {
   let client = kube::Client::try_default().await?;
   let pods: Api<Pod> = Api::default_namespaced(client);
   for p in pods.list(&ListParams::default()).await? {
+    print_pods_wide(p.to_owned());
+    let spec = p.spec;
+    match spec {
+      None => {}
+      Some(s) => {
+        println!("{s:?}")
+      }
+    }
+    // println!("{spec:?}");
     // let pod1 = ("nginx-deployment-cbdccf466-tkwsn", "1/1", "Running", 0, "47m", "10.244.0.142", "kind-control-plane", "<none>", "<none>");
     // print_pod_row(pod1);
-    print_pods_wide(p);
     // println!("{:<40}",p.spec.clone().unwrap().node_name.unwrap());
     // println!("found pod in node {}", p.spec.clone().unwrap().node_name.unwrap());
     // println!("found pod in namespace {}", p.metadata.namespace.as_ref().unwrap());
