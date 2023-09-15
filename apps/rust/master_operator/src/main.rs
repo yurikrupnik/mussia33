@@ -37,41 +37,6 @@ async fn main() -> anyhow::Result<()> {
     }))?;
   jobs.create(&PostParams::default(), &data).await?;
 
-  info!("Creating Deployment");
-  let name = "empty-nginx";
-  let data = serde_json::from_value(serde_json::json!({
-        "apiVersion": "batch/v1",
-        "kind": "Job",
-        "metadata": {
-            "name": name,
-        },
-        "spec": {
-            "template": {
-                "metadata": {
-                    "name": "empty-job-pod"
-                },
-                "spec": {
-                    "containers": [{
-                        "name": "empty",
-                        "image": "nginx:latest",
-                        "resources": {
-                          "requests": {
-                              "memory": "32Mi",
-                              "cpu": "100m"
-                          },
-                          "limits": {
-                              "memory": "128Mi",
-                              "cpu": "500m"
-                          },
-                        }
-                    }],
-                    "restartPolicy": "Never",
-                }
-            }
-        }
-    }))?;
-  jobs.create(&PostParams::default(), &data).await?;
-
   info!("Waiting for job to complete");
   let cond = await_condition(jobs.clone(), name, conditions::is_job_completed());
   let _ = tokio::time::timeout(std::time::Duration::from_secs(20), cond).await?;

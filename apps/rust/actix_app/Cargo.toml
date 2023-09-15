@@ -5,7 +5,9 @@ edition = "2021"
 
 
 [dependencies]
-#mongo = { path = "../../../libs/rust/mongo" }
+mongo = { path = "../../../libs/rust/mongo" }
+kube = { version = "0.86.0", features = ["derive", "runtime"] }
+k8s-openapi = { version = "0.20.0", features = ["v1_28"] }
 async-trait = { version = "0.1.73" }
 actix-web = "4"
 mongodb = "2.6.1"

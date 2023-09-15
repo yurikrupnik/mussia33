@@ -7,6 +7,10 @@ members = [
 	'apps/rust/master_operator',
 	'apps/rust/actix_app',
 	'apps/rust/clapper',
+	'libs/rust/stam',
+	'libs/rust/kubernetes_operator_api',
+	'apps/rust/users_operator',
+	'apps/rust/metacontroller_operator',
 ]
 
 [profile.release]

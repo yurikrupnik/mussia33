@@ -1,14 +1,14 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: gcp.compositenetworks.multicloud.platformref.yurikrupnik.com
+  name: gcp.compositeclusters.multicloud.platformref.yurikrupnik.com
   labels:
     provider: GCP
 spec:
   writeConnectionSecretsToNamespace: crossplane-system
   compositeTypeRef:
     apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
-    kind: CompositeNetwork
+    kind: CompositeCluster
   resources:
     - base:
         apiVersion: compute.gcp.upbound.io/v1beta1

@@ -235,6 +235,7 @@ export class MyChart extends Chart {
                 forProvider: {
                   region: "us-west-2",
                   cidrBlock: "192.168.0.0/16",
+
                   // enableDnsSupport: true,
                   // enableDnsHostNames: true
                 },

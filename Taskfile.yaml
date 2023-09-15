@@ -10,7 +10,6 @@ includes:
   argocd: ./platform/gitops/argocd
   fluxcd: ./platform/gitops/fluxcd
   scripts: ./scripts
-  sdp-demo: ./submodules/sdp-demo
 
 vars:
   GREETING: Hello, World!
@@ -49,8 +48,9 @@ tasks:
 #     - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
 #     - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
 #     - kind create cluster --config=platform/cluster/cluster.yaml # cluster with ingress
-     - helm install my-cadvisor ckotzbauer/cadvisor
-     - helm install prometheus-release prometheus-community/kube-prometheus-stack
+#     - helm install my-cadvisor ckotzbauer/cadvisor
+     - helm install k8status --namespace k8status k8status/k8status
+     - helm install prometheus-release prometheus-community/kube-prometheus-stack --create-namespace monitoring
      - kubectl get secret my-release-grafana-admin --namespace default -o jsonpath="{.data.GF_SECURITY_ADMIN_PASSWORD}" | base64 -d
 #     - task: kubevela:install
 #     - task: argocd:install

@@ -55,6 +55,14 @@
         }
       }
     },
+    "serve": {
+      "executor": "nx:run-commands",
+      "outputs": [],
+      "options": {
+        "command": "cargo watch -x run",
+        "cwd": "apps/rust/actix_app/"
+      }
+    },
     "docker": {
       "executor": "@nx-tools/nx-container:build",
       "options": {

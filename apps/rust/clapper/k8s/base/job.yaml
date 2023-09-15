@@ -3,14 +3,14 @@ kind: CronJob
 metadata:
   name: clapper-cron-job
 spec:
-  schedule: "* * * * *"
+  schedule: "1 * * * *"
   jobTemplate:
     spec:
       template:
         spec:
           containers:
             - name: clapper
-              image: yurikrupnik/clapper
+              image: yurikrupnik/clapper:main
               imagePullPolicy: IfNotPresent
               command:
                 - /app
