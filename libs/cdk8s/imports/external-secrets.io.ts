@@ -99,6 +99,13 @@ export function toJson_ClusterExternalSecretProps(obj: ClusterExternalSecretProp
  */
 export interface ClusterExternalSecretSpec {
   /**
+   * The metadata of the external secrets to be created
+   *
+   * @schema ClusterExternalSecretSpec#externalSecretMetadata
+   */
+  readonly externalSecretMetadata?: ClusterExternalSecretSpecExternalSecretMetadata;
+
+  /**
    * The name of the external secrets to be created defaults to the name of the ClusterExternalSecret
    *
    * @schema ClusterExternalSecretSpec#externalSecretName
@@ -135,10 +142,44 @@ export interface ClusterExternalSecretSpec {
 export function toJson_ClusterExternalSecretSpec(obj: ClusterExternalSecretSpec | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'externalSecretMetadata': toJson_ClusterExternalSecretSpecExternalSecretMetadata(obj.externalSecretMetadata),
     'externalSecretName': obj.externalSecretName,
     'externalSecretSpec': toJson_ClusterExternalSecretSpecExternalSecretSpec(obj.externalSecretSpec),
     'namespaceSelector': toJson_ClusterExternalSecretSpecNamespaceSelector(obj.namespaceSelector),
     'refreshTime': obj.refreshTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * The metadata of the external secrets to be created
+ *
+ * @schema ClusterExternalSecretSpecExternalSecretMetadata
+ */
+export interface ClusterExternalSecretSpecExternalSecretMetadata {
+  /**
+   * @schema ClusterExternalSecretSpecExternalSecretMetadata#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * @schema ClusterExternalSecretSpecExternalSecretMetadata#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ClusterExternalSecretSpecExternalSecretMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterExternalSecretSpecExternalSecretMetadata(obj: ClusterExternalSecretSpecExternalSecretMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5769,6 +5810,20 @@ export interface ClusterSecretStoreV1Beta1SpecProvider {
   readonly azurekv?: ClusterSecretStoreV1Beta1SpecProviderAzurekv;
 
   /**
+   * Conjur configures this store to sync secrets using conjur provider
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProvider#conjur
+   */
+  readonly conjur?: ClusterSecretStoreV1Beta1SpecProviderConjur;
+
+  /**
+   * Delinea DevOps Secrets Vault https://docs.delinea.com/online-help/products/devops-secrets-vault/current
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProvider#delinea
+   */
+  readonly delinea?: ClusterSecretStoreV1Beta1SpecProviderDelinea;
+
+  /**
    * Doppler configures this store to sync secrets using the Doppler provider
    *
    * @schema ClusterSecretStoreV1Beta1SpecProvider#doppler
@@ -5886,6 +5941,8 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProvider(obj: ClusterSecretS
     'alibaba': toJson_ClusterSecretStoreV1Beta1SpecProviderAlibaba(obj.alibaba),
     'aws': toJson_ClusterSecretStoreV1Beta1SpecProviderAws(obj.aws),
     'azurekv': toJson_ClusterSecretStoreV1Beta1SpecProviderAzurekv(obj.azurekv),
+    'conjur': toJson_ClusterSecretStoreV1Beta1SpecProviderConjur(obj.conjur),
+    'delinea': toJson_ClusterSecretStoreV1Beta1SpecProviderDelinea(obj.delinea),
     'doppler': toJson_ClusterSecretStoreV1Beta1SpecProviderDoppler(obj.doppler),
     'fake': toJson_ClusterSecretStoreV1Beta1SpecProviderFake(obj.fake),
     'gcpsm': toJson_ClusterSecretStoreV1Beta1SpecProviderGcpsm(obj.gcpsm),
@@ -6115,6 +6172,20 @@ export interface ClusterSecretStoreV1Beta1SpecProviderAws {
    */
   readonly service: ClusterSecretStoreV1Beta1SpecProviderAwsService;
 
+  /**
+   * AWS STS assume role session tags
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderAws#sessionTags
+   */
+  readonly sessionTags?: ClusterSecretStoreV1Beta1SpecProviderAwsSessionTags[];
+
+  /**
+   * AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderAws#transitiveTagKeys
+   */
+  readonly transitiveTagKeys?: string[];
+
 }
 
 /**
@@ -6130,6 +6201,8 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderAws(obj: ClusterSecr
     'region': obj.region,
     'role': obj.role,
     'service': obj.service,
+    'sessionTags': obj.sessionTags?.map(y => toJson_ClusterSecretStoreV1Beta1SpecProviderAwsSessionTags(y)),
+    'transitiveTagKeys': obj.transitiveTagKeys?.map(y => y),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6207,6 +6280,106 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderAzurekv(obj: Cluster
     'serviceAccountRef': toJson_ClusterSecretStoreV1Beta1SpecProviderAzurekvServiceAccountRef(obj.serviceAccountRef),
     'tenantId': obj.tenantId,
     'vaultUrl': obj.vaultUrl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Conjur configures this store to sync secrets using conjur provider
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderConjur
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderConjur {
+  /**
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjur#auth
+   */
+  readonly auth: ClusterSecretStoreV1Beta1SpecProviderConjurAuth;
+
+  /**
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjur#caBundle
+   */
+  readonly caBundle?: string;
+
+  /**
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjur#url
+   */
+  readonly url: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderConjur' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderConjur(obj: ClusterSecretStoreV1Beta1SpecProviderConjur | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'auth': toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuth(obj.auth),
+    'caBundle': obj.caBundle,
+    'url': obj.url,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Delinea DevOps Secrets Vault https://docs.delinea.com/online-help/products/devops-secrets-vault/current
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderDelinea
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderDelinea {
+  /**
+   * ClientID is the non-secret part of the credential.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderDelinea#clientId
+   */
+  readonly clientId: ClusterSecretStoreV1Beta1SpecProviderDelineaClientId;
+
+  /**
+   * ClientSecret is the secret part of the credential.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderDelinea#clientSecret
+   */
+  readonly clientSecret: ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecret;
+
+  /**
+   * Tenant is the chosen hostname / site name.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderDelinea#tenant
+   */
+  readonly tenant: string;
+
+  /**
+   * TLD is based on the server location that was chosen during provisioning. If unset, defaults to "com".
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderDelinea#tld
+   */
+  readonly tld?: string;
+
+  /**
+   * URLTemplate If unset, defaults to "https://%s.secretsvaultcloud.%s/v1/%s%s".
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderDelinea#urlTemplate
+   */
+  readonly urlTemplate?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderDelinea' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderDelinea(obj: ClusterSecretStoreV1Beta1SpecProviderDelinea | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clientId': toJson_ClusterSecretStoreV1Beta1SpecProviderDelineaClientId(obj.clientId),
+    'clientSecret': toJson_ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecret(obj.clientSecret),
+    'tenant': obj.tenant,
+    'tld': obj.tld,
+    'urlTemplate': obj.urlTemplate,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7228,6 +7401,37 @@ export enum ClusterSecretStoreV1Beta1SpecProviderAwsService {
 }
 
 /**
+ * @schema ClusterSecretStoreV1Beta1SpecProviderAwsSessionTags
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderAwsSessionTags {
+  /**
+   * @schema ClusterSecretStoreV1Beta1SpecProviderAwsSessionTags#key
+   */
+  readonly key: string;
+
+  /**
+   * @schema ClusterSecretStoreV1Beta1SpecProviderAwsSessionTags#value
+   */
+  readonly value: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderAwsSessionTags' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderAwsSessionTags(obj: ClusterSecretStoreV1Beta1SpecProviderAwsSessionTags | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type.
  *
  * @schema ClusterSecretStoreV1Beta1SpecProviderAzurekvAuthSecretRef
@@ -7340,6 +7544,105 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderAzurekvServiceAccoun
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuth
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderConjurAuth {
+  /**
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuth#apikey
+   */
+  readonly apikey: ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikey;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderConjurAuth' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuth(obj: ClusterSecretStoreV1Beta1SpecProviderConjurAuth | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'apikey': toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikey(obj.apikey),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ClientID is the non-secret part of the credential.
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderDelineaClientId
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderDelineaClientId {
+  /**
+   * SecretRef references a key in a secret that will be used as value.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderDelineaClientId#secretRef
+   */
+  readonly secretRef?: ClusterSecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef;
+
+  /**
+   * Value can be specified directly to set a value without using a secret.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderDelineaClientId#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderDelineaClientId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderDelineaClientId(obj: ClusterSecretStoreV1Beta1SpecProviderDelineaClientId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretRef': toJson_ClusterSecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef(obj.secretRef),
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ClientSecret is the secret part of the credential.
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecret
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecret {
+  /**
+   * SecretRef references a key in a secret that will be used as value.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecret#secretRef
+   */
+  readonly secretRef?: ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef;
+
+  /**
+   * Value can be specified directly to set a value without using a secret.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecret#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecret' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecret(obj: ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecret | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretRef': toJson_ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef(obj.secretRef),
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Auth configures how the Operator authenticates with the Doppler API
  *
  * @schema ClusterSecretStoreV1Beta1SpecProviderDopplerAuth
@@ -7400,6 +7703,8 @@ export enum ClusterSecretStoreV1Beta1SpecProviderDopplerNameTransformer {
   TF_VAR = "tf-var",
   /** dotnet-env */
   DOTNET_ENV = "dotnet-env",
+  /** lower-kebab */
+  LOWER_KEBAB = "lower-kebab",
 }
 
 /**
@@ -7913,6 +8218,13 @@ export interface ClusterSecretStoreV1Beta1SpecProviderVaultAuth {
    */
   readonly tokenSecretRef?: ClusterSecretStoreV1Beta1SpecProviderVaultAuthTokenSecretRef;
 
+  /**
+   * UserPass authenticates with Vault by passing username/password pair
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuth#userPass
+   */
+  readonly userPass?: ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPass;
+
 }
 
 /**
@@ -7929,6 +8241,7 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuth(obj: Clust
     'kubernetes': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthKubernetes(obj.kubernetes),
     'ldap': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthLdap(obj.ldap),
     'tokenSecretRef': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthTokenSecretRef(obj.tokenSecretRef),
+    'userPass': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPass(obj.userPass),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8578,6 +8891,137 @@ export interface ClusterSecretStoreV1Beta1SpecProviderAzurekvAuthSecretRefClient
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ClusterSecretStoreV1Beta1SpecProviderAzurekvAuthSecretRefClientSecret(obj: ClusterSecretStoreV1Beta1SpecProviderAzurekvAuthSecretRefClientSecret | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikey
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikey {
+  /**
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikey#account
+   */
+  readonly account: string;
+
+  /**
+   * A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikey#apiKeyRef
+   */
+  readonly apiKeyRef: ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef;
+
+  /**
+   * A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikey#userRef
+   */
+  readonly userRef: ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikey' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikey(obj: ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikey | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'account': obj.account,
+    'apiKeyRef': toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef(obj.apiKeyRef),
+    'userRef': toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef(obj.userRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SecretRef references a key in a secret that will be used as value.
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef(obj: ClusterSecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SecretRef references a key in a secret that will be used as value.
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef(obj: ClusterSecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'key': obj.key,
@@ -9522,6 +9966,51 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthTokenSecret
 /* eslint-enable max-len, quote-props */
 
 /**
+ * UserPass authenticates with Vault by passing username/password pair
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPass
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPass {
+  /**
+   * Path where the UserPassword authentication backend is mounted in Vault, e.g: "user"
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPass#path
+   */
+  readonly path: string;
+
+  /**
+   * SecretRef to a key in a Secret resource containing password for the user used to authenticate with Vault using the UserPass authentication method
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPass#secretRef
+   */
+  readonly secretRef?: ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef;
+
+  /**
+   * Username is a user name used to authenticate using the UserPass Vault authentication method
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPass#username
+   */
+  readonly username: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPass' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPass(obj: ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPass | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'path': obj.path,
+    'secretRef': toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef(obj.secretRef),
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * The type of provider to use such as "Secret", or "ConfigMap".
  *
  * @schema ClusterSecretStoreV1Beta1SpecProviderVaultCaProviderType
@@ -10254,6 +10743,96 @@ export interface ClusterSecretStoreV1Beta1SpecProviderAwsAuthSecretRefSessionTok
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ClusterSecretStoreV1Beta1SpecProviderAwsAuthSecretRefSessionTokenSecretRef(obj: ClusterSecretStoreV1Beta1SpecProviderAwsAuthSecretRefSessionTokenSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef(obj: ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef(obj: ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'key': obj.key,
@@ -11242,6 +11821,51 @@ export interface ClusterSecretStoreV1Beta1SpecProviderVaultAuthLdapSecretRef {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthLdapSecretRef(obj: ClusterSecretStoreV1Beta1SpecProviderVaultAuthLdapSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SecretRef to a key in a Secret resource containing password for the user used to authenticate with Vault using the UserPass authentication method
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef(obj: ClusterSecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'key': obj.key,
@@ -18160,6 +18784,20 @@ export interface SecretStoreV1Beta1SpecProvider {
   readonly azurekv?: SecretStoreV1Beta1SpecProviderAzurekv;
 
   /**
+   * Conjur configures this store to sync secrets using conjur provider
+   *
+   * @schema SecretStoreV1Beta1SpecProvider#conjur
+   */
+  readonly conjur?: SecretStoreV1Beta1SpecProviderConjur;
+
+  /**
+   * Delinea DevOps Secrets Vault https://docs.delinea.com/online-help/products/devops-secrets-vault/current
+   *
+   * @schema SecretStoreV1Beta1SpecProvider#delinea
+   */
+  readonly delinea?: SecretStoreV1Beta1SpecProviderDelinea;
+
+  /**
    * Doppler configures this store to sync secrets using the Doppler provider
    *
    * @schema SecretStoreV1Beta1SpecProvider#doppler
@@ -18277,6 +18915,8 @@ export function toJson_SecretStoreV1Beta1SpecProvider(obj: SecretStoreV1Beta1Spe
     'alibaba': toJson_SecretStoreV1Beta1SpecProviderAlibaba(obj.alibaba),
     'aws': toJson_SecretStoreV1Beta1SpecProviderAws(obj.aws),
     'azurekv': toJson_SecretStoreV1Beta1SpecProviderAzurekv(obj.azurekv),
+    'conjur': toJson_SecretStoreV1Beta1SpecProviderConjur(obj.conjur),
+    'delinea': toJson_SecretStoreV1Beta1SpecProviderDelinea(obj.delinea),
     'doppler': toJson_SecretStoreV1Beta1SpecProviderDoppler(obj.doppler),
     'fake': toJson_SecretStoreV1Beta1SpecProviderFake(obj.fake),
     'gcpsm': toJson_SecretStoreV1Beta1SpecProviderGcpsm(obj.gcpsm),
@@ -18506,6 +19146,20 @@ export interface SecretStoreV1Beta1SpecProviderAws {
    */
   readonly service: SecretStoreV1Beta1SpecProviderAwsService;
 
+  /**
+   * AWS STS assume role session tags
+   *
+   * @schema SecretStoreV1Beta1SpecProviderAws#sessionTags
+   */
+  readonly sessionTags?: SecretStoreV1Beta1SpecProviderAwsSessionTags[];
+
+  /**
+   * AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore
+   *
+   * @schema SecretStoreV1Beta1SpecProviderAws#transitiveTagKeys
+   */
+  readonly transitiveTagKeys?: string[];
+
 }
 
 /**
@@ -18521,6 +19175,8 @@ export function toJson_SecretStoreV1Beta1SpecProviderAws(obj: SecretStoreV1Beta1
     'region': obj.region,
     'role': obj.role,
     'service': obj.service,
+    'sessionTags': obj.sessionTags?.map(y => toJson_SecretStoreV1Beta1SpecProviderAwsSessionTags(y)),
+    'transitiveTagKeys': obj.transitiveTagKeys?.map(y => y),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -18598,6 +19254,106 @@ export function toJson_SecretStoreV1Beta1SpecProviderAzurekv(obj: SecretStoreV1B
     'serviceAccountRef': toJson_SecretStoreV1Beta1SpecProviderAzurekvServiceAccountRef(obj.serviceAccountRef),
     'tenantId': obj.tenantId,
     'vaultUrl': obj.vaultUrl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Conjur configures this store to sync secrets using conjur provider
+ *
+ * @schema SecretStoreV1Beta1SpecProviderConjur
+ */
+export interface SecretStoreV1Beta1SpecProviderConjur {
+  /**
+   * @schema SecretStoreV1Beta1SpecProviderConjur#auth
+   */
+  readonly auth: SecretStoreV1Beta1SpecProviderConjurAuth;
+
+  /**
+   * @schema SecretStoreV1Beta1SpecProviderConjur#caBundle
+   */
+  readonly caBundle?: string;
+
+  /**
+   * @schema SecretStoreV1Beta1SpecProviderConjur#url
+   */
+  readonly url: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderConjur' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderConjur(obj: SecretStoreV1Beta1SpecProviderConjur | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'auth': toJson_SecretStoreV1Beta1SpecProviderConjurAuth(obj.auth),
+    'caBundle': obj.caBundle,
+    'url': obj.url,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Delinea DevOps Secrets Vault https://docs.delinea.com/online-help/products/devops-secrets-vault/current
+ *
+ * @schema SecretStoreV1Beta1SpecProviderDelinea
+ */
+export interface SecretStoreV1Beta1SpecProviderDelinea {
+  /**
+   * ClientID is the non-secret part of the credential.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderDelinea#clientId
+   */
+  readonly clientId: SecretStoreV1Beta1SpecProviderDelineaClientId;
+
+  /**
+   * ClientSecret is the secret part of the credential.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderDelinea#clientSecret
+   */
+  readonly clientSecret: SecretStoreV1Beta1SpecProviderDelineaClientSecret;
+
+  /**
+   * Tenant is the chosen hostname / site name.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderDelinea#tenant
+   */
+  readonly tenant: string;
+
+  /**
+   * TLD is based on the server location that was chosen during provisioning. If unset, defaults to "com".
+   *
+   * @schema SecretStoreV1Beta1SpecProviderDelinea#tld
+   */
+  readonly tld?: string;
+
+  /**
+   * URLTemplate If unset, defaults to "https://%s.secretsvaultcloud.%s/v1/%s%s".
+   *
+   * @schema SecretStoreV1Beta1SpecProviderDelinea#urlTemplate
+   */
+  readonly urlTemplate?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderDelinea' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderDelinea(obj: SecretStoreV1Beta1SpecProviderDelinea | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clientId': toJson_SecretStoreV1Beta1SpecProviderDelineaClientId(obj.clientId),
+    'clientSecret': toJson_SecretStoreV1Beta1SpecProviderDelineaClientSecret(obj.clientSecret),
+    'tenant': obj.tenant,
+    'tld': obj.tld,
+    'urlTemplate': obj.urlTemplate,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -19619,6 +20375,37 @@ export enum SecretStoreV1Beta1SpecProviderAwsService {
 }
 
 /**
+ * @schema SecretStoreV1Beta1SpecProviderAwsSessionTags
+ */
+export interface SecretStoreV1Beta1SpecProviderAwsSessionTags {
+  /**
+   * @schema SecretStoreV1Beta1SpecProviderAwsSessionTags#key
+   */
+  readonly key: string;
+
+  /**
+   * @schema SecretStoreV1Beta1SpecProviderAwsSessionTags#value
+   */
+  readonly value: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderAwsSessionTags' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderAwsSessionTags(obj: SecretStoreV1Beta1SpecProviderAwsSessionTags | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type.
  *
  * @schema SecretStoreV1Beta1SpecProviderAzurekvAuthSecretRef
@@ -19731,6 +20518,105 @@ export function toJson_SecretStoreV1Beta1SpecProviderAzurekvServiceAccountRef(ob
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema SecretStoreV1Beta1SpecProviderConjurAuth
+ */
+export interface SecretStoreV1Beta1SpecProviderConjurAuth {
+  /**
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuth#apikey
+   */
+  readonly apikey: SecretStoreV1Beta1SpecProviderConjurAuthApikey;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderConjurAuth' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderConjurAuth(obj: SecretStoreV1Beta1SpecProviderConjurAuth | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'apikey': toJson_SecretStoreV1Beta1SpecProviderConjurAuthApikey(obj.apikey),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ClientID is the non-secret part of the credential.
+ *
+ * @schema SecretStoreV1Beta1SpecProviderDelineaClientId
+ */
+export interface SecretStoreV1Beta1SpecProviderDelineaClientId {
+  /**
+   * SecretRef references a key in a secret that will be used as value.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderDelineaClientId#secretRef
+   */
+  readonly secretRef?: SecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef;
+
+  /**
+   * Value can be specified directly to set a value without using a secret.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderDelineaClientId#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderDelineaClientId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderDelineaClientId(obj: SecretStoreV1Beta1SpecProviderDelineaClientId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretRef': toJson_SecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef(obj.secretRef),
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ClientSecret is the secret part of the credential.
+ *
+ * @schema SecretStoreV1Beta1SpecProviderDelineaClientSecret
+ */
+export interface SecretStoreV1Beta1SpecProviderDelineaClientSecret {
+  /**
+   * SecretRef references a key in a secret that will be used as value.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderDelineaClientSecret#secretRef
+   */
+  readonly secretRef?: SecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef;
+
+  /**
+   * Value can be specified directly to set a value without using a secret.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderDelineaClientSecret#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderDelineaClientSecret' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderDelineaClientSecret(obj: SecretStoreV1Beta1SpecProviderDelineaClientSecret | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretRef': toJson_SecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef(obj.secretRef),
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Auth configures how the Operator authenticates with the Doppler API
  *
  * @schema SecretStoreV1Beta1SpecProviderDopplerAuth
@@ -19791,6 +20677,8 @@ export enum SecretStoreV1Beta1SpecProviderDopplerNameTransformer {
   TF_VAR = "tf-var",
   /** dotnet-env */
   DOTNET_ENV = "dotnet-env",
+  /** lower-kebab */
+  LOWER_KEBAB = "lower-kebab",
 }
 
 /**
@@ -20304,6 +21192,13 @@ export interface SecretStoreV1Beta1SpecProviderVaultAuth {
    */
   readonly tokenSecretRef?: SecretStoreV1Beta1SpecProviderVaultAuthTokenSecretRef;
 
+  /**
+   * UserPass authenticates with Vault by passing username/password pair
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuth#userPass
+   */
+  readonly userPass?: SecretStoreV1Beta1SpecProviderVaultAuthUserPass;
+
 }
 
 /**
@@ -20320,6 +21215,7 @@ export function toJson_SecretStoreV1Beta1SpecProviderVaultAuth(obj: SecretStoreV
     'kubernetes': toJson_SecretStoreV1Beta1SpecProviderVaultAuthKubernetes(obj.kubernetes),
     'ldap': toJson_SecretStoreV1Beta1SpecProviderVaultAuthLdap(obj.ldap),
     'tokenSecretRef': toJson_SecretStoreV1Beta1SpecProviderVaultAuthTokenSecretRef(obj.tokenSecretRef),
+    'userPass': toJson_SecretStoreV1Beta1SpecProviderVaultAuthUserPass(obj.userPass),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -20969,6 +21865,137 @@ export interface SecretStoreV1Beta1SpecProviderAzurekvAuthSecretRefClientSecret 
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SecretStoreV1Beta1SpecProviderAzurekvAuthSecretRefClientSecret(obj: SecretStoreV1Beta1SpecProviderAzurekvAuthSecretRefClientSecret | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SecretStoreV1Beta1SpecProviderConjurAuthApikey
+ */
+export interface SecretStoreV1Beta1SpecProviderConjurAuthApikey {
+  /**
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthApikey#account
+   */
+  readonly account: string;
+
+  /**
+   * A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthApikey#apiKeyRef
+   */
+  readonly apiKeyRef: SecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef;
+
+  /**
+   * A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthApikey#userRef
+   */
+  readonly userRef: SecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderConjurAuthApikey' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderConjurAuthApikey(obj: SecretStoreV1Beta1SpecProviderConjurAuthApikey | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'account': obj.account,
+    'apiKeyRef': toJson_SecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef(obj.apiKeyRef),
+    'userRef': toJson_SecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef(obj.userRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SecretRef references a key in a secret that will be used as value.
+ *
+ * @schema SecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef
+ */
+export interface SecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef(obj: SecretStoreV1Beta1SpecProviderDelineaClientIdSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SecretRef references a key in a secret that will be used as value.
+ *
+ * @schema SecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef
+ */
+export interface SecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef(obj: SecretStoreV1Beta1SpecProviderDelineaClientSecretSecretRef | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'key': obj.key,
@@ -21913,6 +22940,51 @@ export function toJson_SecretStoreV1Beta1SpecProviderVaultAuthTokenSecretRef(obj
 /* eslint-enable max-len, quote-props */
 
 /**
+ * UserPass authenticates with Vault by passing username/password pair
+ *
+ * @schema SecretStoreV1Beta1SpecProviderVaultAuthUserPass
+ */
+export interface SecretStoreV1Beta1SpecProviderVaultAuthUserPass {
+  /**
+   * Path where the UserPassword authentication backend is mounted in Vault, e.g: "user"
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthUserPass#path
+   */
+  readonly path: string;
+
+  /**
+   * SecretRef to a key in a Secret resource containing password for the user used to authenticate with Vault using the UserPass authentication method
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthUserPass#secretRef
+   */
+  readonly secretRef?: SecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef;
+
+  /**
+   * Username is a user name used to authenticate using the UserPass Vault authentication method
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthUserPass#username
+   */
+  readonly username: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderVaultAuthUserPass' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderVaultAuthUserPass(obj: SecretStoreV1Beta1SpecProviderVaultAuthUserPass | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'path': obj.path,
+    'secretRef': toJson_SecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef(obj.secretRef),
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * The type of provider to use such as "Secret", or "ConfigMap".
  *
  * @schema SecretStoreV1Beta1SpecProviderVaultCaProviderType
@@ -22645,6 +23717,96 @@ export interface SecretStoreV1Beta1SpecProviderAwsAuthSecretRefSessionTokenSecre
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SecretStoreV1Beta1SpecProviderAwsAuthSecretRefSessionTokenSecretRef(obj: SecretStoreV1Beta1SpecProviderAwsAuthSecretRefSessionTokenSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
+ *
+ * @schema SecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef
+ */
+export interface SecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef(obj: SecretStoreV1Beta1SpecProviderConjurAuthApikeyApiKeyRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
+ *
+ * @schema SecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef
+ */
+export interface SecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef(obj: SecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'key': obj.key,
@@ -23633,6 +24795,51 @@ export interface SecretStoreV1Beta1SpecProviderVaultAuthLdapSecretRef {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SecretStoreV1Beta1SpecProviderVaultAuthLdapSecretRef(obj: SecretStoreV1Beta1SpecProviderVaultAuthLdapSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SecretRef to a key in a Secret resource containing password for the user used to authenticate with Vault using the UserPass authentication method
+ *
+ * @schema SecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef
+ */
+export interface SecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef(obj: SecretStoreV1Beta1SpecProviderVaultAuthUserPassSecretRef | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'key': obj.key,
