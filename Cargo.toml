@@ -7,6 +7,8 @@ members = [
 	'apps/rust/master_operator',
 	'apps/rust/actix_app',
 	'apps/rust/clapper',
+	'apps/rust/actix_htmx',
+	'apps/rust/axum_htmx',
 ]
 
 [profile.release]

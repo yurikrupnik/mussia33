@@ -1,0 +1,64 @@
+{
+  "name": "rust_actix_htmx",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/rust/actix_htmx/src",
+  "targets": {
+    "build": {
+      "executor": "@monodon/rust:build",
+      "outputs": [
+        "{options.target-dir}"
+      ],
+      "options": {
+        "target-dir": "dist/target/rust_actix_htmx"
+      },
+      "configurations": {
+        "production": {
+          "release": true
+        }
+      }
+    },
+    "test": {
+      "executor": "@monodon/rust:test",
+      "outputs": [
+        "{options.target-dir}"
+      ],
+      "options": {
+        "target-dir": "dist/target/rust_actix_htmx"
+      },
+      "configurations": {
+        "production": {
+          "release": true
+        }
+      }
+    },
+    "lint": {
+      "executor": "@monodon/rust:lint",
+      "outputs": [
+        "{options.target-dir}"
+      ],
+      "options": {
+        "target-dir": "dist/target/rust_actix_htmx"
+      }
+    },
+    "run": {
+      "executor": "@monodon/rust:run",
+      "outputs": [
+        "{options.target-dir}"
+      ],
+      "options": {
+        "target-dir": "dist/target/rust_actix_htmx"
+      },
+      "configurations": {
+        "production": {
+          "release": true
+        }
+      }
+    }
+  },
+  "tags": [
+    "app=frontend",
+    "team=frontend",
+    "fullstack"
+  ]
+}
