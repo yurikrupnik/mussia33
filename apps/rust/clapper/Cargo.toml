@@ -5,7 +5,6 @@ edition = "2021"
 
 
 [dependencies]
-clap = { workspace = true }
-#for-fun = { workspace = true }
+clap = { workspace = true, features = ['derive'] }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
