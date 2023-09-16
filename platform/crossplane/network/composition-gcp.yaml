@@ -44,3 +44,25 @@ spec:
       patches:
         - fromFieldPath: spec.id
           toFieldPath: metadata.labels[networks.multicloud.platformref.yurikrupnik.com/network-id]
+    - base:
+        apiVersion: compute.gcp.upbound.io/v1beta1
+        kind: Subnetwork
+        spec:
+          forProvider:
+            region: us-west2
+            networkSelector:
+              # This selector ensures this Subnetwork will select and use the
+              # above Network. They will both be part of the XR, and thus their
+              # controller references will match.
+              matchControllerRef: true
+            privateIpGoogleAccess: true
+            ipCidrRange: 172.16.0.0/16
+            secondaryIpRanges:
+              - rangeName: pods
+                ipCidrRange: 10.200.0.0/14
+              - rangeName: services
+                ipCidrRange: 10.204.0.0/16
+          reclaimPolicy: Delete
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multicloud.platformref.yurikrupnik.com/network-id]

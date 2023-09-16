@@ -1,0 +1,17 @@
+{
+  "name": "@mussia33/rust-proc-ts-linux-arm-gnueabihf",
+  "version": "0.0.0",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm"
+  ],
+  "main": "rust_proc_ts.linux-arm-gnueabihf.node",
+  "files": [
+    "rust_proc_ts.linux-arm-gnueabihf.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  }
+}

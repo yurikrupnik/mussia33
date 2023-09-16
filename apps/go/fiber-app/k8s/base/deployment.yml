@@ -17,6 +17,7 @@ spec:
       containers:
         - name: fiber-app
           image: yurikrupnik/fiber-app:main
+#          image: europe-central2-docker.pkg.dev/mussia-infra/container-repository/actix-app:main
           imagePullPolicy: IfNotPresent
           ports:
             - name: web

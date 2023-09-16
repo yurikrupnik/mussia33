@@ -16,7 +16,7 @@ spec:
       restartPolicy: Always
       containers:
         - name: master-operator
-          image: yurikrupnik/master-operator:latest
+          image: yurikrupnik/master-operator:main
           imagePullPolicy: IfNotPresent
           resources:
             requests:

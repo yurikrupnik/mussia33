@@ -6,4 +6,5 @@ export enum Providers {
   "aws",
   "azure",
   "ali",
+  "oracle",
 }

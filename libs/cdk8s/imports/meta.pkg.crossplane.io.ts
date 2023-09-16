@@ -406,6 +406,207 @@ export function toJson_ConfigurationV1Alpha1SpecDependsOn(obj: ConfigurationV1Al
 
 
 /**
+ * A Function is the description of a Crossplane Function package.
+ *
+ * @schema Function
+ */
+export class Function extends ApiObject {
+  /**
+   * Returns the apiVersion and kind for "Function"
+   */
+  public static readonly GVK: GroupVersionKind = {
+    apiVersion: 'meta.pkg.crossplane.io/v1alpha1',
+    kind: 'Function',
+  }
+
+  /**
+   * Renders a Kubernetes manifest for "Function".
+   *
+   * This can be used to inline resource manifests inside other objects (e.g. as templates).
+   *
+   * @param props initialization props
+   */
+  public static manifest(props: FunctionProps): any {
+    return {
+      ...Function.GVK,
+      ...toJson_FunctionProps(props),
+    };
+  }
+
+  /**
+   * Defines a "Function" API object
+   * @param scope the scope in which to define this object
+   * @param id a scope-local name for the object
+   * @param props initialization props
+   */
+  public constructor(scope: Construct, id: string, props: FunctionProps) {
+    super(scope, id, {
+      ...Function.GVK,
+      ...props,
+    });
+  }
+
+  /**
+   * Renders the object to Kubernetes JSON.
+   */
+  public toJson(): any {
+    const resolved = super.toJson();
+
+    return {
+      ...Function.GVK,
+      ...toJson_FunctionProps(resolved),
+    };
+  }
+}
+
+/**
+ * A Function is the description of a Crossplane Function package.
+ *
+ * @schema Function
+ */
+export interface FunctionProps {
+  /**
+   * @schema Function#metadata
+   */
+  readonly metadata?: ApiObjectMetadata;
+
+  /**
+   * FunctionSpec specifies the configuration of a Function.
+   *
+   * @schema Function#spec
+   */
+  readonly spec: FunctionSpec;
+
+}
+
+/**
+ * Converts an object of type 'FunctionProps' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FunctionProps(obj: FunctionProps | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metadata': obj.metadata,
+    'spec': toJson_FunctionSpec(obj.spec),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * FunctionSpec specifies the configuration of a Function.
+ *
+ * @schema FunctionSpec
+ */
+export interface FunctionSpec {
+  /**
+   * Semantic version constraints of Crossplane that package is compatible with.
+   *
+   * @schema FunctionSpec#crossplane
+   */
+  readonly crossplane?: FunctionSpecCrossplane;
+
+  /**
+   * Dependencies on other packages.
+   *
+   * @schema FunctionSpec#dependsOn
+   */
+  readonly dependsOn?: FunctionSpecDependsOn[];
+
+}
+
+/**
+ * Converts an object of type 'FunctionSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FunctionSpec(obj: FunctionSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'crossplane': toJson_FunctionSpecCrossplane(obj.crossplane),
+    'dependsOn': obj.dependsOn?.map(y => toJson_FunctionSpecDependsOn(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Semantic version constraints of Crossplane that package is compatible with.
+ *
+ * @schema FunctionSpecCrossplane
+ */
+export interface FunctionSpecCrossplane {
+  /**
+   * Semantic version constraints of Crossplane that package is compatible with.
+   *
+   * @schema FunctionSpecCrossplane#version
+   */
+  readonly version: string;
+
+}
+
+/**
+ * Converts an object of type 'FunctionSpecCrossplane' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FunctionSpecCrossplane(obj: FunctionSpecCrossplane | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Dependency is a dependency on another package. One of Provider or Configuration may be supplied.
+ *
+ * @schema FunctionSpecDependsOn
+ */
+export interface FunctionSpecDependsOn {
+  /**
+   * Configuration is the name of a Configuration package image.
+   *
+   * @schema FunctionSpecDependsOn#configuration
+   */
+  readonly configuration?: string;
+
+  /**
+   * Provider is the name of a Provider package image.
+   *
+   * @schema FunctionSpecDependsOn#provider
+   */
+  readonly provider?: string;
+
+  /**
+   * Version is the semantic version constraints of the dependency image.
+   *
+   * @schema FunctionSpecDependsOn#version
+   */
+  readonly version: string;
+
+}
+
+/**
+ * Converts an object of type 'FunctionSpecDependsOn' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FunctionSpecDependsOn(obj: FunctionSpecDependsOn | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configuration': obj.configuration,
+    'provider': obj.provider,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+
+/**
  * A Provider is the description of a Crossplane Provider package.
  *
  * @schema Provider

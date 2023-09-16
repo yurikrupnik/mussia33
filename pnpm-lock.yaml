@@ -56,6 +56,9 @@ dependencies:
   '@pulumi/kubernetes':
     specifier: ^3.25.0
     version: 3.30.2
+  '@pulumi/mongodbatlas':
+    specifier: ^3.10.1
+    version: 3.10.1
   '@pulumi/pulumi':
     specifier: ^3.59.1
     version: 3.76.1
@@ -124,6 +127,9 @@ devDependencies:
   '@monodon/rust':
     specifier: ^1.1.2
     version: 1.2.0(nx@16.7.4)(typescript@5.2.2)
+  '@napi-rs/cli':
+    specifier: 2.14.8
+    version: 2.14.8
   '@nestjs/schematics':
     specifier: 10.0.2
     version: 10.0.2(typescript@5.2.2)
@@ -2615,6 +2621,12 @@ packages:
       - verdaccio
     dev: true
 
+  /@napi-rs/cli@2.14.8:
+    resolution: {integrity: sha512-IvA3s8BqohMdUbOkFn7+23u1dhIJZCkA8Xps7DD4SLdCMbcbUF6MUuKiqxuqmVHBFTaxU25sU56WdX3efqGgPw==}
+    engines: {node: '>= 10'}
+    hasBin: true
+    dev: true
+
   /@nestjs/common@10.2.4(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)(rxjs@7.8.1):
     resolution: {integrity: sha512-3Lg4PUaSDucf14V8rPCH212NqrK09AJbY0NKqFsb4j5OIE+TuOzVZR/yjaJ8JNxH2hjskJNCZie0D/9tA2lzlA==}
     peerDependencies:
@@ -4903,6 +4915,15 @@ packages:
       tmp: 0.0.33
     transitivePeerDependencies:
       - encoding
+      - supports-color
+    dev: false
+
+  /@pulumi/mongodbatlas@3.10.1:
+    resolution: {integrity: sha512-+Qzn8x5LYf9z0VbdFhLVTNE2PNomKGWyHxMq5s4lyISM/f1ii2i+Mv6RgNZ11JUGZ479SpEU5UC+O0am125TRA==}
+    requiresBuild: true
+    dependencies:
+      '@pulumi/pulumi': 3.76.1
+    transitivePeerDependencies:
       - supports-color
     dev: false
 

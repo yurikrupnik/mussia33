@@ -3,30 +3,30 @@ kind: CronJob
 metadata:
   name: clapper-cron-job
 spec:
-  schedule: "* * * * *"
+  schedule: "1 * * * *"
   jobTemplate:
     spec:
       template:
         spec:
           containers:
             - name: clapper
-              image: yurikrupnik/clapper
+              image: yurikrupnik/clapper:main
               imagePullPolicy: IfNotPresent
               command:
                 - /app
                 - --name
                 - aris
           restartPolicy: OnFailure
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: command-demo
-  labels:
-    purpose: demonstrate-command
-spec:
-  containers:
-    - name: command-demo-container
-      image: yurikrupnik/clapper
-      args: ["--name", "Nir"]
-  restartPolicy: OnFailure
+#---
+#apiVersion: v1
+#kind: Pod
+#metadata:
+#  name: command-demo
+#  labels:
+#    purpose: demonstrate-command
+#spec:
+#  containers:
+#    - name: command-demo-container
+#      image: yurikrupnik/clapper
+#      args: ["--name", "Nir"]
+#  restartPolicy: OnFailure

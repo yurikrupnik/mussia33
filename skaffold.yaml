@@ -1,0 +1,12 @@
+apiVersion: skaffold/v4beta6	# 	version of the configuration.
+kind: Config
+build:
+  artifacts:
+    - image: yurikrupnik/fiber-go
+      context: .
+#      custom:
+
+#      docker:
+
+deploy:
+  kubectl: {}

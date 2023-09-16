@@ -155,6 +155,13 @@ export interface CompositeResourceDefinitionSpec {
   readonly group: string;
 
   /**
+   * Metadata specifies the desired metadata for the defined composite resource and claim CRD's.
+   *
+   * @schema CompositeResourceDefinitionSpec#metadata
+   */
+  readonly metadata?: CompositeResourceDefinitionSpecMetadata;
+
+  /**
    * Names specifies the resource and kind names of the defined composite resource.
    *
    * @schema CompositeResourceDefinitionSpec#names
@@ -185,6 +192,7 @@ export function toJson_CompositeResourceDefinitionSpec(obj: CompositeResourceDef
     'defaultCompositionUpdatePolicy': obj.defaultCompositionUpdatePolicy,
     'enforcedCompositionRef': toJson_CompositeResourceDefinitionSpecEnforcedCompositionRef(obj.enforcedCompositionRef),
     'group': obj.group,
+    'metadata': toJson_CompositeResourceDefinitionSpecMetadata(obj.metadata),
     'names': toJson_CompositeResourceDefinitionSpecNames(obj.names),
     'versions': obj.versions?.map(y => toJson_CompositeResourceDefinitionSpecVersions(y)),
   };
@@ -271,14 +279,14 @@ export function toJson_CompositeResourceDefinitionSpecClaimNames(obj: CompositeR
  */
 export interface CompositeResourceDefinitionSpecConversion {
   /**
-   * strategy specifies how custom resources are converted between versions. Allowed values are: - `None`: The converter only change the apiVersion and would not touch any other field in the custom resource. - `Webhook`: API Server will call to an external webhook to do the conversion. Additional information is needed for this option. This requires spec.preserveUnknownFields to be false, and spec.conversion.webhook to be set.
+   * strategy specifies how custom resources are converted between versions. Allowed values are: - `"None"`: The converter only change the apiVersion and would not touch any other field in the custom resource. - `"Webhook"`: API Server will call to an external webhook to do the conversion. Additional information is needed for this option. This requires spec.preserveUnknownFields to be false, and spec.conversion.webhook to be set.
    *
    * @schema CompositeResourceDefinitionSpecConversion#strategy
    */
   readonly strategy: string;
 
   /**
-   * webhook describes how to call the conversion webhook. Required when `strategy` is set to `Webhook`.
+   * webhook describes how to call the conversion webhook. Required when `strategy` is set to `"Webhook"`.
    *
    * @schema CompositeResourceDefinitionSpecConversion#webhook
    */
@@ -377,6 +385,43 @@ export function toJson_CompositeResourceDefinitionSpecEnforcedCompositionRef(obj
   if (obj === undefined) { return undefined; }
   const result = {
     'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Metadata specifies the desired metadata for the defined composite resource and claim CRD's.
+ *
+ * @schema CompositeResourceDefinitionSpecMetadata
+ */
+export interface CompositeResourceDefinitionSpecMetadata {
+  /**
+   * Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations
+   *
+   * @schema CompositeResourceDefinitionSpecMetadata#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels and services. These labels are added to the composite resource and claim CRD's in addition to any labels defined by `CompositionResourceDefinition` `metadata.labels`.
+   *
+   * @schema CompositeResourceDefinitionSpecMetadata#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'CompositeResourceDefinitionSpecMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CompositeResourceDefinitionSpecMetadata(obj: CompositeResourceDefinitionSpecMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -532,7 +577,7 @@ export function toJson_CompositeResourceDefinitionSpecVersions(obj: CompositeRes
 /* eslint-enable max-len, quote-props */
 
 /**
- * webhook describes how to call the conversion webhook. Required when `strategy` is set to `Webhook`.
+ * webhook describes how to call the conversion webhook. Required when `strategy` is set to `"Webhook"`.
  *
  * @schema CompositeResourceDefinitionSpecConversionWebhook
  */
@@ -1000,6 +1045,13 @@ export interface CompositionSpecEnvironment {
    */
   readonly patches?: CompositionSpecEnvironmentPatches[];
 
+  /**
+   * Policy represents the Resolve and Resolution policies which apply to all EnvironmentSourceReferences in EnvironmentConfigs list.
+   *
+   * @schema CompositionSpecEnvironment#policy
+   */
+  readonly policy?: CompositionSpecEnvironmentPolicy;
+
 }
 
 /**
@@ -1011,6 +1063,7 @@ export function toJson_CompositionSpecEnvironment(obj: CompositionSpecEnvironmen
   const result = {
     'environmentConfigs': obj.environmentConfigs?.map(y => toJson_CompositionSpecEnvironmentEnvironmentConfigs(y)),
     'patches': obj.patches?.map(y => toJson_CompositionSpecEnvironmentPatches(y)),
+    'policy': toJson_CompositionSpecEnvironmentPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1212,7 +1265,7 @@ export interface CompositionSpecEnvironmentEnvironmentConfigs {
   readonly ref?: CompositionSpecEnvironmentEnvironmentConfigsRef;
 
   /**
-   * Selector selects one EnvironmentConfig via labels.
+   * Selector selects EnvironmentConfig(s) via labels.
    *
    * @schema CompositionSpecEnvironmentEnvironmentConfigs#selector
    */
@@ -1314,6 +1367,43 @@ export function toJson_CompositionSpecEnvironmentPatches(obj: CompositionSpecEnv
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Policy represents the Resolve and Resolution policies which apply to all EnvironmentSourceReferences in EnvironmentConfigs list.
+ *
+ * @schema CompositionSpecEnvironmentPolicy
+ */
+export interface CompositionSpecEnvironmentPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema CompositionSpecEnvironmentPolicy#resolution
+   */
+  readonly resolution?: CompositionSpecEnvironmentPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema CompositionSpecEnvironmentPolicy#resolve
+   */
+  readonly resolve?: CompositionSpecEnvironmentPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'CompositionSpecEnvironmentPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CompositionSpecEnvironmentPolicy(obj: CompositionSpecEnvironmentPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Container configuration of this function.
  *
  * @schema CompositionSpecFunctionsContainer
@@ -1332,6 +1422,13 @@ export interface CompositionSpecFunctionsContainer {
    * @schema CompositionSpecFunctionsContainer#imagePullPolicy
    */
   readonly imagePullPolicy?: CompositionSpecFunctionsContainerImagePullPolicy;
+
+  /**
+   * ImagePullSecrets are used to pull images from private OCI registries.
+   *
+   * @schema CompositionSpecFunctionsContainer#imagePullSecrets
+   */
+  readonly imagePullSecrets?: CompositionSpecFunctionsContainerImagePullSecrets[];
 
   /**
    * Network configuration for the Composition Function.
@@ -1372,6 +1469,7 @@ export function toJson_CompositionSpecFunctionsContainer(obj: CompositionSpecFun
   const result = {
     'image': obj.image,
     'imagePullPolicy': obj.imagePullPolicy,
+    'imagePullSecrets': obj.imagePullSecrets?.map(y => toJson_CompositionSpecFunctionsContainerImagePullSecrets(y)),
     'network': toJson_CompositionSpecFunctionsContainerNetwork(obj.network),
     'resources': toJson_CompositionSpecFunctionsContainerResources(obj.resources),
     'runner': toJson_CompositionSpecFunctionsContainerRunner(obj.runner),
@@ -1621,6 +1719,13 @@ export interface CompositionSpecResourcesReadinessChecks {
   readonly fieldPath?: string;
 
   /**
+   * MatchCondition specifies the condition you'd like to match if you're using "MatchCondition" type.
+   *
+   * @schema CompositionSpecResourcesReadinessChecks#matchCondition
+   */
+  readonly matchCondition?: CompositionSpecResourcesReadinessChecksMatchCondition;
+
+  /**
    * MatchInt is the value you'd like to match if you're using "MatchInt" type.
    *
    * @schema CompositionSpecResourcesReadinessChecks#matchInteger
@@ -1651,6 +1756,7 @@ export function toJson_CompositionSpecResourcesReadinessChecks(obj: CompositionS
   if (obj === undefined) { return undefined; }
   const result = {
     'fieldPath': obj.fieldPath,
+    'matchCondition': toJson_CompositionSpecResourcesReadinessChecksMatchCondition(obj.matchCondition),
     'matchInteger': obj.matchInteger,
     'matchString': obj.matchString,
     'type': obj.type,
@@ -1690,7 +1796,7 @@ export function toJson_CompositionSpecEnvironmentEnvironmentConfigsRef(obj: Comp
 /* eslint-enable max-len, quote-props */
 
 /**
- * Selector selects one EnvironmentConfig via labels.
+ * Selector selects EnvironmentConfig(s) via labels.
  *
  * @schema CompositionSpecEnvironmentEnvironmentConfigsSelector
  */
@@ -1702,6 +1808,27 @@ export interface CompositionSpecEnvironmentEnvironmentConfigsSelector {
    */
   readonly matchLabels?: CompositionSpecEnvironmentEnvironmentConfigsSelectorMatchLabels[];
 
+  /**
+   * MaxMatch specifies the number of extracted EnvironmentConfigs in Multiple mode, extracts all if nil.
+   *
+   * @schema CompositionSpecEnvironmentEnvironmentConfigsSelector#maxMatch
+   */
+  readonly maxMatch?: number;
+
+  /**
+   * Mode specifies retrieval strategy: "Single" or "Multiple".
+   *
+   * @schema CompositionSpecEnvironmentEnvironmentConfigsSelector#mode
+   */
+  readonly mode?: CompositionSpecEnvironmentEnvironmentConfigsSelectorMode;
+
+  /**
+   * SortByFieldPath is the path to the field based on which list of EnvironmentConfigs is alphabetically sorted.
+   *
+   * @schema CompositionSpecEnvironmentEnvironmentConfigsSelector#sortByFieldPath
+   */
+  readonly sortByFieldPath?: string;
+
 }
 
 /**
@@ -1712,6 +1839,9 @@ export function toJson_CompositionSpecEnvironmentEnvironmentConfigsSelector(obj:
   if (obj === undefined) { return undefined; }
   const result = {
     'matchLabels': obj.matchLabels?.map(y => toJson_CompositionSpecEnvironmentEnvironmentConfigsSelectorMatchLabels(y)),
+    'maxMatch': obj.maxMatch,
+    'mode': obj.mode,
+    'sortByFieldPath': obj.sortByFieldPath,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1890,14 +2020,36 @@ export function toJson_CompositionSpecEnvironmentPatchesTransforms(obj: Composit
 export enum CompositionSpecEnvironmentPatchesType {
   /** FromCompositeFieldPath */
   FROM_COMPOSITE_FIELD_PATH = "FromCompositeFieldPath",
-  /** FromEnvironmentFieldPath */
-  FROM_ENVIRONMENT_FIELD_PATH = "FromEnvironmentFieldPath",
   /** ToCompositeFieldPath */
   TO_COMPOSITE_FIELD_PATH = "ToCompositeFieldPath",
   /** CombineFromComposite */
   COMBINE_FROM_COMPOSITE = "CombineFromComposite",
   /** CombineToComposite */
   COMBINE_TO_COMPOSITE = "CombineToComposite",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema CompositionSpecEnvironmentPolicyResolution
+ */
+export enum CompositionSpecEnvironmentPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema CompositionSpecEnvironmentPolicyResolve
+ */
+export enum CompositionSpecEnvironmentPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
 }
 
 /**
@@ -1913,6 +2065,35 @@ export enum CompositionSpecFunctionsContainerImagePullPolicy {
   /** Never */
   NEVER = "Never",
 }
+
+/**
+ * LocalObjectReference contains enough information to let you locate the referenced object inside the same namespace.
+ *
+ * @schema CompositionSpecFunctionsContainerImagePullSecrets
+ */
+export interface CompositionSpecFunctionsContainerImagePullSecrets {
+  /**
+   * Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?
+   *
+   * @schema CompositionSpecFunctionsContainerImagePullSecrets#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'CompositionSpecFunctionsContainerImagePullSecrets' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CompositionSpecFunctionsContainerImagePullSecrets(obj: CompositionSpecFunctionsContainerImagePullSecrets | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * Network configuration for the Composition Function.
@@ -2371,6 +2552,43 @@ export enum CompositionSpecResourcesPatchesType {
 }
 
 /**
+ * MatchCondition specifies the condition you'd like to match if you're using "MatchCondition" type.
+ *
+ * @schema CompositionSpecResourcesReadinessChecksMatchCondition
+ */
+export interface CompositionSpecResourcesReadinessChecksMatchCondition {
+  /**
+   * Status is the status of the condition you'd like to match.
+   *
+   * @schema CompositionSpecResourcesReadinessChecksMatchCondition#status
+   */
+  readonly status: string;
+
+  /**
+   * Type indicates the type of condition you'd like to use.
+   *
+   * @schema CompositionSpecResourcesReadinessChecksMatchCondition#type
+   */
+  readonly type: string;
+
+}
+
+/**
+ * Converts an object of type 'CompositionSpecResourcesReadinessChecksMatchCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CompositionSpecResourcesReadinessChecksMatchCondition(obj: CompositionSpecResourcesReadinessChecksMatchCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'status': obj.status,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Type indicates the type of probe you'd like to use.
  *
  * @schema CompositionSpecResourcesReadinessChecksType
@@ -2382,6 +2600,8 @@ export enum CompositionSpecResourcesReadinessChecksType {
   MATCH_INTEGER = "MatchInteger",
   /** NonEmpty */
   NON_EMPTY = "NonEmpty",
+  /** MatchCondition */
+  MATCH_CONDITION = "MatchCondition",
   /** None */
   NONE = "None",
 }
@@ -2438,6 +2658,18 @@ export function toJson_CompositionSpecEnvironmentEnvironmentConfigsSelectorMatch
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * Mode specifies retrieval strategy: "Single" or "Multiple".
+ *
+ * @schema CompositionSpecEnvironmentEnvironmentConfigsSelectorMode
+ */
+export enum CompositionSpecEnvironmentEnvironmentConfigsSelectorMode {
+  /** Single */
+  SINGLE = "Single",
+  /** Multiple */
+  MULTIPLE = "Multiple",
+}
 
 /**
  * Strategy defines the strategy to use to combine the input variable values. Currently only string is supported.
@@ -4384,6 +4616,13 @@ export interface CompositionRevisionSpecEnvironment {
    */
   readonly patches?: CompositionRevisionSpecEnvironmentPatches[];
 
+  /**
+   * Policy represents the Resolve and Resolution policies which apply to all EnvironmentSourceReferences in EnvironmentConfigs list.
+   *
+   * @schema CompositionRevisionSpecEnvironment#policy
+   */
+  readonly policy?: CompositionRevisionSpecEnvironmentPolicy;
+
 }
 
 /**
@@ -4395,6 +4634,7 @@ export function toJson_CompositionRevisionSpecEnvironment(obj: CompositionRevisi
   const result = {
     'environmentConfigs': obj.environmentConfigs?.map(y => toJson_CompositionRevisionSpecEnvironmentEnvironmentConfigs(y)),
     'patches': obj.patches?.map(y => toJson_CompositionRevisionSpecEnvironmentPatches(y)),
+    'policy': toJson_CompositionRevisionSpecEnvironmentPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4595,7 +4835,7 @@ export interface CompositionRevisionSpecEnvironmentEnvironmentConfigs {
   readonly ref?: CompositionRevisionSpecEnvironmentEnvironmentConfigsRef;
 
   /**
-   * Selector selects one EnvironmentConfig via labels.
+   * Selector selects EnvironmentConfig(s) via labels.
    *
    * @schema CompositionRevisionSpecEnvironmentEnvironmentConfigs#selector
    */
@@ -4697,6 +4937,43 @@ export function toJson_CompositionRevisionSpecEnvironmentPatches(obj: Compositio
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Policy represents the Resolve and Resolution policies which apply to all EnvironmentSourceReferences in EnvironmentConfigs list.
+ *
+ * @schema CompositionRevisionSpecEnvironmentPolicy
+ */
+export interface CompositionRevisionSpecEnvironmentPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema CompositionRevisionSpecEnvironmentPolicy#resolution
+   */
+  readonly resolution?: CompositionRevisionSpecEnvironmentPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema CompositionRevisionSpecEnvironmentPolicy#resolve
+   */
+  readonly resolve?: CompositionRevisionSpecEnvironmentPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'CompositionRevisionSpecEnvironmentPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CompositionRevisionSpecEnvironmentPolicy(obj: CompositionRevisionSpecEnvironmentPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Container configuration of this function.
  *
  * @schema CompositionRevisionSpecFunctionsContainer
@@ -4715,6 +4992,13 @@ export interface CompositionRevisionSpecFunctionsContainer {
    * @schema CompositionRevisionSpecFunctionsContainer#imagePullPolicy
    */
   readonly imagePullPolicy?: CompositionRevisionSpecFunctionsContainerImagePullPolicy;
+
+  /**
+   * ImagePullSecrets are used to pull images from private OCI registries.
+   *
+   * @schema CompositionRevisionSpecFunctionsContainer#imagePullSecrets
+   */
+  readonly imagePullSecrets?: CompositionRevisionSpecFunctionsContainerImagePullSecrets[];
 
   /**
    * Network configuration for the Composition Function.
@@ -4755,6 +5039,7 @@ export function toJson_CompositionRevisionSpecFunctionsContainer(obj: Compositio
   const result = {
     'image': obj.image,
     'imagePullPolicy': obj.imagePullPolicy,
+    'imagePullSecrets': obj.imagePullSecrets?.map(y => toJson_CompositionRevisionSpecFunctionsContainerImagePullSecrets(y)),
     'network': toJson_CompositionRevisionSpecFunctionsContainerNetwork(obj.network),
     'resources': toJson_CompositionRevisionSpecFunctionsContainerResources(obj.resources),
     'runner': toJson_CompositionRevisionSpecFunctionsContainerRunner(obj.runner),
@@ -5004,6 +5289,13 @@ export interface CompositionRevisionSpecResourcesReadinessChecks {
   readonly fieldPath?: string;
 
   /**
+   * MatchCondition specifies the condition you'd like to match if you're using "MatchCondition" type.
+   *
+   * @schema CompositionRevisionSpecResourcesReadinessChecks#matchCondition
+   */
+  readonly matchCondition?: CompositionRevisionSpecResourcesReadinessChecksMatchCondition;
+
+  /**
    * MatchInt is the value you'd like to match if you're using "MatchInt" type.
    *
    * @schema CompositionRevisionSpecResourcesReadinessChecks#matchInteger
@@ -5034,6 +5326,7 @@ export function toJson_CompositionRevisionSpecResourcesReadinessChecks(obj: Comp
   if (obj === undefined) { return undefined; }
   const result = {
     'fieldPath': obj.fieldPath,
+    'matchCondition': toJson_CompositionRevisionSpecResourcesReadinessChecksMatchCondition(obj.matchCondition),
     'matchInteger': obj.matchInteger,
     'matchString': obj.matchString,
     'type': obj.type,
@@ -5073,7 +5366,7 @@ export function toJson_CompositionRevisionSpecEnvironmentEnvironmentConfigsRef(o
 /* eslint-enable max-len, quote-props */
 
 /**
- * Selector selects one EnvironmentConfig via labels.
+ * Selector selects EnvironmentConfig(s) via labels.
  *
  * @schema CompositionRevisionSpecEnvironmentEnvironmentConfigsSelector
  */
@@ -5085,6 +5378,27 @@ export interface CompositionRevisionSpecEnvironmentEnvironmentConfigsSelector {
    */
   readonly matchLabels?: CompositionRevisionSpecEnvironmentEnvironmentConfigsSelectorMatchLabels[];
 
+  /**
+   * MaxMatch specifies the number of extracted EnvironmentConfigs in Multiple mode, extracts all if nil.
+   *
+   * @schema CompositionRevisionSpecEnvironmentEnvironmentConfigsSelector#maxMatch
+   */
+  readonly maxMatch?: number;
+
+  /**
+   * Mode specifies retrieval strategy: "Single" or "Multiple".
+   *
+   * @schema CompositionRevisionSpecEnvironmentEnvironmentConfigsSelector#mode
+   */
+  readonly mode?: CompositionRevisionSpecEnvironmentEnvironmentConfigsSelectorMode;
+
+  /**
+   * SortByFieldPath is the path to the field based on which list of EnvironmentConfigs is alphabetically sorted.
+   *
+   * @schema CompositionRevisionSpecEnvironmentEnvironmentConfigsSelector#sortByFieldPath
+   */
+  readonly sortByFieldPath?: string;
+
 }
 
 /**
@@ -5095,6 +5409,9 @@ export function toJson_CompositionRevisionSpecEnvironmentEnvironmentConfigsSelec
   if (obj === undefined) { return undefined; }
   const result = {
     'matchLabels': obj.matchLabels?.map(y => toJson_CompositionRevisionSpecEnvironmentEnvironmentConfigsSelectorMatchLabels(y)),
+    'maxMatch': obj.maxMatch,
+    'mode': obj.mode,
+    'sortByFieldPath': obj.sortByFieldPath,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5273,14 +5590,36 @@ export function toJson_CompositionRevisionSpecEnvironmentPatchesTransforms(obj: 
 export enum CompositionRevisionSpecEnvironmentPatchesType {
   /** FromCompositeFieldPath */
   FROM_COMPOSITE_FIELD_PATH = "FromCompositeFieldPath",
-  /** FromEnvironmentFieldPath */
-  FROM_ENVIRONMENT_FIELD_PATH = "FromEnvironmentFieldPath",
   /** ToCompositeFieldPath */
   TO_COMPOSITE_FIELD_PATH = "ToCompositeFieldPath",
   /** CombineFromComposite */
   COMBINE_FROM_COMPOSITE = "CombineFromComposite",
   /** CombineToComposite */
   COMBINE_TO_COMPOSITE = "CombineToComposite",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema CompositionRevisionSpecEnvironmentPolicyResolution
+ */
+export enum CompositionRevisionSpecEnvironmentPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema CompositionRevisionSpecEnvironmentPolicyResolve
+ */
+export enum CompositionRevisionSpecEnvironmentPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
 }
 
 /**
@@ -5296,6 +5635,35 @@ export enum CompositionRevisionSpecFunctionsContainerImagePullPolicy {
   /** Never */
   NEVER = "Never",
 }
+
+/**
+ * LocalObjectReference contains enough information to let you locate the referenced object inside the same namespace.
+ *
+ * @schema CompositionRevisionSpecFunctionsContainerImagePullSecrets
+ */
+export interface CompositionRevisionSpecFunctionsContainerImagePullSecrets {
+  /**
+   * Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?
+   *
+   * @schema CompositionRevisionSpecFunctionsContainerImagePullSecrets#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'CompositionRevisionSpecFunctionsContainerImagePullSecrets' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CompositionRevisionSpecFunctionsContainerImagePullSecrets(obj: CompositionRevisionSpecFunctionsContainerImagePullSecrets | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * Network configuration for the Composition Function.
@@ -5754,6 +6122,43 @@ export enum CompositionRevisionSpecResourcesPatchesType {
 }
 
 /**
+ * MatchCondition specifies the condition you'd like to match if you're using "MatchCondition" type.
+ *
+ * @schema CompositionRevisionSpecResourcesReadinessChecksMatchCondition
+ */
+export interface CompositionRevisionSpecResourcesReadinessChecksMatchCondition {
+  /**
+   * Status is the status of the condition you'd like to match.
+   *
+   * @schema CompositionRevisionSpecResourcesReadinessChecksMatchCondition#status
+   */
+  readonly status: string;
+
+  /**
+   * Type indicates the type of condition you'd like to use.
+   *
+   * @schema CompositionRevisionSpecResourcesReadinessChecksMatchCondition#type
+   */
+  readonly type: string;
+
+}
+
+/**
+ * Converts an object of type 'CompositionRevisionSpecResourcesReadinessChecksMatchCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CompositionRevisionSpecResourcesReadinessChecksMatchCondition(obj: CompositionRevisionSpecResourcesReadinessChecksMatchCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'status': obj.status,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Type indicates the type of probe you'd like to use.
  *
  * @schema CompositionRevisionSpecResourcesReadinessChecksType
@@ -5765,6 +6170,8 @@ export enum CompositionRevisionSpecResourcesReadinessChecksType {
   MATCH_INTEGER = "MatchInteger",
   /** NonEmpty */
   NON_EMPTY = "NonEmpty",
+  /** MatchCondition */
+  MATCH_CONDITION = "MatchCondition",
   /** None */
   NONE = "None",
 }
@@ -5821,6 +6228,18 @@ export function toJson_CompositionRevisionSpecEnvironmentEnvironmentConfigsSelec
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * Mode specifies retrieval strategy: "Single" or "Multiple".
+ *
+ * @schema CompositionRevisionSpecEnvironmentEnvironmentConfigsSelectorMode
+ */
+export enum CompositionRevisionSpecEnvironmentEnvironmentConfigsSelectorMode {
+  /** Single */
+  SINGLE = "Single",
+  /** Multiple */
+  MULTIPLE = "Multiple",
+}
 
 /**
  * Strategy defines the strategy to use to combine the input variable values. Currently only string is supported.
@@ -7537,3381 +7956,6 @@ export enum CompositionRevisionSpecResourcesPatchesTransformsMatchPatternsType {
 /**
  * A CompositionRevision represents a revision in time of a Composition. Revisions are created by Crossplane; they should be treated as immutable.
  *
- * @schema CompositionRevisionV1Alpha1
- */
-export class CompositionRevisionV1Alpha1 extends ApiObject {
-  /**
-   * Returns the apiVersion and kind for "CompositionRevisionV1Alpha1"
-   */
-  public static readonly GVK: GroupVersionKind = {
-    apiVersion: 'apiextensions.crossplane.io/v1alpha1',
-    kind: 'CompositionRevision',
-  }
-
-  /**
-   * Renders a Kubernetes manifest for "CompositionRevisionV1Alpha1".
-   *
-   * This can be used to inline resource manifests inside other objects (e.g. as templates).
-   *
-   * @param props initialization props
-   */
-  public static manifest(props: CompositionRevisionV1Alpha1Props = {}): any {
-    return {
-      ...CompositionRevisionV1Alpha1.GVK,
-      ...toJson_CompositionRevisionV1Alpha1Props(props),
-    };
-  }
-
-  /**
-   * Defines a "CompositionRevisionV1Alpha1" API object
-   * @param scope the scope in which to define this object
-   * @param id a scope-local name for the object
-   * @param props initialization props
-   */
-  public constructor(scope: Construct, id: string, props: CompositionRevisionV1Alpha1Props = {}) {
-    super(scope, id, {
-      ...CompositionRevisionV1Alpha1.GVK,
-      ...props,
-    });
-  }
-
-  /**
-   * Renders the object to Kubernetes JSON.
-   */
-  public toJson(): any {
-    const resolved = super.toJson();
-
-    return {
-      ...CompositionRevisionV1Alpha1.GVK,
-      ...toJson_CompositionRevisionV1Alpha1Props(resolved),
-    };
-  }
-}
-
-/**
- * A CompositionRevision represents a revision in time of a Composition. Revisions are created by Crossplane; they should be treated as immutable.
- *
- * @schema CompositionRevisionV1Alpha1
- */
-export interface CompositionRevisionV1Alpha1Props {
-  /**
-   * @schema CompositionRevisionV1Alpha1#metadata
-   */
-  readonly metadata?: ApiObjectMetadata;
-
-  /**
-   * CompositionRevisionSpec specifies the desired state of the composition revision.
-   *
-   * @schema CompositionRevisionV1Alpha1#spec
-   */
-  readonly spec?: CompositionRevisionV1Alpha1Spec;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1Props' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1Props(obj: CompositionRevisionV1Alpha1Props | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'metadata': obj.metadata,
-    'spec': toJson_CompositionRevisionV1Alpha1Spec(obj.spec),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * CompositionRevisionSpec specifies the desired state of the composition revision.
- *
- * @schema CompositionRevisionV1Alpha1Spec
- */
-export interface CompositionRevisionV1Alpha1Spec {
-  /**
-   * CompositeTypeRef specifies the type of composite resource that this composition is compatible with.
-   *
-   * @schema CompositionRevisionV1Alpha1Spec#compositeTypeRef
-   */
-  readonly compositeTypeRef: CompositionRevisionV1Alpha1SpecCompositeTypeRef;
-
-  /**
-   * Environment configures the environment in which resources are rendered.
-   *
-   * @schema CompositionRevisionV1Alpha1Spec#environment
-   */
-  readonly environment?: CompositionRevisionV1Alpha1SpecEnvironment;
-
-  /**
-   * Functions is list of Composition Functions that will be used when a composite resource referring to this composition is created. At least one of resources and functions must be specified. If both are specified the resources will be rendered first, then passed to the functions for further processing.
-   *
-   * @schema CompositionRevisionV1Alpha1Spec#functions
-   */
-  readonly functions?: CompositionRevisionV1Alpha1SpecFunctions[];
-
-  /**
-   * PatchSets define a named set of patches that may be included by any resource in this Composition. PatchSets cannot themselves refer to other PatchSets.
-   *
-   * @schema CompositionRevisionV1Alpha1Spec#patchSets
-   */
-  readonly patchSets?: CompositionRevisionV1Alpha1SpecPatchSets[];
-
-  /**
-   * PublishConnectionDetailsWithStoreConfig specifies the secret store config with which the connection details of composite resources dynamically provisioned using this composition will be published.
-   *
-   * @schema CompositionRevisionV1Alpha1Spec#publishConnectionDetailsWithStoreConfigRef
-   */
-  readonly publishConnectionDetailsWithStoreConfigRef?: CompositionRevisionV1Alpha1SpecPublishConnectionDetailsWithStoreConfigRef;
-
-  /**
-   * Resources is the list of resource templates that will be used when a composite resource referring to this composition is created.
-   *
-   * @schema CompositionRevisionV1Alpha1Spec#resources
-   */
-  readonly resources?: CompositionRevisionV1Alpha1SpecResources[];
-
-  /**
-   * Revision number. Newer revisions have larger numbers.
-   *
-   * @schema CompositionRevisionV1Alpha1Spec#revision
-   */
-  readonly revision: number;
-
-  /**
-   * WriteConnectionSecretsToNamespace specifies the namespace in which the connection secrets of composite resource dynamically provisioned using this composition will be created. This field is planned to be removed in a future release in favor of PublishConnectionDetailsWithStoreConfigRef. Currently, both could be set independently and connection details would be published to both without affecting each other as long as related fields at MR level specified.
-   *
-   * @schema CompositionRevisionV1Alpha1Spec#writeConnectionSecretsToNamespace
-   */
-  readonly writeConnectionSecretsToNamespace?: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1Spec' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1Spec(obj: CompositionRevisionV1Alpha1Spec | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'compositeTypeRef': toJson_CompositionRevisionV1Alpha1SpecCompositeTypeRef(obj.compositeTypeRef),
-    'environment': toJson_CompositionRevisionV1Alpha1SpecEnvironment(obj.environment),
-    'functions': obj.functions?.map(y => toJson_CompositionRevisionV1Alpha1SpecFunctions(y)),
-    'patchSets': obj.patchSets?.map(y => toJson_CompositionRevisionV1Alpha1SpecPatchSets(y)),
-    'publishConnectionDetailsWithStoreConfigRef': toJson_CompositionRevisionV1Alpha1SpecPublishConnectionDetailsWithStoreConfigRef(obj.publishConnectionDetailsWithStoreConfigRef),
-    'resources': obj.resources?.map(y => toJson_CompositionRevisionV1Alpha1SpecResources(y)),
-    'revision': obj.revision,
-    'writeConnectionSecretsToNamespace': obj.writeConnectionSecretsToNamespace,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * CompositeTypeRef specifies the type of composite resource that this composition is compatible with.
- *
- * @schema CompositionRevisionV1Alpha1SpecCompositeTypeRef
- */
-export interface CompositionRevisionV1Alpha1SpecCompositeTypeRef {
-  /**
-   * APIVersion of the type.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecCompositeTypeRef#apiVersion
-   */
-  readonly apiVersion: string;
-
-  /**
-   * Kind of the type.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecCompositeTypeRef#kind
-   */
-  readonly kind: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecCompositeTypeRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecCompositeTypeRef(obj: CompositionRevisionV1Alpha1SpecCompositeTypeRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'apiVersion': obj.apiVersion,
-    'kind': obj.kind,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Environment configures the environment in which resources are rendered.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironment
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironment {
-  /**
-   * EnvironmentConfigs selects a list of `EnvironmentConfig`s. The resolved resources are stored in the composite resource at `spec.environmentConfigRefs` and is only updated if it is null.
-   * The list of references is used to compute an in-memory environment at compose time. The data of all object is merged in the order they are listed, meaning the values of EnvironmentConfigs with a larger index take priority over ones with smaller indices.
-   * The computed environment can be accessed in a composition using `FromEnvironmentFieldPath` and `CombineFromEnvironment` patches.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironment#environmentConfigs
-   */
-  readonly environmentConfigs?: CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigs[];
-
-  /**
-   * Patches is a list of environment patches that are executed before a composition's resources are composed.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironment#patches
-   */
-  readonly patches?: CompositionRevisionV1Alpha1SpecEnvironmentPatches[];
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironment' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironment(obj: CompositionRevisionV1Alpha1SpecEnvironment | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'environmentConfigs': obj.environmentConfigs?.map(y => toJson_CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigs(y)),
-    'patches': obj.patches?.map(y => toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatches(y)),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * A Function represents a Composition Function.
- *
- * @schema CompositionRevisionV1Alpha1SpecFunctions
- */
-export interface CompositionRevisionV1Alpha1SpecFunctions {
-  /**
-   * Config is an optional, arbitrary Kubernetes resource (i.e. a resource with an apiVersion and kind) that will be passed to the Composition Function as the 'config' block of its FunctionIO.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecFunctions#config
-   */
-  readonly config?: any;
-
-  /**
-   * Container configuration of this function.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecFunctions#container
-   */
-  readonly container?: CompositionRevisionV1Alpha1SpecFunctionsContainer;
-
-  /**
-   * Name of this function. Must be unique within its Composition.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecFunctions#name
-   */
-  readonly name: string;
-
-  /**
-   * Type of this function.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecFunctions#type
-   */
-  readonly type: CompositionRevisionV1Alpha1SpecFunctionsType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecFunctions' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecFunctions(obj: CompositionRevisionV1Alpha1SpecFunctions | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'config': obj.config,
-    'container': toJson_CompositionRevisionV1Alpha1SpecFunctionsContainer(obj.container),
-    'name': obj.name,
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * A PatchSet is a set of patches that can be reused from all resources within a Composition.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSets
- */
-export interface CompositionRevisionV1Alpha1SpecPatchSets {
-  /**
-   * Name of this PatchSet.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSets#name
-   */
-  readonly name: string;
-
-  /**
-   * Patches will be applied as an overlay to the base resource.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSets#patches
-   */
-  readonly patches: CompositionRevisionV1Alpha1SpecPatchSetsPatches[];
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecPatchSets' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecPatchSets(obj: CompositionRevisionV1Alpha1SpecPatchSets | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'patches': obj.patches?.map(y => toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatches(y)),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * PublishConnectionDetailsWithStoreConfig specifies the secret store config with which the connection details of composite resources dynamically provisioned using this composition will be published.
- *
- * @schema CompositionRevisionV1Alpha1SpecPublishConnectionDetailsWithStoreConfigRef
- */
-export interface CompositionRevisionV1Alpha1SpecPublishConnectionDetailsWithStoreConfigRef {
-  /**
-   * Name of the referenced StoreConfig.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPublishConnectionDetailsWithStoreConfigRef#name
-   */
-  readonly name: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecPublishConnectionDetailsWithStoreConfigRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecPublishConnectionDetailsWithStoreConfigRef(obj: CompositionRevisionV1Alpha1SpecPublishConnectionDetailsWithStoreConfigRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ComposedTemplate is used to provide information about how the composed resource should be processed.
- *
- * @schema CompositionRevisionV1Alpha1SpecResources
- */
-export interface CompositionRevisionV1Alpha1SpecResources {
-  /**
-   * Base is the target resource that the patches will be applied on.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResources#base
-   */
-  readonly base: any;
-
-  /**
-   * ConnectionDetails lists the propagation secret keys from this target resource to the composition instance connection secret.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResources#connectionDetails
-   */
-  readonly connectionDetails?: CompositionRevisionV1Alpha1SpecResourcesConnectionDetails[];
-
-  /**
-   * A Name uniquely identifies this entry within its Composition's resources array. Names are optional but *strongly* recommended. When all entries in the resources array are named entries may added, deleted, and reordered as long as their names do not change. When entries are not named the length and order of the resources array should be treated as immutable. Either all or no entries must be named.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResources#name
-   */
-  readonly name?: string;
-
-  /**
-   * Patches will be applied as overlay to the base resource.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResources#patches
-   */
-  readonly patches?: CompositionRevisionV1Alpha1SpecResourcesPatches[];
-
-  /**
-   * ReadinessChecks allows users to define custom readiness checks. All checks have to return true in order for resource to be considered ready. The default readiness check is to have the "Ready" condition to be "True".
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResources#readinessChecks
-   */
-  readonly readinessChecks?: CompositionRevisionV1Alpha1SpecResourcesReadinessChecks[];
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecResources' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecResources(obj: CompositionRevisionV1Alpha1SpecResources | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'base': obj.base,
-    'connectionDetails': obj.connectionDetails?.map(y => toJson_CompositionRevisionV1Alpha1SpecResourcesConnectionDetails(y)),
-    'name': obj.name,
-    'patches': obj.patches?.map(y => toJson_CompositionRevisionV1Alpha1SpecResourcesPatches(y)),
-    'readinessChecks': obj.readinessChecks?.map(y => toJson_CompositionRevisionV1Alpha1SpecResourcesReadinessChecks(y)),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * EnvironmentSource selects a EnvironmentConfig resource.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigs
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigs {
-  /**
-   * Ref is a named reference to a single EnvironmentConfig. Either Ref or Selector is required.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigs#ref
-   */
-  readonly ref?: CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsRef;
-
-  /**
-   * Selector selects one EnvironmentConfig via labels.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigs#selector
-   */
-  readonly selector?: CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelector;
-
-  /**
-   * Type specifies the way the EnvironmentConfig is selected. Default is `Reference`
-   *
-   * @default Reference`
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigs#type
-   */
-  readonly type?: CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigs' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigs(obj: CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigs | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'ref': toJson_CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsRef(obj.ref),
-    'selector': toJson_CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelector(obj.selector),
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * EnvironmentPatch is a patch for a Composition environment.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatches
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentPatches {
-  /**
-   * Combine is the patch configuration for a CombineFromComposite or CombineToComposite patch.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatches#combine
-   */
-  readonly combine?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombine;
-
-  /**
-   * FromFieldPath is the path of the field on the resource whose value is to be used as input. Required when type is FromCompositeFieldPath or ToCompositeFieldPath.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatches#fromFieldPath
-   */
-  readonly fromFieldPath?: string;
-
-  /**
-   * Policy configures the specifics of patching behaviour.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatches#policy
-   */
-  readonly policy?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicy;
-
-  /**
-   * ToFieldPath is the path of the field on the resource whose value will be changed with the result of transforms. Leave empty if you'd like to propagate to the same path as fromFieldPath.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatches#toFieldPath
-   */
-  readonly toFieldPath?: string;
-
-  /**
-   * Transforms are the list of functions that are used as a FIFO pipe for the input to be transformed.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatches#transforms
-   */
-  readonly transforms?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransforms[];
-
-  /**
-   * Type sets the patching behaviour to be used. Each patch type may require its own fields to be set on the Patch object.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatches#type
-   */
-  readonly type?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentPatches' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatches(obj: CompositionRevisionV1Alpha1SpecEnvironmentPatches | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'combine': toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombine(obj.combine),
-    'fromFieldPath': obj.fromFieldPath,
-    'policy': toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicy(obj.policy),
-    'toFieldPath': obj.toFieldPath,
-    'transforms': obj.transforms?.map(y => toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransforms(y)),
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Container configuration of this function.
- *
- * @schema CompositionRevisionV1Alpha1SpecFunctionsContainer
- */
-export interface CompositionRevisionV1Alpha1SpecFunctionsContainer {
-  /**
-   * Image specifies the OCI image in which the function is packaged. The image should include an entrypoint that reads a FunctionIO from stdin and emits it, optionally mutated, to stdout.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecFunctionsContainer#image
-   */
-  readonly image: string;
-
-  /**
-   * ImagePullPolicy defines the pull policy for the function image.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecFunctionsContainer#imagePullPolicy
-   */
-  readonly imagePullPolicy?: CompositionRevisionV1Alpha1SpecFunctionsContainerImagePullPolicy;
-
-  /**
-   * Network configuration for the Composition Function.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecFunctionsContainer#network
-   */
-  readonly network?: CompositionRevisionV1Alpha1SpecFunctionsContainerNetwork;
-
-  /**
-   * Resources that may be used by the Composition Function.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecFunctionsContainer#resources
-   */
-  readonly resources?: CompositionRevisionV1Alpha1SpecFunctionsContainerResources;
-
-  /**
-   * Runner configuration for the Composition Function.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecFunctionsContainer#runner
-   */
-  readonly runner?: CompositionRevisionV1Alpha1SpecFunctionsContainerRunner;
-
-  /**
-   * Timeout after which the Composition Function will be killed.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecFunctionsContainer#timeout
-   */
-  readonly timeout?: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecFunctionsContainer' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecFunctionsContainer(obj: CompositionRevisionV1Alpha1SpecFunctionsContainer | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'image': obj.image,
-    'imagePullPolicy': obj.imagePullPolicy,
-    'network': toJson_CompositionRevisionV1Alpha1SpecFunctionsContainerNetwork(obj.network),
-    'resources': toJson_CompositionRevisionV1Alpha1SpecFunctionsContainerResources(obj.resources),
-    'runner': toJson_CompositionRevisionV1Alpha1SpecFunctionsContainerRunner(obj.runner),
-    'timeout': obj.timeout,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Type of this function.
- *
- * @schema CompositionRevisionV1Alpha1SpecFunctionsType
- */
-export enum CompositionRevisionV1Alpha1SpecFunctionsType {
-  /** Container */
-  CONTAINER = "Container",
-}
-
-/**
- * Patch objects are applied between composite and composed resources. Their behaviour depends on the Type selected. The default Type, FromCompositeFieldPath, copies a value from the composite resource to the composed resource, applying any defined transformers.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatches
- */
-export interface CompositionRevisionV1Alpha1SpecPatchSetsPatches {
-  /**
-   * Combine is the patch configuration for a CombineFromComposite or CombineToComposite patch.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatches#combine
-   */
-  readonly combine?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombine;
-
-  /**
-   * FromFieldPath is the path of the field on the resource whose value is to be used as input. Required when type is FromCompositeFieldPath or ToCompositeFieldPath.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatches#fromFieldPath
-   */
-  readonly fromFieldPath?: string;
-
-  /**
-   * PatchSetName to include patches from. Required when type is PatchSet.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatches#patchSetName
-   */
-  readonly patchSetName?: string;
-
-  /**
-   * Policy configures the specifics of patching behaviour.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatches#policy
-   */
-  readonly policy?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicy;
-
-  /**
-   * ToFieldPath is the path of the field on the resource whose value will be changed with the result of transforms. Leave empty if you'd like to propagate to the same path as fromFieldPath.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatches#toFieldPath
-   */
-  readonly toFieldPath?: string;
-
-  /**
-   * Transforms are the list of functions that are used as a FIFO pipe for the input to be transformed.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatches#transforms
-   */
-  readonly transforms?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransforms[];
-
-  /**
-   * Type sets the patching behaviour to be used. Each patch type may require its own fields to be set on the Patch object.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatches#type
-   */
-  readonly type?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecPatchSetsPatches' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatches(obj: CompositionRevisionV1Alpha1SpecPatchSetsPatches | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'combine': toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombine(obj.combine),
-    'fromFieldPath': obj.fromFieldPath,
-    'patchSetName': obj.patchSetName,
-    'policy': toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicy(obj.policy),
-    'toFieldPath': obj.toFieldPath,
-    'transforms': obj.transforms?.map(y => toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransforms(y)),
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ConnectionDetail includes the information about the propagation of the connection information from one secret to another.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesConnectionDetails
- */
-export interface CompositionRevisionV1Alpha1SpecResourcesConnectionDetails {
-  /**
-   * FromConnectionSecretKey is the key that will be used to fetch the value from the given target resource's secret.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesConnectionDetails#fromConnectionSecretKey
-   */
-  readonly fromConnectionSecretKey?: string;
-
-  /**
-   * FromFieldPath is the path of the field on the composed resource whose value to be used as input. Name must be specified if the type is FromFieldPath is specified.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesConnectionDetails#fromFieldPath
-   */
-  readonly fromFieldPath?: string;
-
-  /**
-   * Name of the connection secret key that will be propagated to the connection secret of the composition instance. Leave empty if you'd like to use the same key name.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesConnectionDetails#name
-   */
-  readonly name?: string;
-
-  /**
-   * Type sets the connection detail fetching behaviour to be used. Each connection detail type may require its own fields to be set on the ConnectionDetail object. If the type is omitted Crossplane will attempt to infer it based on which other fields were specified.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesConnectionDetails#type
-   */
-  readonly type?: CompositionRevisionV1Alpha1SpecResourcesConnectionDetailsType;
-
-  /**
-   * Value that will be propagated to the connection secret of the composition instance. Typically you should use FromConnectionSecretKey instead, but an explicit value may be set to inject a fixed, non-sensitive connection secret values, for example a well-known port. Supercedes FromConnectionSecretKey when set.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesConnectionDetails#value
-   */
-  readonly value?: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecResourcesConnectionDetails' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecResourcesConnectionDetails(obj: CompositionRevisionV1Alpha1SpecResourcesConnectionDetails | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'fromConnectionSecretKey': obj.fromConnectionSecretKey,
-    'fromFieldPath': obj.fromFieldPath,
-    'name': obj.name,
-    'type': obj.type,
-    'value': obj.value,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Patch objects are applied between composite and composed resources. Their behaviour depends on the Type selected. The default Type, FromCompositeFieldPath, copies a value from the composite resource to the composed resource, applying any defined transformers.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatches
- */
-export interface CompositionRevisionV1Alpha1SpecResourcesPatches {
-  /**
-   * Combine is the patch configuration for a CombineFromComposite or CombineToComposite patch.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatches#combine
-   */
-  readonly combine?: CompositionRevisionV1Alpha1SpecResourcesPatchesCombine;
-
-  /**
-   * FromFieldPath is the path of the field on the resource whose value is to be used as input. Required when type is FromCompositeFieldPath or ToCompositeFieldPath.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatches#fromFieldPath
-   */
-  readonly fromFieldPath?: string;
-
-  /**
-   * PatchSetName to include patches from. Required when type is PatchSet.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatches#patchSetName
-   */
-  readonly patchSetName?: string;
-
-  /**
-   * Policy configures the specifics of patching behaviour.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatches#policy
-   */
-  readonly policy?: CompositionRevisionV1Alpha1SpecResourcesPatchesPolicy;
-
-  /**
-   * ToFieldPath is the path of the field on the resource whose value will be changed with the result of transforms. Leave empty if you'd like to propagate to the same path as fromFieldPath.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatches#toFieldPath
-   */
-  readonly toFieldPath?: string;
-
-  /**
-   * Transforms are the list of functions that are used as a FIFO pipe for the input to be transformed.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatches#transforms
-   */
-  readonly transforms?: CompositionRevisionV1Alpha1SpecResourcesPatchesTransforms[];
-
-  /**
-   * Type sets the patching behaviour to be used. Each patch type may require its own fields to be set on the Patch object.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatches#type
-   */
-  readonly type?: CompositionRevisionV1Alpha1SpecResourcesPatchesType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecResourcesPatches' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecResourcesPatches(obj: CompositionRevisionV1Alpha1SpecResourcesPatches | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'combine': toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesCombine(obj.combine),
-    'fromFieldPath': obj.fromFieldPath,
-    'patchSetName': obj.patchSetName,
-    'policy': toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesPolicy(obj.policy),
-    'toFieldPath': obj.toFieldPath,
-    'transforms': obj.transforms?.map(y => toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesTransforms(y)),
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ReadinessCheck is used to indicate how to tell whether a resource is ready for consumption
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesReadinessChecks
- */
-export interface CompositionRevisionV1Alpha1SpecResourcesReadinessChecks {
-  /**
-   * FieldPath shows the path of the field whose value will be used.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesReadinessChecks#fieldPath
-   */
-  readonly fieldPath?: string;
-
-  /**
-   * MatchInt is the value you'd like to match if you're using "MatchInt" type.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesReadinessChecks#matchInteger
-   */
-  readonly matchInteger?: number;
-
-  /**
-   * MatchString is the value you'd like to match if you're using "MatchString" type.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesReadinessChecks#matchString
-   */
-  readonly matchString?: string;
-
-  /**
-   * Type indicates the type of probe you'd like to use.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesReadinessChecks#type
-   */
-  readonly type: CompositionRevisionV1Alpha1SpecResourcesReadinessChecksType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecResourcesReadinessChecks' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecResourcesReadinessChecks(obj: CompositionRevisionV1Alpha1SpecResourcesReadinessChecks | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'fieldPath': obj.fieldPath,
-    'matchInteger': obj.matchInteger,
-    'matchString': obj.matchString,
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Ref is a named reference to a single EnvironmentConfig. Either Ref or Selector is required.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsRef
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsRef {
-  /**
-   * The name of the object.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsRef#name
-   */
-  readonly name: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsRef(obj: CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Selector selects one EnvironmentConfig via labels.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelector
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelector {
-  /**
-   * MatchLabels ensures an object with matching labels is selected.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelector#matchLabels
-   */
-  readonly matchLabels?: CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelectorMatchLabels[];
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelector' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelector(obj: CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelector | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'matchLabels': obj.matchLabels?.map(y => toJson_CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelectorMatchLabels(y)),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Type specifies the way the EnvironmentConfig is selected. Default is `Reference`
- *
- * @default Reference`
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsType
- */
-export enum CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsType {
-  /** Reference */
-  REFERENCE = "Reference",
-  /** Selector */
-  SELECTOR = "Selector",
-}
-
-/**
- * Combine is the patch configuration for a CombineFromComposite or CombineToComposite patch.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombine
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombine {
-  /**
-   * Strategy defines the strategy to use to combine the input variable values. Currently only string is supported.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombine#strategy
-   */
-  readonly strategy: CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineStrategy;
-
-  /**
-   * String declares that input variables should be combined into a single string, using the relevant settings for formatting purposes.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombine#string
-   */
-  readonly string?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineString;
-
-  /**
-   * Variables are the list of variables whose values will be retrieved and combined.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombine#variables
-   */
-  readonly variables: CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineVariables[];
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombine' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombine(obj: CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombine | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'strategy': obj.strategy,
-    'string': toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineString(obj.string),
-    'variables': obj.variables?.map(y => toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineVariables(y)),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policy configures the specifics of patching behaviour.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicy
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicy {
-  /**
-   * FromFieldPath specifies how to patch from a field path. The default is 'Optional', which means the patch will be a no-op if the specified fromFieldPath does not exist. Use 'Required' if the patch should fail if the specified path does not exist.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicy#fromFieldPath
-   */
-  readonly fromFieldPath?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicyFromFieldPath;
-
-  /**
-   * MergeOptions Specifies merge options on a field path
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicy#mergeOptions
-   */
-  readonly mergeOptions?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicyMergeOptions;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicy(obj: CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'fromFieldPath': obj.fromFieldPath,
-    'mergeOptions': toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicyMergeOptions(obj.mergeOptions),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Transform is a unit of process whose input is transformed into an output with the supplied configuration.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransforms
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransforms {
-  /**
-   * Convert is used to cast the input into the given output type.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransforms#convert
-   */
-  readonly convert?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsConvert;
-
-  /**
-   * Map uses the input as a key in the given map and returns the value.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransforms#map
-   */
-  readonly map?: { [key: string]: any };
-
-  /**
-   * Match is a more complex version of Map that matches a list of patterns.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransforms#match
-   */
-  readonly match?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatch;
-
-  /**
-   * Math is used to transform the input via mathematical operations such as multiplication.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransforms#math
-   */
-  readonly math?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMath;
-
-  /**
-   * String is used to transform the input into a string or a different kind of string. Note that the input does not necessarily need to be a string.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransforms#string
-   */
-  readonly string?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsString;
-
-  /**
-   * Type of the transform to be run.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransforms#type
-   */
-  readonly type: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransforms' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransforms(obj: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransforms | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'convert': toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsConvert(obj.convert),
-    'map': ((obj.map) === undefined) ? undefined : (Object.entries(obj.map).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
-    'match': toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatch(obj.match),
-    'math': toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMath(obj.math),
-    'string': toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsString(obj.string),
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Type sets the patching behaviour to be used. Each patch type may require its own fields to be set on the Patch object.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesType
- */
-export enum CompositionRevisionV1Alpha1SpecEnvironmentPatchesType {
-  /** FromCompositeFieldPath */
-  FROM_COMPOSITE_FIELD_PATH = "FromCompositeFieldPath",
-  /** ToCompositeFieldPath */
-  TO_COMPOSITE_FIELD_PATH = "ToCompositeFieldPath",
-  /** CombineFromComposite */
-  COMBINE_FROM_COMPOSITE = "CombineFromComposite",
-  /** CombineToComposite */
-  COMBINE_TO_COMPOSITE = "CombineToComposite",
-}
-
-/**
- * ImagePullPolicy defines the pull policy for the function image.
- *
- * @schema CompositionRevisionV1Alpha1SpecFunctionsContainerImagePullPolicy
- */
-export enum CompositionRevisionV1Alpha1SpecFunctionsContainerImagePullPolicy {
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-  /** Always */
-  ALWAYS = "Always",
-  /** Never */
-  NEVER = "Never",
-}
-
-/**
- * Network configuration for the Composition Function.
- *
- * @schema CompositionRevisionV1Alpha1SpecFunctionsContainerNetwork
- */
-export interface CompositionRevisionV1Alpha1SpecFunctionsContainerNetwork {
-  /**
-   * Policy specifies the network policy under which the Composition Function will run. Defaults to 'Isolated' - i.e. no network access. Specify 'Runner' to allow the function the same network access as its runner.
-   *
-   * @default Isolated' - i.e. no network access. Specify 'Runner' to allow the function the same network access as its runner.
-   * @schema CompositionRevisionV1Alpha1SpecFunctionsContainerNetwork#policy
-   */
-  readonly policy?: CompositionRevisionV1Alpha1SpecFunctionsContainerNetworkPolicy;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecFunctionsContainerNetwork' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecFunctionsContainerNetwork(obj: CompositionRevisionV1Alpha1SpecFunctionsContainerNetwork | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'policy': obj.policy,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Resources that may be used by the Composition Function.
- *
- * @schema CompositionRevisionV1Alpha1SpecFunctionsContainerResources
- */
-export interface CompositionRevisionV1Alpha1SpecFunctionsContainerResources {
-  /**
-   * Limits specify the maximum compute resources that may be used by the Composition Function.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecFunctionsContainerResources#limits
-   */
-  readonly limits?: CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimits;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecFunctionsContainerResources' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecFunctionsContainerResources(obj: CompositionRevisionV1Alpha1SpecFunctionsContainerResources | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'limits': toJson_CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimits(obj.limits),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Runner configuration for the Composition Function.
- *
- * @schema CompositionRevisionV1Alpha1SpecFunctionsContainerRunner
- */
-export interface CompositionRevisionV1Alpha1SpecFunctionsContainerRunner {
-  /**
-   * Endpoint specifies how and where Crossplane should reach the runner it uses to invoke containerized Composition Functions.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecFunctionsContainerRunner#endpoint
-   */
-  readonly endpoint?: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecFunctionsContainerRunner' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecFunctionsContainerRunner(obj: CompositionRevisionV1Alpha1SpecFunctionsContainerRunner | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'endpoint': obj.endpoint,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Combine is the patch configuration for a CombineFromComposite or CombineToComposite patch.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombine
- */
-export interface CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombine {
-  /**
-   * Strategy defines the strategy to use to combine the input variable values. Currently only string is supported.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombine#strategy
-   */
-  readonly strategy: CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineStrategy;
-
-  /**
-   * String declares that input variables should be combined into a single string, using the relevant settings for formatting purposes.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombine#string
-   */
-  readonly string?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineString;
-
-  /**
-   * Variables are the list of variables whose values will be retrieved and combined.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombine#variables
-   */
-  readonly variables: CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineVariables[];
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombine' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombine(obj: CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombine | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'strategy': obj.strategy,
-    'string': toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineString(obj.string),
-    'variables': obj.variables?.map(y => toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineVariables(y)),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policy configures the specifics of patching behaviour.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicy
- */
-export interface CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicy {
-  /**
-   * FromFieldPath specifies how to patch from a field path. The default is 'Optional', which means the patch will be a no-op if the specified fromFieldPath does not exist. Use 'Required' if the patch should fail if the specified path does not exist.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicy#fromFieldPath
-   */
-  readonly fromFieldPath?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicyFromFieldPath;
-
-  /**
-   * MergeOptions Specifies merge options on a field path
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicy#mergeOptions
-   */
-  readonly mergeOptions?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicyMergeOptions;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicy(obj: CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'fromFieldPath': obj.fromFieldPath,
-    'mergeOptions': toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicyMergeOptions(obj.mergeOptions),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Transform is a unit of process whose input is transformed into an output with the supplied configuration.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransforms
- */
-export interface CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransforms {
-  /**
-   * Convert is used to cast the input into the given output type.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransforms#convert
-   */
-  readonly convert?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsConvert;
-
-  /**
-   * Map uses the input as a key in the given map and returns the value.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransforms#map
-   */
-  readonly map?: { [key: string]: any };
-
-  /**
-   * Match is a more complex version of Map that matches a list of patterns.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransforms#match
-   */
-  readonly match?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatch;
-
-  /**
-   * Math is used to transform the input via mathematical operations such as multiplication.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransforms#math
-   */
-  readonly math?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMath;
-
-  /**
-   * String is used to transform the input into a string or a different kind of string. Note that the input does not necessarily need to be a string.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransforms#string
-   */
-  readonly string?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsString;
-
-  /**
-   * Type of the transform to be run.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransforms#type
-   */
-  readonly type: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransforms' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransforms(obj: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransforms | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'convert': toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsConvert(obj.convert),
-    'map': ((obj.map) === undefined) ? undefined : (Object.entries(obj.map).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
-    'match': toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatch(obj.match),
-    'math': toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMath(obj.math),
-    'string': toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsString(obj.string),
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Type sets the patching behaviour to be used. Each patch type may require its own fields to be set on the Patch object.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesType
- */
-export enum CompositionRevisionV1Alpha1SpecPatchSetsPatchesType {
-  /** FromCompositeFieldPath */
-  FROM_COMPOSITE_FIELD_PATH = "FromCompositeFieldPath",
-  /** FromEnvironmentFieldPath */
-  FROM_ENVIRONMENT_FIELD_PATH = "FromEnvironmentFieldPath",
-  /** PatchSet */
-  PATCH_SET = "PatchSet",
-  /** ToCompositeFieldPath */
-  TO_COMPOSITE_FIELD_PATH = "ToCompositeFieldPath",
-  /** ToEnvironmentFieldPath */
-  TO_ENVIRONMENT_FIELD_PATH = "ToEnvironmentFieldPath",
-  /** CombineFromEnvironment */
-  COMBINE_FROM_ENVIRONMENT = "CombineFromEnvironment",
-  /** CombineFromComposite */
-  COMBINE_FROM_COMPOSITE = "CombineFromComposite",
-  /** CombineToComposite */
-  COMBINE_TO_COMPOSITE = "CombineToComposite",
-  /** CombineToEnvironment */
-  COMBINE_TO_ENVIRONMENT = "CombineToEnvironment",
-}
-
-/**
- * Type sets the connection detail fetching behaviour to be used. Each connection detail type may require its own fields to be set on the ConnectionDetail object. If the type is omitted Crossplane will attempt to infer it based on which other fields were specified.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesConnectionDetailsType
- */
-export enum CompositionRevisionV1Alpha1SpecResourcesConnectionDetailsType {
-  /** FromConnectionSecretKey */
-  FROM_CONNECTION_SECRET_KEY = "FromConnectionSecretKey",
-  /** FromFieldPath */
-  FROM_FIELD_PATH = "FromFieldPath",
-  /** FromValue */
-  FROM_VALUE = "FromValue",
-}
-
-/**
- * Combine is the patch configuration for a CombineFromComposite or CombineToComposite patch.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesCombine
- */
-export interface CompositionRevisionV1Alpha1SpecResourcesPatchesCombine {
-  /**
-   * Strategy defines the strategy to use to combine the input variable values. Currently only string is supported.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesCombine#strategy
-   */
-  readonly strategy: CompositionRevisionV1Alpha1SpecResourcesPatchesCombineStrategy;
-
-  /**
-   * String declares that input variables should be combined into a single string, using the relevant settings for formatting purposes.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesCombine#string
-   */
-  readonly string?: CompositionRevisionV1Alpha1SpecResourcesPatchesCombineString;
-
-  /**
-   * Variables are the list of variables whose values will be retrieved and combined.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesCombine#variables
-   */
-  readonly variables: CompositionRevisionV1Alpha1SpecResourcesPatchesCombineVariables[];
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecResourcesPatchesCombine' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesCombine(obj: CompositionRevisionV1Alpha1SpecResourcesPatchesCombine | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'strategy': obj.strategy,
-    'string': toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesCombineString(obj.string),
-    'variables': obj.variables?.map(y => toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesCombineVariables(y)),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policy configures the specifics of patching behaviour.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesPolicy
- */
-export interface CompositionRevisionV1Alpha1SpecResourcesPatchesPolicy {
-  /**
-   * FromFieldPath specifies how to patch from a field path. The default is 'Optional', which means the patch will be a no-op if the specified fromFieldPath does not exist. Use 'Required' if the patch should fail if the specified path does not exist.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesPolicy#fromFieldPath
-   */
-  readonly fromFieldPath?: CompositionRevisionV1Alpha1SpecResourcesPatchesPolicyFromFieldPath;
-
-  /**
-   * MergeOptions Specifies merge options on a field path
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesPolicy#mergeOptions
-   */
-  readonly mergeOptions?: CompositionRevisionV1Alpha1SpecResourcesPatchesPolicyMergeOptions;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecResourcesPatchesPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesPolicy(obj: CompositionRevisionV1Alpha1SpecResourcesPatchesPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'fromFieldPath': obj.fromFieldPath,
-    'mergeOptions': toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesPolicyMergeOptions(obj.mergeOptions),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Transform is a unit of process whose input is transformed into an output with the supplied configuration.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransforms
- */
-export interface CompositionRevisionV1Alpha1SpecResourcesPatchesTransforms {
-  /**
-   * Convert is used to cast the input into the given output type.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransforms#convert
-   */
-  readonly convert?: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsConvert;
-
-  /**
-   * Map uses the input as a key in the given map and returns the value.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransforms#map
-   */
-  readonly map?: { [key: string]: any };
-
-  /**
-   * Match is a more complex version of Map that matches a list of patterns.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransforms#match
-   */
-  readonly match?: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatch;
-
-  /**
-   * Math is used to transform the input via mathematical operations such as multiplication.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransforms#math
-   */
-  readonly math?: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMath;
-
-  /**
-   * String is used to transform the input into a string or a different kind of string. Note that the input does not necessarily need to be a string.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransforms#string
-   */
-  readonly string?: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsString;
-
-  /**
-   * Type of the transform to be run.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransforms#type
-   */
-  readonly type: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecResourcesPatchesTransforms' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesTransforms(obj: CompositionRevisionV1Alpha1SpecResourcesPatchesTransforms | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'convert': toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsConvert(obj.convert),
-    'map': ((obj.map) === undefined) ? undefined : (Object.entries(obj.map).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
-    'match': toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatch(obj.match),
-    'math': toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMath(obj.math),
-    'string': toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsString(obj.string),
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Type sets the patching behaviour to be used. Each patch type may require its own fields to be set on the Patch object.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesType
- */
-export enum CompositionRevisionV1Alpha1SpecResourcesPatchesType {
-  /** FromCompositeFieldPath */
-  FROM_COMPOSITE_FIELD_PATH = "FromCompositeFieldPath",
-  /** FromEnvironmentFieldPath */
-  FROM_ENVIRONMENT_FIELD_PATH = "FromEnvironmentFieldPath",
-  /** PatchSet */
-  PATCH_SET = "PatchSet",
-  /** ToCompositeFieldPath */
-  TO_COMPOSITE_FIELD_PATH = "ToCompositeFieldPath",
-  /** ToEnvironmentFieldPath */
-  TO_ENVIRONMENT_FIELD_PATH = "ToEnvironmentFieldPath",
-  /** CombineFromEnvironment */
-  COMBINE_FROM_ENVIRONMENT = "CombineFromEnvironment",
-  /** CombineFromComposite */
-  COMBINE_FROM_COMPOSITE = "CombineFromComposite",
-  /** CombineToComposite */
-  COMBINE_TO_COMPOSITE = "CombineToComposite",
-  /** CombineToEnvironment */
-  COMBINE_TO_ENVIRONMENT = "CombineToEnvironment",
-}
-
-/**
- * Type indicates the type of probe you'd like to use.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesReadinessChecksType
- */
-export enum CompositionRevisionV1Alpha1SpecResourcesReadinessChecksType {
-  /** MatchString */
-  MATCH_STRING = "MatchString",
-  /** MatchInteger */
-  MATCH_INTEGER = "MatchInteger",
-  /** NonEmpty */
-  NON_EMPTY = "NonEmpty",
-  /** None */
-  NONE = "None",
-}
-
-/**
- * An EnvironmentSourceSelectorLabelMatcher acts like a k8s label selector but can draw the label value from a different path.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelectorMatchLabels
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelectorMatchLabels {
-  /**
-   * Key of the label to match.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelectorMatchLabels#key
-   */
-  readonly key: string;
-
-  /**
-   * Type specifies where the value for a label comes from.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelectorMatchLabels#type
-   */
-  readonly type?: CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelectorMatchLabelsType;
-
-  /**
-   * Value specifies a literal label value.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelectorMatchLabels#value
-   */
-  readonly value?: string;
-
-  /**
-   * ValueFromFieldPath specifies the field path to look for the label value.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelectorMatchLabels#valueFromFieldPath
-   */
-  readonly valueFromFieldPath?: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelectorMatchLabels' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelectorMatchLabels(obj: CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelectorMatchLabels | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'key': obj.key,
-    'type': obj.type,
-    'value': obj.value,
-    'valueFromFieldPath': obj.valueFromFieldPath,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Strategy defines the strategy to use to combine the input variable values. Currently only string is supported.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineStrategy
- */
-export enum CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineStrategy {
-  /** string */
-  STRING = "string",
-}
-
-/**
- * String declares that input variables should be combined into a single string, using the relevant settings for formatting purposes.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineString
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineString {
-  /**
-   * Format the input using a Go format string. See https://golang.org/pkg/fmt/ for details.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineString#fmt
-   */
-  readonly fmt: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineString' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineString(obj: CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineString | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'fmt': obj.fmt,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * A CombineVariable defines the source of a value that is combined with others to form and patch an output value. Currently, this only supports retrieving values from a field path.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineVariables
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineVariables {
-  /**
-   * FromFieldPath is the path of the field on the source whose value is to be used as input.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineVariables#fromFieldPath
-   */
-  readonly fromFieldPath: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineVariables' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineVariables(obj: CompositionRevisionV1Alpha1SpecEnvironmentPatchesCombineVariables | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'fromFieldPath': obj.fromFieldPath,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * FromFieldPath specifies how to patch from a field path. The default is 'Optional', which means the patch will be a no-op if the specified fromFieldPath does not exist. Use 'Required' if the patch should fail if the specified path does not exist.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicyFromFieldPath
- */
-export enum CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicyFromFieldPath {
-  /** Optional */
-  OPTIONAL = "Optional",
-  /** Required */
-  REQUIRED = "Required",
-}
-
-/**
- * MergeOptions Specifies merge options on a field path
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicyMergeOptions
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicyMergeOptions {
-  /**
-   * Specifies that already existing elements in a merged slice should be preserved
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicyMergeOptions#appendSlice
-   */
-  readonly appendSlice?: boolean;
-
-  /**
-   * Specifies that already existing values in a merged map should be preserved
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicyMergeOptions#keepMapValues
-   */
-  readonly keepMapValues?: boolean;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicyMergeOptions' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicyMergeOptions(obj: CompositionRevisionV1Alpha1SpecEnvironmentPatchesPolicyMergeOptions | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'appendSlice': obj.appendSlice,
-    'keepMapValues': obj.keepMapValues,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Convert is used to cast the input into the given output type.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsConvert
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsConvert {
-  /**
-   * The expected input format.
-   * * `quantity` - parses the input as a K8s [`resource.Quantity`](https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity). Only used during `string -> float64` conversions.
-   * If this property is null, the default conversion is applied.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsConvert#format
-   */
-  readonly format?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsConvertFormat;
-
-  /**
-   * ToType is the type of the output of this transform.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsConvert#toType
-   */
-  readonly toType: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsConvertToType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsConvert' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsConvert(obj: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsConvert | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'format': obj.format,
-    'toType': obj.toType,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Match is a more complex version of Map that matches a list of patterns.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatch
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatch {
-  /**
-   * Determines to what value the transform should fallback if no pattern matches.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatch#fallbackTo
-   */
-  readonly fallbackTo?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchFallbackTo;
-
-  /**
-   * The fallback value that should be returned by the transform if now pattern matches.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatch#fallbackValue
-   */
-  readonly fallbackValue?: any;
-
-  /**
-   * The patterns that should be tested against the input string. Patterns are tested in order. The value of the first match is used as result of this transform.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatch#patterns
-   */
-  readonly patterns?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchPatterns[];
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatch' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatch(obj: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatch | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'fallbackTo': obj.fallbackTo,
-    'fallbackValue': obj.fallbackValue,
-    'patterns': obj.patterns?.map(y => toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchPatterns(y)),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Math is used to transform the input via mathematical operations such as multiplication.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMath
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMath {
-  /**
-   * ClampMax makes sure that the value is not bigger than the given value.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMath#clampMax
-   */
-  readonly clampMax?: number;
-
-  /**
-   * ClampMin makes sure that the value is not smaller than the given value.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMath#clampMin
-   */
-  readonly clampMin?: number;
-
-  /**
-   * Multiply the value.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMath#multiply
-   */
-  readonly multiply?: number;
-
-  /**
-   * Type of the math transform to be run.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMath#type
-   */
-  readonly type?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMathType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMath' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMath(obj: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMath | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'clampMax': obj.clampMax,
-    'clampMin': obj.clampMin,
-    'multiply': obj.multiply,
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * String is used to transform the input into a string or a different kind of string. Note that the input does not necessarily need to be a string.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsString
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsString {
-  /**
-   * Optional conversion method to be specified. `ToUpper` and `ToLower` change the letter case of the input string. `ToBase64` and `FromBase64` perform a base64 conversion based on the input string. `ToJson` converts any input value into its raw JSON representation. `ToSha1`, `ToSha256` and `ToSha512` generate a hash value based on the input converted to JSON.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsString#convert
-   */
-  readonly convert?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsStringConvert;
-
-  /**
-   * Format the input using a Go format string. See https://golang.org/pkg/fmt/ for details.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsString#fmt
-   */
-  readonly fmt?: string;
-
-  /**
-   * Extract a match from the input using a regular expression.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsString#regexp
-   */
-  readonly regexp?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsStringRegexp;
-
-  /**
-   * Trim the prefix or suffix from the input
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsString#trim
-   */
-  readonly trim?: string;
-
-  /**
-   * Type of the string transform to be run.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsString#type
-   */
-  readonly type?: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsStringType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsString' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsString(obj: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsString | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'convert': obj.convert,
-    'fmt': obj.fmt,
-    'regexp': toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsStringRegexp(obj.regexp),
-    'trim': obj.trim,
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Type of the transform to be run.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsType
- */
-export enum CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsType {
-  /** map */
-  MAP = "map",
-  /** match */
-  MATCH = "match",
-  /** math */
-  MATH = "math",
-  /** string */
-  STRING = "string",
-  /** convert */
-  CONVERT = "convert",
-}
-
-/**
- * Policy specifies the network policy under which the Composition Function will run. Defaults to 'Isolated' - i.e. no network access. Specify 'Runner' to allow the function the same network access as its runner.
- *
- * @default Isolated' - i.e. no network access. Specify 'Runner' to allow the function the same network access as its runner.
- * @schema CompositionRevisionV1Alpha1SpecFunctionsContainerNetworkPolicy
- */
-export enum CompositionRevisionV1Alpha1SpecFunctionsContainerNetworkPolicy {
-  /** Isolated */
-  ISOLATED = "Isolated",
-  /** Runner */
-  RUNNER = "Runner",
-}
-
-/**
- * Limits specify the maximum compute resources that may be used by the Composition Function.
- *
- * @schema CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimits
- */
-export interface CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimits {
-  /**
-   * CPU, in cores. (500m = .5 cores)
-   *
-   * @schema CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimits#cpu
-   */
-  readonly cpu?: CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimitsCpu;
-
-  /**
-   * Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-   *
-   * @schema CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimits#memory
-   */
-  readonly memory?: CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimitsMemory;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimits' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimits(obj: CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimits | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'cpu': obj.cpu?.value,
-    'memory': obj.memory?.value,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Strategy defines the strategy to use to combine the input variable values. Currently only string is supported.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineStrategy
- */
-export enum CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineStrategy {
-  /** string */
-  STRING = "string",
-}
-
-/**
- * String declares that input variables should be combined into a single string, using the relevant settings for formatting purposes.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineString
- */
-export interface CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineString {
-  /**
-   * Format the input using a Go format string. See https://golang.org/pkg/fmt/ for details.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineString#fmt
-   */
-  readonly fmt: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineString' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineString(obj: CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineString | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'fmt': obj.fmt,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * A CombineVariable defines the source of a value that is combined with others to form and patch an output value. Currently, this only supports retrieving values from a field path.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineVariables
- */
-export interface CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineVariables {
-  /**
-   * FromFieldPath is the path of the field on the source whose value is to be used as input.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineVariables#fromFieldPath
-   */
-  readonly fromFieldPath: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineVariables' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineVariables(obj: CompositionRevisionV1Alpha1SpecPatchSetsPatchesCombineVariables | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'fromFieldPath': obj.fromFieldPath,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * FromFieldPath specifies how to patch from a field path. The default is 'Optional', which means the patch will be a no-op if the specified fromFieldPath does not exist. Use 'Required' if the patch should fail if the specified path does not exist.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicyFromFieldPath
- */
-export enum CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicyFromFieldPath {
-  /** Optional */
-  OPTIONAL = "Optional",
-  /** Required */
-  REQUIRED = "Required",
-}
-
-/**
- * MergeOptions Specifies merge options on a field path
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicyMergeOptions
- */
-export interface CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicyMergeOptions {
-  /**
-   * Specifies that already existing elements in a merged slice should be preserved
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicyMergeOptions#appendSlice
-   */
-  readonly appendSlice?: boolean;
-
-  /**
-   * Specifies that already existing values in a merged map should be preserved
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicyMergeOptions#keepMapValues
-   */
-  readonly keepMapValues?: boolean;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicyMergeOptions' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicyMergeOptions(obj: CompositionRevisionV1Alpha1SpecPatchSetsPatchesPolicyMergeOptions | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'appendSlice': obj.appendSlice,
-    'keepMapValues': obj.keepMapValues,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Convert is used to cast the input into the given output type.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsConvert
- */
-export interface CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsConvert {
-  /**
-   * The expected input format.
-   * * `quantity` - parses the input as a K8s [`resource.Quantity`](https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity). Only used during `string -> float64` conversions.
-   * If this property is null, the default conversion is applied.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsConvert#format
-   */
-  readonly format?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsConvertFormat;
-
-  /**
-   * ToType is the type of the output of this transform.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsConvert#toType
-   */
-  readonly toType: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsConvertToType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsConvert' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsConvert(obj: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsConvert | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'format': obj.format,
-    'toType': obj.toType,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Match is a more complex version of Map that matches a list of patterns.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatch
- */
-export interface CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatch {
-  /**
-   * Determines to what value the transform should fallback if no pattern matches.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatch#fallbackTo
-   */
-  readonly fallbackTo?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchFallbackTo;
-
-  /**
-   * The fallback value that should be returned by the transform if now pattern matches.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatch#fallbackValue
-   */
-  readonly fallbackValue?: any;
-
-  /**
-   * The patterns that should be tested against the input string. Patterns are tested in order. The value of the first match is used as result of this transform.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatch#patterns
-   */
-  readonly patterns?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchPatterns[];
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatch' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatch(obj: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatch | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'fallbackTo': obj.fallbackTo,
-    'fallbackValue': obj.fallbackValue,
-    'patterns': obj.patterns?.map(y => toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchPatterns(y)),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Math is used to transform the input via mathematical operations such as multiplication.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMath
- */
-export interface CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMath {
-  /**
-   * ClampMax makes sure that the value is not bigger than the given value.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMath#clampMax
-   */
-  readonly clampMax?: number;
-
-  /**
-   * ClampMin makes sure that the value is not smaller than the given value.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMath#clampMin
-   */
-  readonly clampMin?: number;
-
-  /**
-   * Multiply the value.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMath#multiply
-   */
-  readonly multiply?: number;
-
-  /**
-   * Type of the math transform to be run.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMath#type
-   */
-  readonly type?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMathType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMath' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMath(obj: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMath | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'clampMax': obj.clampMax,
-    'clampMin': obj.clampMin,
-    'multiply': obj.multiply,
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * String is used to transform the input into a string or a different kind of string. Note that the input does not necessarily need to be a string.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsString
- */
-export interface CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsString {
-  /**
-   * Optional conversion method to be specified. `ToUpper` and `ToLower` change the letter case of the input string. `ToBase64` and `FromBase64` perform a base64 conversion based on the input string. `ToJson` converts any input value into its raw JSON representation. `ToSha1`, `ToSha256` and `ToSha512` generate a hash value based on the input converted to JSON.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsString#convert
-   */
-  readonly convert?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsStringConvert;
-
-  /**
-   * Format the input using a Go format string. See https://golang.org/pkg/fmt/ for details.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsString#fmt
-   */
-  readonly fmt?: string;
-
-  /**
-   * Extract a match from the input using a regular expression.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsString#regexp
-   */
-  readonly regexp?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsStringRegexp;
-
-  /**
-   * Trim the prefix or suffix from the input
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsString#trim
-   */
-  readonly trim?: string;
-
-  /**
-   * Type of the string transform to be run.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsString#type
-   */
-  readonly type?: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsStringType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsString' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsString(obj: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsString | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'convert': obj.convert,
-    'fmt': obj.fmt,
-    'regexp': toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsStringRegexp(obj.regexp),
-    'trim': obj.trim,
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Type of the transform to be run.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsType
- */
-export enum CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsType {
-  /** map */
-  MAP = "map",
-  /** match */
-  MATCH = "match",
-  /** math */
-  MATH = "math",
-  /** string */
-  STRING = "string",
-  /** convert */
-  CONVERT = "convert",
-}
-
-/**
- * Strategy defines the strategy to use to combine the input variable values. Currently only string is supported.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesCombineStrategy
- */
-export enum CompositionRevisionV1Alpha1SpecResourcesPatchesCombineStrategy {
-  /** string */
-  STRING = "string",
-}
-
-/**
- * String declares that input variables should be combined into a single string, using the relevant settings for formatting purposes.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesCombineString
- */
-export interface CompositionRevisionV1Alpha1SpecResourcesPatchesCombineString {
-  /**
-   * Format the input using a Go format string. See https://golang.org/pkg/fmt/ for details.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesCombineString#fmt
-   */
-  readonly fmt: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecResourcesPatchesCombineString' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesCombineString(obj: CompositionRevisionV1Alpha1SpecResourcesPatchesCombineString | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'fmt': obj.fmt,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * A CombineVariable defines the source of a value that is combined with others to form and patch an output value. Currently, this only supports retrieving values from a field path.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesCombineVariables
- */
-export interface CompositionRevisionV1Alpha1SpecResourcesPatchesCombineVariables {
-  /**
-   * FromFieldPath is the path of the field on the source whose value is to be used as input.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesCombineVariables#fromFieldPath
-   */
-  readonly fromFieldPath: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecResourcesPatchesCombineVariables' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesCombineVariables(obj: CompositionRevisionV1Alpha1SpecResourcesPatchesCombineVariables | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'fromFieldPath': obj.fromFieldPath,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * FromFieldPath specifies how to patch from a field path. The default is 'Optional', which means the patch will be a no-op if the specified fromFieldPath does not exist. Use 'Required' if the patch should fail if the specified path does not exist.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesPolicyFromFieldPath
- */
-export enum CompositionRevisionV1Alpha1SpecResourcesPatchesPolicyFromFieldPath {
-  /** Optional */
-  OPTIONAL = "Optional",
-  /** Required */
-  REQUIRED = "Required",
-}
-
-/**
- * MergeOptions Specifies merge options on a field path
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesPolicyMergeOptions
- */
-export interface CompositionRevisionV1Alpha1SpecResourcesPatchesPolicyMergeOptions {
-  /**
-   * Specifies that already existing elements in a merged slice should be preserved
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesPolicyMergeOptions#appendSlice
-   */
-  readonly appendSlice?: boolean;
-
-  /**
-   * Specifies that already existing values in a merged map should be preserved
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesPolicyMergeOptions#keepMapValues
-   */
-  readonly keepMapValues?: boolean;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecResourcesPatchesPolicyMergeOptions' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesPolicyMergeOptions(obj: CompositionRevisionV1Alpha1SpecResourcesPatchesPolicyMergeOptions | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'appendSlice': obj.appendSlice,
-    'keepMapValues': obj.keepMapValues,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Convert is used to cast the input into the given output type.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsConvert
- */
-export interface CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsConvert {
-  /**
-   * The expected input format.
-   * * `quantity` - parses the input as a K8s [`resource.Quantity`](https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity). Only used during `string -> float64` conversions.
-   * If this property is null, the default conversion is applied.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsConvert#format
-   */
-  readonly format?: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsConvertFormat;
-
-  /**
-   * ToType is the type of the output of this transform.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsConvert#toType
-   */
-  readonly toType: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsConvertToType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsConvert' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsConvert(obj: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsConvert | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'format': obj.format,
-    'toType': obj.toType,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Match is a more complex version of Map that matches a list of patterns.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatch
- */
-export interface CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatch {
-  /**
-   * Determines to what value the transform should fallback if no pattern matches.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatch#fallbackTo
-   */
-  readonly fallbackTo?: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchFallbackTo;
-
-  /**
-   * The fallback value that should be returned by the transform if now pattern matches.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatch#fallbackValue
-   */
-  readonly fallbackValue?: any;
-
-  /**
-   * The patterns that should be tested against the input string. Patterns are tested in order. The value of the first match is used as result of this transform.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatch#patterns
-   */
-  readonly patterns?: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchPatterns[];
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatch' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatch(obj: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatch | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'fallbackTo': obj.fallbackTo,
-    'fallbackValue': obj.fallbackValue,
-    'patterns': obj.patterns?.map(y => toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchPatterns(y)),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Math is used to transform the input via mathematical operations such as multiplication.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMath
- */
-export interface CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMath {
-  /**
-   * ClampMax makes sure that the value is not bigger than the given value.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMath#clampMax
-   */
-  readonly clampMax?: number;
-
-  /**
-   * ClampMin makes sure that the value is not smaller than the given value.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMath#clampMin
-   */
-  readonly clampMin?: number;
-
-  /**
-   * Multiply the value.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMath#multiply
-   */
-  readonly multiply?: number;
-
-  /**
-   * Type of the math transform to be run.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMath#type
-   */
-  readonly type?: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMathType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMath' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMath(obj: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMath | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'clampMax': obj.clampMax,
-    'clampMin': obj.clampMin,
-    'multiply': obj.multiply,
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * String is used to transform the input into a string or a different kind of string. Note that the input does not necessarily need to be a string.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsString
- */
-export interface CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsString {
-  /**
-   * Optional conversion method to be specified. `ToUpper` and `ToLower` change the letter case of the input string. `ToBase64` and `FromBase64` perform a base64 conversion based on the input string. `ToJson` converts any input value into its raw JSON representation. `ToSha1`, `ToSha256` and `ToSha512` generate a hash value based on the input converted to JSON.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsString#convert
-   */
-  readonly convert?: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsStringConvert;
-
-  /**
-   * Format the input using a Go format string. See https://golang.org/pkg/fmt/ for details.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsString#fmt
-   */
-  readonly fmt?: string;
-
-  /**
-   * Extract a match from the input using a regular expression.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsString#regexp
-   */
-  readonly regexp?: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsStringRegexp;
-
-  /**
-   * Trim the prefix or suffix from the input
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsString#trim
-   */
-  readonly trim?: string;
-
-  /**
-   * Type of the string transform to be run.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsString#type
-   */
-  readonly type?: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsStringType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsString' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsString(obj: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsString | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'convert': obj.convert,
-    'fmt': obj.fmt,
-    'regexp': toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsStringRegexp(obj.regexp),
-    'trim': obj.trim,
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Type of the transform to be run.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsType
- */
-export enum CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsType {
-  /** map */
-  MAP = "map",
-  /** match */
-  MATCH = "match",
-  /** math */
-  MATH = "math",
-  /** string */
-  STRING = "string",
-  /** convert */
-  CONVERT = "convert",
-}
-
-/**
- * Type specifies where the value for a label comes from.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelectorMatchLabelsType
- */
-export enum CompositionRevisionV1Alpha1SpecEnvironmentEnvironmentConfigsSelectorMatchLabelsType {
-  /** FromCompositeFieldPath */
-  FROM_COMPOSITE_FIELD_PATH = "FromCompositeFieldPath",
-  /** Value */
-  VALUE = "Value",
-}
-
-/**
- * The expected input format.
- * * `quantity` - parses the input as a K8s [`resource.Quantity`](https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity). Only used during `string -> float64` conversions.
- * If this property is null, the default conversion is applied.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsConvertFormat
- */
-export enum CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsConvertFormat {
-  /** quantity */
-  QUANTITY = "quantity",
-}
-
-/**
- * ToType is the type of the output of this transform.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsConvertToType
- */
-export enum CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsConvertToType {
-  /** string */
-  STRING = "string",
-  /** int */
-  INT = "int",
-  /** int64 */
-  INT64 = "int64",
-  /** bool */
-  BOOL = "bool",
-  /** float64 */
-  FLOAT64 = "float64",
-}
-
-/**
- * Determines to what value the transform should fallback if no pattern matches.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchFallbackTo
- */
-export enum CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchFallbackTo {
-  /** Value */
-  VALUE = "Value",
-  /** Input */
-  INPUT = "Input",
-}
-
-/**
- * MatchTransformPattern is a transform that returns the value that matches a pattern.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchPatterns
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchPatterns {
-  /**
-   * Literal exactly matches the input string (case sensitive). Is required if `type` is `literal`.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchPatterns#literal
-   */
-  readonly literal?: string;
-
-  /**
-   * Regexp to match against the input string. Is required if `type` is `regexp`.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchPatterns#regexp
-   */
-  readonly regexp?: string;
-
-  /**
-   * The value that is used as result of the transform if the pattern matches.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchPatterns#result
-   */
-  readonly result: any;
-
-  /**
-   * Type specifies how the pattern matches the input.
-   * * `literal` - the pattern value has to exactly match (case sensitive) the input string. This is the default.
-   * * `regexp` - the pattern treated as a regular expression against which the input string is tested. Crossplane will throw an error if the key is not a valid regexp.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchPatterns#type
-   */
-  readonly type: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchPatternsType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchPatterns' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchPatterns(obj: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchPatterns | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'literal': obj.literal,
-    'regexp': obj.regexp,
-    'result': obj.result,
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Type of the math transform to be run.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMathType
- */
-export enum CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMathType {
-  /** Multiply */
-  MULTIPLY = "Multiply",
-  /** ClampMin */
-  CLAMP_MIN = "ClampMin",
-  /** ClampMax */
-  CLAMP_MAX = "ClampMax",
-}
-
-/**
- * Optional conversion method to be specified. `ToUpper` and `ToLower` change the letter case of the input string. `ToBase64` and `FromBase64` perform a base64 conversion based on the input string. `ToJson` converts any input value into its raw JSON representation. `ToSha1`, `ToSha256` and `ToSha512` generate a hash value based on the input converted to JSON.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsStringConvert
- */
-export enum CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsStringConvert {
-  /** ToUpper */
-  TO_UPPER = "ToUpper",
-  /** ToLower */
-  TO_LOWER = "ToLower",
-  /** ToBase64 */
-  TO_BASE64 = "ToBase64",
-  /** FromBase64 */
-  FROM_BASE64 = "FromBase64",
-  /** ToJson */
-  TO_JSON = "ToJson",
-  /** ToSha1 */
-  TO_SHA1 = "ToSha1",
-  /** ToSha256 */
-  TO_SHA256 = "ToSha256",
-  /** ToSha512 */
-  TO_SHA512 = "ToSha512",
-}
-
-/**
- * Extract a match from the input using a regular expression.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsStringRegexp
- */
-export interface CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsStringRegexp {
-  /**
-   * Group number to match. 0 (the default) matches the entire expression.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsStringRegexp#group
-   */
-  readonly group?: number;
-
-  /**
-   * Match string. May optionally include submatches, aka capture groups. See https://pkg.go.dev/regexp/ for details.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsStringRegexp#match
-   */
-  readonly match: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsStringRegexp' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsStringRegexp(obj: CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsStringRegexp | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'group': obj.group,
-    'match': obj.match,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Type of the string transform to be run.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsStringType
- */
-export enum CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsStringType {
-  /** Format */
-  FORMAT = "Format",
-  /** Convert */
-  CONVERT = "Convert",
-  /** TrimPrefix */
-  TRIM_PREFIX = "TrimPrefix",
-  /** TrimSuffix */
-  TRIM_SUFFIX = "TrimSuffix",
-  /** Regexp */
-  REGEXP = "Regexp",
-}
-
-/**
- * CPU, in cores. (500m = .5 cores)
- *
- * @schema CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimitsCpu
- */
-export class CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimitsCpu {
-  public static fromNumber(value: number): CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimitsCpu {
-    return new CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimitsCpu(value);
-  }
-  public static fromString(value: string): CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimitsCpu {
-    return new CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimitsCpu(value);
-  }
-  private constructor(public readonly value: number | string) {
-  }
-}
-
-/**
- * Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
- *
- * @schema CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimitsMemory
- */
-export class CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimitsMemory {
-  public static fromNumber(value: number): CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimitsMemory {
-    return new CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimitsMemory(value);
-  }
-  public static fromString(value: string): CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimitsMemory {
-    return new CompositionRevisionV1Alpha1SpecFunctionsContainerResourcesLimitsMemory(value);
-  }
-  private constructor(public readonly value: number | string) {
-  }
-}
-
-/**
- * The expected input format.
- * * `quantity` - parses the input as a K8s [`resource.Quantity`](https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity). Only used during `string -> float64` conversions.
- * If this property is null, the default conversion is applied.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsConvertFormat
- */
-export enum CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsConvertFormat {
-  /** quantity */
-  QUANTITY = "quantity",
-}
-
-/**
- * ToType is the type of the output of this transform.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsConvertToType
- */
-export enum CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsConvertToType {
-  /** string */
-  STRING = "string",
-  /** int */
-  INT = "int",
-  /** int64 */
-  INT64 = "int64",
-  /** bool */
-  BOOL = "bool",
-  /** float64 */
-  FLOAT64 = "float64",
-}
-
-/**
- * Determines to what value the transform should fallback if no pattern matches.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchFallbackTo
- */
-export enum CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchFallbackTo {
-  /** Value */
-  VALUE = "Value",
-  /** Input */
-  INPUT = "Input",
-}
-
-/**
- * MatchTransformPattern is a transform that returns the value that matches a pattern.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchPatterns
- */
-export interface CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchPatterns {
-  /**
-   * Literal exactly matches the input string (case sensitive). Is required if `type` is `literal`.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchPatterns#literal
-   */
-  readonly literal?: string;
-
-  /**
-   * Regexp to match against the input string. Is required if `type` is `regexp`.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchPatterns#regexp
-   */
-  readonly regexp?: string;
-
-  /**
-   * The value that is used as result of the transform if the pattern matches.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchPatterns#result
-   */
-  readonly result: any;
-
-  /**
-   * Type specifies how the pattern matches the input.
-   * * `literal` - the pattern value has to exactly match (case sensitive) the input string. This is the default.
-   * * `regexp` - the pattern treated as a regular expression against which the input string is tested. Crossplane will throw an error if the key is not a valid regexp.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchPatterns#type
-   */
-  readonly type: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchPatternsType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchPatterns' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchPatterns(obj: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchPatterns | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'literal': obj.literal,
-    'regexp': obj.regexp,
-    'result': obj.result,
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Type of the math transform to be run.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMathType
- */
-export enum CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMathType {
-  /** Multiply */
-  MULTIPLY = "Multiply",
-  /** ClampMin */
-  CLAMP_MIN = "ClampMin",
-  /** ClampMax */
-  CLAMP_MAX = "ClampMax",
-}
-
-/**
- * Optional conversion method to be specified. `ToUpper` and `ToLower` change the letter case of the input string. `ToBase64` and `FromBase64` perform a base64 conversion based on the input string. `ToJson` converts any input value into its raw JSON representation. `ToSha1`, `ToSha256` and `ToSha512` generate a hash value based on the input converted to JSON.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsStringConvert
- */
-export enum CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsStringConvert {
-  /** ToUpper */
-  TO_UPPER = "ToUpper",
-  /** ToLower */
-  TO_LOWER = "ToLower",
-  /** ToBase64 */
-  TO_BASE64 = "ToBase64",
-  /** FromBase64 */
-  FROM_BASE64 = "FromBase64",
-  /** ToJson */
-  TO_JSON = "ToJson",
-  /** ToSha1 */
-  TO_SHA1 = "ToSha1",
-  /** ToSha256 */
-  TO_SHA256 = "ToSha256",
-  /** ToSha512 */
-  TO_SHA512 = "ToSha512",
-}
-
-/**
- * Extract a match from the input using a regular expression.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsStringRegexp
- */
-export interface CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsStringRegexp {
-  /**
-   * Group number to match. 0 (the default) matches the entire expression.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsStringRegexp#group
-   */
-  readonly group?: number;
-
-  /**
-   * Match string. May optionally include submatches, aka capture groups. See https://pkg.go.dev/regexp/ for details.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsStringRegexp#match
-   */
-  readonly match: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsStringRegexp' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsStringRegexp(obj: CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsStringRegexp | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'group': obj.group,
-    'match': obj.match,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Type of the string transform to be run.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsStringType
- */
-export enum CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsStringType {
-  /** Format */
-  FORMAT = "Format",
-  /** Convert */
-  CONVERT = "Convert",
-  /** TrimPrefix */
-  TRIM_PREFIX = "TrimPrefix",
-  /** TrimSuffix */
-  TRIM_SUFFIX = "TrimSuffix",
-  /** Regexp */
-  REGEXP = "Regexp",
-}
-
-/**
- * The expected input format.
- * * `quantity` - parses the input as a K8s [`resource.Quantity`](https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity). Only used during `string -> float64` conversions.
- * If this property is null, the default conversion is applied.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsConvertFormat
- */
-export enum CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsConvertFormat {
-  /** quantity */
-  QUANTITY = "quantity",
-}
-
-/**
- * ToType is the type of the output of this transform.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsConvertToType
- */
-export enum CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsConvertToType {
-  /** string */
-  STRING = "string",
-  /** int */
-  INT = "int",
-  /** int64 */
-  INT64 = "int64",
-  /** bool */
-  BOOL = "bool",
-  /** float64 */
-  FLOAT64 = "float64",
-}
-
-/**
- * Determines to what value the transform should fallback if no pattern matches.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchFallbackTo
- */
-export enum CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchFallbackTo {
-  /** Value */
-  VALUE = "Value",
-  /** Input */
-  INPUT = "Input",
-}
-
-/**
- * MatchTransformPattern is a transform that returns the value that matches a pattern.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchPatterns
- */
-export interface CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchPatterns {
-  /**
-   * Literal exactly matches the input string (case sensitive). Is required if `type` is `literal`.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchPatterns#literal
-   */
-  readonly literal?: string;
-
-  /**
-   * Regexp to match against the input string. Is required if `type` is `regexp`.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchPatterns#regexp
-   */
-  readonly regexp?: string;
-
-  /**
-   * The value that is used as result of the transform if the pattern matches.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchPatterns#result
-   */
-  readonly result: any;
-
-  /**
-   * Type specifies how the pattern matches the input.
-   * * `literal` - the pattern value has to exactly match (case sensitive) the input string. This is the default.
-   * * `regexp` - the pattern treated as a regular expression against which the input string is tested. Crossplane will throw an error if the key is not a valid regexp.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchPatterns#type
-   */
-  readonly type: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchPatternsType;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchPatterns' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchPatterns(obj: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchPatterns | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'literal': obj.literal,
-    'regexp': obj.regexp,
-    'result': obj.result,
-    'type': obj.type,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Type of the math transform to be run.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMathType
- */
-export enum CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMathType {
-  /** Multiply */
-  MULTIPLY = "Multiply",
-  /** ClampMin */
-  CLAMP_MIN = "ClampMin",
-  /** ClampMax */
-  CLAMP_MAX = "ClampMax",
-}
-
-/**
- * Optional conversion method to be specified. `ToUpper` and `ToLower` change the letter case of the input string. `ToBase64` and `FromBase64` perform a base64 conversion based on the input string. `ToJson` converts any input value into its raw JSON representation. `ToSha1`, `ToSha256` and `ToSha512` generate a hash value based on the input converted to JSON.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsStringConvert
- */
-export enum CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsStringConvert {
-  /** ToUpper */
-  TO_UPPER = "ToUpper",
-  /** ToLower */
-  TO_LOWER = "ToLower",
-  /** ToBase64 */
-  TO_BASE64 = "ToBase64",
-  /** FromBase64 */
-  FROM_BASE64 = "FromBase64",
-  /** ToJson */
-  TO_JSON = "ToJson",
-  /** ToSha1 */
-  TO_SHA1 = "ToSha1",
-  /** ToSha256 */
-  TO_SHA256 = "ToSha256",
-  /** ToSha512 */
-  TO_SHA512 = "ToSha512",
-}
-
-/**
- * Extract a match from the input using a regular expression.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsStringRegexp
- */
-export interface CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsStringRegexp {
-  /**
-   * Group number to match. 0 (the default) matches the entire expression.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsStringRegexp#group
-   */
-  readonly group?: number;
-
-  /**
-   * Match string. May optionally include submatches, aka capture groups. See https://pkg.go.dev/regexp/ for details.
-   *
-   * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsStringRegexp#match
-   */
-  readonly match: string;
-
-}
-
-/**
- * Converts an object of type 'CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsStringRegexp' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsStringRegexp(obj: CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsStringRegexp | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'group': obj.group,
-    'match': obj.match,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Type of the string transform to be run.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsStringType
- */
-export enum CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsStringType {
-  /** Format */
-  FORMAT = "Format",
-  /** Convert */
-  CONVERT = "Convert",
-  /** TrimPrefix */
-  TRIM_PREFIX = "TrimPrefix",
-  /** TrimSuffix */
-  TRIM_SUFFIX = "TrimSuffix",
-  /** Regexp */
-  REGEXP = "Regexp",
-}
-
-/**
- * Type specifies how the pattern matches the input.
- * * `literal` - the pattern value has to exactly match (case sensitive) the input string. This is the default.
- * * `regexp` - the pattern treated as a regular expression against which the input string is tested. Crossplane will throw an error if the key is not a valid regexp.
- *
- * @schema CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchPatternsType
- */
-export enum CompositionRevisionV1Alpha1SpecEnvironmentPatchesTransformsMatchPatternsType {
-  /** literal */
-  LITERAL = "literal",
-  /** regexp */
-  REGEXP = "regexp",
-}
-
-/**
- * Type specifies how the pattern matches the input.
- * * `literal` - the pattern value has to exactly match (case sensitive) the input string. This is the default.
- * * `regexp` - the pattern treated as a regular expression against which the input string is tested. Crossplane will throw an error if the key is not a valid regexp.
- *
- * @schema CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchPatternsType
- */
-export enum CompositionRevisionV1Alpha1SpecPatchSetsPatchesTransformsMatchPatternsType {
-  /** literal */
-  LITERAL = "literal",
-  /** regexp */
-  REGEXP = "regexp",
-}
-
-/**
- * Type specifies how the pattern matches the input.
- * * `literal` - the pattern value has to exactly match (case sensitive) the input string. This is the default.
- * * `regexp` - the pattern treated as a regular expression against which the input string is tested. Crossplane will throw an error if the key is not a valid regexp.
- *
- * @schema CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchPatternsType
- */
-export enum CompositionRevisionV1Alpha1SpecResourcesPatchesTransformsMatchPatternsType {
-  /** literal */
-  LITERAL = "literal",
-  /** regexp */
-  REGEXP = "regexp",
-}
-
-
-/**
- * A CompositionRevision represents a revision in time of a Composition. Revisions are created by Crossplane; they should be treated as immutable.
- *
  * @schema CompositionRevisionV1Beta1
  */
 export class CompositionRevisionV1Beta1 extends ApiObject {
@@ -11142,6 +8186,13 @@ export interface CompositionRevisionV1Beta1SpecEnvironment {
    */
   readonly patches?: CompositionRevisionV1Beta1SpecEnvironmentPatches[];
 
+  /**
+   * Policy represents the Resolve and Resolution policies which apply to all EnvironmentSourceReferences in EnvironmentConfigs list.
+   *
+   * @schema CompositionRevisionV1Beta1SpecEnvironment#policy
+   */
+  readonly policy?: CompositionRevisionV1Beta1SpecEnvironmentPolicy;
+
 }
 
 /**
@@ -11153,6 +8204,7 @@ export function toJson_CompositionRevisionV1Beta1SpecEnvironment(obj: Compositio
   const result = {
     'environmentConfigs': obj.environmentConfigs?.map(y => toJson_CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfigs(y)),
     'patches': obj.patches?.map(y => toJson_CompositionRevisionV1Beta1SpecEnvironmentPatches(y)),
+    'policy': toJson_CompositionRevisionV1Beta1SpecEnvironmentPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -11353,7 +8405,7 @@ export interface CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfigs {
   readonly ref?: CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfigsRef;
 
   /**
-   * Selector selects one EnvironmentConfig via labels.
+   * Selector selects EnvironmentConfig(s) via labels.
    *
    * @schema CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfigs#selector
    */
@@ -11455,6 +8507,43 @@ export function toJson_CompositionRevisionV1Beta1SpecEnvironmentPatches(obj: Com
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Policy represents the Resolve and Resolution policies which apply to all EnvironmentSourceReferences in EnvironmentConfigs list.
+ *
+ * @schema CompositionRevisionV1Beta1SpecEnvironmentPolicy
+ */
+export interface CompositionRevisionV1Beta1SpecEnvironmentPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema CompositionRevisionV1Beta1SpecEnvironmentPolicy#resolution
+   */
+  readonly resolution?: CompositionRevisionV1Beta1SpecEnvironmentPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema CompositionRevisionV1Beta1SpecEnvironmentPolicy#resolve
+   */
+  readonly resolve?: CompositionRevisionV1Beta1SpecEnvironmentPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'CompositionRevisionV1Beta1SpecEnvironmentPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CompositionRevisionV1Beta1SpecEnvironmentPolicy(obj: CompositionRevisionV1Beta1SpecEnvironmentPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Container configuration of this function.
  *
  * @schema CompositionRevisionV1Beta1SpecFunctionsContainer
@@ -11473,6 +8562,13 @@ export interface CompositionRevisionV1Beta1SpecFunctionsContainer {
    * @schema CompositionRevisionV1Beta1SpecFunctionsContainer#imagePullPolicy
    */
   readonly imagePullPolicy?: CompositionRevisionV1Beta1SpecFunctionsContainerImagePullPolicy;
+
+  /**
+   * ImagePullSecrets are used to pull images from private OCI registries.
+   *
+   * @schema CompositionRevisionV1Beta1SpecFunctionsContainer#imagePullSecrets
+   */
+  readonly imagePullSecrets?: CompositionRevisionV1Beta1SpecFunctionsContainerImagePullSecrets[];
 
   /**
    * Network configuration for the Composition Function.
@@ -11513,6 +8609,7 @@ export function toJson_CompositionRevisionV1Beta1SpecFunctionsContainer(obj: Com
   const result = {
     'image': obj.image,
     'imagePullPolicy': obj.imagePullPolicy,
+    'imagePullSecrets': obj.imagePullSecrets?.map(y => toJson_CompositionRevisionV1Beta1SpecFunctionsContainerImagePullSecrets(y)),
     'network': toJson_CompositionRevisionV1Beta1SpecFunctionsContainerNetwork(obj.network),
     'resources': toJson_CompositionRevisionV1Beta1SpecFunctionsContainerResources(obj.resources),
     'runner': toJson_CompositionRevisionV1Beta1SpecFunctionsContainerRunner(obj.runner),
@@ -11762,6 +8859,13 @@ export interface CompositionRevisionV1Beta1SpecResourcesReadinessChecks {
   readonly fieldPath?: string;
 
   /**
+   * MatchCondition specifies the condition you'd like to match if you're using "MatchCondition" type.
+   *
+   * @schema CompositionRevisionV1Beta1SpecResourcesReadinessChecks#matchCondition
+   */
+  readonly matchCondition?: CompositionRevisionV1Beta1SpecResourcesReadinessChecksMatchCondition;
+
+  /**
    * MatchInt is the value you'd like to match if you're using "MatchInt" type.
    *
    * @schema CompositionRevisionV1Beta1SpecResourcesReadinessChecks#matchInteger
@@ -11792,6 +8896,7 @@ export function toJson_CompositionRevisionV1Beta1SpecResourcesReadinessChecks(ob
   if (obj === undefined) { return undefined; }
   const result = {
     'fieldPath': obj.fieldPath,
+    'matchCondition': toJson_CompositionRevisionV1Beta1SpecResourcesReadinessChecksMatchCondition(obj.matchCondition),
     'matchInteger': obj.matchInteger,
     'matchString': obj.matchString,
     'type': obj.type,
@@ -11831,7 +8936,7 @@ export function toJson_CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfi
 /* eslint-enable max-len, quote-props */
 
 /**
- * Selector selects one EnvironmentConfig via labels.
+ * Selector selects EnvironmentConfig(s) via labels.
  *
  * @schema CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfigsSelector
  */
@@ -11843,6 +8948,27 @@ export interface CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfigsSele
    */
   readonly matchLabels?: CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfigsSelectorMatchLabels[];
 
+  /**
+   * MaxMatch specifies the number of extracted EnvironmentConfigs in Multiple mode, extracts all if nil.
+   *
+   * @schema CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfigsSelector#maxMatch
+   */
+  readonly maxMatch?: number;
+
+  /**
+   * Mode specifies retrieval strategy: "Single" or "Multiple".
+   *
+   * @schema CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfigsSelector#mode
+   */
+  readonly mode?: CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfigsSelectorMode;
+
+  /**
+   * SortByFieldPath is the path to the field based on which list of EnvironmentConfigs is alphabetically sorted.
+   *
+   * @schema CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfigsSelector#sortByFieldPath
+   */
+  readonly sortByFieldPath?: string;
+
 }
 
 /**
@@ -11853,6 +8979,9 @@ export function toJson_CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfi
   if (obj === undefined) { return undefined; }
   const result = {
     'matchLabels': obj.matchLabels?.map(y => toJson_CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfigsSelectorMatchLabels(y)),
+    'maxMatch': obj.maxMatch,
+    'mode': obj.mode,
+    'sortByFieldPath': obj.sortByFieldPath,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -12031,14 +9160,36 @@ export function toJson_CompositionRevisionV1Beta1SpecEnvironmentPatchesTransform
 export enum CompositionRevisionV1Beta1SpecEnvironmentPatchesType {
   /** FromCompositeFieldPath */
   FROM_COMPOSITE_FIELD_PATH = "FromCompositeFieldPath",
-  /** FromEnvironmentFieldPath */
-  FROM_ENVIRONMENT_FIELD_PATH = "FromEnvironmentFieldPath",
   /** ToCompositeFieldPath */
   TO_COMPOSITE_FIELD_PATH = "ToCompositeFieldPath",
   /** CombineFromComposite */
   COMBINE_FROM_COMPOSITE = "CombineFromComposite",
   /** CombineToComposite */
   COMBINE_TO_COMPOSITE = "CombineToComposite",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema CompositionRevisionV1Beta1SpecEnvironmentPolicyResolution
+ */
+export enum CompositionRevisionV1Beta1SpecEnvironmentPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema CompositionRevisionV1Beta1SpecEnvironmentPolicyResolve
+ */
+export enum CompositionRevisionV1Beta1SpecEnvironmentPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
 }
 
 /**
@@ -12054,6 +9205,35 @@ export enum CompositionRevisionV1Beta1SpecFunctionsContainerImagePullPolicy {
   /** Never */
   NEVER = "Never",
 }
+
+/**
+ * LocalObjectReference contains enough information to let you locate the referenced object inside the same namespace.
+ *
+ * @schema CompositionRevisionV1Beta1SpecFunctionsContainerImagePullSecrets
+ */
+export interface CompositionRevisionV1Beta1SpecFunctionsContainerImagePullSecrets {
+  /**
+   * Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?
+   *
+   * @schema CompositionRevisionV1Beta1SpecFunctionsContainerImagePullSecrets#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'CompositionRevisionV1Beta1SpecFunctionsContainerImagePullSecrets' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CompositionRevisionV1Beta1SpecFunctionsContainerImagePullSecrets(obj: CompositionRevisionV1Beta1SpecFunctionsContainerImagePullSecrets | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * Network configuration for the Composition Function.
@@ -12512,6 +9692,43 @@ export enum CompositionRevisionV1Beta1SpecResourcesPatchesType {
 }
 
 /**
+ * MatchCondition specifies the condition you'd like to match if you're using "MatchCondition" type.
+ *
+ * @schema CompositionRevisionV1Beta1SpecResourcesReadinessChecksMatchCondition
+ */
+export interface CompositionRevisionV1Beta1SpecResourcesReadinessChecksMatchCondition {
+  /**
+   * Status is the status of the condition you'd like to match.
+   *
+   * @schema CompositionRevisionV1Beta1SpecResourcesReadinessChecksMatchCondition#status
+   */
+  readonly status: string;
+
+  /**
+   * Type indicates the type of condition you'd like to use.
+   *
+   * @schema CompositionRevisionV1Beta1SpecResourcesReadinessChecksMatchCondition#type
+   */
+  readonly type: string;
+
+}
+
+/**
+ * Converts an object of type 'CompositionRevisionV1Beta1SpecResourcesReadinessChecksMatchCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CompositionRevisionV1Beta1SpecResourcesReadinessChecksMatchCondition(obj: CompositionRevisionV1Beta1SpecResourcesReadinessChecksMatchCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'status': obj.status,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Type indicates the type of probe you'd like to use.
  *
  * @schema CompositionRevisionV1Beta1SpecResourcesReadinessChecksType
@@ -12523,6 +9740,8 @@ export enum CompositionRevisionV1Beta1SpecResourcesReadinessChecksType {
   MATCH_INTEGER = "MatchInteger",
   /** NonEmpty */
   NON_EMPTY = "NonEmpty",
+  /** MatchCondition */
+  MATCH_CONDITION = "MatchCondition",
   /** None */
   NONE = "None",
 }
@@ -12579,6 +9798,18 @@ export function toJson_CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfi
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * Mode specifies retrieval strategy: "Single" or "Multiple".
+ *
+ * @schema CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfigsSelectorMode
+ */
+export enum CompositionRevisionV1Beta1SpecEnvironmentEnvironmentConfigsSelectorMode {
+  /** Single */
+  SINGLE = "Single",
+  /** Multiple */
+  MULTIPLE = "Multiple",
+}
 
 /**
  * Strategy defines the strategy to use to combine the input variable values. Currently only string is supported.

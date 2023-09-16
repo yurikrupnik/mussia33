@@ -1,0 +1,20 @@
+{
+  "name": "@mussia33/rust-ts-shared-linux-x64-gnu",
+  "version": "0.0.0",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "main": "rust_ts_shared.linux-x64-gnu.node",
+  "files": [
+    "rust_ts_shared.linux-x64-gnu.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  },
+  "libc": [
+    "glibc"
+  ]
+}
