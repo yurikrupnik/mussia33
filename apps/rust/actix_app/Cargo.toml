@@ -5,22 +5,30 @@ edition = "2021"
 
 
 [dependencies]
-mongo = { path = "../../../libs/rust/mongo" }
-kube = { version = "0.86.0", features = ["derive", "runtime"] }
-k8s-openapi = { version = "0.20.0", features = ["v1_28"] }
+#mongo = { path = "../../../libs/rust/mongo" }
+#mongo = { path = "../../../libs/rust/mongo" }
+mongo = { workspace = true }
+kube = { workspace = true }
+k8s-openapi = { workspace = true }
 async-trait = { version = "0.1.73" }
-actix-web = "4"
+actix-web = { workspace = true }
+actix-cors = { workspace = true }
 mongodb = "2.6.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0.106", features = ["arbitrary_precision"] }
 env_logger = "0.10.0"
-log = "0.4"
-futures = "0.3.28"
+log = { workspace = true }
+futures = { workspace = true }
 utoipa = { version = "3.5.0", features = ["actix_extras"] }
 utoipa-swagger-ui = { version = "3.1.5", features = ["actix-web"] }
-validator = { version = "0.16.1", features = ["derive"] }
-actix-cors = "0.6.4"
 plurals = "0.4.0"
 ts-rs = { version = "7.0.0", features = ["serde-compat"] }
 serde_derive = "1.0.188"
+validator = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+cc.workspace = true
+
+[dev-dependencies]
+rand.workspace = true

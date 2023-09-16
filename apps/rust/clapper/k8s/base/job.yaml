@@ -17,16 +17,16 @@ spec:
                 - --name
                 - aris
           restartPolicy: OnFailure
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: command-demo
-  labels:
-    purpose: demonstrate-command
-spec:
-  containers:
-    - name: command-demo-container
-      image: yurikrupnik/clapper
-      args: ["--name", "Nir"]
-  restartPolicy: OnFailure
+#---
+#apiVersion: v1
+#kind: Pod
+#metadata:
+#  name: command-demo
+#  labels:
+#    purpose: demonstrate-command
+#spec:
+#  containers:
+#    - name: command-demo-container
+#      image: yurikrupnik/clapper
+#      args: ["--name", "Nir"]
+#  restartPolicy: OnFailure

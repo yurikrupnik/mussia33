@@ -3,8 +3,8 @@
 version: '3'
 
 vars:
-  #  ACCOUNT: krupnik.yuri@gmail.com
-  #  PROJECT: mussia-infra
+#    ACCOUNT: krupnik.yuri@gmail.com
+#    PROJECT: mussia-infra
   PROJECT: yuri-sandbox
   ACCOUNT: yurik@sela.co.il
 

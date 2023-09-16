@@ -1,7 +1,8 @@
 [package]
-name = "rust_master_operator"
+name = "rust_job_operator_sample"
 version = "0.1.0"
 edition = "2021"
+
 
 [dependencies]
 anyhow = { workspace = true }
@@ -18,6 +19,7 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

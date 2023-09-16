@@ -12,10 +12,14 @@ export class ArtifactoryResource extends pulumi.ComponentResource {
   constructor(
     name: string,
     artifactoryResourceProps: ArtifactoryResourceProps,
-    opts?: pulumi.ResourceOptions
+    opts?: pulumi.ResourceOptions,
   ) {
     super("mussia33:core:artifactory:", name, {}, opts);
     const { repositoryArgs } = artifactoryResourceProps;
+    // repositoryArgs.labels = {
+    //   iac: "pulumi",
+    // };
+
     const { location, project } = repositoryArgs;
     const artifactRegistryRepo = new Repository(name, repositoryArgs, {
       parent: this,

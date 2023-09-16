@@ -32,7 +32,7 @@ spec:
   source:
     chart: external-secrets
     repoURL: https://charts.external-secrets.io/
-    targetRevision: 0.8.3
+    targetRevision: 0.9.4
     helm:
       releaseName: external-secrets
   destination:
@@ -135,7 +135,7 @@ spec:
   source:
     chart: argo-rollouts
     repoURL: https://argoproj.github.io/argo-helm
-    targetRevision: 2.26.1
+    targetRevision: 2.32.0
     helm:
       releaseName: argo-rollouts
   destination:

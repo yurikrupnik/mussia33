@@ -90,11 +90,11 @@ spec:
     matchLabels:
       app: frontend-solid-app
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: foo-pvc
-  namespace: foo
-spec:
-  storageClassName: "" # Empty string must be explicitly set otherwise default StorageClass will be set
-  volumeName: foo-pv
+#apiVersion: v1
+#kind: PersistentVolumeClaim
+#metadata:
+#  name: foo-pvc
+#  namespace: foo
+#spec:
+#  storageClassName: "" # Empty string must be explicitly set otherwise default StorageClass will be set
+#  volumeName: foo-pv

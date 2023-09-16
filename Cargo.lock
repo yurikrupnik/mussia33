@@ -2217,6 +2217,7 @@ dependencies = [
  "actix-cors",
  "actix-web",
  "async-trait",
+ "cc",
  "env_logger",
  "futures",
  "k8s-openapi",
@@ -2225,6 +2226,7 @@ dependencies = [
  "mongo",
  "mongodb",
  "plurals",
+ "rand",
  "serde",
  "serde_derive",
  "serde_json",
@@ -2242,7 +2244,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust_job_operator_sample"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "backoff",
+ "futures",
+ "k8s-openapi",
+ "kube",
+ "log",
+ "schemars",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "rust_kubernetes_operator_api"
+version = "0.1.0"
+
+[[package]]
+name = "rust_local_cluster"
 version = "0.1.0"
 
 [[package]]

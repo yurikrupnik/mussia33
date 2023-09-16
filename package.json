@@ -44,6 +44,7 @@
     "jest-environment-jsdom": "^29.4.1",
     "jest-environment-node": "^29.4.1",
     "nx": "16.7.4",
+    "nx-cloud": "16.4.0",
     "postcss": "^8.4.21",
     "prettier": "^3.0.0",
     "solid-jest": "^0.2.0",
@@ -55,8 +56,7 @@
     "ts-proto": "^1.148.0",
     "typescript": "~5.2.0",
     "vite": "4.4.9",
-    "vite-plugin-solid": "2.7.0",
-    "nx-cloud": "16.4.0"
+    "vite-plugin-solid": "2.7.0"
   },
   "dependencies": {
     "@faker-js/faker": "^8.0.1",
@@ -76,6 +76,7 @@
     "@pulumi/gcp": "^6.52.0",
     "@pulumi/github": "^5.8.0",
     "@pulumi/kubernetes": "^3.25.0",
+    "@pulumi/mongodbatlas": "^3.10.1",
     "@pulumi/pulumi": "^3.59.1",
     "@pulumi/slack": "^0.4.2",
     "@solidjs/router": "^0.8.2",
@@ -99,4 +100,3 @@
     "xstate": "^4.37.1"
   }
 }
-

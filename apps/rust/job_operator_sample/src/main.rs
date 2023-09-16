@@ -7,12 +7,9 @@ use kube::{
 };
 use tracing::info;
 
-
 struct Kube {
 
 }
-
-
 
 fn creating_kube_resource_manual() {
   info!("Creating kube resource test");
