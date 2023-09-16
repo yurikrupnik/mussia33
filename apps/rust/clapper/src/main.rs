@@ -1,7 +1,7 @@
-use clap::Parser;
+// use clap::Parser;
 
 /// Simple program to greet a person
-#[derive(Parser, Debug)]
+#[derive(clap::Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
   /// Name of the person to greet

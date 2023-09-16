@@ -1,0 +1,17 @@
+{
+  "name": "@mussia33/rust-proc-ts-darwin-arm64",
+  "version": "0.0.0",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "main": "rust_proc_ts.darwin-arm64.node",
+  "files": [
+    "rust_proc_ts.darwin-arm64.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  }
+}

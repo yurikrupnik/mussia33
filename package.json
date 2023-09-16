@@ -8,6 +8,7 @@
   "private": true,
   "devDependencies": {
     "@monodon/rust": "^1.1.2",
+    "@napi-rs/cli": "2.14.8",
     "@nestjs/schematics": "10.0.2",
     "@nestjs/testing": "10.2.4",
     "@nx-extend/pulumi": "^3.0.0",

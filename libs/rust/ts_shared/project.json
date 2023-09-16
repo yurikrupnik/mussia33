@@ -1,0 +1,45 @@
+{
+  "name": "rust_ts_shared",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/rust/ts_shared/src",
+  "targets": {
+    "build": {
+      "executor": "@monodon/rust:napi",
+      "options": {
+        "dist": "libs/rust/ts_shared",
+        "jsFile": "index.js"
+      },
+      "configurations": {
+        "production": {
+          "dist": "dist/rust_ts_shared",
+          "release": true
+        }
+      }
+    },
+    "test": {
+      "executor": "@monodon/rust:test",
+      "outputs": [
+        "{options.target-dir}"
+      ],
+      "options": {
+        "target-dir": "dist/target/rust_ts_shared"
+      },
+      "configurations": {
+        "production": {
+          "release": true
+        }
+      }
+    },
+    "lint": {
+      "executor": "@monodon/rust:lint",
+      "outputs": [
+        "{options.target-dir}"
+      ],
+      "options": {
+        "target-dir": "dist/target/rust_ts_shared"
+      }
+    }
+  },
+  "tags": []
+}

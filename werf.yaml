@@ -18,33 +18,28 @@ args:
 # environment_variables:
  # REGISTRY: "yurikrupnik"
  # APP: "nest-app"
-image: yurikrupnik/nest-app
-dockerfile: Dockerfile
-target: node
+# image: yurikrupnik/nest-app
+# dockerfile: Dockerfile
+# target: node
 ---
-environment_variables:
+# environment_variables:
  # WERF_REPO: registry.example.org/myrepo
  # WERF_ENV: "${CI_ENVIRONMENT}"
  # WERF_ENABLE_PROCESS_EXTERMINATOR: "1"
  # REGISTRY: "yurikrupnik"
  # APP: "nest"
-image: solid-app
-dockerfile: Dockerfile
-context: dist/apps/frontend/solid-app
-target: nginx
-args:
-  DIST_PATH: dist/apps/frontend/solid-app
+# image: solid-app
+#dockerfile: Dockerfile
+#context: dist/apps/frontend/solid-app
+#target: nginx
+#args:
+  #  DIST_PATH: dist/apps/frontend/solid-app
 ---
 image: "registry.werf.io/werf/werf:1.2-stable"
 image_pull_policy: always
-
-{{/*environment_variables:*/}}
-{{/*  WERF_REPO: registry.example.org/myrepo*/}}
-{{/*  WERF_ENV: "${CI_ENVIRONMENT}"*/}}
-{{/*  WERF_ENABLE_PROCESS_EXTERMINATOR: "1"*/}}
-
 before_every_job:
-  - werf cr login -u "${REGISTRY_USER:?}" -p "${REGISTRY_PASSWORD:?}" "${WERF_REPO:?}"
+  - echo before job
+ # - werf cr login -u "${REGISTRY_USER:?}" -p "${REGISTRY_PASSWORD:?}" "${WERF_REPO:?}"
 
 jobs:
   prod:

@@ -1,0 +1,17 @@
+{
+  "name": "@mussia33/rust-proc-ts-win32-ia32-msvc",
+  "version": "0.0.0",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "ia32"
+  ],
+  "main": "rust_proc_ts.win32-ia32-msvc.node",
+  "files": [
+    "rust_proc_ts.win32-ia32-msvc.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  }
+}
