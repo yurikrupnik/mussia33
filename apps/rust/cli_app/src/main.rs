@@ -1,7 +1,7 @@
-use serde_json::Value::String;
+// use serde_json::Value::String;
 
 fn main() {
-    let app_name = String::new("");
+    let app_name = String::new();
     println!("Hello from {app_name:?}");
 }
 
