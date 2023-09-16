@@ -3,7 +3,7 @@ module mussia33
 go 1.20
 
 require (
-	github.com/go-playground/validator/v10 v10.15.3
+	github.com/go-playground/validator/v10 v10.15.4
 	github.com/gofiber/fiber/v2 v2.47.0
 	github.com/jessicalins/instrumentation-practices-examples/middleware v0.0.0-20221107214607-4a1cf17820a6
 	github.com/prometheus/client_golang v1.16.0
