@@ -1,9 +1,9 @@
+use crate::mongo::ErrorResponse;
 use actix_web::{
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
     HttpResponse,
 };
 use futures::future::LocalBoxFuture;
-use crate::mongo::ErrorResponse;
 use std::future::{self, Ready};
 use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},

@@ -1,8 +1,8 @@
+use crate::mongo::MongoRepo;
 use crate::user;
 use crate::user::handlers::{add_user, delete_user, drop_users, get_user, update_user, user_list};
 use actix_web::{web, HttpResponse};
 use futures::executor::block_on;
-use crate::mongo::MongoRepo;
 use serde::{de::DeserializeOwned, Serialize};
 // use std::{future::Future, pin::Pin};
 
