@@ -31,6 +31,9 @@ task1:
 
 start:
   -ctlptl create cluster minikube --registry=ctlptl-registry
+  minikube addons enable auto-pause
+  minikube addons enable cloud-spanner
+  minikube addons enable istio
   minikube addons enable gcp-auth
 #  tilt up
 stop:

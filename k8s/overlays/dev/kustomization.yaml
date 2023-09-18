@@ -10,3 +10,5 @@ resources:
   - ../../../apps/node/node-users-redis/k8s/overlays/dev
   - ../../../apps/frontend/solid-app/k8s/overlays/dev
 #  - ../../../apps/frontend/astro/k8s/overlays/dev
+#helmCharts:
+#  -
