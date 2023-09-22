@@ -5,6 +5,20 @@ edition = "2021"
 
 
 [dependencies]
-
+actix-web = "4"
+serde = { version = "1.0", features = ["derive"] }
+actix-rt = "2.9.0"
+serde_json = { version = "1.0.106", features = ["arbitrary_precision"] }
+#env_logger = "0.10.0"
+#log = "0.4"
+#futures = "0.3"
+google-cloud-pubsub = "0.20"
+#google-cloud-googleapis = "0.8.0"
+google-cloud-gax = "0.15"
+google-cloud-default = "0.4"
+serde_derive = "1.0"
+futures-util = "0.3"
+#tokio-util = "0.7.8"
+tokio = "1.32"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

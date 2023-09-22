@@ -5,6 +5,10 @@ use kube::{
     Client,
 };
 use tracing::info;
+mod crd;
+// use crd::EchoSpec;
+// mod crd;
+// use crd;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

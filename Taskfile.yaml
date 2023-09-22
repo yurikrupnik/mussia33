@@ -37,7 +37,7 @@ tasks:
       - protoc --go_out ./libs/go/ --plugin=node_modules/ts-proto/protoc-gen-ts_proto --ts_proto_opt=nestJs=true,addGrpcMetadata=true,addNestjsRestParameter=true --ts_proto_out=./libs/node/grpc/src ./_proto/*.proto --ts_proto_opt=esModuleInterop=true
   image-pull-secret:
     cmds:
-      - 4kubectl create secret docker-registry my-registry-secret --docker-server=europe-central2-docker.pkg.dev --docker-username=_json_key --docker-password="$(cat mussia-infra-a6504e8e275d.json)" --docker-email=container-puller-sa@mussia-infra.iam.gserviceaccount.com
+      - kubectl create secret docker-registry my-registry-secret --docker-server=europe-central2-docker.pkg.dev --docker-username=_json_key --docker-password="$(cat mussia-infra-a6504e8e275d.json)" --docker-email=container-puller-sa@mussia-infra.iam.gserviceaccount.com
   start:
     deps:
       - cluster:kind-local-cluster:up
