@@ -1,15 +1,31 @@
+apiVersion: ecr.aws.upbound.io/v1beta1
+kind: Repository
+metadata:
+  name: crossplane-multicloud-fsdf-c8c5ea0d
+spec:
+  forProvider:
+    region: ""
+    tags: {}
+---
+apiVersion: artifact.gcp.upbound.io/v1beta1
+kind: RegistryRepository
+metadata:
+  name: crossplane-multicloud-ds-c8c96364
+spec:
+  forProvider: {}
+---
 apiVersion: apiextensions.crossplane.io/v1
 kind: CompositeResourceDefinition
 metadata:
-  name: xnetworks.custom-api.example.org
+  name: project.multicloud.yurikrupnik.com
 spec:
   claimNames:
-    kind: Network
-    plural: xNetworks
-  group: custom-api.example.org
+    kind: Project
+    plural: Projects
+  group: multicloud.yurikrupnik.com
   names:
-    kind: XNetwork
-    plural: xnetworks
+    kind: Project
+    plural: projects
   versions:
     - name: v1alpha1
       referenceable: true
@@ -32,51 +48,49 @@ kind: Composition
 metadata:
   labels:
     provider: GCP
-  name: gcp.networks
+  name: gcp.projects
 spec:
   compositeTypeRef:
     apiVersion: custom-api.example.org/v1alpha1
-    kind: XNetwork
+    kind: Xproject
   resources:
     - base:
-        apiVersion: storage.gcp.upbound.io/v1beta1
-        kind: Bucket
-        metadata:
-          labels:
-            provider: gcp
-            region: eu
-        spec:
-          forProvider:
-            labels:
-              iac: crossplane
-              module: bigdata
-              provider: gcp
-            location: europe-west1
-      name: crossplane-yuri-network-storage
-      patches:
-        - fromFieldPath: spec.location
-          toFieldPath: spec.forProvider.location
-    - base:
-        apiVersion: compute.gcp.upbound.io/v1beta1
-        kind: Network
+        apiVersion: helm.crossplane.io/v1alpha1
+        kind: Release
         metadata:
           name: my-network
         spec:
           forProvider:
-            autoCreateSubnetworks: false
-      name: crossplane-yuri-network-vpc
+            chart:
+              name: wordpress
+              repository: https://charts.bitnami.com/bitnami
+              version: 15.2.5
+            namespace: wordpress
+            set:
+              - name: ad
+                value: das
+            values:
+              service:
+                type: ClusterIP
+      name: helm-some-release
     - base:
-        apiVersion: compute.gcp.upbound.io/v1beta1
-        kind: Subnetwork
-        metadata: {}
+        apiVersion: applications.argocd.crossplane.io/v1alpha1
+        kind: Application
+        metadata:
+          name: external-secrets
+          namespace: argocd
         spec:
           forProvider:
-            description: my euro subnet
-            ipCidrRange: 172.16.0.0/16
-            networkSelector:
-              matchControllerRef: true
-            privateIpGoogleAccess: true
-            region: us-west2
+            destination:
+              namespace: external-secrets
+              server: https://kubernetes.default.svc
+            project: default
+            source:
+              chart: external-secrets
+              repoURL: https://charts.external-secrets.io/
+              targetRevision: 0.9.5
+          providerConfigRef:
+            name: argocd-provide
       name: crossplane-yuri-network-subnet
 ---
 apiVersion: apiextensions.crossplane.io/v1
@@ -202,7 +216,7 @@ spec:
       name: crossplane-yuri-network-subnet3
       patches:
         - fromFieldPath: spec.id
-          toFieldPath: metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]
+          toFieldPath: metadata.lakbels[networks.multik8s.platformref.crossplane.io/network-id]
     - base:
         apiVersion: ec2.aws.upbound.io/v1beta1
         kind: SecurityGroup

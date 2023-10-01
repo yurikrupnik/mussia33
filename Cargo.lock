@@ -2897,6 +2897,9 @@ name = "rust_clapper"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "futures",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

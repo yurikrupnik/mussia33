@@ -1,8 +1,8 @@
 resources:
+#  - ../../base
   - mongodb.yaml
   - redis.yaml
-  - surrealdb.yaml
-  #  - ../../base
+#  - surrealdb.yaml
   - ../../../apps/rust/actix_app/k8s/overlays/dev
   - ../../../apps/rust/clapper/k8s/overlays/dev
   - ../../../apps/go/fiber-app/k8s/overlays/dev

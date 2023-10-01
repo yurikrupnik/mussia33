@@ -14,8 +14,12 @@ spec:
               imagePullPolicy: IfNotPresent
               command:
                 - /app
-                - --name
+                - cluster
+                - update
+                - -n
                 - aris
+                - -i
+                - asdasd
           restartPolicy: OnFailure
 ---
 apiVersion: v1
@@ -28,5 +32,5 @@ spec:
   containers:
     - name: command-demo-container
       image: yurikrupnik/clapper
-      args: ["--name", "Nir"]
+      args: ["cluster", "update", "-n", "aris", "-i", "ad"]
   restartPolicy: OnFailure

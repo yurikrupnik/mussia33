@@ -1,4 +1,184 @@
+#---
+#apiVersion: projects.argocd.crossplane.io/v1alpha1
+#kind: Project
+#metadata:
+#  name: example-project
+#spec:
+#  forProvider: {}
+#  providerConfigRef:
+#    name: default
+#---
+#apiVersion: helm.crossplane.io/v1beta1
+#kind: ProviderConfig
+#metadata:
+#  name: helm-provider
+#spec:
+#  credentials:
+#    secretRef:
+#      key: kubeconfig
+#      name: cluster-config
+#      namespace: crossplane-system
+#    source: Secret
+---
+#apiVersion: rbac.authorization.k8s.io/v1
+#kind: Role
+#metadata:
+#  namespace: crossplane-system
+#  name: helm-namespace-creator
+#rules:
+#  - apiGroups: [""]
+#    resources: ["namespaces", "pods"]
+#    verbs: ["create"]
+#---
+#apiVersion: rbac.authorization.k8s.io/v1
+#kind: ClusterRoleBinding
+#metadata:
+#  name: helm-namespace-creator-binding
+#  namespace: crossplane-system
+#subjects:
+#  - kind: ServiceAccount
+#    name: provider-helm-503c3591121b
+#    namespace: crossplane-system
+#roleRef:
+#  kind: Role
+#  name: helm-namespace-creator
+#  apiGroup: rbac.authorization.k8s.io
+#---
+#apiVersion: helm.crossplane.io/v1beta1
+#kind: ProviderConfig
+#metadata:
+#  name: pro-helm
+#spec:
+#  credentials:
+#    source: InjectedIdentity
+#---
+#apiVersion: helm.crossplane.io/v1beta1
+#kind: Release
+#metadata:
+#  name: wordpress-test1
+#spec:
+#  forProvider:
+#    chart:
+#      name: wordpress
+#      repository: https://charts.bitnami.com/bitnami
+#      version: 15.2.5
+#    namespace: wordpress
+#  providerConfigRef:
+#    name: pro-helm
+#    patchesFrom:
+#      - configMapKeyRef:
+#          key: patch.yaml
+#          name: wp-patch
+#          namespace: wordpress
+#          optional: false
+#    set:
+#      - name: param1
+#        value: value2
+#    values:
+#      param1: value1
+#      param2: 1
+---
+#apiVersion: helm.crossplane.io/v1beta1
+#kind: Release
+#metadata:
+#  name: wordpress-1
+##  namespace: default
+#spec:
+#  forProvider:
+#    chart:
+#      name: wordpress
+#      repository: https://charts.bitnami.com/bitnami
+#      version: 15.2.5
+#    namespace: default
+#  providerConfigRef:
+#    name: helm-provider
 # Managed resource - GCP only!
+---
+apiVersion: cloudplatform.gcp.upbound.io/v1beta1
+kind: ServiceAccount
+metadata:
+  annotations:
+    meta.upbound.io/example-id: k8s/v1beta1/managers
+  labels:
+    testing.upbound.io/example-name: k8sowners
+  name: k8sowners
+spec:
+  forProvider:
+    displayName: Kubernetes Manager SA
+    description: My kubernetes service account to manage k8s clusters
+---
+apiVersion: cloudplatform.gcp.upbound.io/v1beta1
+kind: ProjectIAMMember
+metadata:
+  annotations:
+    meta.upbound.io/example-id: logging/v1beta1/k8s-managers
+  labels:
+    testing.upbound.io/example-name: k8s-managers
+  name: k8s-managers
+spec:
+  forProvider:
+    member: serviceAccount:k8sowners@mussia-infra.iam.gserviceaccount.com
+    project: mussia-infra
+    role: "roles/container.developer"
+---
+apiVersion: container.gcp.upbound.io/v1beta1
+kind: Cluster
+metadata:
+  annotations:
+    meta.upbound.io/example-id: gkehub/v1beta1/my-cluster1
+#    upjet.upbound.io/manual-intervention: "Error 404: Method not found"
+  labels:
+    testing.upbound.io/example-name: my-cluster1
+  name: my-cluster1
+spec:
+  forProvider:
+#    serviceAccount: k8sowners@mussia-infra.iam.gserviceaccount.com
+    initialNodeCount: 1
+    location: us-central1-a
+    nodeConfig:
+      - machineType: e2-standard-4
+---
+apiVersion: container.gcp.upbound.io/v1beta1
+kind: NodePool
+metadata:
+  annotations:
+    meta.upbound.io/example-id: container/v1beta1/nodepool
+  labels:
+    testing.upbound.io/example-name: nodepool
+  name: nodepool
+spec:
+  forProvider:
+    clusterSelector:
+      matchLabels:
+        testing.upbound.io/example-name: my-cluster1
+    nodeConfig:
+      - machineType: e2-medium
+        oauthScopes:
+          - https://www.googleapis.com/auth/cloud-platform
+    nodeCount: 1
+---
+#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#kind: Cluster
+#metadata:
+#  name: multik8s-cluster-gcp
+#spec:
+#  compositionSelector:
+#    matchLabels:
+#      provider: GCP
+#  id: multik8s-cluster-gcpd
+#  parameters:
+#    nodes:
+#      count: 3
+#      size: small
+#    services:
+#      operators:
+#        prometheus:
+#          version: "10.0.2"
+#    networkRef:
+#      id: multik8s-network-gcp
+#  writeConnectionSecretToRef:
+#    name: cluster-conn-gcp
+---
 apiVersion: storage.gcp.upbound.io/v1beta1
 kind: Bucket
 metadata:

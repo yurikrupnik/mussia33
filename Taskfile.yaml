@@ -43,7 +43,10 @@ tasks:
       - cluster:kind-local-cluster:up
     cmds:
 #     - up uxp install
-#     - task: crossplane:setup
+#     - kubectl auth can-i create namespaces --as=system:serviceaccount:crossplane-system:provider-helm-503c3591121b
+     - task: crossplane:setup
+
+#     - cargo run -p rust_master_operator
 #      - up ctp attach remote-virtual -a hashheddan | KUBECONFIG=kubeconfig.yaml up uxp connect -
 #     - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
 #     - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
@@ -52,9 +55,9 @@ tasks:
 #     - helm install prometheus-release prometheus-community/kube-prometheus-stack -n monitoring
 #     - kubectl get secret my-release-grafana-admin --namespace default -o jsonpath="{.data.GF_SECURITY_ADMIN_PASSWORD}" | base64 -d
 #     - task: kubevela:install
-     - task: argocd:install
-     - task: argocd:apply
-     - task: argocd:get-secret
+#     - task: argocd:install
+#     - task: argocd:apply
+#     - task: argocd:get-secret
 #     - helm install kubeshark kubeshark/kubeshark
 #     - task: kubevela:install
 #     - sleep 60

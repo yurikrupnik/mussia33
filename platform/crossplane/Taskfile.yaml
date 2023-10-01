@@ -24,6 +24,8 @@ tasks:
 #      - up uxp install
       - helm repo add crossplane-stable https://charts.crossplane.io/stable && helm repo update
       - helm install crossplane --namespace crossplane-system --create-namespace crossplane-stable/crossplane
+      - helm repo add komodorio https://helm-charts.komodor.io
+      - helm upgrade --install komoplane komodorio/komoplane -n crossplane-ui --create-namespace
       - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
       - kubectl get pods -n crossplane-system
       - kubectl get deployments -n crossplane-system
@@ -48,12 +50,18 @@ tasks:
     cmds:
       - kubectl apply -f compositeResourceDefinition.yaml
       - kubectl apply -f composition.yaml
+
+
       - kubectl apply -f network/definition.yaml
       - kubectl apply -f network/composition-aws.yaml
       - kubectl apply -f network/composition-gcp.yaml
+
       - kubectl apply -f storage/definition.yaml
       - kubectl apply -f storage/composition-aws.yaml
       - kubectl apply -f storage/composition-gcp.yaml
+      - kubectl apply -f registry/definition.yaml
+      - kubectl apply -f registry/composition-aws.yaml
+      - kubectl apply -f registry/composition-gcp.yaml
   get-buckets:
     cmds:
       - kubectl get bucket

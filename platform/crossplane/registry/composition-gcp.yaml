@@ -1,0 +1,35 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: gcp.compositeregistrys.multicloud.platformref.yurikrupnik.com
+  labels:
+    provider: GCP
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+    kind: CompositeRegistry
+  resources:
+    - base:
+        apiVersion: artifact.gcp.upbound.io/v1beta1
+        kind: RegistryRepository
+        metadata:
+          #  annotations:
+          #    meta.upbound.io/example-id: artifact/v1beta1/registryrepository
+          labels:
+            testing.upbound.io/example-name: container-repo
+          name: container-repo
+        spec:
+          forProvider:
+            description: example docker repository by crossplane
+            format: DOCKER
+            location: europe-central2
+            labels:
+              iac: crossplane
+          reclaimPolicy: Delete
+      patches:
+        - fromFieldPath: spec.forProvider.region
+          toFieldPath: spec.forProvider.location
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multicloud.platformref.yurikrupnik.com/network-id]
+

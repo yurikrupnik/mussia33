@@ -12,6 +12,8 @@ imports:
   - github:upbound/provider-aws
   - github:crossplane/crossplane
   - github:fluxcd/flux2s
+  - github:crossplane-contrib/provider-argocd
+  - github:crossplane-contrib/provider-helm
 #  - github:kubernetes-sigs/kustomize
 #  - github:upbound/provider-azure
 

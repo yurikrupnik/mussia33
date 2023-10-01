@@ -704,6 +704,20 @@ export interface ControllerConfigSpec {
    */
   readonly tolerations?: ControllerConfigSpecTolerations[];
 
+  /**
+   * List of VolumeMounts to mount into the container's filesystem. Cannot be updated.
+   *
+   * @schema ControllerConfigSpec#volumeMounts
+   */
+  readonly volumeMounts?: ControllerConfigSpecVolumeMounts[];
+
+  /**
+   * List of volumes that can be mounted by containers belonging to the pod. More info: https://kubernetes.io/docs/concepts/storage/volumes
+   *
+   * @schema ControllerConfigSpec#volumes
+   */
+  readonly volumes?: ControllerConfigSpecVolumes[];
+
 }
 
 /**
@@ -732,6 +746,8 @@ export function toJson_ControllerConfigSpec(obj: ControllerConfigSpec | undefine
     'securityContext': toJson_ControllerConfigSpecSecurityContext(obj.securityContext),
     'serviceAccountName': obj.serviceAccountName,
     'tolerations': obj.tolerations?.map(y => toJson_ControllerConfigSpecTolerations(y)),
+    'volumeMounts': obj.volumeMounts?.map(y => toJson_ControllerConfigSpecVolumeMounts(y)),
+    'volumes': obj.volumes?.map(y => toJson_ControllerConfigSpecVolumes(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1130,7 +1146,7 @@ export interface ControllerConfigSpecResources {
   readonly limits?: { [key: string]: ControllerConfigSpecResourcesLimits };
 
   /**
-   * Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+   * Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. Requests cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
    *
    * @schema ControllerConfigSpecResources#requests
    */
@@ -1324,6 +1340,343 @@ export function toJson_ControllerConfigSpecTolerations(obj: ControllerConfigSpec
     'operator': obj.operator,
     'tolerationSeconds': obj.tolerationSeconds,
     'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * VolumeMount describes a mounting of a Volume within a container.
+ *
+ * @schema ControllerConfigSpecVolumeMounts
+ */
+export interface ControllerConfigSpecVolumeMounts {
+  /**
+   * Path within the container at which the volume should be mounted.  Must not contain ':'.
+   *
+   * @schema ControllerConfigSpecVolumeMounts#mountPath
+   */
+  readonly mountPath: string;
+
+  /**
+   * mountPropagation determines how mounts are propagated from the host to container and the other way around. When not set, MountPropagationNone is used. This field is beta in 1.10.
+   *
+   * @schema ControllerConfigSpecVolumeMounts#mountPropagation
+   */
+  readonly mountPropagation?: string;
+
+  /**
+   * This must match the Name of a Volume.
+   *
+   * @schema ControllerConfigSpecVolumeMounts#name
+   */
+  readonly name: string;
+
+  /**
+   * Mounted read-only if true, read-write otherwise (false or unspecified). Defaults to false.
+   *
+   * @default false.
+   * @schema ControllerConfigSpecVolumeMounts#readOnly
+   */
+  readonly readOnly?: boolean;
+
+  /**
+   * Path within the volume from which the container's volume should be mounted. Defaults to "" (volume's root).
+   *
+   * @default volume's root).
+   * @schema ControllerConfigSpecVolumeMounts#subPath
+   */
+  readonly subPath?: string;
+
+  /**
+   * Expanded path within the volume from which the container's volume should be mounted. Behaves similarly to SubPath but environment variable references $(VAR_NAME) are expanded using the container's environment. Defaults to "" (volume's root). SubPathExpr and SubPath are mutually exclusive.
+   *
+   * @default volume's root). SubPathExpr and SubPath are mutually exclusive.
+   * @schema ControllerConfigSpecVolumeMounts#subPathExpr
+   */
+  readonly subPathExpr?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumeMounts' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumeMounts(obj: ControllerConfigSpecVolumeMounts | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mountPath': obj.mountPath,
+    'mountPropagation': obj.mountPropagation,
+    'name': obj.name,
+    'readOnly': obj.readOnly,
+    'subPath': obj.subPath,
+    'subPathExpr': obj.subPathExpr,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Volume represents a named volume in a pod that may be accessed by any container in the pod.
+ *
+ * @schema ControllerConfigSpecVolumes
+ */
+export interface ControllerConfigSpecVolumes {
+  /**
+   * awsElasticBlockStore represents an AWS Disk resource that is attached to a kubelet's host machine and then exposed to the pod. More info: https://kubernetes.io/docs/concepts/storage/volumes#awselasticblockstore
+   *
+   * @schema ControllerConfigSpecVolumes#awsElasticBlockStore
+   */
+  readonly awsElasticBlockStore?: ControllerConfigSpecVolumesAwsElasticBlockStore;
+
+  /**
+   * azureDisk represents an Azure Data Disk mount on the host and bind mount to the pod.
+   *
+   * @schema ControllerConfigSpecVolumes#azureDisk
+   */
+  readonly azureDisk?: ControllerConfigSpecVolumesAzureDisk;
+
+  /**
+   * azureFile represents an Azure File Service mount on the host and bind mount to the pod.
+   *
+   * @schema ControllerConfigSpecVolumes#azureFile
+   */
+  readonly azureFile?: ControllerConfigSpecVolumesAzureFile;
+
+  /**
+   * cephFS represents a Ceph FS mount on the host that shares a pod's lifetime
+   *
+   * @schema ControllerConfigSpecVolumes#cephfs
+   */
+  readonly cephfs?: ControllerConfigSpecVolumesCephfs;
+
+  /**
+   * cinder represents a cinder volume attached and mounted on kubelets host machine. More info: https://examples.k8s.io/mysql-cinder-pd/README.md
+   *
+   * @schema ControllerConfigSpecVolumes#cinder
+   */
+  readonly cinder?: ControllerConfigSpecVolumesCinder;
+
+  /**
+   * configMap represents a configMap that should populate this volume
+   *
+   * @schema ControllerConfigSpecVolumes#configMap
+   */
+  readonly configMap?: ControllerConfigSpecVolumesConfigMap;
+
+  /**
+   * csi (Container Storage Interface) represents ephemeral storage that is handled by certain external CSI drivers (Beta feature).
+   *
+   * @schema ControllerConfigSpecVolumes#csi
+   */
+  readonly csi?: ControllerConfigSpecVolumesCsi;
+
+  /**
+   * downwardAPI represents downward API about the pod that should populate this volume
+   *
+   * @schema ControllerConfigSpecVolumes#downwardAPI
+   */
+  readonly downwardApi?: ControllerConfigSpecVolumesDownwardApi;
+
+  /**
+   * emptyDir represents a temporary directory that shares a pod's lifetime. More info: https://kubernetes.io/docs/concepts/storage/volumes#emptydir
+   *
+   * @schema ControllerConfigSpecVolumes#emptyDir
+   */
+  readonly emptyDir?: ControllerConfigSpecVolumesEmptyDir;
+
+  /**
+   * ephemeral represents a volume that is handled by a cluster storage driver. The volume's lifecycle is tied to the pod that defines it - it will be created before the pod starts, and deleted when the pod is removed.
+   * Use this if: a) the volume is only needed while the pod runs, b) features of normal volumes like restoring from snapshot or capacity tracking are needed, c) the storage driver is specified through a storage class, and d) the storage driver supports dynamic volume provisioning through a PersistentVolumeClaim (see EphemeralVolumeSource for more information on the connection between this volume type and PersistentVolumeClaim).
+   * Use PersistentVolumeClaim or one of the vendor-specific APIs for volumes that persist for longer than the lifecycle of an individual pod.
+   * Use CSI for light-weight local ephemeral volumes if the CSI driver is meant to be used that way - see the documentation of the driver for more information.
+   * A pod can use both types of ephemeral volumes and persistent volumes at the same time.
+   *
+   * @schema ControllerConfigSpecVolumes#ephemeral
+   */
+  readonly ephemeral?: ControllerConfigSpecVolumesEphemeral;
+
+  /**
+   * fc represents a Fibre Channel resource that is attached to a kubelet's host machine and then exposed to the pod.
+   *
+   * @schema ControllerConfigSpecVolumes#fc
+   */
+  readonly fc?: ControllerConfigSpecVolumesFc;
+
+  /**
+   * flexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin.
+   *
+   * @schema ControllerConfigSpecVolumes#flexVolume
+   */
+  readonly flexVolume?: ControllerConfigSpecVolumesFlexVolume;
+
+  /**
+   * flocker represents a Flocker volume attached to a kubelet's host machine. This depends on the Flocker control service being running
+   *
+   * @schema ControllerConfigSpecVolumes#flocker
+   */
+  readonly flocker?: ControllerConfigSpecVolumesFlocker;
+
+  /**
+   * gcePersistentDisk represents a GCE Disk resource that is attached to a kubelet's host machine and then exposed to the pod. More info: https://kubernetes.io/docs/concepts/storage/volumes#gcepersistentdisk
+   *
+   * @schema ControllerConfigSpecVolumes#gcePersistentDisk
+   */
+  readonly gcePersistentDisk?: ControllerConfigSpecVolumesGcePersistentDisk;
+
+  /**
+   * gitRepo represents a git repository at a particular revision. DEPRECATED: GitRepo is deprecated. To provision a container with a git repo, mount an EmptyDir into an InitContainer that clones the repo using git, then mount the EmptyDir into the Pod's container.
+   *
+   * @schema ControllerConfigSpecVolumes#gitRepo
+   */
+  readonly gitRepo?: ControllerConfigSpecVolumesGitRepo;
+
+  /**
+   * glusterfs represents a Glusterfs mount on the host that shares a pod's lifetime. More info: https://examples.k8s.io/volumes/glusterfs/README.md
+   *
+   * @schema ControllerConfigSpecVolumes#glusterfs
+   */
+  readonly glusterfs?: ControllerConfigSpecVolumesGlusterfs;
+
+  /**
+   * hostPath represents a pre-existing file or directory on the host machine that is directly exposed to the container. This is generally used for system agents or other privileged things that are allowed to see the host machine. Most containers will NOT need this. More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath --- TODO(jonesdl) We need to restrict who can use host directory mounts and who can/can not mount host directories as read/write.
+   *
+   * @schema ControllerConfigSpecVolumes#hostPath
+   */
+  readonly hostPath?: ControllerConfigSpecVolumesHostPath;
+
+  /**
+   * iscsi represents an ISCSI Disk resource that is attached to a kubelet's host machine and then exposed to the pod. More info: https://examples.k8s.io/volumes/iscsi/README.md
+   *
+   * @schema ControllerConfigSpecVolumes#iscsi
+   */
+  readonly iscsi?: ControllerConfigSpecVolumesIscsi;
+
+  /**
+   * name of the volume. Must be a DNS_LABEL and unique within the pod. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+   *
+   * @schema ControllerConfigSpecVolumes#name
+   */
+  readonly name: string;
+
+  /**
+   * nfs represents an NFS mount on the host that shares a pod's lifetime More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
+   *
+   * @schema ControllerConfigSpecVolumes#nfs
+   */
+  readonly nfs?: ControllerConfigSpecVolumesNfs;
+
+  /**
+   * persistentVolumeClaimVolumeSource represents a reference to a PersistentVolumeClaim in the same namespace. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
+   *
+   * @schema ControllerConfigSpecVolumes#persistentVolumeClaim
+   */
+  readonly persistentVolumeClaim?: ControllerConfigSpecVolumesPersistentVolumeClaim;
+
+  /**
+   * photonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine
+   *
+   * @schema ControllerConfigSpecVolumes#photonPersistentDisk
+   */
+  readonly photonPersistentDisk?: ControllerConfigSpecVolumesPhotonPersistentDisk;
+
+  /**
+   * portworxVolume represents a portworx volume attached and mounted on kubelets host machine
+   *
+   * @schema ControllerConfigSpecVolumes#portworxVolume
+   */
+  readonly portworxVolume?: ControllerConfigSpecVolumesPortworxVolume;
+
+  /**
+   * projected items for all in one resources secrets, configmaps, and downward API
+   *
+   * @schema ControllerConfigSpecVolumes#projected
+   */
+  readonly projected?: ControllerConfigSpecVolumesProjected;
+
+  /**
+   * quobyte represents a Quobyte mount on the host that shares a pod's lifetime
+   *
+   * @schema ControllerConfigSpecVolumes#quobyte
+   */
+  readonly quobyte?: ControllerConfigSpecVolumesQuobyte;
+
+  /**
+   * rbd represents a Rados Block Device mount on the host that shares a pod's lifetime. More info: https://examples.k8s.io/volumes/rbd/README.md
+   *
+   * @schema ControllerConfigSpecVolumes#rbd
+   */
+  readonly rbd?: ControllerConfigSpecVolumesRbd;
+
+  /**
+   * scaleIO represents a ScaleIO persistent volume attached and mounted on Kubernetes nodes.
+   *
+   * @schema ControllerConfigSpecVolumes#scaleIO
+   */
+  readonly scaleIo?: ControllerConfigSpecVolumesScaleIo;
+
+  /**
+   * secret represents a secret that should populate this volume. More info: https://kubernetes.io/docs/concepts/storage/volumes#secret
+   *
+   * @schema ControllerConfigSpecVolumes#secret
+   */
+  readonly secret?: ControllerConfigSpecVolumesSecret;
+
+  /**
+   * storageOS represents a StorageOS volume attached and mounted on Kubernetes nodes.
+   *
+   * @schema ControllerConfigSpecVolumes#storageos
+   */
+  readonly storageos?: ControllerConfigSpecVolumesStorageos;
+
+  /**
+   * vsphereVolume represents a vSphere volume attached and mounted on kubelets host machine
+   *
+   * @schema ControllerConfigSpecVolumes#vsphereVolume
+   */
+  readonly vsphereVolume?: ControllerConfigSpecVolumesVsphereVolume;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumes(obj: ControllerConfigSpecVolumes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'awsElasticBlockStore': toJson_ControllerConfigSpecVolumesAwsElasticBlockStore(obj.awsElasticBlockStore),
+    'azureDisk': toJson_ControllerConfigSpecVolumesAzureDisk(obj.azureDisk),
+    'azureFile': toJson_ControllerConfigSpecVolumesAzureFile(obj.azureFile),
+    'cephfs': toJson_ControllerConfigSpecVolumesCephfs(obj.cephfs),
+    'cinder': toJson_ControllerConfigSpecVolumesCinder(obj.cinder),
+    'configMap': toJson_ControllerConfigSpecVolumesConfigMap(obj.configMap),
+    'csi': toJson_ControllerConfigSpecVolumesCsi(obj.csi),
+    'downwardAPI': toJson_ControllerConfigSpecVolumesDownwardApi(obj.downwardApi),
+    'emptyDir': toJson_ControllerConfigSpecVolumesEmptyDir(obj.emptyDir),
+    'ephemeral': toJson_ControllerConfigSpecVolumesEphemeral(obj.ephemeral),
+    'fc': toJson_ControllerConfigSpecVolumesFc(obj.fc),
+    'flexVolume': toJson_ControllerConfigSpecVolumesFlexVolume(obj.flexVolume),
+    'flocker': toJson_ControllerConfigSpecVolumesFlocker(obj.flocker),
+    'gcePersistentDisk': toJson_ControllerConfigSpecVolumesGcePersistentDisk(obj.gcePersistentDisk),
+    'gitRepo': toJson_ControllerConfigSpecVolumesGitRepo(obj.gitRepo),
+    'glusterfs': toJson_ControllerConfigSpecVolumesGlusterfs(obj.glusterfs),
+    'hostPath': toJson_ControllerConfigSpecVolumesHostPath(obj.hostPath),
+    'iscsi': toJson_ControllerConfigSpecVolumesIscsi(obj.iscsi),
+    'name': obj.name,
+    'nfs': toJson_ControllerConfigSpecVolumesNfs(obj.nfs),
+    'persistentVolumeClaim': toJson_ControllerConfigSpecVolumesPersistentVolumeClaim(obj.persistentVolumeClaim),
+    'photonPersistentDisk': toJson_ControllerConfigSpecVolumesPhotonPersistentDisk(obj.photonPersistentDisk),
+    'portworxVolume': toJson_ControllerConfigSpecVolumesPortworxVolume(obj.portworxVolume),
+    'projected': toJson_ControllerConfigSpecVolumesProjected(obj.projected),
+    'quobyte': toJson_ControllerConfigSpecVolumesQuobyte(obj.quobyte),
+    'rbd': toJson_ControllerConfigSpecVolumesRbd(obj.rbd),
+    'scaleIO': toJson_ControllerConfigSpecVolumesScaleIo(obj.scaleIo),
+    'secret': toJson_ControllerConfigSpecVolumesSecret(obj.secret),
+    'storageos': toJson_ControllerConfigSpecVolumesStorageos(obj.storageos),
+    'vsphereVolume': toJson_ControllerConfigSpecVolumesVsphereVolume(obj.vsphereVolume),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1991,6 +2344,1614 @@ export function toJson_ControllerConfigSpecSecurityContextWindowsOptions(obj: Co
 /* eslint-enable max-len, quote-props */
 
 /**
+ * awsElasticBlockStore represents an AWS Disk resource that is attached to a kubelet's host machine and then exposed to the pod. More info: https://kubernetes.io/docs/concepts/storage/volumes#awselasticblockstore
+ *
+ * @schema ControllerConfigSpecVolumesAwsElasticBlockStore
+ */
+export interface ControllerConfigSpecVolumesAwsElasticBlockStore {
+  /**
+   * fsType is the filesystem type of the volume that you want to mount. Tip: Ensure that the filesystem type is supported by the host operating system. Examples: "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified. More info: https://kubernetes.io/docs/concepts/storage/volumes#awselasticblockstore TODO: how do we prevent errors in the filesystem from compromising the machine
+   *
+   * @schema ControllerConfigSpecVolumesAwsElasticBlockStore#fsType
+   */
+  readonly fsType?: string;
+
+  /**
+   * partition is the partition in the volume that you want to mount. If omitted, the default is to mount by volume name. Examples: For volume /dev/sda1, you specify the partition as "1". Similarly, the volume partition for /dev/sda is "0" (or you can leave the property empty).
+   *
+   * @schema ControllerConfigSpecVolumesAwsElasticBlockStore#partition
+   */
+  readonly partition?: number;
+
+  /**
+   * readOnly value true will force the readOnly setting in VolumeMounts. More info: https://kubernetes.io/docs/concepts/storage/volumes#awselasticblockstore
+   *
+   * @schema ControllerConfigSpecVolumesAwsElasticBlockStore#readOnly
+   */
+  readonly readOnly?: boolean;
+
+  /**
+   * volumeID is unique ID of the persistent disk resource in AWS (Amazon EBS volume). More info: https://kubernetes.io/docs/concepts/storage/volumes#awselasticblockstore
+   *
+   * @schema ControllerConfigSpecVolumesAwsElasticBlockStore#volumeID
+   */
+  readonly volumeId: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesAwsElasticBlockStore' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesAwsElasticBlockStore(obj: ControllerConfigSpecVolumesAwsElasticBlockStore | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fsType': obj.fsType,
+    'partition': obj.partition,
+    'readOnly': obj.readOnly,
+    'volumeID': obj.volumeId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * azureDisk represents an Azure Data Disk mount on the host and bind mount to the pod.
+ *
+ * @schema ControllerConfigSpecVolumesAzureDisk
+ */
+export interface ControllerConfigSpecVolumesAzureDisk {
+  /**
+   * cachingMode is the Host Caching mode: None, Read Only, Read Write.
+   *
+   * @schema ControllerConfigSpecVolumesAzureDisk#cachingMode
+   */
+  readonly cachingMode?: string;
+
+  /**
+   * diskName is the Name of the data disk in the blob storage
+   *
+   * @schema ControllerConfigSpecVolumesAzureDisk#diskName
+   */
+  readonly diskName: string;
+
+  /**
+   * diskURI is the URI of data disk in the blob storage
+   *
+   * @schema ControllerConfigSpecVolumesAzureDisk#diskURI
+   */
+  readonly diskUri: string;
+
+  /**
+   * fsType is Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified.
+   *
+   * @schema ControllerConfigSpecVolumesAzureDisk#fsType
+   */
+  readonly fsType?: string;
+
+  /**
+   * kind expected values are Shared: multiple blob disks per storage account  Dedicated: single blob disk per storage account  Managed: azure managed data disk (only in managed availability set). defaults to shared
+   *
+   * @schema ControllerConfigSpecVolumesAzureDisk#kind
+   */
+  readonly kind?: string;
+
+  /**
+   * readOnly Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.
+   *
+   * @default false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.
+   * @schema ControllerConfigSpecVolumesAzureDisk#readOnly
+   */
+  readonly readOnly?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesAzureDisk' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesAzureDisk(obj: ControllerConfigSpecVolumesAzureDisk | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cachingMode': obj.cachingMode,
+    'diskName': obj.diskName,
+    'diskURI': obj.diskUri,
+    'fsType': obj.fsType,
+    'kind': obj.kind,
+    'readOnly': obj.readOnly,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * azureFile represents an Azure File Service mount on the host and bind mount to the pod.
+ *
+ * @schema ControllerConfigSpecVolumesAzureFile
+ */
+export interface ControllerConfigSpecVolumesAzureFile {
+  /**
+   * readOnly defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.
+   *
+   * @schema ControllerConfigSpecVolumesAzureFile#readOnly
+   */
+  readonly readOnly?: boolean;
+
+  /**
+   * secretName is the  name of secret that contains Azure Storage Account Name and Key
+   *
+   * @schema ControllerConfigSpecVolumesAzureFile#secretName
+   */
+  readonly secretName: string;
+
+  /**
+   * shareName is the azure share Name
+   *
+   * @schema ControllerConfigSpecVolumesAzureFile#shareName
+   */
+  readonly shareName: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesAzureFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesAzureFile(obj: ControllerConfigSpecVolumesAzureFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'readOnly': obj.readOnly,
+    'secretName': obj.secretName,
+    'shareName': obj.shareName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * cephFS represents a Ceph FS mount on the host that shares a pod's lifetime
+ *
+ * @schema ControllerConfigSpecVolumesCephfs
+ */
+export interface ControllerConfigSpecVolumesCephfs {
+  /**
+   * monitors is Required: Monitors is a collection of Ceph monitors More info: https://examples.k8s.io/volumes/cephfs/README.md#how-to-use-it
+   *
+   * @schema ControllerConfigSpecVolumesCephfs#monitors
+   */
+  readonly monitors: string[];
+
+  /**
+   * path is Optional: Used as the mounted root, rather than the full Ceph tree, default is /
+   *
+   * @schema ControllerConfigSpecVolumesCephfs#path
+   */
+  readonly path?: string;
+
+  /**
+   * readOnly is Optional: Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts. More info: https://examples.k8s.io/volumes/cephfs/README.md#how-to-use-it
+   *
+   * @default false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts. More info: https://examples.k8s.io/volumes/cephfs/README.md#how-to-use-it
+   * @schema ControllerConfigSpecVolumesCephfs#readOnly
+   */
+  readonly readOnly?: boolean;
+
+  /**
+   * secretFile is Optional: SecretFile is the path to key ring for User, default is /etc/ceph/user.secret More info: https://examples.k8s.io/volumes/cephfs/README.md#how-to-use-it
+   *
+   * @schema ControllerConfigSpecVolumesCephfs#secretFile
+   */
+  readonly secretFile?: string;
+
+  /**
+   * secretRef is Optional: SecretRef is reference to the authentication secret for User, default is empty. More info: https://examples.k8s.io/volumes/cephfs/README.md#how-to-use-it
+   *
+   * @schema ControllerConfigSpecVolumesCephfs#secretRef
+   */
+  readonly secretRef?: ControllerConfigSpecVolumesCephfsSecretRef;
+
+  /**
+   * user is optional: User is the rados user name, default is admin More info: https://examples.k8s.io/volumes/cephfs/README.md#how-to-use-it
+   *
+   * @schema ControllerConfigSpecVolumesCephfs#user
+   */
+  readonly user?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesCephfs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesCephfs(obj: ControllerConfigSpecVolumesCephfs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'monitors': obj.monitors?.map(y => y),
+    'path': obj.path,
+    'readOnly': obj.readOnly,
+    'secretFile': obj.secretFile,
+    'secretRef': toJson_ControllerConfigSpecVolumesCephfsSecretRef(obj.secretRef),
+    'user': obj.user,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * cinder represents a cinder volume attached and mounted on kubelets host machine. More info: https://examples.k8s.io/mysql-cinder-pd/README.md
+ *
+ * @schema ControllerConfigSpecVolumesCinder
+ */
+export interface ControllerConfigSpecVolumesCinder {
+  /**
+   * fsType is the filesystem type to mount. Must be a filesystem type supported by the host operating system. Examples: "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified. More info: https://examples.k8s.io/mysql-cinder-pd/README.md
+   *
+   * @schema ControllerConfigSpecVolumesCinder#fsType
+   */
+  readonly fsType?: string;
+
+  /**
+   * readOnly defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts. More info: https://examples.k8s.io/mysql-cinder-pd/README.md
+   *
+   * @schema ControllerConfigSpecVolumesCinder#readOnly
+   */
+  readonly readOnly?: boolean;
+
+  /**
+   * secretRef is optional: points to a secret object containing parameters used to connect to OpenStack.
+   *
+   * @schema ControllerConfigSpecVolumesCinder#secretRef
+   */
+  readonly secretRef?: ControllerConfigSpecVolumesCinderSecretRef;
+
+  /**
+   * volumeID used to identify the volume in cinder. More info: https://examples.k8s.io/mysql-cinder-pd/README.md
+   *
+   * @schema ControllerConfigSpecVolumesCinder#volumeID
+   */
+  readonly volumeId: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesCinder' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesCinder(obj: ControllerConfigSpecVolumesCinder | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fsType': obj.fsType,
+    'readOnly': obj.readOnly,
+    'secretRef': toJson_ControllerConfigSpecVolumesCinderSecretRef(obj.secretRef),
+    'volumeID': obj.volumeId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * configMap represents a configMap that should populate this volume
+ *
+ * @schema ControllerConfigSpecVolumesConfigMap
+ */
+export interface ControllerConfigSpecVolumesConfigMap {
+  /**
+   * defaultMode is optional: mode bits used to set permissions on created files by default. Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511. YAML accepts both octal and decimal values, JSON requires decimal values for mode bits. Defaults to 0644. Directories within the path are not affected by this setting. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
+   *
+   * @default 0644. Directories within the path are not affected by this setting. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
+   * @schema ControllerConfigSpecVolumesConfigMap#defaultMode
+   */
+  readonly defaultMode?: number;
+
+  /**
+   * items if unspecified, each key-value pair in the Data field of the referenced ConfigMap will be projected into the volume as a file whose name is the key and content is the value. If specified, the listed keys will be projected into the specified paths, and unlisted keys will not be present. If a key is specified which is not present in the ConfigMap, the volume setup will error unless it is marked optional. Paths must be relative and may not contain the '..' path or start with '..'.
+   *
+   * @schema ControllerConfigSpecVolumesConfigMap#items
+   */
+  readonly items?: ControllerConfigSpecVolumesConfigMapItems[];
+
+  /**
+   * Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?
+   *
+   * @schema ControllerConfigSpecVolumesConfigMap#name
+   */
+  readonly name?: string;
+
+  /**
+   * optional specify whether the ConfigMap or its keys must be defined
+   *
+   * @schema ControllerConfigSpecVolumesConfigMap#optional
+   */
+  readonly optional?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesConfigMap' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesConfigMap(obj: ControllerConfigSpecVolumesConfigMap | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultMode': obj.defaultMode,
+    'items': obj.items?.map(y => toJson_ControllerConfigSpecVolumesConfigMapItems(y)),
+    'name': obj.name,
+    'optional': obj.optional,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * csi (Container Storage Interface) represents ephemeral storage that is handled by certain external CSI drivers (Beta feature).
+ *
+ * @schema ControllerConfigSpecVolumesCsi
+ */
+export interface ControllerConfigSpecVolumesCsi {
+  /**
+   * driver is the name of the CSI driver that handles this volume. Consult with your admin for the correct name as registered in the cluster.
+   *
+   * @schema ControllerConfigSpecVolumesCsi#driver
+   */
+  readonly driver: string;
+
+  /**
+   * fsType to mount. Ex. "ext4", "xfs", "ntfs". If not provided, the empty value is passed to the associated CSI driver which will determine the default filesystem to apply.
+   *
+   * @schema ControllerConfigSpecVolumesCsi#fsType
+   */
+  readonly fsType?: string;
+
+  /**
+   * nodePublishSecretRef is a reference to the secret object containing sensitive information to pass to the CSI driver to complete the CSI NodePublishVolume and NodeUnpublishVolume calls. This field is optional, and  may be empty if no secret is required. If the secret object contains more than one secret, all secret references are passed.
+   *
+   * @schema ControllerConfigSpecVolumesCsi#nodePublishSecretRef
+   */
+  readonly nodePublishSecretRef?: ControllerConfigSpecVolumesCsiNodePublishSecretRef;
+
+  /**
+   * readOnly specifies a read-only configuration for the volume. Defaults to false (read/write).
+   *
+   * @default false (read/write).
+   * @schema ControllerConfigSpecVolumesCsi#readOnly
+   */
+  readonly readOnly?: boolean;
+
+  /**
+   * volumeAttributes stores driver-specific properties that are passed to the CSI driver. Consult your driver's documentation for supported values.
+   *
+   * @schema ControllerConfigSpecVolumesCsi#volumeAttributes
+   */
+  readonly volumeAttributes?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesCsi' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesCsi(obj: ControllerConfigSpecVolumesCsi | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'driver': obj.driver,
+    'fsType': obj.fsType,
+    'nodePublishSecretRef': toJson_ControllerConfigSpecVolumesCsiNodePublishSecretRef(obj.nodePublishSecretRef),
+    'readOnly': obj.readOnly,
+    'volumeAttributes': ((obj.volumeAttributes) === undefined) ? undefined : (Object.entries(obj.volumeAttributes).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * downwardAPI represents downward API about the pod that should populate this volume
+ *
+ * @schema ControllerConfigSpecVolumesDownwardApi
+ */
+export interface ControllerConfigSpecVolumesDownwardApi {
+  /**
+   * Optional: mode bits to use on created files by default. Must be a Optional: mode bits used to set permissions on created files by default. Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511. YAML accepts both octal and decimal values, JSON requires decimal values for mode bits. Defaults to 0644. Directories within the path are not affected by this setting. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
+   *
+   * @default 0644. Directories within the path are not affected by this setting. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
+   * @schema ControllerConfigSpecVolumesDownwardApi#defaultMode
+   */
+  readonly defaultMode?: number;
+
+  /**
+   * Items is a list of downward API volume file
+   *
+   * @schema ControllerConfigSpecVolumesDownwardApi#items
+   */
+  readonly items?: ControllerConfigSpecVolumesDownwardApiItems[];
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesDownwardApi' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesDownwardApi(obj: ControllerConfigSpecVolumesDownwardApi | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultMode': obj.defaultMode,
+    'items': obj.items?.map(y => toJson_ControllerConfigSpecVolumesDownwardApiItems(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * emptyDir represents a temporary directory that shares a pod's lifetime. More info: https://kubernetes.io/docs/concepts/storage/volumes#emptydir
+ *
+ * @schema ControllerConfigSpecVolumesEmptyDir
+ */
+export interface ControllerConfigSpecVolumesEmptyDir {
+  /**
+   * medium represents what type of storage medium should back this directory. The default is "" which means to use the node's default medium. Must be an empty string (default) or Memory. More info: https://kubernetes.io/docs/concepts/storage/volumes#emptydir
+   *
+   * @schema ControllerConfigSpecVolumesEmptyDir#medium
+   */
+  readonly medium?: string;
+
+  /**
+   * sizeLimit is the total amount of local storage required for this EmptyDir volume. The size limit is also applicable for memory medium. The maximum usage on memory medium EmptyDir would be the minimum value between the SizeLimit specified here and the sum of memory limits of all containers in a pod. The default is nil which means that the limit is undefined. More info: https://kubernetes.io/docs/concepts/storage/volumes#emptydir
+   *
+   * @schema ControllerConfigSpecVolumesEmptyDir#sizeLimit
+   */
+  readonly sizeLimit?: ControllerConfigSpecVolumesEmptyDirSizeLimit;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesEmptyDir' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesEmptyDir(obj: ControllerConfigSpecVolumesEmptyDir | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'medium': obj.medium,
+    'sizeLimit': obj.sizeLimit?.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ephemeral represents a volume that is handled by a cluster storage driver. The volume's lifecycle is tied to the pod that defines it - it will be created before the pod starts, and deleted when the pod is removed.
+ * Use this if: a) the volume is only needed while the pod runs, b) features of normal volumes like restoring from snapshot or capacity tracking are needed, c) the storage driver is specified through a storage class, and d) the storage driver supports dynamic volume provisioning through a PersistentVolumeClaim (see EphemeralVolumeSource for more information on the connection between this volume type and PersistentVolumeClaim).
+ * Use PersistentVolumeClaim or one of the vendor-specific APIs for volumes that persist for longer than the lifecycle of an individual pod.
+ * Use CSI for light-weight local ephemeral volumes if the CSI driver is meant to be used that way - see the documentation of the driver for more information.
+ * A pod can use both types of ephemeral volumes and persistent volumes at the same time.
+ *
+ * @schema ControllerConfigSpecVolumesEphemeral
+ */
+export interface ControllerConfigSpecVolumesEphemeral {
+  /**
+   * Will be used to create a stand-alone PVC to provision the volume. The pod in which this EphemeralVolumeSource is embedded will be the owner of the PVC, i.e. the PVC will be deleted together with the pod.  The name of the PVC will be `<pod name>-<volume name>` where `<volume name>` is the name from the `PodSpec.Volumes` array entry. Pod validation will reject the pod if the concatenated name is not valid for a PVC (for example, too long).
+   * An existing PVC with that name that is not owned by the pod will *not* be used for the pod to avoid using an unrelated volume by mistake. Starting the pod is then blocked until the unrelated PVC is removed. If such a pre-created PVC is meant to be used by the pod, the PVC has to updated with an owner reference to the pod once the pod exists. Normally this should not be necessary, but it may be useful when manually reconstructing a broken cluster.
+   * This field is read-only and no changes will be made by Kubernetes to the PVC after it has been created.
+   * Required, must not be nil.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeral#volumeClaimTemplate
+   */
+  readonly volumeClaimTemplate?: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplate;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesEphemeral' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesEphemeral(obj: ControllerConfigSpecVolumesEphemeral | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'volumeClaimTemplate': toJson_ControllerConfigSpecVolumesEphemeralVolumeClaimTemplate(obj.volumeClaimTemplate),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * fc represents a Fibre Channel resource that is attached to a kubelet's host machine and then exposed to the pod.
+ *
+ * @schema ControllerConfigSpecVolumesFc
+ */
+export interface ControllerConfigSpecVolumesFc {
+  /**
+   * fsType is the filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified. TODO: how do we prevent errors in the filesystem from compromising the machine
+   *
+   * @schema ControllerConfigSpecVolumesFc#fsType
+   */
+  readonly fsType?: string;
+
+  /**
+   * lun is Optional: FC target lun number
+   *
+   * @schema ControllerConfigSpecVolumesFc#lun
+   */
+  readonly lun?: number;
+
+  /**
+   * readOnly is Optional: Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.
+   *
+   * @default false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.
+   * @schema ControllerConfigSpecVolumesFc#readOnly
+   */
+  readonly readOnly?: boolean;
+
+  /**
+   * targetWWNs is Optional: FC target worldwide names (WWNs)
+   *
+   * @schema ControllerConfigSpecVolumesFc#targetWWNs
+   */
+  readonly targetWwNs?: string[];
+
+  /**
+   * wwids Optional: FC volume world wide identifiers (wwids) Either wwids or combination of targetWWNs and lun must be set, but not both simultaneously.
+   *
+   * @schema ControllerConfigSpecVolumesFc#wwids
+   */
+  readonly wwids?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesFc' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesFc(obj: ControllerConfigSpecVolumesFc | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fsType': obj.fsType,
+    'lun': obj.lun,
+    'readOnly': obj.readOnly,
+    'targetWWNs': obj.targetWwNs?.map(y => y),
+    'wwids': obj.wwids?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * flexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin.
+ *
+ * @schema ControllerConfigSpecVolumesFlexVolume
+ */
+export interface ControllerConfigSpecVolumesFlexVolume {
+  /**
+   * driver is the name of the driver to use for this volume.
+   *
+   * @schema ControllerConfigSpecVolumesFlexVolume#driver
+   */
+  readonly driver: string;
+
+  /**
+   * fsType is the filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. "ext4", "xfs", "ntfs". The default filesystem depends on FlexVolume script.
+   *
+   * @schema ControllerConfigSpecVolumesFlexVolume#fsType
+   */
+  readonly fsType?: string;
+
+  /**
+   * options is Optional: this field holds extra command options if any.
+   *
+   * @schema ControllerConfigSpecVolumesFlexVolume#options
+   */
+  readonly options?: { [key: string]: string };
+
+  /**
+   * readOnly is Optional: defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.
+   *
+   * @schema ControllerConfigSpecVolumesFlexVolume#readOnly
+   */
+  readonly readOnly?: boolean;
+
+  /**
+   * secretRef is Optional: secretRef is reference to the secret object containing sensitive information to pass to the plugin scripts. This may be empty if no secret object is specified. If the secret object contains more than one secret, all secrets are passed to the plugin scripts.
+   *
+   * @schema ControllerConfigSpecVolumesFlexVolume#secretRef
+   */
+  readonly secretRef?: ControllerConfigSpecVolumesFlexVolumeSecretRef;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesFlexVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesFlexVolume(obj: ControllerConfigSpecVolumesFlexVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'driver': obj.driver,
+    'fsType': obj.fsType,
+    'options': ((obj.options) === undefined) ? undefined : (Object.entries(obj.options).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'readOnly': obj.readOnly,
+    'secretRef': toJson_ControllerConfigSpecVolumesFlexVolumeSecretRef(obj.secretRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * flocker represents a Flocker volume attached to a kubelet's host machine. This depends on the Flocker control service being running
+ *
+ * @schema ControllerConfigSpecVolumesFlocker
+ */
+export interface ControllerConfigSpecVolumesFlocker {
+  /**
+   * datasetName is Name of the dataset stored as metadata -> name on the dataset for Flocker should be considered as deprecated
+   *
+   * @schema ControllerConfigSpecVolumesFlocker#datasetName
+   */
+  readonly datasetName?: string;
+
+  /**
+   * datasetUUID is the UUID of the dataset. This is unique identifier of a Flocker dataset
+   *
+   * @schema ControllerConfigSpecVolumesFlocker#datasetUUID
+   */
+  readonly datasetUuid?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesFlocker' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesFlocker(obj: ControllerConfigSpecVolumesFlocker | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'datasetName': obj.datasetName,
+    'datasetUUID': obj.datasetUuid,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * gcePersistentDisk represents a GCE Disk resource that is attached to a kubelet's host machine and then exposed to the pod. More info: https://kubernetes.io/docs/concepts/storage/volumes#gcepersistentdisk
+ *
+ * @schema ControllerConfigSpecVolumesGcePersistentDisk
+ */
+export interface ControllerConfigSpecVolumesGcePersistentDisk {
+  /**
+   * fsType is filesystem type of the volume that you want to mount. Tip: Ensure that the filesystem type is supported by the host operating system. Examples: "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified. More info: https://kubernetes.io/docs/concepts/storage/volumes#gcepersistentdisk TODO: how do we prevent errors in the filesystem from compromising the machine
+   *
+   * @schema ControllerConfigSpecVolumesGcePersistentDisk#fsType
+   */
+  readonly fsType?: string;
+
+  /**
+   * partition is the partition in the volume that you want to mount. If omitted, the default is to mount by volume name. Examples: For volume /dev/sda1, you specify the partition as "1". Similarly, the volume partition for /dev/sda is "0" (or you can leave the property empty). More info: https://kubernetes.io/docs/concepts/storage/volumes#gcepersistentdisk
+   *
+   * @schema ControllerConfigSpecVolumesGcePersistentDisk#partition
+   */
+  readonly partition?: number;
+
+  /**
+   * pdName is unique name of the PD resource in GCE. Used to identify the disk in GCE. More info: https://kubernetes.io/docs/concepts/storage/volumes#gcepersistentdisk
+   *
+   * @schema ControllerConfigSpecVolumesGcePersistentDisk#pdName
+   */
+  readonly pdName: string;
+
+  /**
+   * readOnly here will force the ReadOnly setting in VolumeMounts. Defaults to false. More info: https://kubernetes.io/docs/concepts/storage/volumes#gcepersistentdisk
+   *
+   * @default false. More info: https://kubernetes.io/docs/concepts/storage/volumes#gcepersistentdisk
+   * @schema ControllerConfigSpecVolumesGcePersistentDisk#readOnly
+   */
+  readonly readOnly?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesGcePersistentDisk' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesGcePersistentDisk(obj: ControllerConfigSpecVolumesGcePersistentDisk | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fsType': obj.fsType,
+    'partition': obj.partition,
+    'pdName': obj.pdName,
+    'readOnly': obj.readOnly,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * gitRepo represents a git repository at a particular revision. DEPRECATED: GitRepo is deprecated. To provision a container with a git repo, mount an EmptyDir into an InitContainer that clones the repo using git, then mount the EmptyDir into the Pod's container.
+ *
+ * @schema ControllerConfigSpecVolumesGitRepo
+ */
+export interface ControllerConfigSpecVolumesGitRepo {
+  /**
+   * directory is the target directory name. Must not contain or start with '..'.  If '.' is supplied, the volume directory will be the git repository.  Otherwise, if specified, the volume will contain the git repository in the subdirectory with the given name.
+   *
+   * @schema ControllerConfigSpecVolumesGitRepo#directory
+   */
+  readonly directory?: string;
+
+  /**
+   * repository is the URL
+   *
+   * @schema ControllerConfigSpecVolumesGitRepo#repository
+   */
+  readonly repository: string;
+
+  /**
+   * revision is the commit hash for the specified revision.
+   *
+   * @schema ControllerConfigSpecVolumesGitRepo#revision
+   */
+  readonly revision?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesGitRepo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesGitRepo(obj: ControllerConfigSpecVolumesGitRepo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'directory': obj.directory,
+    'repository': obj.repository,
+    'revision': obj.revision,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * glusterfs represents a Glusterfs mount on the host that shares a pod's lifetime. More info: https://examples.k8s.io/volumes/glusterfs/README.md
+ *
+ * @schema ControllerConfigSpecVolumesGlusterfs
+ */
+export interface ControllerConfigSpecVolumesGlusterfs {
+  /**
+   * endpoints is the endpoint name that details Glusterfs topology. More info: https://examples.k8s.io/volumes/glusterfs/README.md#create-a-pod
+   *
+   * @schema ControllerConfigSpecVolumesGlusterfs#endpoints
+   */
+  readonly endpoints: string;
+
+  /**
+   * path is the Glusterfs volume path. More info: https://examples.k8s.io/volumes/glusterfs/README.md#create-a-pod
+   *
+   * @schema ControllerConfigSpecVolumesGlusterfs#path
+   */
+  readonly path: string;
+
+  /**
+   * readOnly here will force the Glusterfs volume to be mounted with read-only permissions. Defaults to false. More info: https://examples.k8s.io/volumes/glusterfs/README.md#create-a-pod
+   *
+   * @default false. More info: https://examples.k8s.io/volumes/glusterfs/README.md#create-a-pod
+   * @schema ControllerConfigSpecVolumesGlusterfs#readOnly
+   */
+  readonly readOnly?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesGlusterfs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesGlusterfs(obj: ControllerConfigSpecVolumesGlusterfs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'endpoints': obj.endpoints,
+    'path': obj.path,
+    'readOnly': obj.readOnly,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * hostPath represents a pre-existing file or directory on the host machine that is directly exposed to the container. This is generally used for system agents or other privileged things that are allowed to see the host machine. Most containers will NOT need this. More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath --- TODO(jonesdl) We need to restrict who can use host directory mounts and who can/can not mount host directories as read/write.
+ *
+ * @schema ControllerConfigSpecVolumesHostPath
+ */
+export interface ControllerConfigSpecVolumesHostPath {
+  /**
+   * path of the directory on the host. If the path is a symlink, it will follow the link to the real path. More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath
+   *
+   * @schema ControllerConfigSpecVolumesHostPath#path
+   */
+  readonly path: string;
+
+  /**
+   * type for HostPath Volume Defaults to "" More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath
+   *
+   * @default More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath
+   * @schema ControllerConfigSpecVolumesHostPath#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesHostPath' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesHostPath(obj: ControllerConfigSpecVolumesHostPath | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'path': obj.path,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * iscsi represents an ISCSI Disk resource that is attached to a kubelet's host machine and then exposed to the pod. More info: https://examples.k8s.io/volumes/iscsi/README.md
+ *
+ * @schema ControllerConfigSpecVolumesIscsi
+ */
+export interface ControllerConfigSpecVolumesIscsi {
+  /**
+   * chapAuthDiscovery defines whether support iSCSI Discovery CHAP authentication
+   *
+   * @schema ControllerConfigSpecVolumesIscsi#chapAuthDiscovery
+   */
+  readonly chapAuthDiscovery?: boolean;
+
+  /**
+   * chapAuthSession defines whether support iSCSI Session CHAP authentication
+   *
+   * @schema ControllerConfigSpecVolumesIscsi#chapAuthSession
+   */
+  readonly chapAuthSession?: boolean;
+
+  /**
+   * fsType is the filesystem type of the volume that you want to mount. Tip: Ensure that the filesystem type is supported by the host operating system. Examples: "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified. More info: https://kubernetes.io/docs/concepts/storage/volumes#iscsi TODO: how do we prevent errors in the filesystem from compromising the machine
+   *
+   * @schema ControllerConfigSpecVolumesIscsi#fsType
+   */
+  readonly fsType?: string;
+
+  /**
+   * initiatorName is the custom iSCSI Initiator Name. If initiatorName is specified with iscsiInterface simultaneously, new iSCSI interface <target portal>:<volume name> will be created for the connection.
+   *
+   * @schema ControllerConfigSpecVolumesIscsi#initiatorName
+   */
+  readonly initiatorName?: string;
+
+  /**
+   * iqn is the target iSCSI Qualified Name.
+   *
+   * @schema ControllerConfigSpecVolumesIscsi#iqn
+   */
+  readonly iqn: string;
+
+  /**
+   * iscsiInterface is the interface Name that uses an iSCSI transport. Defaults to 'default' (tcp).
+   *
+   * @default default' (tcp).
+   * @schema ControllerConfigSpecVolumesIscsi#iscsiInterface
+   */
+  readonly iscsiInterface?: string;
+
+  /**
+   * lun represents iSCSI Target Lun number.
+   *
+   * @schema ControllerConfigSpecVolumesIscsi#lun
+   */
+  readonly lun: number;
+
+  /**
+   * portals is the iSCSI Target Portal List. The portal is either an IP or ip_addr:port if the port is other than default (typically TCP ports 860 and 3260).
+   *
+   * @schema ControllerConfigSpecVolumesIscsi#portals
+   */
+  readonly portals?: string[];
+
+  /**
+   * readOnly here will force the ReadOnly setting in VolumeMounts. Defaults to false.
+   *
+   * @default false.
+   * @schema ControllerConfigSpecVolumesIscsi#readOnly
+   */
+  readonly readOnly?: boolean;
+
+  /**
+   * secretRef is the CHAP Secret for iSCSI target and initiator authentication
+   *
+   * @schema ControllerConfigSpecVolumesIscsi#secretRef
+   */
+  readonly secretRef?: ControllerConfigSpecVolumesIscsiSecretRef;
+
+  /**
+   * targetPortal is iSCSI Target Portal. The Portal is either an IP or ip_addr:port if the port is other than default (typically TCP ports 860 and 3260).
+   *
+   * @schema ControllerConfigSpecVolumesIscsi#targetPortal
+   */
+  readonly targetPortal: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesIscsi' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesIscsi(obj: ControllerConfigSpecVolumesIscsi | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'chapAuthDiscovery': obj.chapAuthDiscovery,
+    'chapAuthSession': obj.chapAuthSession,
+    'fsType': obj.fsType,
+    'initiatorName': obj.initiatorName,
+    'iqn': obj.iqn,
+    'iscsiInterface': obj.iscsiInterface,
+    'lun': obj.lun,
+    'portals': obj.portals?.map(y => y),
+    'readOnly': obj.readOnly,
+    'secretRef': toJson_ControllerConfigSpecVolumesIscsiSecretRef(obj.secretRef),
+    'targetPortal': obj.targetPortal,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * nfs represents an NFS mount on the host that shares a pod's lifetime More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
+ *
+ * @schema ControllerConfigSpecVolumesNfs
+ */
+export interface ControllerConfigSpecVolumesNfs {
+  /**
+   * path that is exported by the NFS server. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
+   *
+   * @schema ControllerConfigSpecVolumesNfs#path
+   */
+  readonly path: string;
+
+  /**
+   * readOnly here will force the NFS export to be mounted with read-only permissions. Defaults to false. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
+   *
+   * @default false. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
+   * @schema ControllerConfigSpecVolumesNfs#readOnly
+   */
+  readonly readOnly?: boolean;
+
+  /**
+   * server is the hostname or IP address of the NFS server. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
+   *
+   * @schema ControllerConfigSpecVolumesNfs#server
+   */
+  readonly server: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesNfs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesNfs(obj: ControllerConfigSpecVolumesNfs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'path': obj.path,
+    'readOnly': obj.readOnly,
+    'server': obj.server,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * persistentVolumeClaimVolumeSource represents a reference to a PersistentVolumeClaim in the same namespace. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
+ *
+ * @schema ControllerConfigSpecVolumesPersistentVolumeClaim
+ */
+export interface ControllerConfigSpecVolumesPersistentVolumeClaim {
+  /**
+   * claimName is the name of a PersistentVolumeClaim in the same namespace as the pod using this volume. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
+   *
+   * @schema ControllerConfigSpecVolumesPersistentVolumeClaim#claimName
+   */
+  readonly claimName: string;
+
+  /**
+   * readOnly Will force the ReadOnly setting in VolumeMounts. Default false.
+   *
+   * @schema ControllerConfigSpecVolumesPersistentVolumeClaim#readOnly
+   */
+  readonly readOnly?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesPersistentVolumeClaim' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesPersistentVolumeClaim(obj: ControllerConfigSpecVolumesPersistentVolumeClaim | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'claimName': obj.claimName,
+    'readOnly': obj.readOnly,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * photonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine
+ *
+ * @schema ControllerConfigSpecVolumesPhotonPersistentDisk
+ */
+export interface ControllerConfigSpecVolumesPhotonPersistentDisk {
+  /**
+   * fsType is the filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified.
+   *
+   * @schema ControllerConfigSpecVolumesPhotonPersistentDisk#fsType
+   */
+  readonly fsType?: string;
+
+  /**
+   * pdID is the ID that identifies Photon Controller persistent disk
+   *
+   * @schema ControllerConfigSpecVolumesPhotonPersistentDisk#pdID
+   */
+  readonly pdId: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesPhotonPersistentDisk' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesPhotonPersistentDisk(obj: ControllerConfigSpecVolumesPhotonPersistentDisk | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fsType': obj.fsType,
+    'pdID': obj.pdId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * portworxVolume represents a portworx volume attached and mounted on kubelets host machine
+ *
+ * @schema ControllerConfigSpecVolumesPortworxVolume
+ */
+export interface ControllerConfigSpecVolumesPortworxVolume {
+  /**
+   * fSType represents the filesystem type to mount Must be a filesystem type supported by the host operating system. Ex. "ext4", "xfs". Implicitly inferred to be "ext4" if unspecified.
+   *
+   * @schema ControllerConfigSpecVolumesPortworxVolume#fsType
+   */
+  readonly fsType?: string;
+
+  /**
+   * readOnly defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.
+   *
+   * @schema ControllerConfigSpecVolumesPortworxVolume#readOnly
+   */
+  readonly readOnly?: boolean;
+
+  /**
+   * volumeID uniquely identifies a Portworx volume
+   *
+   * @schema ControllerConfigSpecVolumesPortworxVolume#volumeID
+   */
+  readonly volumeId: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesPortworxVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesPortworxVolume(obj: ControllerConfigSpecVolumesPortworxVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fsType': obj.fsType,
+    'readOnly': obj.readOnly,
+    'volumeID': obj.volumeId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * projected items for all in one resources secrets, configmaps, and downward API
+ *
+ * @schema ControllerConfigSpecVolumesProjected
+ */
+export interface ControllerConfigSpecVolumesProjected {
+  /**
+   * defaultMode are the mode bits used to set permissions on created files by default. Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511. YAML accepts both octal and decimal values, JSON requires decimal values for mode bits. Directories within the path are not affected by this setting. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
+   *
+   * @schema ControllerConfigSpecVolumesProjected#defaultMode
+   */
+  readonly defaultMode?: number;
+
+  /**
+   * sources is the list of volume projections
+   *
+   * @schema ControllerConfigSpecVolumesProjected#sources
+   */
+  readonly sources?: ControllerConfigSpecVolumesProjectedSources[];
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesProjected' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesProjected(obj: ControllerConfigSpecVolumesProjected | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultMode': obj.defaultMode,
+    'sources': obj.sources?.map(y => toJson_ControllerConfigSpecVolumesProjectedSources(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * quobyte represents a Quobyte mount on the host that shares a pod's lifetime
+ *
+ * @schema ControllerConfigSpecVolumesQuobyte
+ */
+export interface ControllerConfigSpecVolumesQuobyte {
+  /**
+   * group to map volume access to Default is no group
+   *
+   * @default no group
+   * @schema ControllerConfigSpecVolumesQuobyte#group
+   */
+  readonly group?: string;
+
+  /**
+   * readOnly here will force the Quobyte volume to be mounted with read-only permissions. Defaults to false.
+   *
+   * @default false.
+   * @schema ControllerConfigSpecVolumesQuobyte#readOnly
+   */
+  readonly readOnly?: boolean;
+
+  /**
+   * registry represents a single or multiple Quobyte Registry services specified as a string as host:port pair (multiple entries are separated with commas) which acts as the central registry for volumes
+   *
+   * @schema ControllerConfigSpecVolumesQuobyte#registry
+   */
+  readonly registry: string;
+
+  /**
+   * tenant owning the given Quobyte volume in the Backend Used with dynamically provisioned Quobyte volumes, value is set by the plugin
+   *
+   * @schema ControllerConfigSpecVolumesQuobyte#tenant
+   */
+  readonly tenant?: string;
+
+  /**
+   * user to map volume access to Defaults to serivceaccount user
+   *
+   * @default serivceaccount user
+   * @schema ControllerConfigSpecVolumesQuobyte#user
+   */
+  readonly user?: string;
+
+  /**
+   * volume is a string that references an already created Quobyte volume by name.
+   *
+   * @schema ControllerConfigSpecVolumesQuobyte#volume
+   */
+  readonly volume: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesQuobyte' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesQuobyte(obj: ControllerConfigSpecVolumesQuobyte | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'group': obj.group,
+    'readOnly': obj.readOnly,
+    'registry': obj.registry,
+    'tenant': obj.tenant,
+    'user': obj.user,
+    'volume': obj.volume,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * rbd represents a Rados Block Device mount on the host that shares a pod's lifetime. More info: https://examples.k8s.io/volumes/rbd/README.md
+ *
+ * @schema ControllerConfigSpecVolumesRbd
+ */
+export interface ControllerConfigSpecVolumesRbd {
+  /**
+   * fsType is the filesystem type of the volume that you want to mount. Tip: Ensure that the filesystem type is supported by the host operating system. Examples: "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified. More info: https://kubernetes.io/docs/concepts/storage/volumes#rbd TODO: how do we prevent errors in the filesystem from compromising the machine
+   *
+   * @schema ControllerConfigSpecVolumesRbd#fsType
+   */
+  readonly fsType?: string;
+
+  /**
+   * image is the rados image name. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it
+   *
+   * @schema ControllerConfigSpecVolumesRbd#image
+   */
+  readonly image: string;
+
+  /**
+   * keyring is the path to key ring for RBDUser. Default is /etc/ceph/keyring. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it
+   *
+   * @default etc/ceph/keyring. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it
+   * @schema ControllerConfigSpecVolumesRbd#keyring
+   */
+  readonly keyring?: string;
+
+  /**
+   * monitors is a collection of Ceph monitors. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it
+   *
+   * @schema ControllerConfigSpecVolumesRbd#monitors
+   */
+  readonly monitors: string[];
+
+  /**
+   * pool is the rados pool name. Default is rbd. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it
+   *
+   * @default rbd. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it
+   * @schema ControllerConfigSpecVolumesRbd#pool
+   */
+  readonly pool?: string;
+
+  /**
+   * readOnly here will force the ReadOnly setting in VolumeMounts. Defaults to false. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it
+   *
+   * @default false. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it
+   * @schema ControllerConfigSpecVolumesRbd#readOnly
+   */
+  readonly readOnly?: boolean;
+
+  /**
+   * secretRef is name of the authentication secret for RBDUser. If provided overrides keyring. Default is nil. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it
+   *
+   * @default nil. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it
+   * @schema ControllerConfigSpecVolumesRbd#secretRef
+   */
+  readonly secretRef?: ControllerConfigSpecVolumesRbdSecretRef;
+
+  /**
+   * user is the rados user name. Default is admin. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it
+   *
+   * @default admin. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it
+   * @schema ControllerConfigSpecVolumesRbd#user
+   */
+  readonly user?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesRbd' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesRbd(obj: ControllerConfigSpecVolumesRbd | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fsType': obj.fsType,
+    'image': obj.image,
+    'keyring': obj.keyring,
+    'monitors': obj.monitors?.map(y => y),
+    'pool': obj.pool,
+    'readOnly': obj.readOnly,
+    'secretRef': toJson_ControllerConfigSpecVolumesRbdSecretRef(obj.secretRef),
+    'user': obj.user,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * scaleIO represents a ScaleIO persistent volume attached and mounted on Kubernetes nodes.
+ *
+ * @schema ControllerConfigSpecVolumesScaleIo
+ */
+export interface ControllerConfigSpecVolumesScaleIo {
+  /**
+   * fsType is the filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. "ext4", "xfs", "ntfs". Default is "xfs".
+   *
+   * @default xfs".
+   * @schema ControllerConfigSpecVolumesScaleIo#fsType
+   */
+  readonly fsType?: string;
+
+  /**
+   * gateway is the host address of the ScaleIO API Gateway.
+   *
+   * @schema ControllerConfigSpecVolumesScaleIo#gateway
+   */
+  readonly gateway: string;
+
+  /**
+   * protectionDomain is the name of the ScaleIO Protection Domain for the configured storage.
+   *
+   * @schema ControllerConfigSpecVolumesScaleIo#protectionDomain
+   */
+  readonly protectionDomain?: string;
+
+  /**
+   * readOnly Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.
+   *
+   * @default false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.
+   * @schema ControllerConfigSpecVolumesScaleIo#readOnly
+   */
+  readonly readOnly?: boolean;
+
+  /**
+   * secretRef references to the secret for ScaleIO user and other sensitive information. If this is not provided, Login operation will fail.
+   *
+   * @schema ControllerConfigSpecVolumesScaleIo#secretRef
+   */
+  readonly secretRef: ControllerConfigSpecVolumesScaleIoSecretRef;
+
+  /**
+   * sslEnabled Flag enable/disable SSL communication with Gateway, default false
+   *
+   * @schema ControllerConfigSpecVolumesScaleIo#sslEnabled
+   */
+  readonly sslEnabled?: boolean;
+
+  /**
+   * storageMode indicates whether the storage for a volume should be ThickProvisioned or ThinProvisioned. Default is ThinProvisioned.
+   *
+   * @default ThinProvisioned.
+   * @schema ControllerConfigSpecVolumesScaleIo#storageMode
+   */
+  readonly storageMode?: string;
+
+  /**
+   * storagePool is the ScaleIO Storage Pool associated with the protection domain.
+   *
+   * @schema ControllerConfigSpecVolumesScaleIo#storagePool
+   */
+  readonly storagePool?: string;
+
+  /**
+   * system is the name of the storage system as configured in ScaleIO.
+   *
+   * @schema ControllerConfigSpecVolumesScaleIo#system
+   */
+  readonly system: string;
+
+  /**
+   * volumeName is the name of a volume already created in the ScaleIO system that is associated with this volume source.
+   *
+   * @schema ControllerConfigSpecVolumesScaleIo#volumeName
+   */
+  readonly volumeName?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesScaleIo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesScaleIo(obj: ControllerConfigSpecVolumesScaleIo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fsType': obj.fsType,
+    'gateway': obj.gateway,
+    'protectionDomain': obj.protectionDomain,
+    'readOnly': obj.readOnly,
+    'secretRef': toJson_ControllerConfigSpecVolumesScaleIoSecretRef(obj.secretRef),
+    'sslEnabled': obj.sslEnabled,
+    'storageMode': obj.storageMode,
+    'storagePool': obj.storagePool,
+    'system': obj.system,
+    'volumeName': obj.volumeName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * secret represents a secret that should populate this volume. More info: https://kubernetes.io/docs/concepts/storage/volumes#secret
+ *
+ * @schema ControllerConfigSpecVolumesSecret
+ */
+export interface ControllerConfigSpecVolumesSecret {
+  /**
+   * defaultMode is Optional: mode bits used to set permissions on created files by default. Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511. YAML accepts both octal and decimal values, JSON requires decimal values for mode bits. Defaults to 0644. Directories within the path are not affected by this setting. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
+   *
+   * @default 0644. Directories within the path are not affected by this setting. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
+   * @schema ControllerConfigSpecVolumesSecret#defaultMode
+   */
+  readonly defaultMode?: number;
+
+  /**
+   * items If unspecified, each key-value pair in the Data field of the referenced Secret will be projected into the volume as a file whose name is the key and content is the value. If specified, the listed keys will be projected into the specified paths, and unlisted keys will not be present. If a key is specified which is not present in the Secret, the volume setup will error unless it is marked optional. Paths must be relative and may not contain the '..' path or start with '..'.
+   *
+   * @schema ControllerConfigSpecVolumesSecret#items
+   */
+  readonly items?: ControllerConfigSpecVolumesSecretItems[];
+
+  /**
+   * optional field specify whether the Secret or its keys must be defined
+   *
+   * @schema ControllerConfigSpecVolumesSecret#optional
+   */
+  readonly optional?: boolean;
+
+  /**
+   * secretName is the name of the secret in the pod's namespace to use. More info: https://kubernetes.io/docs/concepts/storage/volumes#secret
+   *
+   * @schema ControllerConfigSpecVolumesSecret#secretName
+   */
+  readonly secretName?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesSecret' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesSecret(obj: ControllerConfigSpecVolumesSecret | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultMode': obj.defaultMode,
+    'items': obj.items?.map(y => toJson_ControllerConfigSpecVolumesSecretItems(y)),
+    'optional': obj.optional,
+    'secretName': obj.secretName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * storageOS represents a StorageOS volume attached and mounted on Kubernetes nodes.
+ *
+ * @schema ControllerConfigSpecVolumesStorageos
+ */
+export interface ControllerConfigSpecVolumesStorageos {
+  /**
+   * fsType is the filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified.
+   *
+   * @schema ControllerConfigSpecVolumesStorageos#fsType
+   */
+  readonly fsType?: string;
+
+  /**
+   * readOnly defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.
+   *
+   * @schema ControllerConfigSpecVolumesStorageos#readOnly
+   */
+  readonly readOnly?: boolean;
+
+  /**
+   * secretRef specifies the secret to use for obtaining the StorageOS API credentials.  If not specified, default values will be attempted.
+   *
+   * @schema ControllerConfigSpecVolumesStorageos#secretRef
+   */
+  readonly secretRef?: ControllerConfigSpecVolumesStorageosSecretRef;
+
+  /**
+   * volumeName is the human-readable name of the StorageOS volume.  Volume names are only unique within a namespace.
+   *
+   * @schema ControllerConfigSpecVolumesStorageos#volumeName
+   */
+  readonly volumeName?: string;
+
+  /**
+   * volumeNamespace specifies the scope of the volume within StorageOS.  If no namespace is specified then the Pod's namespace will be used.  This allows the Kubernetes name scoping to be mirrored within StorageOS for tighter integration. Set VolumeName to any name to override the default behaviour. Set to "default" if you are not using namespaces within StorageOS. Namespaces that do not pre-exist within StorageOS will be created.
+   *
+   * @schema ControllerConfigSpecVolumesStorageos#volumeNamespace
+   */
+  readonly volumeNamespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesStorageos' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesStorageos(obj: ControllerConfigSpecVolumesStorageos | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fsType': obj.fsType,
+    'readOnly': obj.readOnly,
+    'secretRef': toJson_ControllerConfigSpecVolumesStorageosSecretRef(obj.secretRef),
+    'volumeName': obj.volumeName,
+    'volumeNamespace': obj.volumeNamespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * vsphereVolume represents a vSphere volume attached and mounted on kubelets host machine
+ *
+ * @schema ControllerConfigSpecVolumesVsphereVolume
+ */
+export interface ControllerConfigSpecVolumesVsphereVolume {
+  /**
+   * fsType is filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified.
+   *
+   * @schema ControllerConfigSpecVolumesVsphereVolume#fsType
+   */
+  readonly fsType?: string;
+
+  /**
+   * storagePolicyID is the storage Policy Based Management (SPBM) profile ID associated with the StoragePolicyName.
+   *
+   * @schema ControllerConfigSpecVolumesVsphereVolume#storagePolicyID
+   */
+  readonly storagePolicyId?: string;
+
+  /**
+   * storagePolicyName is the storage Policy Based Management (SPBM) profile name.
+   *
+   * @schema ControllerConfigSpecVolumesVsphereVolume#storagePolicyName
+   */
+  readonly storagePolicyName?: string;
+
+  /**
+   * volumePath is the path that identifies vSphere volume vmdk
+   *
+   * @schema ControllerConfigSpecVolumesVsphereVolume#volumePath
+   */
+  readonly volumePath: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesVsphereVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesVsphereVolume(obj: ControllerConfigSpecVolumesVsphereVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fsType': obj.fsType,
+    'storagePolicyID': obj.storagePolicyId,
+    'storagePolicyName': obj.storagePolicyName,
+    'volumePath': obj.volumePath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * An empty preferred scheduling term matches all objects with implicit weight 0 (i.e. it's a no-op). A null preferred scheduling term matches no objects (i.e. is also a no-op).
  *
  * @schema ControllerConfigSpecAffinityNodeAffinityPreferredDuringSchedulingIgnoredDuringExecution
@@ -2409,6 +4370,491 @@ export function toJson_ControllerConfigSpecEnvValueFromSecretKeyRef(obj: Control
 /* eslint-enable max-len, quote-props */
 
 /**
+ * secretRef is Optional: SecretRef is reference to the authentication secret for User, default is empty. More info: https://examples.k8s.io/volumes/cephfs/README.md#how-to-use-it
+ *
+ * @schema ControllerConfigSpecVolumesCephfsSecretRef
+ */
+export interface ControllerConfigSpecVolumesCephfsSecretRef {
+  /**
+   * Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?
+   *
+   * @schema ControllerConfigSpecVolumesCephfsSecretRef#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesCephfsSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesCephfsSecretRef(obj: ControllerConfigSpecVolumesCephfsSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * secretRef is optional: points to a secret object containing parameters used to connect to OpenStack.
+ *
+ * @schema ControllerConfigSpecVolumesCinderSecretRef
+ */
+export interface ControllerConfigSpecVolumesCinderSecretRef {
+  /**
+   * Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?
+   *
+   * @schema ControllerConfigSpecVolumesCinderSecretRef#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesCinderSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesCinderSecretRef(obj: ControllerConfigSpecVolumesCinderSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Maps a string key to a path within a volume.
+ *
+ * @schema ControllerConfigSpecVolumesConfigMapItems
+ */
+export interface ControllerConfigSpecVolumesConfigMapItems {
+  /**
+   * key is the key to project.
+   *
+   * @schema ControllerConfigSpecVolumesConfigMapItems#key
+   */
+  readonly key: string;
+
+  /**
+   * mode is Optional: mode bits used to set permissions on this file. Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511. YAML accepts both octal and decimal values, JSON requires decimal values for mode bits. If not specified, the volume defaultMode will be used. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
+   *
+   * @schema ControllerConfigSpecVolumesConfigMapItems#mode
+   */
+  readonly mode?: number;
+
+  /**
+   * path is the relative path of the file to map the key to. May not be an absolute path. May not contain the path element '..'. May not start with the string '..'.
+   *
+   * @schema ControllerConfigSpecVolumesConfigMapItems#path
+   */
+  readonly path: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesConfigMapItems' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesConfigMapItems(obj: ControllerConfigSpecVolumesConfigMapItems | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'mode': obj.mode,
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * nodePublishSecretRef is a reference to the secret object containing sensitive information to pass to the CSI driver to complete the CSI NodePublishVolume and NodeUnpublishVolume calls. This field is optional, and  may be empty if no secret is required. If the secret object contains more than one secret, all secret references are passed.
+ *
+ * @schema ControllerConfigSpecVolumesCsiNodePublishSecretRef
+ */
+export interface ControllerConfigSpecVolumesCsiNodePublishSecretRef {
+  /**
+   * Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?
+   *
+   * @schema ControllerConfigSpecVolumesCsiNodePublishSecretRef#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesCsiNodePublishSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesCsiNodePublishSecretRef(obj: ControllerConfigSpecVolumesCsiNodePublishSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * DownwardAPIVolumeFile represents information to create the file containing the pod field
+ *
+ * @schema ControllerConfigSpecVolumesDownwardApiItems
+ */
+export interface ControllerConfigSpecVolumesDownwardApiItems {
+  /**
+   * Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
+   *
+   * @schema ControllerConfigSpecVolumesDownwardApiItems#fieldRef
+   */
+  readonly fieldRef?: ControllerConfigSpecVolumesDownwardApiItemsFieldRef;
+
+  /**
+   * Optional: mode bits used to set permissions on this file, must be an octal value between 0000 and 0777 or a decimal value between 0 and 511. YAML accepts both octal and decimal values, JSON requires decimal values for mode bits. If not specified, the volume defaultMode will be used. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
+   *
+   * @schema ControllerConfigSpecVolumesDownwardApiItems#mode
+   */
+  readonly mode?: number;
+
+  /**
+   * Required: Path is  the relative path name of the file to be created. Must not be absolute or contain the '..' path. Must be utf-8 encoded. The first item of the relative path must not start with '..'
+   *
+   * @schema ControllerConfigSpecVolumesDownwardApiItems#path
+   */
+  readonly path: string;
+
+  /**
+   * Selects a resource of the container: only resources limits and requests (limits.cpu, limits.memory, requests.cpu and requests.memory) are currently supported.
+   *
+   * @schema ControllerConfigSpecVolumesDownwardApiItems#resourceFieldRef
+   */
+  readonly resourceFieldRef?: ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRef;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesDownwardApiItems' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesDownwardApiItems(obj: ControllerConfigSpecVolumesDownwardApiItems | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fieldRef': toJson_ControllerConfigSpecVolumesDownwardApiItemsFieldRef(obj.fieldRef),
+    'mode': obj.mode,
+    'path': obj.path,
+    'resourceFieldRef': toJson_ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRef(obj.resourceFieldRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * sizeLimit is the total amount of local storage required for this EmptyDir volume. The size limit is also applicable for memory medium. The maximum usage on memory medium EmptyDir would be the minimum value between the SizeLimit specified here and the sum of memory limits of all containers in a pod. The default is nil which means that the limit is undefined. More info: https://kubernetes.io/docs/concepts/storage/volumes#emptydir
+ *
+ * @schema ControllerConfigSpecVolumesEmptyDirSizeLimit
+ */
+export class ControllerConfigSpecVolumesEmptyDirSizeLimit {
+  public static fromNumber(value: number): ControllerConfigSpecVolumesEmptyDirSizeLimit {
+    return new ControllerConfigSpecVolumesEmptyDirSizeLimit(value);
+  }
+  public static fromString(value: string): ControllerConfigSpecVolumesEmptyDirSizeLimit {
+    return new ControllerConfigSpecVolumesEmptyDirSizeLimit(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
+ * Will be used to create a stand-alone PVC to provision the volume. The pod in which this EphemeralVolumeSource is embedded will be the owner of the PVC, i.e. the PVC will be deleted together with the pod.  The name of the PVC will be `<pod name>-<volume name>` where `<volume name>` is the name from the `PodSpec.Volumes` array entry. Pod validation will reject the pod if the concatenated name is not valid for a PVC (for example, too long).
+ * An existing PVC with that name that is not owned by the pod will *not* be used for the pod to avoid using an unrelated volume by mistake. Starting the pod is then blocked until the unrelated PVC is removed. If such a pre-created PVC is meant to be used by the pod, the PVC has to updated with an owner reference to the pod once the pod exists. Normally this should not be necessary, but it may be useful when manually reconstructing a broken cluster.
+ * This field is read-only and no changes will be made by Kubernetes to the PVC after it has been created.
+ * Required, must not be nil.
+ *
+ * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplate
+ */
+export interface ControllerConfigSpecVolumesEphemeralVolumeClaimTemplate {
+  /**
+   * May contain labels and annotations that will be copied into the PVC when creating it. No other fields are allowed and will be rejected during validation.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplate#metadata
+   */
+  readonly metadata?: any;
+
+  /**
+   * The specification for the PersistentVolumeClaim. The entire content is copied unchanged into the PVC that gets created from this template. The same fields as in a PersistentVolumeClaim are also valid here.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplate#spec
+   */
+  readonly spec: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpec;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesEphemeralVolumeClaimTemplate' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesEphemeralVolumeClaimTemplate(obj: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplate | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metadata': obj.metadata,
+    'spec': toJson_ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpec(obj.spec),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * secretRef is Optional: secretRef is reference to the secret object containing sensitive information to pass to the plugin scripts. This may be empty if no secret object is specified. If the secret object contains more than one secret, all secrets are passed to the plugin scripts.
+ *
+ * @schema ControllerConfigSpecVolumesFlexVolumeSecretRef
+ */
+export interface ControllerConfigSpecVolumesFlexVolumeSecretRef {
+  /**
+   * Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?
+   *
+   * @schema ControllerConfigSpecVolumesFlexVolumeSecretRef#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesFlexVolumeSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesFlexVolumeSecretRef(obj: ControllerConfigSpecVolumesFlexVolumeSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * secretRef is the CHAP Secret for iSCSI target and initiator authentication
+ *
+ * @schema ControllerConfigSpecVolumesIscsiSecretRef
+ */
+export interface ControllerConfigSpecVolumesIscsiSecretRef {
+  /**
+   * Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?
+   *
+   * @schema ControllerConfigSpecVolumesIscsiSecretRef#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesIscsiSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesIscsiSecretRef(obj: ControllerConfigSpecVolumesIscsiSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Projection that may be projected along with other supported volume types
+ *
+ * @schema ControllerConfigSpecVolumesProjectedSources
+ */
+export interface ControllerConfigSpecVolumesProjectedSources {
+  /**
+   * configMap information about the configMap data to project
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSources#configMap
+   */
+  readonly configMap?: ControllerConfigSpecVolumesProjectedSourcesConfigMap;
+
+  /**
+   * downwardAPI information about the downwardAPI data to project
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSources#downwardAPI
+   */
+  readonly downwardApi?: ControllerConfigSpecVolumesProjectedSourcesDownwardApi;
+
+  /**
+   * secret information about the secret data to project
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSources#secret
+   */
+  readonly secret?: ControllerConfigSpecVolumesProjectedSourcesSecret;
+
+  /**
+   * serviceAccountToken is information about the serviceAccountToken data to project
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSources#serviceAccountToken
+   */
+  readonly serviceAccountToken?: ControllerConfigSpecVolumesProjectedSourcesServiceAccountToken;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesProjectedSources' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesProjectedSources(obj: ControllerConfigSpecVolumesProjectedSources | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configMap': toJson_ControllerConfigSpecVolumesProjectedSourcesConfigMap(obj.configMap),
+    'downwardAPI': toJson_ControllerConfigSpecVolumesProjectedSourcesDownwardApi(obj.downwardApi),
+    'secret': toJson_ControllerConfigSpecVolumesProjectedSourcesSecret(obj.secret),
+    'serviceAccountToken': toJson_ControllerConfigSpecVolumesProjectedSourcesServiceAccountToken(obj.serviceAccountToken),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * secretRef is name of the authentication secret for RBDUser. If provided overrides keyring. Default is nil. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it
+ *
+ * @default nil. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it
+ * @schema ControllerConfigSpecVolumesRbdSecretRef
+ */
+export interface ControllerConfigSpecVolumesRbdSecretRef {
+  /**
+   * Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?
+   *
+   * @schema ControllerConfigSpecVolumesRbdSecretRef#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesRbdSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesRbdSecretRef(obj: ControllerConfigSpecVolumesRbdSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * secretRef references to the secret for ScaleIO user and other sensitive information. If this is not provided, Login operation will fail.
+ *
+ * @schema ControllerConfigSpecVolumesScaleIoSecretRef
+ */
+export interface ControllerConfigSpecVolumesScaleIoSecretRef {
+  /**
+   * Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?
+   *
+   * @schema ControllerConfigSpecVolumesScaleIoSecretRef#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesScaleIoSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesScaleIoSecretRef(obj: ControllerConfigSpecVolumesScaleIoSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Maps a string key to a path within a volume.
+ *
+ * @schema ControllerConfigSpecVolumesSecretItems
+ */
+export interface ControllerConfigSpecVolumesSecretItems {
+  /**
+   * key is the key to project.
+   *
+   * @schema ControllerConfigSpecVolumesSecretItems#key
+   */
+  readonly key: string;
+
+  /**
+   * mode is Optional: mode bits used to set permissions on this file. Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511. YAML accepts both octal and decimal values, JSON requires decimal values for mode bits. If not specified, the volume defaultMode will be used. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
+   *
+   * @schema ControllerConfigSpecVolumesSecretItems#mode
+   */
+  readonly mode?: number;
+
+  /**
+   * path is the relative path of the file to map the key to. May not be an absolute path. May not contain the path element '..'. May not start with the string '..'.
+   *
+   * @schema ControllerConfigSpecVolumesSecretItems#path
+   */
+  readonly path: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesSecretItems' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesSecretItems(obj: ControllerConfigSpecVolumesSecretItems | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'mode': obj.mode,
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * secretRef specifies the secret to use for obtaining the StorageOS API credentials.  If not specified, default values will be attempted.
+ *
+ * @schema ControllerConfigSpecVolumesStorageosSecretRef
+ */
+export interface ControllerConfigSpecVolumesStorageosSecretRef {
+  /**
+   * Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?
+   *
+   * @schema ControllerConfigSpecVolumesStorageosSecretRef#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesStorageosSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesStorageosSecretRef(obj: ControllerConfigSpecVolumesStorageosSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * A node selector term, associated with the corresponding weight.
  *
  * @schema ControllerConfigSpecAffinityNodeAffinityPreferredDuringSchedulingIgnoredDuringExecutionPreference
@@ -2751,6 +5197,338 @@ export class ControllerConfigSpecEnvValueFromResourceFieldRefDivisor {
   private constructor(public readonly value: number | string) {
   }
 }
+
+/**
+ * Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
+ *
+ * @schema ControllerConfigSpecVolumesDownwardApiItemsFieldRef
+ */
+export interface ControllerConfigSpecVolumesDownwardApiItemsFieldRef {
+  /**
+   * Version of the schema the FieldPath is written in terms of, defaults to "v1".
+   *
+   * @schema ControllerConfigSpecVolumesDownwardApiItemsFieldRef#apiVersion
+   */
+  readonly apiVersion?: string;
+
+  /**
+   * Path of the field to select in the specified API version.
+   *
+   * @schema ControllerConfigSpecVolumesDownwardApiItemsFieldRef#fieldPath
+   */
+  readonly fieldPath: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesDownwardApiItemsFieldRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesDownwardApiItemsFieldRef(obj: ControllerConfigSpecVolumesDownwardApiItemsFieldRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'apiVersion': obj.apiVersion,
+    'fieldPath': obj.fieldPath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selects a resource of the container: only resources limits and requests (limits.cpu, limits.memory, requests.cpu and requests.memory) are currently supported.
+ *
+ * @schema ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRef
+ */
+export interface ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRef {
+  /**
+   * Container name: required for volumes, optional for env vars
+   *
+   * @schema ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRef#containerName
+   */
+  readonly containerName?: string;
+
+  /**
+   * Specifies the output format of the exposed resources, defaults to "1"
+   *
+   * @schema ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRef#divisor
+   */
+  readonly divisor?: ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRefDivisor;
+
+  /**
+   * Required: resource to select
+   *
+   * @schema ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRef#resource
+   */
+  readonly resource: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRef(obj: ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'containerName': obj.containerName,
+    'divisor': obj.divisor?.value,
+    'resource': obj.resource,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * The specification for the PersistentVolumeClaim. The entire content is copied unchanged into the PVC that gets created from this template. The same fields as in a PersistentVolumeClaim are also valid here.
+ *
+ * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpec
+ */
+export interface ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpec {
+  /**
+   * accessModes contains the desired access modes the volume should have. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#access-modes-1
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpec#accessModes
+   */
+  readonly accessModes?: string[];
+
+  /**
+   * dataSource field can be used to specify either: * An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot) * An existing PVC (PersistentVolumeClaim) If the provisioner or an external controller can support the specified data source, it will create a new volume based on the contents of the specified data source. When the AnyVolumeDataSource feature gate is enabled, dataSource contents will be copied to dataSourceRef, and dataSourceRef contents will be copied to dataSource when dataSourceRef.namespace is not specified. If the namespace is specified, then dataSourceRef will not be copied to dataSource.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpec#dataSource
+   */
+  readonly dataSource?: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSource;
+
+  /**
+   * dataSourceRef specifies the object from which to populate the volume with data, if a non-empty volume is desired. This may be any object from a non-empty API group (non core object) or a PersistentVolumeClaim object. When this field is specified, volume binding will only succeed if the type of the specified object matches some installed volume populator or dynamic provisioner. This field will replace the functionality of the dataSource field and as such if both fields are non-empty, they must have the same value. For backwards compatibility, when namespace isn't specified in dataSourceRef, both fields (dataSource and dataSourceRef) will be set to the same value automatically if one of them is empty and the other is non-empty. When namespace is specified in dataSourceRef, dataSource isn't set to the same value and must be empty. There are three important differences between dataSource and dataSourceRef: * While dataSource only allows two specific types of objects, dataSourceRef allows any non-core object, as well as PersistentVolumeClaim objects. * While dataSource ignores disallowed values (dropping them), dataSourceRef preserves all values, and generates an error if a disallowed value is specified. * While dataSource only allows local objects, dataSourceRef allows objects in any namespaces. (Beta) Using this field requires the AnyVolumeDataSource feature gate to be enabled. (Alpha) Using the namespace field of dataSourceRef requires the CrossNamespaceVolumeDataSource feature gate to be enabled.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpec#dataSourceRef
+   */
+  readonly dataSourceRef?: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSourceRef;
+
+  /**
+   * resources represents the minimum resources the volume should have. If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements that are lower than previous value but must still be higher than capacity recorded in the status field of the claim. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpec#resources
+   */
+  readonly resources?: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResources;
+
+  /**
+   * selector is a label query over volumes to consider for binding.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpec#selector
+   */
+  readonly selector?: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelector;
+
+  /**
+   * storageClassName is the name of the StorageClass required by the claim. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#class-1
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpec#storageClassName
+   */
+  readonly storageClassName?: string;
+
+  /**
+   * volumeMode defines what type of volume is required by the claim. Value of Filesystem is implied when not included in claim spec.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpec#volumeMode
+   */
+  readonly volumeMode?: string;
+
+  /**
+   * volumeName is the binding reference to the PersistentVolume backing this claim.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpec#volumeName
+   */
+  readonly volumeName?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpec(obj: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessModes': obj.accessModes?.map(y => y),
+    'dataSource': toJson_ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSource(obj.dataSource),
+    'dataSourceRef': toJson_ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSourceRef(obj.dataSourceRef),
+    'resources': toJson_ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResources(obj.resources),
+    'selector': toJson_ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelector(obj.selector),
+    'storageClassName': obj.storageClassName,
+    'volumeMode': obj.volumeMode,
+    'volumeName': obj.volumeName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * configMap information about the configMap data to project
+ *
+ * @schema ControllerConfigSpecVolumesProjectedSourcesConfigMap
+ */
+export interface ControllerConfigSpecVolumesProjectedSourcesConfigMap {
+  /**
+   * items if unspecified, each key-value pair in the Data field of the referenced ConfigMap will be projected into the volume as a file whose name is the key and content is the value. If specified, the listed keys will be projected into the specified paths, and unlisted keys will not be present. If a key is specified which is not present in the ConfigMap, the volume setup will error unless it is marked optional. Paths must be relative and may not contain the '..' path or start with '..'.
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesConfigMap#items
+   */
+  readonly items?: ControllerConfigSpecVolumesProjectedSourcesConfigMapItems[];
+
+  /**
+   * Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesConfigMap#name
+   */
+  readonly name?: string;
+
+  /**
+   * optional specify whether the ConfigMap or its keys must be defined
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesConfigMap#optional
+   */
+  readonly optional?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesProjectedSourcesConfigMap' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesProjectedSourcesConfigMap(obj: ControllerConfigSpecVolumesProjectedSourcesConfigMap | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'items': obj.items?.map(y => toJson_ControllerConfigSpecVolumesProjectedSourcesConfigMapItems(y)),
+    'name': obj.name,
+    'optional': obj.optional,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * downwardAPI information about the downwardAPI data to project
+ *
+ * @schema ControllerConfigSpecVolumesProjectedSourcesDownwardApi
+ */
+export interface ControllerConfigSpecVolumesProjectedSourcesDownwardApi {
+  /**
+   * Items is a list of DownwardAPIVolume file
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesDownwardApi#items
+   */
+  readonly items?: ControllerConfigSpecVolumesProjectedSourcesDownwardApiItems[];
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesProjectedSourcesDownwardApi' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesProjectedSourcesDownwardApi(obj: ControllerConfigSpecVolumesProjectedSourcesDownwardApi | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'items': obj.items?.map(y => toJson_ControllerConfigSpecVolumesProjectedSourcesDownwardApiItems(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * secret information about the secret data to project
+ *
+ * @schema ControllerConfigSpecVolumesProjectedSourcesSecret
+ */
+export interface ControllerConfigSpecVolumesProjectedSourcesSecret {
+  /**
+   * items if unspecified, each key-value pair in the Data field of the referenced Secret will be projected into the volume as a file whose name is the key and content is the value. If specified, the listed keys will be projected into the specified paths, and unlisted keys will not be present. If a key is specified which is not present in the Secret, the volume setup will error unless it is marked optional. Paths must be relative and may not contain the '..' path or start with '..'.
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesSecret#items
+   */
+  readonly items?: ControllerConfigSpecVolumesProjectedSourcesSecretItems[];
+
+  /**
+   * Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesSecret#name
+   */
+  readonly name?: string;
+
+  /**
+   * optional field specify whether the Secret or its key must be defined
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesSecret#optional
+   */
+  readonly optional?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesProjectedSourcesSecret' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesProjectedSourcesSecret(obj: ControllerConfigSpecVolumesProjectedSourcesSecret | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'items': obj.items?.map(y => toJson_ControllerConfigSpecVolumesProjectedSourcesSecretItems(y)),
+    'name': obj.name,
+    'optional': obj.optional,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * serviceAccountToken is information about the serviceAccountToken data to project
+ *
+ * @schema ControllerConfigSpecVolumesProjectedSourcesServiceAccountToken
+ */
+export interface ControllerConfigSpecVolumesProjectedSourcesServiceAccountToken {
+  /**
+   * audience is the intended audience of the token. A recipient of a token must identify itself with an identifier specified in the audience of the token, and otherwise should reject the token. The audience defaults to the identifier of the apiserver.
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesServiceAccountToken#audience
+   */
+  readonly audience?: string;
+
+  /**
+   * expirationSeconds is the requested duration of validity of the service account token. As the token approaches expiration, the kubelet volume plugin will proactively rotate the service account token. The kubelet will start trying to rotate the token if the token is older than 80 percent of its time to live or if the token is older than 24 hours.Defaults to 1 hour and must be at least 10 minutes.
+   *
+   * @default 1 hour and must be at least 10 minutes.
+   * @schema ControllerConfigSpecVolumesProjectedSourcesServiceAccountToken#expirationSeconds
+   */
+  readonly expirationSeconds?: number;
+
+  /**
+   * path is the path relative to the mount point of the file to project the token into.
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesServiceAccountToken#path
+   */
+  readonly path: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesProjectedSourcesServiceAccountToken' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesProjectedSourcesServiceAccountToken(obj: ControllerConfigSpecVolumesProjectedSourcesServiceAccountToken | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audience': obj.audience,
+    'expirationSeconds': obj.expirationSeconds,
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * A node selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
@@ -3261,6 +6039,347 @@ export function toJson_ControllerConfigSpecAffinityPodAntiAffinityRequiredDuring
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Specifies the output format of the exposed resources, defaults to "1"
+ *
+ * @schema ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRefDivisor
+ */
+export class ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRefDivisor {
+  public static fromNumber(value: number): ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRefDivisor {
+    return new ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRefDivisor(value);
+  }
+  public static fromString(value: string): ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRefDivisor {
+    return new ControllerConfigSpecVolumesDownwardApiItemsResourceFieldRefDivisor(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
+ * dataSource field can be used to specify either: * An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot) * An existing PVC (PersistentVolumeClaim) If the provisioner or an external controller can support the specified data source, it will create a new volume based on the contents of the specified data source. When the AnyVolumeDataSource feature gate is enabled, dataSource contents will be copied to dataSourceRef, and dataSourceRef contents will be copied to dataSource when dataSourceRef.namespace is not specified. If the namespace is specified, then dataSourceRef will not be copied to dataSource.
+ *
+ * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSource
+ */
+export interface ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSource {
+  /**
+   * APIGroup is the group for the resource being referenced. If APIGroup is not specified, the specified Kind must be in the core API group. For any other third-party types, APIGroup is required.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSource#apiGroup
+   */
+  readonly apiGroup?: string;
+
+  /**
+   * Kind is the type of resource being referenced
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSource#kind
+   */
+  readonly kind: string;
+
+  /**
+   * Name is the name of resource being referenced
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSource#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSource(obj: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'apiGroup': obj.apiGroup,
+    'kind': obj.kind,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * dataSourceRef specifies the object from which to populate the volume with data, if a non-empty volume is desired. This may be any object from a non-empty API group (non core object) or a PersistentVolumeClaim object. When this field is specified, volume binding will only succeed if the type of the specified object matches some installed volume populator or dynamic provisioner. This field will replace the functionality of the dataSource field and as such if both fields are non-empty, they must have the same value. For backwards compatibility, when namespace isn't specified in dataSourceRef, both fields (dataSource and dataSourceRef) will be set to the same value automatically if one of them is empty and the other is non-empty. When namespace is specified in dataSourceRef, dataSource isn't set to the same value and must be empty. There are three important differences between dataSource and dataSourceRef: * While dataSource only allows two specific types of objects, dataSourceRef allows any non-core object, as well as PersistentVolumeClaim objects. * While dataSource ignores disallowed values (dropping them), dataSourceRef preserves all values, and generates an error if a disallowed value is specified. * While dataSource only allows local objects, dataSourceRef allows objects in any namespaces. (Beta) Using this field requires the AnyVolumeDataSource feature gate to be enabled. (Alpha) Using the namespace field of dataSourceRef requires the CrossNamespaceVolumeDataSource feature gate to be enabled.
+ *
+ * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSourceRef
+ */
+export interface ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSourceRef {
+  /**
+   * APIGroup is the group for the resource being referenced. If APIGroup is not specified, the specified Kind must be in the core API group. For any other third-party types, APIGroup is required.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSourceRef#apiGroup
+   */
+  readonly apiGroup?: string;
+
+  /**
+   * Kind is the type of resource being referenced
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSourceRef#kind
+   */
+  readonly kind: string;
+
+  /**
+   * Name is the name of resource being referenced
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSourceRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace is the namespace of resource being referenced Note that when a namespace is specified, a gateway.networking.k8s.io/ReferenceGrant object is required in the referent namespace to allow that namespace's owner to accept the reference. See the ReferenceGrant documentation for details. (Alpha) This field requires the CrossNamespaceVolumeDataSource feature gate to be enabled.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSourceRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSourceRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSourceRef(obj: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecDataSourceRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'apiGroup': obj.apiGroup,
+    'kind': obj.kind,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * resources represents the minimum resources the volume should have. If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements that are lower than previous value but must still be higher than capacity recorded in the status field of the claim. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources
+ *
+ * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResources
+ */
+export interface ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResources {
+  /**
+   * Claims lists the names of resources, defined in spec.resourceClaims, that are used by this container.
+   * This is an alpha field and requires enabling the DynamicResourceAllocation feature gate.
+   * This field is immutable. It can only be set for containers.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResources#claims
+   */
+  readonly claims?: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesClaims[];
+
+  /**
+   * Limits describes the maximum amount of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResources#limits
+   */
+  readonly limits?: { [key: string]: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesLimits };
+
+  /**
+   * Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. Requests cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResources#requests
+   */
+  readonly requests?: { [key: string]: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesRequests };
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResources' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResources(obj: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResources | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'claims': obj.claims?.map(y => toJson_ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesClaims(y)),
+    'limits': ((obj.limits) === undefined) ? undefined : (Object.entries(obj.limits).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1]?.value }), {})),
+    'requests': ((obj.requests) === undefined) ? undefined : (Object.entries(obj.requests).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1]?.value }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * selector is a label query over volumes to consider for binding.
+ *
+ * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelector
+ */
+export interface ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelector {
+  /**
+   * matchExpressions is a list of label selector requirements. The requirements are ANDed.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelector#matchExpressions
+   */
+  readonly matchExpressions?: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelectorMatchExpressions[];
+
+  /**
+   * matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelector(obj: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchExpressions': obj.matchExpressions?.map(y => toJson_ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelectorMatchExpressions(y)),
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Maps a string key to a path within a volume.
+ *
+ * @schema ControllerConfigSpecVolumesProjectedSourcesConfigMapItems
+ */
+export interface ControllerConfigSpecVolumesProjectedSourcesConfigMapItems {
+  /**
+   * key is the key to project.
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesConfigMapItems#key
+   */
+  readonly key: string;
+
+  /**
+   * mode is Optional: mode bits used to set permissions on this file. Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511. YAML accepts both octal and decimal values, JSON requires decimal values for mode bits. If not specified, the volume defaultMode will be used. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesConfigMapItems#mode
+   */
+  readonly mode?: number;
+
+  /**
+   * path is the relative path of the file to map the key to. May not be an absolute path. May not contain the path element '..'. May not start with the string '..'.
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesConfigMapItems#path
+   */
+  readonly path: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesProjectedSourcesConfigMapItems' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesProjectedSourcesConfigMapItems(obj: ControllerConfigSpecVolumesProjectedSourcesConfigMapItems | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'mode': obj.mode,
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * DownwardAPIVolumeFile represents information to create the file containing the pod field
+ *
+ * @schema ControllerConfigSpecVolumesProjectedSourcesDownwardApiItems
+ */
+export interface ControllerConfigSpecVolumesProjectedSourcesDownwardApiItems {
+  /**
+   * Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesDownwardApiItems#fieldRef
+   */
+  readonly fieldRef?: ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsFieldRef;
+
+  /**
+   * Optional: mode bits used to set permissions on this file, must be an octal value between 0000 and 0777 or a decimal value between 0 and 511. YAML accepts both octal and decimal values, JSON requires decimal values for mode bits. If not specified, the volume defaultMode will be used. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesDownwardApiItems#mode
+   */
+  readonly mode?: number;
+
+  /**
+   * Required: Path is  the relative path name of the file to be created. Must not be absolute or contain the '..' path. Must be utf-8 encoded. The first item of the relative path must not start with '..'
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesDownwardApiItems#path
+   */
+  readonly path: string;
+
+  /**
+   * Selects a resource of the container: only resources limits and requests (limits.cpu, limits.memory, requests.cpu and requests.memory) are currently supported.
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesDownwardApiItems#resourceFieldRef
+   */
+  readonly resourceFieldRef?: ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRef;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesProjectedSourcesDownwardApiItems' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesProjectedSourcesDownwardApiItems(obj: ControllerConfigSpecVolumesProjectedSourcesDownwardApiItems | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fieldRef': toJson_ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsFieldRef(obj.fieldRef),
+    'mode': obj.mode,
+    'path': obj.path,
+    'resourceFieldRef': toJson_ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRef(obj.resourceFieldRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Maps a string key to a path within a volume.
+ *
+ * @schema ControllerConfigSpecVolumesProjectedSourcesSecretItems
+ */
+export interface ControllerConfigSpecVolumesProjectedSourcesSecretItems {
+  /**
+   * key is the key to project.
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesSecretItems#key
+   */
+  readonly key: string;
+
+  /**
+   * mode is Optional: mode bits used to set permissions on this file. Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511. YAML accepts both octal and decimal values, JSON requires decimal values for mode bits. If not specified, the volume defaultMode will be used. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesSecretItems#mode
+   */
+  readonly mode?: number;
+
+  /**
+   * path is the relative path of the file to map the key to. May not be an absolute path. May not contain the path element '..'. May not start with the string '..'.
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesSecretItems#path
+   */
+  readonly path: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesProjectedSourcesSecretItems' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesProjectedSourcesSecretItems(obj: ControllerConfigSpecVolumesProjectedSourcesSecretItems | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'mode': obj.mode,
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
  *
  * @schema ControllerConfigSpecAffinityPodAffinityPreferredDuringSchedulingIgnoredDuringExecutionPodAffinityTermLabelSelectorMatchExpressions
@@ -3439,6 +6558,206 @@ export function toJson_ControllerConfigSpecAffinityPodAntiAffinityPreferredDurin
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * ResourceClaim references one entry in PodSpec.ResourceClaims.
+ *
+ * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesClaims
+ */
+export interface ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesClaims {
+  /**
+   * Name must match the name of one entry in pod.spec.resourceClaims of the Pod where this field is used. It makes that resource available inside a container.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesClaims#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesClaims' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesClaims(obj: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesClaims | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesLimits
+ */
+export class ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesLimits {
+  public static fromNumber(value: number): ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesLimits {
+    return new ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesLimits(value);
+  }
+  public static fromString(value: string): ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesLimits {
+    return new ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesLimits(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
+ * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesRequests
+ */
+export class ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesRequests {
+  public static fromNumber(value: number): ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesRequests {
+    return new ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesRequests(value);
+  }
+  public static fromString(value: string): ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesRequests {
+    return new ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecResourcesRequests(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
+
+/**
+ * A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+ *
+ * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelectorMatchExpressions
+ */
+export interface ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelectorMatchExpressions {
+  /**
+   * key is the label key that the selector applies to.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelectorMatchExpressions#key
+   */
+  readonly key: string;
+
+  /**
+   * operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelectorMatchExpressions#operator
+   */
+  readonly operator: string;
+
+  /**
+   * values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
+   *
+   * @schema ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelectorMatchExpressions#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelectorMatchExpressions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelectorMatchExpressions(obj: ControllerConfigSpecVolumesEphemeralVolumeClaimTemplateSpecSelectorMatchExpressions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'operator': obj.operator,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
+ *
+ * @schema ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsFieldRef
+ */
+export interface ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsFieldRef {
+  /**
+   * Version of the schema the FieldPath is written in terms of, defaults to "v1".
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsFieldRef#apiVersion
+   */
+  readonly apiVersion?: string;
+
+  /**
+   * Path of the field to select in the specified API version.
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsFieldRef#fieldPath
+   */
+  readonly fieldPath: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsFieldRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsFieldRef(obj: ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsFieldRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'apiVersion': obj.apiVersion,
+    'fieldPath': obj.fieldPath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selects a resource of the container: only resources limits and requests (limits.cpu, limits.memory, requests.cpu and requests.memory) are currently supported.
+ *
+ * @schema ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRef
+ */
+export interface ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRef {
+  /**
+   * Container name: required for volumes, optional for env vars
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRef#containerName
+   */
+  readonly containerName?: string;
+
+  /**
+   * Specifies the output format of the exposed resources, defaults to "1"
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRef#divisor
+   */
+  readonly divisor?: ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRefDivisor;
+
+  /**
+   * Required: resource to select
+   *
+   * @schema ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRef#resource
+   */
+  readonly resource: string;
+
+}
+
+/**
+ * Converts an object of type 'ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRef(obj: ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'containerName': obj.containerName,
+    'divisor': obj.divisor?.value,
+    'resource': obj.resource,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Specifies the output format of the exposed resources, defaults to "1"
+ *
+ * @schema ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRefDivisor
+ */
+export class ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRefDivisor {
+  public static fromNumber(value: number): ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRefDivisor {
+    return new ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRefDivisor(value);
+  }
+  public static fromString(value: string): ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRefDivisor {
+    return new ControllerConfigSpecVolumesProjectedSourcesDownwardApiItemsResourceFieldRefDivisor(value);
+  }
+  private constructor(public readonly value: number | string) {
+  }
+}
 
 
 /**

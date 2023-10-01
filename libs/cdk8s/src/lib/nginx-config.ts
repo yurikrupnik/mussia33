@@ -22,16 +22,16 @@ upstream ${be.name} {
   });
 
   const apis = backends.map((be) => {
+    // be.port
     return `
         location /api {
-            proxy_redirect  http://${be.name}/  /api/;
             proxy_pass http://${be.name};
         }
 `;
   });
 
   return `
-${upstream.join('')}
+${upstream.join("")}
 server {
         listen       80;
         listen  [::]:80;
@@ -54,7 +54,7 @@ server {
             index  index.html index.htm;
             try_files $uri $uri/ /index.html =404;
         }
-        ${apis.join('')}
+        ${apis.join("")}
         #error_page  404              /404.html;
 
         # redirect server error pages to the static page /50x.html
@@ -63,22 +63,6 @@ server {
         location = /50x.html {
             root   /usr/share/nginx/html;
         }
-
-        # proxy the PHP scripts to Apache listening on 127.0.0.1:80
-        #
-        #location ~ \\.php$ {
-        #    proxy_pass   http://127.0.0.1;
-        #}
-
-        # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
-        #
-        #location ~ \\.php$ {
-        #    root           html;
-        #    fastcgi_pass   127.0.0.1:9000;
-        #    fastcgi_index  index.php;
-        #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
-        #    include        fastcgi_params;
-        #}
 
         # deny access to .htaccess files, if Apache's document root
         # concurs with nginx's one
