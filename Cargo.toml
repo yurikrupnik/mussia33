@@ -9,6 +9,8 @@ members = [
 	'apps/rust/clapper',
 	'apps/rust/actix_htmx',
 	'apps/rust/axum_htmx',
+	'apps/rust/axum_app',
+	'apps/rust/test_app',
 ]
 
 [profile.release]
