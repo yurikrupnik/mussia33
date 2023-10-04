@@ -2,14 +2,15 @@ use axum::{
     routing::get,
     Router,
 };
+use rust_servers_shared::get_env_port;
 
 #[tokio::main]
 async fn main() {
-    // build our application with a single route
     let app = Router::new().route("/", get(|| async { "Hello, World!" }));
 
-    // run it with hyper on localhost:3000
-    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+    let url = format!("0.0.0.0:{}", get_env_port());
+    println!("Listening on {}", url);
+    axum::Server::bind(&url.parse().unwrap())
         .serve(app.into_make_service())
         .await
         .unwrap();

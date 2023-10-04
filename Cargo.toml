@@ -11,6 +11,8 @@ members = [
 	'apps/rust/axum_htmx',
 	'apps/rust/axum_app',
 	'apps/rust/test_app',
+	'libs/rust/servers_shared',
+	'libs/rust/napi_shared',
 ]
 
 [profile.release]
