@@ -7,9 +7,11 @@ edition = "2021"
 
 [dependencies]
 
-actix-web = "4"
-serde = { version = "1.0", features = ["derive"] }
+actix-web = { workspace = true }
 actix-rt = "2.9.0"
+futures-util = "0.3.28"
+serde = { version = "1.0", features = ["derive"] }
+serde_derive = "1.0.188"
 serde_json = { version = "1.0.106", features = ["arbitrary_precision"] }
 #k8s-openapi = { version = "0.18.0", features = ["v1_25"] }
 #kube = { version = "0.83.0", features = ["derive", "runtime", "openssl-tls"] }
@@ -22,7 +24,5 @@ serde_json = { version = "1.0.106", features = ["arbitrary_precision"] }
 ##google-cloud-googleapis = "0.8.0"
 #google-cloud-gax = "0.15.0"
 #google-cloud-default = "0.4.0"
-serde_derive = "1.0.188"
-futures-util = "0.3.28"
 #tokio-util = "0.7.8"
-tokio = "1.32.0"
+tokio = { workspace = true }

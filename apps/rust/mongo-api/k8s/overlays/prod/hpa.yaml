@@ -1,13 +1,13 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: actix-app
+  name: mongo-api
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: actix-app
-  minReplicas: 1
+    name: mongo-api
+  minReplicas: 2
   maxReplicas: 10
   metrics:
     - type: Resource

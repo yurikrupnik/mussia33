@@ -19,3 +19,8 @@ members = [
 lto = true
 strip = true
 opt-level = 3
+
+[workspace.dependencies]
+actix-web = "4"
+tokio = "1.32.0"
+
