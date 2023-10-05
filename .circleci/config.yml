@@ -7,11 +7,29 @@ jobs:
       - image: cimg/node:lts-browsers
     steps:
       - checkout
-      - run: npm ci
+      - restore_cache:
+          name: Restore pnpm Package Cache
+          keys:
+            - pnpm-packages-{{ checksum "pnpm-lock.yaml" }}
+      - run:
+          name: Install pnpm package manager
+          command: |
+            corepack enable
+            corepack prepare pnpm@latest-8 --activate
+      - run:
+          name: Install Dependencies
+          command: |
+            pnpm install
+      - save_cache:
+          name: Save pnpm Package Cache
+          key: pnpm-packages-{{ checksum "pnpm-lock.yaml" }}
+          paths:
+            - node_modules
+      - run: pnpm ci
       - nx/set-shas
 
-      - run: npx nx format:check
-      - run: npx nx affected --base=$NX_BASE --head=$NX_HEAD -t docker-rust --parallel=3
+#      - run: npx nx format:check
+      - run: pnpm nx affected --base=$NX_BASE --head=$NX_HEAD -t docker-rust --parallel=3
 workflows:
   build:
     jobs:

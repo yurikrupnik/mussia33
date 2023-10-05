@@ -97,7 +97,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             conditions::is_crd_established(),
         ),
     )
-        .await?.expect("TODO: panic message");
+        .await?.expect("Error here is expected");
     // crds.patch("projects.clux.dev",
     //            &PatchParams::apply("my_manager"),
     //            &Patch::Apply(Project::crd())
