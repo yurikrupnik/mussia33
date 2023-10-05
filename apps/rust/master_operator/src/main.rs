@@ -1,9 +1,9 @@
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::apiextensions_apiserver::pkg::apis::apiextensions::v1::CustomResourceDefinition;
 use kube::{
-    api::{Api, DeleteParams, Patch, PatchParams, ResourceExt},
+    api::{Api, Patch, PatchParams, ResourceExt},
     core::CustomResourceExt,
-    discovery::{ApiResource, ApiCapabilities, ApiGroup},
+    // discovery::{ApiResource, ApiCapabilities, ApiGroup},
     runtime::{
         wait::{await_condition, conditions},
         watcher, WatchStreamExt,
@@ -12,7 +12,13 @@ use kube::{
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+// use serde_json::json;
+
+// use fluvio_helm::{Chart, HelmClient, HelmError};
+// fn install_helm_chart() {
+//     // let client = HelmClient::new();
+//     // client::
+// }
 
 // Our custom resource
 #[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema)]
@@ -80,7 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             conditions::is_crd_established(),
         ),
     )
-        .await?;
+        .await?.expect("TODO: panic message");
 
     // Wait for the CRD to be ready
     tokio::time::timeout(
@@ -91,7 +97,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             conditions::is_crd_established(),
         ),
     )
-        .await?;
+        .await?.expect("TODO: panic message");
     // crds.patch("projects.clux.dev",
     //            &PatchParams::apply("my_manager"),
     //            &Patch::Apply(Project::crd())

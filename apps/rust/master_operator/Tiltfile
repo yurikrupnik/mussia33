@@ -4,9 +4,17 @@
 # TODO: docker run locally - build  image locally
 
 
+#docker_build(
+#  "yurikrupnik/master-operator",
+#  ".",
+# )
+
 docker_build(
   "yurikrupnik/master-operator",
-  ".",
+  "../../..",
+  dockerfile="../../../Dockerfile.rust",
+  build_args={"APP_NAME":"rust_master_operator"},
+  target="rust",
 )
 
 k8s_yaml(kustomize('k8s/base'))

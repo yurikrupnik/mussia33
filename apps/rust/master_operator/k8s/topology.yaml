@@ -17,3 +17,11 @@ spec:
   nodes:
     - node1
     - node2
+
+---
+apiVersion: clux.dev/v1
+kind: "Foo"
+spec:
+  info: omg is it my info
+  name: shalom
+  replicas: 4

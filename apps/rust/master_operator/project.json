@@ -54,6 +54,32 @@
           "release": true
         }
       }
+    },
+    "docker-rust": {
+      "executor": "@nx-tools/nx-container:build",
+      "options": {
+        "push": true,
+        "file": "./Dockerfile.rust",
+        "target": "rust",
+        "build-args": [
+          "APP_NAME=rust_master_operator"
+        ],
+        "metadata": {
+          "images": [
+            "yurikrupnik/master-operator"
+          ],
+          "tags": [
+            "type=schedule",
+            "type=ref,event=branch",
+            "type=ref,event=tag",
+            "type=ref,event=pr",
+            "type=semver,pattern={{version}}",
+            "type=semver,pattern={{major}}.{{minor}}",
+            "type=semver,pattern={{major}}",
+            "type=sha"
+          ]
+        }
+      }
     }
   },
   "tags": [
