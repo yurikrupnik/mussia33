@@ -8,8 +8,8 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install PNPM
-          command: npm install -g pnpm
+          command: curl -f https://get.pnpm.io/v6.16.js | node - add --global pnpm
+          name: install pnpm
 
       - restore_cache:
           name: Restore pnpm Package Cache
