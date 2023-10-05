@@ -1,9 +1,12 @@
-use mongodb::bson::oid::ObjectId;
-use serde::Serializer;
+// use mongodb::bson::oid::ObjectId;
+// use serde::Serializer;
 
-pub fn serialize_object_id<S>(oid: &Option<ObjectId>, s: S) -> Result<S::Ok, S::Error>
+pub fn serialize_object_id<T>(
+  oid: &Option<mongodb::bson::oid::ObjectId>,
+  s: T
+) -> Result<T::Ok, T::Error>
 where
-    S: Serializer,
+  T: serde::Serializer,
 {
     match oid.as_ref().map(|x| x.to_hex()) {
         Some(v) => s.serialize_str(&v),

@@ -9,9 +9,18 @@ members = [
 	'apps/rust/clapper',
 	'apps/rust/actix_htmx',
 	'apps/rust/axum_htmx',
+	'apps/rust/axum_app',
+	'apps/rust/test_app',
+	'libs/rust/servers_shared',
+	'libs/rust/napi_shared',
 ]
 
 [profile.release]
 lto = true
 strip = true
 opt-level = 3
+
+[workspace.dependencies]
+actix-web = "4"
+tokio = "1.32.0"
+

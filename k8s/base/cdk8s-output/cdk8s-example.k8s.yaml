@@ -214,9 +214,3 @@ spec:
             vpcIdSelector:
               matchControllerRef: true
       name: crossplane-yuri-network-group
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: users
-spec: {}

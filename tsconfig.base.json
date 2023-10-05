@@ -62,6 +62,9 @@
       ],
       "@mussia33/node/xstate-machines": [
         "libs/node/xstate-machines/src/index.ts"
+      ],
+      "@mussia33/rust-napi-shared": [
+        "libs/rust/napi_shared/index.d.ts"
       ]
     }
   },

@@ -1,0 +1,17 @@
+{
+  "name": "@mussia33/rust-napi-shared-darwin-x64",
+  "version": "0.0.0",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "main": "rust_napi_shared.darwin-x64.node",
+  "files": [
+    "rust_napi_shared.darwin-x64.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  }
+}

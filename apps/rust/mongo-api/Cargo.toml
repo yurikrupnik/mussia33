@@ -2,23 +2,27 @@
 name = "mongo_api"
 version = "0.1.0"
 edition = "2021"
-
+#readme = "readme"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 
-actix-web = "4"
-serde = { version = "1.0", features = ["derive"] }
+actix-web = { workspace = true }
 actix-rt = "2.9.0"
+futures-util = "0.3.28"
+serde = { version = "1.0", features = ["derive"] }
+serde_derive = "1.0.188"
 serde_json = { version = "1.0.106", features = ["arbitrary_precision"] }
+#k8s-openapi = { version = "0.18.0", features = ["v1_25"] }
+#kube = { version = "0.83.0", features = ["derive", "runtime", "openssl-tls"] }
+#openssl-sys = "0.9.93"
+#openssl = "0.10.57"
 #env_logger = "0.10.0"
 #log = "0.4"
 #futures = "0.3"
-google-cloud-pubsub = "0.20.0"
-#google-cloud-googleapis = "0.8.0"
-google-cloud-gax = "0.15.0"
-google-cloud-default = "0.4.0"
-serde_derive = "1.0.188"
-futures-util = "0.3.28"
+#google-cloud-pubsub = "0.20.0"
+##google-cloud-googleapis = "0.8.0"
+#google-cloud-gax = "0.15.0"
+#google-cloud-default = "0.4.0"
 #tokio-util = "0.7.8"
-tokio = "1.32.0"
+tokio = { workspace = true }

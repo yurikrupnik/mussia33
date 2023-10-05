@@ -1,54 +1,54 @@
+use crate::mongo::ErrorResponse;
 use crate::swagger::{LogApiKey, RequireApiKey};
 use actix_web::{
-  delete, get, post, put,
-  web::{Data, Json, Path, Query, ServiceConfig},
-  HttpResponse, Responder,
+    delete, get, post, put,
+    web::{Data, Json, Path, Query, ServiceConfig},
+    HttpResponse, Responder,
 };
-use crate::mongo::ErrorResponse;
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use utoipa::{IntoParams, ToSchema};
 
 #[derive(Default)]
 pub struct TodoStore {
-  todos: Mutex<Vec<Todo>>,
+    todos: Mutex<Vec<Todo>>,
 }
 
 pub fn configure(store: Data<TodoStore>) -> impl FnOnce(&mut ServiceConfig) {
-  |config: &mut ServiceConfig| {
-    config
-      .app_data(store)
-      .service(search_todos)
-      .service(get_todos)
-      .service(create_todo)
-      .service(delete_todo)
-      .service(get_todo_by_id)
-      .service(update_todo);
-  }
+    |config: &mut ServiceConfig| {
+        config
+            .app_data(store)
+            .service(search_todos)
+            .service(get_todos)
+            .service(create_todo)
+            .service(delete_todo)
+            .service(get_todo_by_id)
+            .service(update_todo);
+    }
 }
 
 /// Task todo.
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct Todo {
-  /// Unique id for the todo item.
-  #[schema(example = 1)]
-  id: i32,
-  /// Description of the task to do.
-  #[schema(example = "Remember to buy groceries")]
-  value: String,
-  /// Mark is the task done or not
-  checked: bool,
-  // checked: Option<bool>,
+    /// Unique id for the todo item.
+    #[schema(example = 1)]
+    id: i32,
+    /// Description of the task to do.
+    #[schema(example = "Remember to buy groceries")]
+    value: String,
+    /// Mark is the task done or not
+    checked: bool,
+    // checked: Option<bool>,
 }
 
 /// Request to update existing `Todo` item.
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct TodoUpdateRequest {
-  /// Optional new value for the `Todo` task.
-  #[schema(example = "Dentist at 14.00")]
-  value: Option<String>,
-  /// Optional check status to mark is the task done or not.
-  checked: Option<bool>,
+    /// Optional new value for the `Todo` task.
+    #[schema(example = "Dentist at 14.00")]
+    value: Option<String>,
+    /// Optional check status to mark is the task done or not.
+    checked: Option<bool>,
 }
 
 /// Get list of todos.
@@ -66,9 +66,9 @@ responses(
 )]
 #[get("/todo")]
 pub async fn get_todos(todo_store: Data<TodoStore>) -> impl Responder {
-  let todos = todo_store.todos.lock().unwrap();
+    let todos = todo_store.todos.lock().unwrap();
 
-  HttpResponse::Ok().json(todos.clone())
+    HttpResponse::Ok().json(todos.clone())
 }
 
 /// Create new Todo to shared in-memory storage.
@@ -89,20 +89,20 @@ responses(
 )]
 #[post("/todo")]
 pub async fn create_todo(todo: Json<Todo>, todo_store: Data<TodoStore>) -> impl Responder {
-  let mut todos = todo_store.todos.lock().unwrap();
-  let todo = &todo.into_inner();
+    let mut todos = todo_store.todos.lock().unwrap();
+    let todo = &todo.into_inner();
 
-  todos
-    .iter()
-    .find(|existing| existing.id == todo.id)
-    .map(|existing| {
-      HttpResponse::Conflict().json(ErrorResponse::Conflict(format!("id = {}", existing.id)))
-    })
-    .unwrap_or_else(|| {
-      todos.push(todo.clone());
+    todos
+        .iter()
+        .find(|existing| existing.id == todo.id)
+        .map(|existing| {
+            HttpResponse::Conflict().json(ErrorResponse::Conflict(format!("id = {}", existing.id)))
+        })
+        .unwrap_or_else(|| {
+            todos.push(todo.clone());
 
-      HttpResponse::Created().json(todo)
-    })
+            HttpResponse::Created().json(todo)
+        })
 }
 
 /// Delete Todo by given path variable id.
@@ -126,21 +126,21 @@ security(
 )]
 #[delete("/todo/{id}", wrap = "RequireApiKey")]
 pub async fn delete_todo(id: Path<i32>, todo_store: Data<TodoStore>) -> impl Responder {
-  let mut todos = todo_store.todos.lock().unwrap();
-  let id = id.into_inner();
+    let mut todos = todo_store.todos.lock().unwrap();
+    let id = id.into_inner();
 
-  let new_todos = todos
-    .iter()
-    .filter(|todo| todo.id != id)
-    .cloned()
-    .collect::<Vec<_>>();
+    let new_todos = todos
+        .iter()
+        .filter(|todo| todo.id != id)
+        .cloned()
+        .collect::<Vec<_>>();
 
-  if new_todos.len() == todos.len() {
-    HttpResponse::NotFound().json(ErrorResponse::NotFound(format!("id = {id}")))
-  } else {
-    *todos = new_todos;
-    HttpResponse::Ok().finish()
-  }
+    if new_todos.len() == todos.len() {
+        HttpResponse::NotFound().json(ErrorResponse::NotFound(format!("id = {id}")))
+    } else {
+        *todos = new_todos;
+        HttpResponse::Ok().finish()
+    }
 }
 
 /// Get Todo by given todo id.
@@ -157,16 +157,16 @@ params(
 )]
 #[get("/todo/{id}")]
 pub async fn get_todo_by_id(id: Path<i32>, todo_store: Data<TodoStore>) -> impl Responder {
-  let todos = todo_store.todos.lock().unwrap();
-  let id = id.into_inner();
+    let todos = todo_store.todos.lock().unwrap();
+    let id = id.into_inner();
 
-  todos
-    .iter()
-    .find(|todo| todo.id == id)
-    .map(|todo| HttpResponse::Ok().json(todo))
-    .unwrap_or_else(|| {
-      HttpResponse::NotFound().json(ErrorResponse::NotFound(format!("id = {id}")))
-    })
+    todos
+        .iter()
+        .find(|todo| todo.id == id)
+        .map(|todo| HttpResponse::Ok().json(todo))
+        .unwrap_or_else(|| {
+            HttpResponse::NotFound().json(ErrorResponse::NotFound(format!("id = {id}")))
+        })
 }
 
 /// Update Todo with given id.
@@ -192,37 +192,37 @@ security(
 )]
 #[put("/todo/{id}", wrap = "LogApiKey")]
 pub async fn update_todo(
-  id: Path<i32>,
-  todo: Json<TodoUpdateRequest>,
-  todo_store: Data<TodoStore>,
+    id: Path<i32>,
+    todo: Json<TodoUpdateRequest>,
+    todo_store: Data<TodoStore>,
 ) -> impl Responder {
-  let mut todos = todo_store.todos.lock().unwrap();
-  let id = id.into_inner();
-  let todo = todo.into_inner();
+    let mut todos = todo_store.todos.lock().unwrap();
+    let id = id.into_inner();
+    let todo = todo.into_inner();
 
-  todos
-    .iter_mut()
-    .find_map(|todo| if todo.id == id { Some(todo) } else { None })
-    .map(|existing_todo| {
-      if let Some(checked) = todo.checked {
-        existing_todo.checked = checked;
-      }
-      if let Some(value) = todo.value {
-        existing_todo.value = value;
-      }
+    todos
+        .iter_mut()
+        .find_map(|todo| if todo.id == id { Some(todo) } else { None })
+        .map(|existing_todo| {
+            if let Some(checked) = todo.checked {
+                existing_todo.checked = checked;
+            }
+            if let Some(value) = todo.value {
+                existing_todo.value = value;
+            }
 
-      HttpResponse::Ok().json(existing_todo)
-    })
-    .unwrap_or_else(|| {
-      HttpResponse::NotFound().json(ErrorResponse::NotFound(format!("id = {id}")))
-    })
+            HttpResponse::Ok().json(existing_todo)
+        })
+        .unwrap_or_else(|| {
+            HttpResponse::NotFound().json(ErrorResponse::NotFound(format!("id = {id}")))
+        })
 }
 
 /// Search todos Query
 #[derive(Deserialize, Debug, IntoParams)]
 pub struct SearchTodos {
-  /// Content that should be found from Todo's value field
-  value: String,
+    /// Content that should be found from Todo's value field
+    value: String,
 }
 
 /// Search Todos with by value
@@ -239,20 +239,20 @@ responses(
 )]
 #[get("/todo/search")]
 pub async fn search_todos(
-  query: Query<SearchTodos>,
-  todo_store: Data<TodoStore>,
+    query: Query<SearchTodos>,
+    todo_store: Data<TodoStore>,
 ) -> impl Responder {
-  let todos = todo_store.todos.lock().unwrap();
+    let todos = todo_store.todos.lock().unwrap();
 
-  HttpResponse::Ok().json(
-    todos
-      .iter()
-      .filter(|todo| {
-        todo.value
-          .to_lowercase()
-          .contains(&query.value.to_lowercase())
-      })
-      .cloned()
-      .collect::<Vec<_>>(),
-  )
+    HttpResponse::Ok().json(
+        todos
+            .iter()
+            .filter(|todo| {
+                todo.value
+                    .to_lowercase()
+                    .contains(&query.value.to_lowercase())
+            })
+            .cloned()
+            .collect::<Vec<_>>(),
+    )
 }

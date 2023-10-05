@@ -1,0 +1,17 @@
+{
+  "name": "@mussia33/rust-napi-shared-freebsd-x64",
+  "version": "0.0.0",
+  "os": [
+    "freebsd"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "main": "rust_napi_shared.freebsd-x64.node",
+  "files": [
+    "rust_napi_shared.freebsd-x64.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  }
+}

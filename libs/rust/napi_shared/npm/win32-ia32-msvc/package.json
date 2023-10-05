@@ -1,0 +1,17 @@
+{
+  "name": "@mussia33/rust-napi-shared-win32-ia32-msvc",
+  "version": "0.0.0",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "ia32"
+  ],
+  "main": "rust_napi_shared.win32-ia32-msvc.node",
+  "files": [
+    "rust_napi_shared.win32-ia32-msvc.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  }
+}

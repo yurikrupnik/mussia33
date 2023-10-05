@@ -1,8 +1,9 @@
+use crate::mongo::MongoRepo;
 use crate::user;
 use crate::user::handlers::{add_user, delete_user, drop_users, get_user, update_user, user_list};
-use actix_web::{web, HttpResponse};
+use actix_web::{web, HttpResponse, Resource};
+use actix_web::dev::Service;
 use futures::executor::block_on;
-use crate::mongo::MongoRepo;
 use serde::{de::DeserializeOwned, Serialize};
 // use std::{future::Future, pin::Pin};
 
@@ -15,6 +16,13 @@ where
     cfg.app_data(data);
 }
 
+// fn get_asd<T>() -> Resource<T> {
+//     let s = web::resource("")
+//         .route(web::get().to(user_list::<T>))
+//         .route(web::delete().to(drop_users))
+//         .route(web::post().to(add_user));
+//     s
+// }
 pub fn create_config_by_type<T>(
     db: &'static str,
     collection: &'static str,

@@ -18,8 +18,7 @@ where
     T: Serialize + DeserializeOwned + Sync + Send + Unpin,
 {
     pub async fn init(db_name: &str, col_name: &str) -> Self {
-        let uri =
-            std::env::var("MONGO_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
+        let uri = std::env::var("MONGO_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
         let client = Client::with_uri_str(uri).await.expect("failed to connect");
         let col = client.database(db_name).collection(col_name);
         Self { col }
@@ -68,7 +67,7 @@ where
             .await
             .expect("Error mapping through cursor")
         {
-          data.push(item)
+            data.push(item)
         }
         Ok(data)
     }

@@ -1801,6 +1801,13 @@ export interface VaultDynamicSecretSpecProviderAuth {
    */
   readonly tokenSecretRef?: VaultDynamicSecretSpecProviderAuthTokenSecretRef;
 
+  /**
+   * UserPass authenticates with Vault by passing username/password pair
+   *
+   * @schema VaultDynamicSecretSpecProviderAuth#userPass
+   */
+  readonly userPass?: VaultDynamicSecretSpecProviderAuthUserPass;
+
 }
 
 /**
@@ -1817,6 +1824,7 @@ export function toJson_VaultDynamicSecretSpecProviderAuth(obj: VaultDynamicSecre
     'kubernetes': toJson_VaultDynamicSecretSpecProviderAuthKubernetes(obj.kubernetes),
     'ldap': toJson_VaultDynamicSecretSpecProviderAuthLdap(obj.ldap),
     'tokenSecretRef': toJson_VaultDynamicSecretSpecProviderAuthTokenSecretRef(obj.tokenSecretRef),
+    'userPass': toJson_VaultDynamicSecretSpecProviderAuthUserPass(obj.userPass),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2253,6 +2261,51 @@ export function toJson_VaultDynamicSecretSpecProviderAuthTokenSecretRef(obj: Vau
     'key': obj.key,
     'name': obj.name,
     'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * UserPass authenticates with Vault by passing username/password pair
+ *
+ * @schema VaultDynamicSecretSpecProviderAuthUserPass
+ */
+export interface VaultDynamicSecretSpecProviderAuthUserPass {
+  /**
+   * Path where the UserPassword authentication backend is mounted in Vault, e.g: "user"
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthUserPass#path
+   */
+  readonly path: string;
+
+  /**
+   * SecretRef to a key in a Secret resource containing password for the user used to authenticate with Vault using the UserPass authentication method
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthUserPass#secretRef
+   */
+  readonly secretRef?: VaultDynamicSecretSpecProviderAuthUserPassSecretRef;
+
+  /**
+   * Username is a user name used to authenticate using the UserPass Vault authentication method
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthUserPass#username
+   */
+  readonly username: string;
+
+}
+
+/**
+ * Converts an object of type 'VaultDynamicSecretSpecProviderAuthUserPass' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VaultDynamicSecretSpecProviderAuthUserPass(obj: VaultDynamicSecretSpecProviderAuthUserPass | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'path': obj.path,
+    'secretRef': toJson_VaultDynamicSecretSpecProviderAuthUserPassSecretRef(obj.secretRef),
+    'username': obj.username,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2741,6 +2794,51 @@ export interface VaultDynamicSecretSpecProviderAuthLdapSecretRef {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_VaultDynamicSecretSpecProviderAuthLdapSecretRef(obj: VaultDynamicSecretSpecProviderAuthLdapSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SecretRef to a key in a Secret resource containing password for the user used to authenticate with Vault using the UserPass authentication method
+ *
+ * @schema VaultDynamicSecretSpecProviderAuthUserPassSecretRef
+ */
+export interface VaultDynamicSecretSpecProviderAuthUserPassSecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthUserPassSecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthUserPassSecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema VaultDynamicSecretSpecProviderAuthUserPassSecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'VaultDynamicSecretSpecProviderAuthUserPassSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VaultDynamicSecretSpecProviderAuthUserPassSecretRef(obj: VaultDynamicSecretSpecProviderAuthUserPassSecretRef | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'key': obj.key,

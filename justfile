@@ -1,6 +1,7 @@
 set export
 set shell := ["sh", "-c"]
 GCP_PROJECT := `gcloud config get-value project`
+LOCAL_K8S_TYPE := 'kind'
 
 default:
     @just --list --unsorted
@@ -12,10 +13,6 @@ git-add:
   git submodule add https://github.com/yurikrupnik/sdp-demo sdp-demo
 git-remove:
   git submodule add https://github.com/yurikrupnik/sdp-demo sdp-demo
-# todo with all ts configs!
-# https://github.com/stephenh/ts-proto#nestjs-support
-daily:
-  echo "daily stuffs"
 
 cloud:
   gcloud builds submit --region=REGION --config [CONFIG_FILE_PATH] .
@@ -28,14 +25,19 @@ local-cluster-mongodb-docker-compose:
 
 task1:
   task -t k8s/Taskfile.yaml up
-
-start:
-  -ctlptl create cluster minikube --registry=ctlptl-registry
-  minikube addons enable gcp-auth
+ctlptl-create:
+    -ctlptl create cluster kind --registry=ctlptl-registry
+start: ctlptl-create
+  task -a
+  task crossplane:setup
+  #minikube addons enable gcp-auth
+#  minikube addons enable auto-pause
+#  minikube addons enable istio
+#  minikube addons enable cloud-spanner
 #  tilt up
 stop:
   #tilt down
-  ctlptl delete cluster minikube
+  ctlptl delete cluster kind
 #  just install-linkerd
 #  just run-titl-cluster
 

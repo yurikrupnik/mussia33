@@ -124,6 +124,9 @@ devDependencies:
   '@monodon/rust':
     specifier: ^1.1.2
     version: 1.2.0(nx@16.7.4)(typescript@5.2.2)
+  '@napi-rs/cli':
+    specifier: 2.14.8
+    version: 2.14.8
   '@nestjs/schematics':
     specifier: 10.0.2
     version: 10.0.2(typescript@5.2.2)
@@ -2613,6 +2616,12 @@ packages:
       - supports-color
       - typescript
       - verdaccio
+    dev: true
+
+  /@napi-rs/cli@2.14.8:
+    resolution: {integrity: sha512-IvA3s8BqohMdUbOkFn7+23u1dhIJZCkA8Xps7DD4SLdCMbcbUF6MUuKiqxuqmVHBFTaxU25sU56WdX3efqGgPw==}
+    engines: {node: '>= 10'}
+    hasBin: true
     dev: true
 
   /@nestjs/common@10.2.4(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)(rxjs@7.8.1):

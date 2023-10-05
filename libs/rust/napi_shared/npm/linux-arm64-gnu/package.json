@@ -1,0 +1,20 @@
+{
+  "name": "@mussia33/rust-napi-shared-linux-arm64-gnu",
+  "version": "0.0.0",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "main": "rust_napi_shared.linux-arm64-gnu.node",
+  "files": [
+    "rust_napi_shared.linux-arm64-gnu.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  },
+  "libc": [
+    "glibc"
+  ]
+}

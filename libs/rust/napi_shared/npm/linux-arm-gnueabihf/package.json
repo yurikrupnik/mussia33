@@ -1,0 +1,17 @@
+{
+  "name": "@mussia33/rust-napi-shared-linux-arm-gnueabihf",
+  "version": "0.0.0",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm"
+  ],
+  "main": "rust_napi_shared.linux-arm-gnueabihf.node",
+  "files": [
+    "rust_napi_shared.linux-arm-gnueabihf.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  }
+}

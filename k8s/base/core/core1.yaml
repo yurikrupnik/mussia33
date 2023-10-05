@@ -1,0 +1,21 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: komoplane-ingress
+  namespace: crossplane-ui
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+#    nginx.ingress.kubernetes.io/configuration-snippet: |
+#      rewrite ^(/komoplane)$ $1/ redirect;
+spec:
+  rules:
+    - http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: komoplane
+                port:
+                  number: 8090

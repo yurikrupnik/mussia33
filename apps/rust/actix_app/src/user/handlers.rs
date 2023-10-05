@@ -1,6 +1,6 @@
+use crate::mongo::{ErrorResponse, MongoRepo};
 use crate::user::User;
 use actix_web::{web, HttpResponse, Responder};
-use crate::mongo::{ErrorResponse, MongoRepo};
 use serde::{de::DeserializeOwned, Serialize};
 use validator::Validate;
 
