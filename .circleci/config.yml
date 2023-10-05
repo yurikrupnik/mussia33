@@ -7,16 +7,20 @@ jobs:
       - image: cimg/node:lts-browsers
     steps:
       - checkout
+      - run:
+          name: Install PNPM
+          command: npm install -g pnpm
+
       - restore_cache:
           name: Restore pnpm Package Cache
           keys:
             - pnpm-packages-{{ checksum "pnpm-lock.yaml" }}
-      - run:
-          name: Install pnpm package manager
-          command: |
-            sudo ln -s ../lib/node_modules/corepack/dist/pnpm.js /usr/local/bin/pnpm
-            corepack enable
-            corepack prepare pnpm@latest-8 --activate
+#      - run:
+#          name: Install pnpm package manager
+#          command: |
+#            sudo ln -s ../lib/node_modules/corepack/dist/pnpm.js /usr/local/bin/pnpm
+#            corepack enable
+#            corepack prepare pnpm@latest-8 --activate
       - run:
           name: Install Dependencies
           command: |
