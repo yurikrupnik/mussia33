@@ -14,7 +14,7 @@ jobs:
       - run:
           name: Install pnpm package manager
           command: |
-            sudo rm /usr/local/bin/pnpm
+            sudo ln -s ../lib/node_modules/corepack/dist/pnpm.js /usr/local/bin/pnpm
             corepack enable
             corepack prepare pnpm@latest-8 --activate
       - run:
