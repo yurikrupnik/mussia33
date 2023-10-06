@@ -259,7 +259,8 @@ jobs:
           gcloud --quiet auth configure-docker europe-central2-docker.pkg.dev
 # End of gcp containers
       - name: Container build
-        run: pnpm nx affected --target=docker --parallel --max-parallel=3 --prod
+#         TODO change back docker
+        run: pnpm nx affected --target=dockerd --parallel --max-parallel=3 --prod
         env:
           GOOS: linux
           GOARCH: amd64

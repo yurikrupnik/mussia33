@@ -6,6 +6,7 @@ edition = "2021"
 
 [dependencies]
 #mongo = { path = "../../../libs/rust/mongo" }
+rust_servers_shared = { path = "../../../libs/rust/servers_shared" }
 actix-web = { workspace = true }
 async-trait = { version = "0.1" }
 mongodb = "2.6"

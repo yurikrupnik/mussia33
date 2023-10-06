@@ -12,6 +12,8 @@ use std::env;
 use swagger::{ApiDoc, ApiDoc1};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::{SwaggerUi, Url};
+use rust_servers_shared::get_env_port;
+
 
 async fn get_status() -> HttpResponse {
     HttpResponse::Ok().body("data")
@@ -25,10 +27,7 @@ async fn main() -> std::io::Result<()> {
 
     // let openapi = ApiDoc::openapi();
     // let openapi1 = ApiDoc1::openapi();
-    let port = env::var("PORT")
-        .unwrap_or("8080".to_string())
-        .parse::<u16>()
-        .unwrap();
+    // let port = get_env_port();
     let uri = env::var("MONGO_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
     let client = Client::with_uri_str(uri).await.expect("failed to connect");
     let store = web::Data::new(todo::TodoStore::default());
@@ -73,8 +72,9 @@ async fn main() -> std::io::Result<()> {
                     ApiDoc1::openapi(),
                 ),
             ]))
+            .default_service(web::to(HttpResponse::NotFound))
     })
-    .bind(("0.0.0.0", port))?
+    .bind(("0.0.0.0", get_env_port()))?
     .run()
     .await
 }
