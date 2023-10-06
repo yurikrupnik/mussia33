@@ -3217,6 +3217,7 @@ dependencies = [
  "log",
  "mongodb",
  "plurals",
+ "rust_servers_shared",
  "serde",
  "serde_derive",
  "serde_json",
