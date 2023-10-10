@@ -6,6 +6,16 @@ services:
       - "27017:27017"
 
   redis:
-    image: "redis:alpine"
+    image: "redis"
     ports:
       - "6379:6379"
+  postgres:
+    image: "postgres"
+    environment:
+      POSTGRES_DB: mydatabase
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    ports:
+      - "5432:5432"
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data

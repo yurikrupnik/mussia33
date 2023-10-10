@@ -5,18 +5,40 @@ mod todo;
 mod user; // only for docker local
 
 use actix_cors::Cors;
-use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer};
+use actix_web::{middleware::Logger, Scope, web, App, HttpResponse, HttpServer};
 use env_logger::Env;
+use log::error;
 use mongodb::Client;
-use std::env;
 use swagger::{ApiDoc, ApiDoc1};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::{SwaggerUi, Url};
-use rust_servers_shared::get_env_port;
+use serde::{de::DeserializeOwned, Serialize};
+use rust_servers_shared::{get_env_port, get_mongo_uri, get_status};
+
+// TODO CHECK TO REMOVE AFTER CLEAN UP
+use rust_books_api::{Book, books_routes};
+use rust_generic_api::create_configure;
 
 
-async fn get_status() -> HttpResponse {
-    HttpResponse::Ok().body("data")
+use user::{add_user, delete_user, drop_users, get_user, update_user, user_list, QueryParams};
+fn users_service<T>(url: String) -> Scope
+    where
+        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static,
+{
+    web::scope(url.as_str())
+        .service(
+            web::resource("")
+                .route(web::get().to(user_list::<T, QueryParams>))
+                .route(web::delete().to(drop_users))
+                .route(web::post().to(add_user)),
+        )
+        .service(
+            web::resource("/{id}")
+                .route(web::delete().to(delete_user))
+                .route(web::put().to(update_user))
+                .route(web::get().to(get_user)),
+        )
+
 }
 
 #[actix_web::main]
@@ -25,14 +47,13 @@ async fn main() -> std::io::Result<()> {
     // env::set_var("RUST_BACKTRACE", "1");
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
-    // let openapi = ApiDoc::openapi();
-    // let openapi1 = ApiDoc1::openapi();
-    // let port = get_env_port();
-    let uri = env::var("MONGO_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
-    let client = Client::with_uri_str(uri).await.expect("failed to connect");
+    let client = Client::with_uri_str(get_mongo_uri()).await.expect("failed to connect");
     let store = web::Data::new(todo::TodoStore::default());
     // data here
     let client_data = web::Data::new(client);
+
+    let port = get_env_port();
+    log::info!("Starting HTTP server on http://localhost:{port}");
 
     HttpServer::new(move || {
         let cors = Cors::default()
@@ -54,9 +75,15 @@ async fn main() -> std::io::Result<()> {
                     .service(product::delete_product)
                     .service(product::delete_products)
                     .service(product::update_product)
+                    .configure(create_configure::<Book>(
+                        "rustApp",
+                        Book::COLLECTION,
+                        books_routes()
+                    ))
                     .configure(user::create_config_by_type::<user::User>(
                         "rustApp",
                         user::User::get_collection(2),
+                        users_service::<user::User>(format!("/{}", user::User::get_collection(2)))
                     )),
             )
             .wrap(cors)
@@ -74,7 +101,9 @@ async fn main() -> std::io::Result<()> {
             ]))
             .default_service(web::to(HttpResponse::NotFound))
     })
-    .bind(("0.0.0.0", get_env_port()))?
+    .bind(("0.0.0.0", port))?
+    .workers(1) // remove me after development
     .run()
     .await
+    // .map_err(|err| anyhow::anyhow!("An error occurred while running the server. {:?}", err))
 }

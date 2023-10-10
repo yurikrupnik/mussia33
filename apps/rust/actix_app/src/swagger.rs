@@ -13,6 +13,7 @@ use utoipa::{
 use crate::product;
 use crate::todo;
 use crate::user;
+use rust_books_api::Book;
 
 const API_KEY_NAME: &str = "todo_apikey";
 const API_KEY: &str = "utoipa-rocks";
@@ -32,14 +33,18 @@ user::delete_user,
 user::drop_users,
 user::get_user,
 user::update_user,
+rust_books_api::list_book,
+rust_books_api::create_book,
 ),
 components(
 schemas(todo::Todo, todo::TodoUpdateRequest, ErrorResponse),
-schemas(user::User, user::Id, user::Pagination),
+schemas(Book),
+schemas(user::User),
 ),
 tags(
 (name = "todo", description = "Todo management endpoints."),
 (name = "user", description = "Users management endpoints."),
+(name = "book", description = "Books management endpoints."),
 ),
 modifiers(&SecurityAddon)
 )]
@@ -53,8 +58,6 @@ product::get_products,
 ),
 components(
 schemas(product::Product, ErrorResponse),
-schemas(todo::Todo, todo::TodoUpdateRequest, ErrorResponse),
-schemas(user::User, user::Id, user::Pagination),
 ),
 tags(
 (name = "product", description = "Products management endpoints."),

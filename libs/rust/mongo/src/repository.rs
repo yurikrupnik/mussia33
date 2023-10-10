@@ -9,17 +9,17 @@ use mongodb::{
 };
 use serde::{de::DeserializeOwned, Serialize};
 
-pub struct MongoRepo<T> {
+pub struct MongoRepository<T> {
     col: Collection<T>,
 }
 
-impl<T> MongoRepo<T>
+impl<T> MongoRepository<T>
 where
     T: Serialize + DeserializeOwned + Sync + Send + Unpin,
 {
     pub async fn init(db_name: &str, col_name: &str) -> Self {
         let uri = std::env::var("MONGO_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
-        let client = Client::with_uri_str(uri).await.expect("failed to connect");
+        let client = Client::with_uri_str(uri).await.expect("failed to connect to mongodb");
         let col = client.database(db_name).collection(col_name);
         Self { col }
     }
@@ -104,25 +104,25 @@ where
 // #[async_trait]
 // pub trait Api<T> {
 //     async fn get_all(&self) -> HttpResponse;
-//     async fn get_one(&self, db: MongoRepo<T>, body: web::Json<T>) -> HttpResponse;
-//     // async fn create_item(&self, db: MongoRepo<T>, body: web::Json<T>) -> HttpResponse;
+//     async fn get_one(&self, db: MongoRepository<T>, body: web::Json<T>) -> HttpResponse;
+//     // async fn create_item(&self, db: MongoRepository<T>, body: web::Json<T>) -> HttpResponse;
 // }
 //
 // #[async_trait]
-// impl<T> Api<T> for MongoRepo<T>
+// impl<T> Api<T> for MongoRepository<T>
 // where
 //     T: Serialize + DeserializeOwned + Sync + Send + Unpin,
 // {
 //     async fn get_all(&self) -> HttpResponse {
-//         let result = MongoRepo::list(self).await;
+//         let result = MongoRepository::list(self).await;
 //         // let result = db.list().await;
 //         match result {
 //             Ok(res) => HttpResponse::Ok().json(res),
 //             Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
 //         }
 //     }
-//     async fn get_one(&self, db: MongoRepo<T>, body: web::Json<T>) -> HttpResponse {
-//         let result = self::MongoRepo::list(self).await;
+//     async fn get_one(&self, db: MongoRepository<T>, body: web::Json<T>) -> HttpResponse {
+//         let result = self::MongoRepository::list(self).await;
 //         // let result = dblist(self).await;
 //         match result {
 //             Ok(res) => HttpResponse::Ok().json(res),

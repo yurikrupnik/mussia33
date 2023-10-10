@@ -1,17 +1,11 @@
 mod errors;
 mod repository;
 mod serialize;
+mod router;
+mod handlers;
+mod id;
 
 pub use errors::*;
 pub use repository::*;
-pub use serialize::*;
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-//     #[test]
-//     fn it_works() {
-//         assert_eq!(mongo(), "mongo".to_string());
-//     }
-// }
+pub use id::*;
+// pub use serialize::*;

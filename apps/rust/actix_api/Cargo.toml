@@ -1,0 +1,19 @@
+[package]
+name = "rust_actix_api"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+actix-web = { workspace = true }
+env_logger = { workspace = true }
+log = { workspace = true }
+mongo = { workspace = true }
+mongodb = { workspace = true }
+rust_servers_shared = { workspace = true }
+rust_projects = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_derive = { workspace = true }
+#rust_servers_shared = { path = "../../../libs/rust/servers_shared" }
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
