@@ -3265,6 +3265,7 @@ dependencies = [
  "plurals",
  "proc-macro2",
  "quote",
+ "rust_author_api",
  "rust_books_api",
  "rust_generic_api",
  "rust_servers_shared",

@@ -1,9 +1,9 @@
-mod model;
-// mod handlers;
-// mod dto;
-// mod router;
-//
-//
-// pub use model::Book;
-// pub use dto::QueryParams;
-// pub use router::books_routes;
+mod author;
+
+pub use author::*;
+
+// pub mod shit {
+//     pub mod author;
+//     use crate::author;
+//     pub use author::*;
+// }

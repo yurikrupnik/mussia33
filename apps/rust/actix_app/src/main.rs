@@ -7,7 +7,6 @@ mod user; // only for docker local
 use actix_cors::Cors;
 use actix_web::{middleware::Logger, Scope, web, App, HttpResponse, HttpServer};
 use env_logger::Env;
-use log::error;
 use mongodb::Client;
 use swagger::{ApiDoc, ApiDoc1};
 use utoipa::OpenApi;
@@ -16,10 +15,11 @@ use rust_servers_shared::{get_env_port, get_mongo_uri, get_status};
 
 // TODO CHECK TO REMOVE AFTER CLEAN UP
 use rust_books_api::{Book, books_routes};
-use rust_generic_api::create_configure;
+use rust_author_api::{Author, authors_routes};
 
+use rust_generic_api::{create_configure};
+use user::{add_user, delete_user, drop_users, get_user, update_user, user_list};
 
-use user::{add_user, delete_user, drop_users, get_user, update_user, user_list, QueryParams};
 fn users_service(url: String) -> Scope {
     web::scope(url.as_str())
         .service(
@@ -75,6 +75,11 @@ async fn main() -> std::io::Result<()> {
                         "rustApp",
                         Book::COLLECTION,
                         books_routes()
+                    ))
+                    .configure(create_configure::<Author>(
+                        "rustApp",
+                        Author::COLLECTION,
+                        authors_routes()
                     ))
                     .configure(user::create_config_by_type::<user::User>(
                         "rustApp",

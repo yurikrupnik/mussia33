@@ -24,6 +24,7 @@ ts-rs = { workspace = true }
 thiserror = { workspace = true }
 rust_generic_api = { workspace = true }
 rust_books_api = { workspace = true }
+rust_author_api = { workspace = true }
 syn = "2.0"
 quote = "1.0"
 proc-macro2 = "1.0"

@@ -1,4 +1,3 @@
-use plurals::{Lang, Plural};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use utoipa::{ToSchema};
@@ -23,11 +22,4 @@ pub struct Author {
 
 impl Author {
     pub const COLLECTION: &'static str = "authors";
-    pub fn get_collection<'a>(num: u8) -> &'a str {
-        const FOOT: Lang = Lang::En {
-            singular: "author",
-            plural: "authors",
-        };
-        FOOT.fmt(num)
-    }
 }

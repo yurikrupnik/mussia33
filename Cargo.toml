@@ -38,6 +38,7 @@ rust_projects = { path = 'libs/rust/projects' }
 rust_macros = { path = 'libs/rust/macros' }
 rust_proc_macros = { path = 'libs/rust/proc_macros' }
 rust_books_api = { path = 'libs/rust/books_api' }
+rust_author_api = { path = 'libs/rust/author_api' }
 rust_napi_shared = { path = 'libs/rust/napi_shared' }
 rust_servers_shared = { path = 'libs/rust/servers_shared' }
 rust_generic_api = { path = 'libs/rust/generic_api' }
