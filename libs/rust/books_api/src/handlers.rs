@@ -10,17 +10,18 @@ struct PersonResponse {
     value: String
 }
 
-/// Get list of books.
+/// Get list of book collection.
 ///
 /// List `Books` from mongodb.
 ///
 /// One could call the api endpoint with following curl.
 /// ```text
-/// curl localhost:8080/api/books
+/// curl localhost:8080/api/book
 /// ```
 #[utoipa::path(
 get,
-path = "/api/books",
+path = "/api/book",
+tag = "Book",
 responses(
 (status = 200, description = "Collection found successfully", body = [Book]),
 (status = 400, description = "User error", body = ErrorResponse),
@@ -46,7 +47,8 @@ pub async fn list_book(
 /// ```
 #[utoipa::path(
 post,
-path = "/api/books",
+path = "/api/book",
+tag = "Book",
 request_body = Book,
 responses(
 (status = 201, description = "Book created successfully", body = Book),

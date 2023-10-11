@@ -14,7 +14,8 @@ use utoipa_swagger_ui::{SwaggerUi, Url};
 use rust_servers_shared::{get_env_port, get_mongo_uri, get_status};
 
 // TODO CHECK TO REMOVE AFTER CLEAN UP
-use rust_books_api::{Book, books_routes};
+// use rust_books_api::{Book, books_routes};
+use rust_books_api::book::{Book, books_routes};
 use rust_author_api::{Author, authors_routes};
 
 use rust_generic_api::{create_configure};

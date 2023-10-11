@@ -3,8 +3,9 @@ mod handlers;
 mod dto;
 mod router;
 
-pub use model::Book;
-pub use dto::QueryParams;
-pub use router::books_routes;
-pub use handlers::*;
-
+pub mod book {
+    pub use crate::model::Book;
+    pub use crate::handlers::*;
+    pub use crate::dto::QueryParams;
+    pub use crate::router::books_routes;
+}

@@ -23,8 +23,8 @@ pub struct Book {
 }
 
 impl Book {
-    pub const COLLECTION: &'static str = "books";
-    pub fn get_collection<'a>(num: u8) -> &'a str {
+    pub const COLLECTION: &'static str = "book";
+    pub fn get_collections<'a>(num: u8) -> &'a str {
         const FOOT: Lang = Lang::En {
             singular: "book",
             plural: "books",
