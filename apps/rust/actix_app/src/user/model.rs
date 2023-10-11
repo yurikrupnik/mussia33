@@ -5,13 +5,14 @@ use utoipa::{ToSchema, IntoParams};
 use validator::Validate;
 use rust_generic_api::Id;
 
-// #[serde(deny_unknown_fields)]
 /// Request to update existing `User` item.
 #[derive(Clone, ToSchema, Debug, PartialEq, Eq, Deserialize, Serialize, Validate, TS)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 #[ts(export)]
 pub struct User {
-    pub id: Option<Id>,
+    #[serde(flatten)]
+    pub id: Id,
     #[schema(default = "Jon")]
     #[validate(length(min = 2))]
     // #[serde(rename = "firstName")]
@@ -38,8 +39,9 @@ pub struct User {
     pub role: Option<String>,
 }
 
+
 // #[derive(Clone, ToSchema, Debug, PartialEq, Eq, Deserialize, Serialize, Validate, TS)]
-#[derive(Deserialize, Serialize, Debug, Validate, TS, IntoParams)]
+#[derive(Deserialize, Serialize, Debug, TS, IntoParams)]
 #[serde(deny_unknown_fields)]
 #[ts(export)]
 pub struct QueryParams {
@@ -47,9 +49,18 @@ pub struct QueryParams {
     pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub skip: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub projection: Option<String>,
+    // pub projection: Option<Vec<String>>,
+    // TODO pagination flatten works on 1 field only!
     // #[serde(flatten)]
-    // pub pagination: Pagination,
-    // #[serde(skip_serializing_if = "Option::is_none")]
+    // pub pagination: Option<Pagination>,
     // #[ts(type = "number")]
     // pub limit: Option<i64>,
     // TODO: Add projection field.
@@ -58,7 +69,6 @@ pub struct QueryParams {
 
 impl User {
     // pub const COLLECTION: &'static str = "users";
-
     pub fn get_collection<'a>(num: u8) -> &'a str {
         const FOOT: Lang = Lang::En {
             singular: "user",

@@ -6,24 +6,19 @@ use validator::Validate;
 use crate::errors::ErrorResponse;
 use crate::MongoRepository;
 use serde_json::json;
-use log::error;
 
 pub async fn list_items<T, U>(
     db: Data<MongoRepository<T>>,
     query: Query<U>,
+    options: Option<FindOptions>
 ) -> impl Responder
     where
         T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static,
         U: Serialize,
 {
     let query_params_json = json!(query.into_inner());
-    error!("query_params_json: {:?}", query_params_json);
     let filter = to_document(&query_params_json).unwrap_or_else(|_| Document::new());
-    error!("filter: {:?}", filter);
-    // TODO handle pagination
-    let options = FindOptions::builder()
-        .build();
-    let results = db.list(filter, options).await;
+    let results = db.list(filter, options.unwrap_or_default()).await;
     match results {
         Ok(res) => HttpResponse::Ok().json(res),
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),

@@ -31,9 +31,8 @@ params(QueryParams),
 pub async fn list_book(
     db: Data<MongoRepository<Book>>,
     query: Query<QueryParams>,
-    // options: Query<Pagination>,
 ) -> impl Responder {
-    list_items(db, query).await
+    list_items::<Book, QueryParams>(db, query, None).await
 }
 
 /// Create new Book in mongodb.
@@ -54,5 +53,5 @@ responses(
 )
 )]
 pub async fn create_book(db: Data<MongoRepository<Book>>, body: Json<Book>) -> impl Responder {
-    create_item(db, body).await
+    create_item::<Book>(db, body).await
 }

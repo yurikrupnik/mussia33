@@ -1,11 +1,23 @@
 use crate::mongo::{ErrorResponse, MongoRepo};
 use crate::user::{User, QueryParams};
 use actix_web::{web::{Json, Data, Path, Query}, HttpResponse, Responder};
+use log::error;
 use mongodb::bson::{Document, doc, to_document};
 use mongodb::options::FindOptions;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Serialize, Deserialize};
 use validator::Validate;
 use serde_json::json;
+use ts_rs::TS;
+use utoipa::{IntoParams, ToSchema};
+#[derive(Serialize, Deserialize, Debug, TS, IntoParams)]
+pub struct Pagination {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    limit: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    total: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    offset: Option<String>,
+}
 
 /// Get list of users.
 ///
@@ -25,21 +37,39 @@ responses(
 ),
 params(QueryParams),
 )]
-pub async fn user_list<T, U>(
-    db: Data<MongoRepo<T>>,
-    query: Query<U>,
-    // options: Query<Pagination>,
-) -> impl Responder
-where
-    T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static,
-    U: Serialize,
-{
-    list_items::<T, U>(db, query).await
+pub async fn user_list(
+    db: Data<MongoRepo<User>>,
+    mut query: Query<QueryParams>,
+) -> impl Responder {
+    let mut options = FindOptions::builder().build();
+
+    if let Some(limit) = &query.limit {
+        options.limit = Some(limit.parse::<i64>().unwrap_or(0));
+        query.limit = None;
+    }
+    if let Some(projection) = &query.projection {
+        if projection.contains(',') {
+            let doc = projection.split(',')
+                .fold(doc! {}, |mut acc, item| {
+                    acc.insert(item.trim(), 1);
+                    acc
+                });
+            options.projection = Some(doc);
+        } else {
+            options.projection = Some(doc! {
+                projection: 1,
+            });
+        }
+
+        query.projection = None;
+    }
+    list_items::<User, QueryParams>(db, query, Some(options)).await
 }
 
 pub async fn list_items<T, U>(
     db: Data<MongoRepo<T>>,
     query: Query<U>,
+    options: Option<FindOptions>
 ) -> impl Responder
     where
         T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static,
@@ -47,10 +77,7 @@ pub async fn list_items<T, U>(
 {
     let query_params_json = json!(query.into_inner());
     let filter = to_document(&query_params_json).unwrap_or_else(|_| Document::new());
-    // TODO handle pagination
-    let options = FindOptions::builder()
-        .build();
-    let results = db.list(filter, options).await;
+    let results = db.list(filter, options.unwrap_or_default()).await;
     match results {
         Ok(res) => HttpResponse::Ok().json(res),
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),

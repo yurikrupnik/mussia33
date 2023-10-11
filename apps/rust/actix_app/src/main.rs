@@ -12,7 +12,6 @@ use mongodb::Client;
 use swagger::{ApiDoc, ApiDoc1};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::{SwaggerUi, Url};
-use serde::{de::DeserializeOwned, Serialize};
 use rust_servers_shared::{get_env_port, get_mongo_uri, get_status};
 
 // TODO CHECK TO REMOVE AFTER CLEAN UP
@@ -21,14 +20,11 @@ use rust_generic_api::create_configure;
 
 
 use user::{add_user, delete_user, drop_users, get_user, update_user, user_list, QueryParams};
-fn users_service<T>(url: String) -> Scope
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static,
-{
+fn users_service(url: String) -> Scope {
     web::scope(url.as_str())
         .service(
             web::resource("")
-                .route(web::get().to(user_list::<T, QueryParams>))
+                .route(web::get().to(user_list))
                 .route(web::delete().to(drop_users))
                 .route(web::post().to(add_user)),
         )
@@ -83,7 +79,7 @@ async fn main() -> std::io::Result<()> {
                     .configure(user::create_config_by_type::<user::User>(
                         "rustApp",
                         user::User::get_collection(2),
-                        users_service::<user::User>(format!("/{}", user::User::get_collection(2)))
+                        users_service(format!("/{}", user::User::get_collection(2)))
                     )),
             )
             .wrap(cors)
