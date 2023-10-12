@@ -1,18 +1,64 @@
 use futures::TryStreamExt;
 use mongodb::{
+    options::{
+        FindOptions, ReturnDocument, FindOneAndUpdateOptions
+    },
     bson::{
+        Document,
         doc,
         oid::{Error, ObjectId},
+        to_document,
     },
     results::DeleteResult,
     Client, Collection,
 };
 use serde::{de::DeserializeOwned, Serialize};
+use async_trait::async_trait;
+use actix_web::{web::{Json, Data}, HttpResponse};
+use validator::Validate;
+
+
+// TODO finish this - pay attention to response types
+#[async_trait]
+trait MongoCrud<U: Serialize + DeserializeOwned + Sync + Send + Unpin + Validate + 'static> {
+    async fn create_item(db: Data<MongoRepo<U>>, body: Json<U>) -> HttpResponse {
+        match body.validate() {
+            Ok(_) => (),
+            Err(e) => {
+                return HttpResponse::BadRequest().json(e.errors());
+            }
+        }
+        let result = db.create(body.into_inner()).await;
+        match result {
+            Ok(res) => HttpResponse::Ok().json(res),
+            Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+        }
+    }
+}
+    // async fn create(&self, item: T) -> Result<Option<T>, Error>;
+    // async fn delete(&self, id: &str) -> Result<DeleteResult, Error>;
 
 pub struct MongoRepo<T> {
     col: Collection<T>,
 }
 
+struct Shit {
+    pub name: String,
+}
+#[async_trait]
+impl<T> MongoCrud<T> for Shit
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + Validate + 'static,
+{}
+
+
+#[async_trait]
+impl<T> MongoCrud<T> for MongoRepo<T>
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + Validate + 'static,
+{}
+
+// #[async_trait]
 impl<T> MongoRepo<T>
 where
     T: Serialize + DeserializeOwned + Sync + Send + Unpin,
@@ -23,32 +69,14 @@ where
         let col = client.database(db_name).collection(col_name);
         Self { col }
     }
-
-    pub async fn up_name_only(&self, item: T) -> Result<Option<T>, Error> {
-        let item = self
-            .col
-            .insert_one(item, None)
-            .await
-            .expect("Error creating item");
-        // let new_id = item.inserted_id.as_str().unwrap();
-        let obj_id = item.inserted_id.as_object_id().unwrap();
-        let filter = doc! {"_id": obj_id};
-        // let result = self.find_by_id(new_id).await.expect("Error finding item");
-        // todo reuse find_by_id
-        let result = self.col.find_one(filter, None).await.expect("As");
-        Ok(result)
-    }
     pub async fn create(&self, item: T) -> Result<Option<T>, Error> {
         let item = self
             .col
             .insert_one(item, None)
             .await
             .expect("Error creating item");
-        // let new_id = item.inserted_id.as_str().unwrap();
         let obj_id = item.inserted_id.as_object_id().unwrap();
         let filter = doc! {"_id": obj_id};
-        // let result = self.find_by_id(new_id).await.expect("Error finding item");
-        // todo reuse find_by_id
         let result = self.col.find_one(filter, None).await.expect("As");
         Ok(result)
     }
@@ -70,10 +98,10 @@ where
             .expect("Error dropping collection");
         Ok(())
     }
-    pub async fn list(&self) -> Result<Vec<T>, Error> {
+    pub async fn list(&self, filter: Document, options: FindOptions) -> Result<Vec<T>, Error> {
         let mut cursor = self
             .col
-            .find(None, None)
+            .find(filter, options)
             .await
             .expect("Error getting list of users");
         let mut data: Vec<T> = Vec::new();
@@ -97,18 +125,21 @@ where
 
         Ok(result)
     }
-    pub async fn update_by_id(&self, id: &str) -> Result<Option<T>, Error> {
+    pub async fn update_by_id(&self, id: &str, item: T) -> Result<Option<T>, Error> {
         let obj_id = ObjectId::parse_str(id).unwrap();
         let filter = doc! {"_id": obj_id};
+        let serialized_item = to_document(&item).expect("Error serializing item");
         let new_doc = doc! {
-            "$set":
-                {
-                    // "email": item.name.clone()
-                },
+            "$set": serialized_item
         };
+
+        let options = FindOneAndUpdateOptions::builder()
+            .return_document(ReturnDocument::After)
+            .build();
+
         let result = self
             .col
-            .find_one_and_update(filter, new_doc, None)
+            .find_one_and_update(filter, new_doc, options)
             .await
             .expect("Error finding item");
 

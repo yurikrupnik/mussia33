@@ -1,8 +1,23 @@
 use crate::mongo::{ErrorResponse, MongoRepo};
-use crate::user::User;
-use actix_web::{web, HttpResponse, Responder};
-use serde::{de::DeserializeOwned, Serialize};
+use crate::user::{User, QueryParams};
+use actix_web::{web::{Json, Data, Path, Query}, HttpResponse, Responder};
+use log::error;
+use mongodb::bson::{Document, doc, to_document};
+use mongodb::options::FindOptions;
+use serde::{de::DeserializeOwned, Serialize, Deserialize};
 use validator::Validate;
+use serde_json::json;
+use ts_rs::TS;
+use utoipa::{IntoParams, ToSchema};
+#[derive(Serialize, Deserialize, Debug, TS, IntoParams)]
+pub struct Pagination {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    limit: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    total: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    offset: Option<String>,
+}
 
 /// Get list of users.
 ///
@@ -16,17 +31,136 @@ use validator::Validate;
 get,
 path = "/api/users",
 responses(
-(status = 200, description = "Users found successfully", body = [User]),
+(status = 200, description = "Collection found successfully", body = [User]),
+(status = 400, description = "User error", body = ErrorResponse),
+(status = 500, description = "Internal error", body = ErrorResponse),
 ),
-params(
-)
+params(QueryParams),
 )]
-pub async fn user_list<T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static>(
-    db: web::Data<MongoRepo<T>>,
+pub async fn user_list(
+    db: Data<MongoRepo<User>>,
+    mut query: Query<QueryParams>,
 ) -> impl Responder {
-    let results = db.list().await;
+    let mut options = FindOptions::builder().build();
+
+    if let Some(limit) = &query.limit {
+        options.limit = Some(limit.parse::<i64>().unwrap_or(0));
+        query.limit = None;
+    }
+    if let Some(projection) = &query.projection {
+        if projection.contains(',') {
+            let doc = projection.split(',')
+                .fold(doc! {}, |mut acc, item| {
+                    acc.insert(item.trim(), 1);
+                    acc
+                });
+            options.projection = Some(doc);
+        } else {
+            options.projection = Some(doc! {
+                projection: 1,
+            });
+        }
+
+        query.projection = None;
+    }
+    list_items::<User, QueryParams>(db, query, Some(options)).await
+}
+
+pub async fn list_items<T, U>(
+    db: Data<MongoRepo<T>>,
+    query: Query<U>,
+    options: Option<FindOptions>
+) -> impl Responder
+    where
+        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static,
+        U: Serialize,
+{
+    let query_params_json = json!(query.into_inner());
+    let filter = to_document(&query_params_json).unwrap_or_else(|_| Document::new());
+    let results = db.list(filter, options.unwrap_or_default()).await;
     match results {
         Ok(res) => HttpResponse::Ok().json(res),
+        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+    }
+}
+
+pub async fn create_item<T>(db: Data<MongoRepo<T>>, body: Json<T>) -> impl Responder
+    where
+        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
+{
+    match body.validate() {
+        Ok(_) => (),
+        Err(e) => {
+            return HttpResponse::BadRequest().json(e.errors());
+        }
+    }
+    let result = db.create(body.into_inner()).await;
+    match result {
+        Ok(res) => HttpResponse::Created().json(res),
+        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+    }
+}
+
+pub async fn get_item<T>(db: Data<MongoRepo<T>>, path: Path<String>) -> impl Responder
+    where
+        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
+{
+    let id = path.into_inner();
+    if id.is_empty() || id.len() != 24 {
+        return HttpResponse::BadRequest().body("invalid ID");
+    };
+    let result = db.find_by_id(&id).await;
+    match result {
+        Ok(Some(payload)) => HttpResponse::Ok().json(payload),
+        Ok(None) => HttpResponse::NotFound().json(ErrorResponse::NotFound(format!("id = {}", &id))),
+        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+    }
+}
+
+pub async fn drop_items<T>(db: Data<MongoRepo<T>>) -> impl Responder
+    where
+        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
+{
+    let result = db.drop_db().await;
+    match result {
+        Ok(_) => HttpResponse::Ok().json("successfully deleted!"),
+        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+    }
+}
+
+pub async fn delete_item<T>(db: Data<MongoRepo<T>>, path: Path<String>) -> impl Responder
+    where
+        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
+{
+    let id = path.into_inner();
+    if id.is_empty() || id.len() != 24 {
+        return HttpResponse::BadRequest().body("invalid ID");
+    };
+    let result = db.delete(&id).await;
+    match result {
+        Ok(res) => {
+            if res.deleted_count == 1 {
+                HttpResponse::Ok().finish()
+            } else {
+                HttpResponse::NotFound()
+                    .json(ErrorResponse::NotFound(format!("not found id = {}", &id)))
+            }
+        }
+        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+    }
+}
+
+pub async fn update_item<T>(db: Data<MongoRepo<T>>, path: Path<String>, body: Json<T>) -> impl Responder
+    where
+        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
+{
+    let id = path.into_inner();
+    if id.is_empty() || id.len() != 24 {
+        return HttpResponse::BadRequest().body("invalid ID");
+    };
+    let result = db.update_by_id(&id, body.into_inner()).await;
+    match result {
+        Ok(data) => HttpResponse::Ok().json(data),
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
     }
 }
@@ -48,18 +182,8 @@ responses(
 (status = 201, description = "User created successfully", body = User),
 )
 )]
-pub async fn add_user(db: web::Data<MongoRepo<User>>, body: web::Json<User>) -> impl Responder {
-    match body.validate() {
-        Ok(_) => (),
-        Err(e) => {
-            return HttpResponse::BadRequest().json(e.errors());
-        }
-    }
-    let result = db.create(body.clone()).await;
-    match result {
-        Ok(res) => HttpResponse::Created().json(res),
-        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
-    }
+pub async fn add_user(db: Data<MongoRepo<User>>, body: Json<User>) -> impl Responder {
+    create_item(db, body).await
 }
 
 /// Get User by given user id.
@@ -76,18 +200,10 @@ params(
 ("id", description = "Unique storage id of Todo")
 )
 )]
-pub async fn get_user(db: web::Data<MongoRepo<User>>, path: web::Path<String>) -> impl Responder {
-    let id = path.into_inner();
-    if id.is_empty() || id.len() != 24 {
-        return HttpResponse::BadRequest().body("invalid ID");
-    };
-    let result = db.find_by_id(&id).await;
-    match result {
-        Ok(Some(payload)) => HttpResponse::Ok().json(payload),
-        Ok(None) => HttpResponse::NotFound().json(ErrorResponse::NotFound(format!("id = {}", &id))),
-        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
-    }
+pub async fn get_user(db: Data<MongoRepo<User>>, path: Path<String>) -> impl Responder {
+    get_item(db, path).await
 }
+
 
 /// Delete User by given path variable id.
 ///
@@ -113,23 +229,8 @@ security(
 ("api_key" = [])
 )
 )]
-pub async fn delete_user(db: web::Data<MongoRepo<User>>, path: web::Path<String>) -> HttpResponse {
-    let id = path.into_inner();
-    if id.is_empty() || id.len() != 24 {
-        return HttpResponse::BadRequest().body("invalid ID");
-    };
-    let result = db.delete(&id).await;
-    match result {
-        Ok(res) => {
-            if res.deleted_count == 1 {
-                HttpResponse::Ok().finish()
-            } else {
-                HttpResponse::NotFound()
-                    .json(ErrorResponse::NotFound(format!("not found id = {}", &id)))
-            }
-        }
-        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
-    }
+pub async fn delete_user(db: Data<MongoRepo<User>>, path: Path<String>) -> impl Responder {
+    delete_item(db, path).await
 }
 
 /// Drop User collection.
@@ -143,12 +244,8 @@ responses(
 (status = 200, description = "User deleted successfully"),
 ),
 )]
-pub async fn drop_users(db: web::Data<MongoRepo<User>>) -> HttpResponse {
-    let result = db.drop_db().await;
-    match result {
-        Ok(_) => HttpResponse::Ok().json("successfully deleted!"),
-        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
-    }
+pub async fn drop_users(db: Data<MongoRepo<User>>) -> impl Responder {
+    drop_items(db).await
 }
 
 /// Update User with given id.
@@ -174,18 +271,15 @@ security(
 ("api_key" = [])
 )
 )]
-pub async fn update_user(path: web::Path<String>, body: web::Json<User>) -> impl Responder {
-    let id = path.as_str();
-    if id.is_empty() || id.len() != 24 {
-        return HttpResponse::BadRequest().body("invalid ID");
-    };
-    HttpResponse::Ok().json(body)
-    // const result = db.update_by_id(&id).await;
-    // let obj_id = ObjectId::parse_str(id).unwrap();
-    // let result = db.find_by_id(&id).await;
+pub async fn update_user(db: Data<MongoRepo<User>>, path: Path<String>, body: Json<User>) -> impl Responder {
+    update_item(db, path, body).await
+    // let id = path.into_inner();
+    // if id.is_empty() || id.len() != 24 {
+    //     return HttpResponse::BadRequest().body("invalid ID");
+    // };
+    // let result = db.update_by_id(&id, body.into_inner()).await;
     // match result {
-    //     Ok(Some(payload)) => HttpResponse::Ok().json(payload),
-    //     Ok(None) => HttpResponse::NotFound().json(ErrorResponse::NotFound(format!("id = {}", &id))),
+    //     Ok(data) => HttpResponse::Ok().json(data),
     //     Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
     // }
 }

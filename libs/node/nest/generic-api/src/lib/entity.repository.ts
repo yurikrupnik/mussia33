@@ -18,7 +18,7 @@ export abstract class EntityRepository<
 > {
   constructor(protected readonly model: Model<T>) {}
 
-  findById(
+  async findById(
     id: string,
     projection?: Record<string, unknown>
     // config: QueryOptions
@@ -37,7 +37,7 @@ export abstract class EntityRepository<
     );
   }
 
-  findAll(
+  async findAll(
     query: FilterQuery<T>,
     projection: any,
     config: QueryOptions
@@ -45,12 +45,12 @@ export abstract class EntityRepository<
     return this.model.find(query, projection, config).catch(handleError);
   }
 
-  create(createEntityData: CreateDto): Promise<T> {
+  async create(createEntityData: CreateDto): Promise<T> {
     const entity = new this.model(createEntityData);
     return entity.save().catch(handleError);
   }
 
-  findOneAndUpdate(
+  async findOneAndUpdate(
     id: string,
     updateEntityData: UpdateDto
   ): Promise<HydratedDocument<T, any, any> | null> {
@@ -62,7 +62,7 @@ export abstract class EntityRepository<
       .catch(handleError);
   }
 
-  deleteMany(entityFilterQuery: FilterQuery<T>): Promise<boolean> {
+  async deleteMany(entityFilterQuery: FilterQuery<T>): Promise<boolean> {
     return this.model
       .deleteMany(entityFilterQuery)
       .then((deleteResult) => {
@@ -71,7 +71,7 @@ export abstract class EntityRepository<
       .catch(handleError);
   }
 
-  deleteOne(id: string): Promise<string> {
+  async deleteOne(id: string): Promise<string> {
     return this.model
       .findByIdAndDelete(id)
       .then((res) => {
