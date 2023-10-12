@@ -10,10 +10,8 @@ members = [
 	'apps/rust/axum_app',
 	'apps/rust/test_app',
 	'libs/rust/grpc',
-	'libs/rust/mongo',
 	'libs/rust/servers_shared',
 	'libs/rust/napi_shared',
-	'libs/rust/projects',
 	'apps/rust/actix_api',
 	'libs/rust/generic_api',
 	'libs/rust/books_api',
@@ -31,10 +29,8 @@ async-trait = { version = '0.1' }
 env_logger = '0.10'
 futures = '0.3'
 log = '0.4'
-mongo = { path = 'libs/rust/mongo' }
 mongodb = '2.7'
 plurals = '0.4'
-rust_projects = { path = 'libs/rust/projects' }
 rust_macros = { path = 'libs/rust/macros' }
 rust_proc_macros = { path = 'libs/rust/proc_macros' }
 rust_books_api = { path = 'libs/rust/books_api' }

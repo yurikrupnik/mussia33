@@ -10,4 +10,5 @@ edition = "2021"
 #syn = "2.0"
 #quote = "1.0"
 reflective-derive = {path = "reflective-derive"}
+mongo-resource-derive = {path = "mongo-resource-derive"}
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

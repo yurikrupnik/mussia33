@@ -2,7 +2,6 @@ use mongodb::Client;
 use env_logger::Env;
 use rust_servers_shared::{get_env_port, get_mongo_uri, get_status};
 use actix_web::{middleware::{Logger, Compress}, web, App, HttpResponse, HttpServer, Result};
-use rust_projects::{projects_router};
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(Env::default().default_filter_or("info"));
@@ -21,7 +20,6 @@ async fn main() -> std::io::Result<()> {
                 web::scope("/api")
                     .app_data(client_data.clone())
                     // .configure(projects_config)
-                    .service(projects_router())
                     // .service(web::resource("/projects").route(web::get().to(projects_list)))
                     // .service(product::get_product)
                     // .service(product::get_products)
