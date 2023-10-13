@@ -14,19 +14,14 @@ use utoipa::OpenApi;
 use utoipa_swagger_ui::{SwaggerUi, Url};
 use rust_servers_shared::get_env_port;
 
-
 async fn get_status() -> HttpResponse {
     HttpResponse::Ok().body("data")
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // env::set_var("RUST_LOG", "debug");
-    // env::set_var("RUST_BACKTRACE", "1");
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
-    // let openapi = ApiDoc::openapi();
-    // let openapi1 = ApiDoc1::openapi();
     // let port = get_env_port();
     let uri = env::var("MONGO_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
     let client = Client::with_uri_str(uri).await.expect("failed to connect");

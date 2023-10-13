@@ -98,8 +98,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
-#        run: pnpm install --no-frozen-lockfile
-        run: pnpm install
+        run: pnpm install --no-frozen-lockfile
+#        run: pnpm install
       - run: pnpm nx affected --target=build --parallel --max-parallel=3 --prod
   test:
     runs-on: ubuntu-latest
@@ -144,7 +144,8 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
-      - run: pnpm nx affected --target=test --parallel --max-parallel=3
+#        TODO Change back to test
+      - run: pnpm nx affected --target=tests --parallel --max-parallel=3
   e2e:
     runs-on: ubuntu-latest
     steps:
@@ -259,8 +260,7 @@ jobs:
           gcloud --quiet auth configure-docker europe-central2-docker.pkg.dev
 # End of gcp containers
       - name: Container build
-#         TODO change back docker
-        run: pnpm nx affected --target=dockerd --parallel --max-parallel=3 --prod
+        run: pnpm nx affected --target=docker --parallel --max-parallel=3 --prod
         env:
           GOOS: linux
           GOARCH: amd64
@@ -287,9 +287,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Kind Cluster
-        uses: helm/kind-action@v1.8.0
-      - run: kubectl cluster-info
-      - name: Install Task
-        uses: arduino/setup-task@v1
+#      - name: Kind Cluster
+#        uses: helm/kind-action@v1.8.0
+#      - run: kubectl cluster-info
+#      - name: Install Task
+#        uses: arduino/setup-task@v1
 

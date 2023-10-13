@@ -5,42 +5,42 @@ import {
   // LeanDocument,
   HydratedDocument,
   UpdateQuery,
-} from 'mongoose';
-import { EntityRepository } from './entity.repository';
+} from "mongoose";
+import { EntityRepository } from "./entity.repository";
 
 export class CrudApiService<
   T extends Document,
   CreateDto,
   UpdateDto extends UpdateQuery<T>,
-  Repository extends EntityRepository<T, CreateDto, UpdateDto>
+  Repository extends EntityRepository<T, CreateDto, UpdateDto>,
 > {
   constructor(private readonly repository: Repository) {}
 
-  findAll(
+  async findAll(
     query: FilterQuery<T>,
     projection: any,
-    config: QueryOptions
+    config: QueryOptions,
   ): Promise<Document<HydratedDocument<T>>[]> {
     return this.repository.findAll(query, projection, config);
   }
 
-  findById(id: string, projection: any): Promise<T> {
+  async findById(id: string, projection: any): Promise<T> {
     return this.repository.findById(id, projection);
   }
 
-  create(body: CreateDto): Promise<T> {
+  async create(body: CreateDto): Promise<T> {
     return this.repository.create(body);
   }
 
-  update(id: string, body: UpdateDto) {
+  async update(id: string, body: UpdateDto) {
     return this.repository.findOneAndUpdate(id, body);
   }
 
-  delete(id: string): Promise<string> {
+  async delete(id: string): Promise<string> {
     return this.repository.deleteOne(id);
   }
 
-  deleteMany() {
+  async deleteMany() {
     return this.repository.deleteMany({});
   }
 }

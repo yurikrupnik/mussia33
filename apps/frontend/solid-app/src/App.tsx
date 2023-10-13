@@ -1,7 +1,5 @@
-// import styles from './App.module.css';
 import { Routes, Route, Link } from "@solidjs/router";
 import { lazy } from "solid-js";
-// import "virtual:windi.css";
 
 const About = lazy(() => import("./routes/about"));
 const Users = lazy(() => import("./routes/users"));
