@@ -13,6 +13,8 @@ use utoipa::{
 use crate::product;
 use crate::todo;
 use crate::user;
+use rust_books_api::book;
+use rust_author_api::author;
 
 const API_KEY_NAME: &str = "todo_apikey";
 const API_KEY: &str = "utoipa-rocks";
@@ -32,14 +34,22 @@ user::delete_user,
 user::drop_users,
 user::get_user,
 user::update_user,
+book::list_book,
+book::create_book,
+author::create_author,
+author::list_author,
 ),
 components(
 schemas(todo::Todo, todo::TodoUpdateRequest, ErrorResponse),
-schemas(user::User, user::Id, user::Pagination),
+schemas(user::User),
+schemas(book::Book),
+schemas(author::Author),
 ),
 tags(
 (name = "todo", description = "Todo management endpoints."),
 (name = "user", description = "Users management endpoints."),
+(name = "Books", description = "Books management endpoints."),
+(name = "Authors", description = "Books management endpoints."),
 ),
 modifiers(&SecurityAddon)
 )]
@@ -53,8 +63,6 @@ product::get_products,
 ),
 components(
 schemas(product::Product, ErrorResponse),
-schemas(todo::Todo, todo::TodoUpdateRequest, ErrorResponse),
-schemas(user::User, user::Id, user::Pagination),
 ),
 tags(
 (name = "product", description = "Products management endpoints."),
@@ -79,13 +87,13 @@ impl Modify for SecurityAddon {
 pub struct RequireApiKey;
 
 impl<S> Transform<S, ServiceRequest> for RequireApiKey
-where
-    S: Service<
-        ServiceRequest,
-        Response = ServiceResponse<actix_web::body::BoxBody>,
-        Error = actix_web::Error,
-    >,
-    S::Future: 'static,
+    where
+        S: Service<
+            ServiceRequest,
+            Response = ServiceResponse<actix_web::body::BoxBody>,
+            Error = actix_web::Error,
+        >,
+        S::Future: 'static,
 {
     type Response = ServiceResponse<actix_web::body::BoxBody>;
     type Error = actix_web::Error;
@@ -105,13 +113,13 @@ where
 pub struct LogApiKey;
 
 impl<S> Transform<S, ServiceRequest> for LogApiKey
-where
-    S: Service<
-        ServiceRequest,
-        Response = ServiceResponse<actix_web::body::BoxBody>,
-        Error = actix_web::Error,
-    >,
-    S::Future: 'static,
+    where
+        S: Service<
+            ServiceRequest,
+            Response = ServiceResponse<actix_web::body::BoxBody>,
+            Error = actix_web::Error,
+        >,
+        S::Future: 'static,
 {
     type Response = ServiceResponse<actix_web::body::BoxBody>;
     type Error = actix_web::Error;
@@ -133,13 +141,13 @@ pub struct ApiKeyMiddleware<S> {
 }
 
 impl<S> Service<ServiceRequest> for ApiKeyMiddleware<S>
-where
-    S: Service<
-        ServiceRequest,
-        Response = ServiceResponse<actix_web::body::BoxBody>,
-        Error = actix_web::Error,
-    >,
-    S::Future: 'static,
+    where
+        S: Service<
+            ServiceRequest,
+            Response = ServiceResponse<actix_web::body::BoxBody>,
+            Error = actix_web::Error,
+        >,
+        S::Future: 'static,
 {
     type Response = ServiceResponse<actix_web::body::BoxBody>;
     type Error = actix_web::Error;

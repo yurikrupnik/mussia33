@@ -6,20 +6,25 @@ edition = "2021"
 
 [dependencies]
 #mongo = { path = "../../../libs/rust/mongo" }
-rust_servers_shared = { path = "../../../libs/rust/servers_shared" }
+rust_author_api = { workspace = true }
+rust_books_api = { workspace = true }
+rust_generic_api = { workspace = true }
+rust_servers_shared = { workspace = true }
+actix-cors = { workspace = true }
 actix-web = { workspace = true }
-async-trait = { version = "0.1" }
-mongodb = "2.6"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0", features = ["arbitrary_precision"] }
-serde_derive = "1.0"
-env_logger = "0.10"
-log = "0.4"
-futures = "0.3"
-utoipa = { version = "3.5", features = ["actix_extras"] }
-utoipa-swagger-ui = { version = "3.1", features = ["actix-web"] }
-validator = { version = "0.16", features = ["derive"] }
-actix-cors = "0.6"
-plurals = "0.4"
-ts-rs = { version = "7.0", features = ["serde-compat"] }
+async-trait = { workspace = true }
+mongodb = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_derive = { workspace = true }
+env_logger = { workspace = true }
+log = { workspace = true }
+futures = { workspace = true }
+utoipa = { workspace = true }
+utoipa-swagger-ui = { workspace = true }
+validator = { workspace = true }
+ts-rs = { workspace = true }
+
+# todo remove this
+plurals = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
