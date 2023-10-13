@@ -14,7 +14,7 @@
     "@nx-extend/pulumi": "^3.0.0",
     "@nx-go/nx-go": "^2.7.0",
     "@nx-tools/container-metadata": "^4.0.3",
-    "@nx-tools/nx-container": "^4.0.3",
+    "@nx-tools/nx-container": "^5.0.0",
     "@nx/cypress": "16.10.0",
     "@nx/deno": "16.8.1",
     "@nx/esbuild": "16.10.0",

@@ -143,8 +143,8 @@ devDependencies:
     specifier: ^4.0.3
     version: 4.0.4(@nrwl/devkit@15.9.4)(dotenv@16.3.1)
   '@nx-tools/nx-container':
-    specifier: ^4.0.3
-    version: 4.0.4(@nrwl/devkit@15.9.4)(dotenv@16.3.1)
+    specifier: ^5.0.0
+    version: 5.0.3(@nx/devkit@16.10.0)(dotenv@16.3.1)(tslib@2.6.1)
   '@nx/cypress':
     specifier: 16.10.0
     version: 16.10.0(@types/node@18.17.14)(cypress@12.17.4)(eslint@8.49.0)(nx@16.10.0)(typescript@5.2.2)
@@ -3652,20 +3652,34 @@ packages:
       colorette: 2.0.20
     dev: true
 
-  /@nx-tools/nx-container@4.0.4(@nrwl/devkit@15.9.4)(dotenv@16.3.1):
-    resolution: {integrity: sha512-EdrmW6mr8wx1PLdWEhqiel9kOmcgIsuhanujLFrkyvYvIRWeInnenQ2iXVFrSMwLdUxLwbcM2WcvW/x9lvRVug==}
+  /@nx-tools/core@5.0.3(@nx/devkit@16.10.0)(tslib@2.6.1):
+    resolution: {integrity: sha512-Ao3hmQ9DC+E8d2bdR2xqix0cmHsCrZxe0GDNZfOgfCde1tUppPJ2Po/m3iFxI5gEFWuEEsCQFm9CRtaMuyc1Dg==}
     peerDependencies:
-      '@nrwl/devkit': ^12.0.0 || ^13.0.0 || ^14.0.0 || ^15.0.0
-      dotenv: '>=10.0.0'
+      '@nx/devkit': ^16.0.0
+      tslib: ^2.5.3
     dependencies:
-      '@nrwl/devkit': 15.9.4(nx@16.10.0)
-      '@nx-tools/core': 4.0.4(@nrwl/devkit@15.9.4)
-      '@swc/helpers': 0.4.14
-      csv-parse: 4.16.3
+      '@actions/exec': 1.1.1
+      '@nx/devkit': 16.10.0(nx@16.10.0)
+      chalk: 4.1.2
+      ci-info: 3.8.0
+      tslib: 2.6.1
+    dev: true
+
+  /@nx-tools/nx-container@5.0.3(@nx/devkit@16.10.0)(dotenv@16.3.1)(tslib@2.6.1):
+    resolution: {integrity: sha512-jihsDiLlPNrf0obWMovAZ0ZwlD4lKCtzqP0KTw0j2cltmYyeAA6py05hHpQ+iDmx1z0c4935QYTN9RmJWzduZw==}
+    peerDependencies:
+      '@nx/devkit': ^16.0.0
+      dotenv: '>=10.0.0'
+      tslib: ^2.5.3
+    dependencies:
+      '@nx-tools/core': 5.0.3(@nx/devkit@16.10.0)(tslib@2.6.1)
+      '@nx/devkit': 16.10.0(nx@16.10.0)
+      csv-parse: 5.4.0
       dotenv: 16.3.1
       handlebars: 4.7.7
       semver: 7.5.4
       tmp: 0.2.1
+      tslib: 2.6.1
     dev: true
 
   /@nx/cypress@16.10.0(@types/node@18.17.14)(cypress@12.17.4)(eslint@8.49.0)(nx@16.10.0)(typescript@5.2.2):
@@ -5086,12 +5100,6 @@ packages:
     dependencies:
       solid-js: 1.7.8
     dev: false
-
-  /@swc/helpers@0.4.14:
-    resolution: {integrity: sha512-4C7nX/dvpzB7za4Ql9K81xK3HPxCpHMgwTZVyf+9JQ6VUbn9jjZVN7/Nkdz/Ugzs2CSjqnL/UPXroiVBVHUWUw==}
-    dependencies:
-      tslib: 2.6.2
-    dev: true
 
   /@swc/helpers@0.5.1:
     resolution: {integrity: sha512-sJ902EfIzn1Fa+qYmjdQqh8tPsoxyBz+8yBKC2HKUxyezKJFwPGOn7pv4WY6QuQW//ySQi5lJjA/ZT9sNWWNTg==}
@@ -7413,6 +7421,10 @@ packages:
 
   /csv-parse@4.16.3:
     resolution: {integrity: sha512-cO1I/zmz4w2dcKHVvpCr7JVRu8/FymG5OEpmvsZYlccYolPBLoVGKUHgNoc4ZGkFeFlWGEDmMyBM+TTqRdW/wg==}
+    dev: true
+
+  /csv-parse@5.4.0:
+    resolution: {integrity: sha512-JiQosUWiOFgp4hQn0an+SBoV9IKdqzhROM0iiN4LB7UpfJBlsSJlWl9nq4zGgxgMAzHJ6V4t29VAVD+3+2NJAg==}
     dev: true
 
   /cypress@12.17.4:
