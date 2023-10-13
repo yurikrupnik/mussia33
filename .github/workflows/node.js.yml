@@ -98,10 +98,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
-#        run: pnpm install --no-frozen-lockfile
-        run: pnpm install
+        run: pnpm install --no-frozen-lockfile
+#        run: pnpm install
       - run: pnpm nx affected --target=build --parallel --max-parallel=3 --prod
-  tests:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -144,7 +144,7 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
-      - run: pnpm nx affected --target=test --parallel --max-parallel=3
+      - run: pnpm nx affected --target=tests --parallel --max-parallel=3
   e2e:
     runs-on: ubuntu-latest
     steps:
