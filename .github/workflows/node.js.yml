@@ -144,6 +144,7 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
+#        TODO Change back to test
       - run: pnpm nx affected --target=tests --parallel --max-parallel=3
   e2e:
     runs-on: ubuntu-latest
@@ -259,7 +260,6 @@ jobs:
           gcloud --quiet auth configure-docker europe-central2-docker.pkg.dev
 # End of gcp containers
       - name: Container build
-#         TODO change back docker
         run: pnpm nx affected --target=docker --parallel --max-parallel=3 --prod
         env:
           GOOS: linux
