@@ -14,13 +14,13 @@ import { handleError } from "@mussia33/node/nest/errors";
 export abstract class EntityRepository<
   T extends Document,
   CreateDto,
-  UpdateDto extends UpdateQuery<T>
+  UpdateDto extends UpdateQuery<T>,
 > {
-  constructor(protected readonly model: Model<T>) {}
+  protected constructor(protected readonly model: Model<T>) {}
 
-  findById(
+  async findById(
     id: string,
-    projection?: Record<string, unknown>
+    projection?: Record<string, unknown>,
     // config: QueryOptions
   ): Promise<HydratedDocument<T, any, void>> {
     return (
@@ -37,22 +37,22 @@ export abstract class EntityRepository<
     );
   }
 
-  findAll(
+  async findAll(
     query: FilterQuery<T>,
     projection: any,
-    config: QueryOptions
+    config: QueryOptions,
   ): Promise<Document<HydratedDocument<T>>[]> {
     return this.model.find(query, projection, config).catch(handleError);
   }
 
-  create(createEntityData: CreateDto): Promise<T> {
+  async create(createEntityData: CreateDto): Promise<T> {
     const entity = new this.model(createEntityData);
     return entity.save().catch(handleError);
   }
 
-  findOneAndUpdate(
+  async findOneAndUpdate(
     id: string,
-    updateEntityData: UpdateDto
+    updateEntityData: UpdateDto,
   ): Promise<HydratedDocument<T, any, any> | null> {
     return this.model
       .findByIdAndUpdate(id, updateEntityData, {
@@ -62,7 +62,7 @@ export abstract class EntityRepository<
       .catch(handleError);
   }
 
-  deleteMany(entityFilterQuery: FilterQuery<T>): Promise<boolean> {
+  async deleteMany(entityFilterQuery: FilterQuery<T>): Promise<boolean> {
     return this.model
       .deleteMany(entityFilterQuery)
       .then((deleteResult) => {
@@ -71,7 +71,7 @@ export abstract class EntityRepository<
       .catch(handleError);
   }
 
-  deleteOne(id: string): Promise<string> {
+  async deleteOne(id: string): Promise<string> {
     return this.model
       .findByIdAndDelete(id)
       .then((res) => {
