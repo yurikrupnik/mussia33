@@ -37,7 +37,7 @@ impl<T> MongoRepository<T>
             .expect("Error creating item");
         let obj_id = item.inserted_id.as_object_id().unwrap();
         let filter = doc! {"_id": obj_id};
-        let result = self.col.find_one(filter, None).await.expect("As");
+        let result = self.col.find_one(filter, None).await.expect("Error finding item");
         Ok(result)
     }
     pub async fn delete(&self, id: &str) -> Result<DeleteResult, Error> {

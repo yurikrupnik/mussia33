@@ -5,7 +5,7 @@ mod todo;
 mod user; // only for docker local
 
 use actix_cors::Cors;
-use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer};
+use actix_web::{middleware::Logger, web, Scope, App, HttpResponse, HttpServer};
 use env_logger::Env;
 use mongodb::Client;
 use std::env;
@@ -16,6 +16,25 @@ use rust_servers_shared::{get_port, get_status};
 use rust_generic_api::{create_configure};
 use rust_books_api::book::{Book, books_routes};
 use rust_author_api::author::{Author, authors_routes};
+
+use user::{add_user, delete_user, drop_users, get_user, update_user, user_list};
+
+fn users_service() -> Scope {
+    web::scope(user::User::URL)
+        .service(
+            web::resource("")
+                .route(web::get().to(user_list))
+                .route(web::delete().to(drop_users))
+                .route(web::post().to(add_user)),
+        )
+        .service(
+            web::resource("/{id}")
+                .route(web::delete().to(delete_user))
+                .route(web::put().to(update_user))
+                .route(web::get().to(get_user)),
+        )
+
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -53,7 +72,8 @@ async fn main() -> std::io::Result<()> {
                     .service(product::update_product)
                     .configure(user::create_config_by_type::<user::User>(
                         "rustApp",
-                        user::User::get_collection(2),
+                        user::User::COLLECTION,
+                        users_service()
                     ))
                     .configure(create_configure::<Author>(
                         "rustApp",

@@ -1,6 +1,6 @@
 use actix_web::{web::{Data, Query, Json}, Responder};
-use crate::model::Author;
-use crate::dto::{QueryParams};
+use crate::model::{Author};
+use crate::dto::{QueryParams,CreateDto};
 use rust_generic_api::{MongoRepository, list_items, create_item, get_item, update_item, delete_item};
 
 
@@ -10,11 +10,11 @@ use rust_generic_api::{MongoRepository, list_items, create_item, get_item, updat
 ///
 /// One could call the api endpoint with following curl.
 /// ```text
-/// curl localhost:8080/api/authors
+/// curl localhost:8080/api/author
 /// ```
 #[utoipa::path(
 get,
-path = "/api/authors",
+path = "/api/author",
 tag = Author::TAG,
 responses(
 (status = 200, description = "Collection found successfully", body = [Author]),
@@ -41,7 +41,7 @@ pub async fn list_author(
 /// ```
 #[utoipa::path(
 post,
-path = "/api/authors",
+path = "/api/author",
 tag = Author::TAG,
 request_body = Author,
 responses(

@@ -19,8 +19,8 @@ pub struct Pagination {
 }
     // #[ts(type = "number")]
 
-// #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Serialize, Debug, Validate, TS, IntoParams)]
+// #[serde(deny_unknown_fields)]
 #[ts(export)]
 pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -28,7 +28,8 @@ pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub publisher: Option<String>,
 
-    #[serde(flatten)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub pagination: Option<Pagination>,
+    pub language: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub author_id: Option<String>,
 }

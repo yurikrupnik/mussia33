@@ -47,7 +47,7 @@ schemas(author::Author),
 ),
 tags(
 (name = "todo", description = "Todo management endpoints."),
-(name = "user", description = "Users management endpoints."),
+(name = "Users", description = "Users management endpoints."),
 (name = "Books", description = "Books management endpoints."),
 (name = "Authors", description = "Books management endpoints."),
 ),

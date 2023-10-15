@@ -8,7 +8,7 @@ use validator::Validate;
 #[ts(export)]
 pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
+    pub first_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub publisher: Option<String>,
+    pub last_name: Option<String>,
 }

@@ -28,6 +28,7 @@ pub async fn list_book(
     db: Data<MongoRepository<Book>>,
     query: Query<QueryParams>,
 ) -> impl Responder {
+    // TODO handle inner documents like author_id in Book
     list_items::<Book, QueryParams>(db, query, None).await
 }
 
