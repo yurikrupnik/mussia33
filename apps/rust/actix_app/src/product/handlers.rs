@@ -12,7 +12,8 @@ use mongodb::{
 };
 use validator::Validate;
 
-pub const DB_NAME: &str = "rustApp";
+pub const DB_NAME: &str = "test";
+// pub const DB_NAME: &str = "rustApp";
 
 /// Create new Product to shared in mongodb.
 ///
