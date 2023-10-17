@@ -1,6 +1,6 @@
 use crate::product::model::Product;
 use crate::product::dto::{CreateDto, UpdateDto};
-use actix_web::{delete, get, post, put, web, HttpResponse, Responder, error};
+use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
 use futures::TryStreamExt;
 use mongodb::{
     bson::{doc, oid::ObjectId, to_document, Document, from_document},
