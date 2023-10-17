@@ -28,6 +28,11 @@ jobs:
       - run: rustup toolchain install stable --profile minimal
       - run: rustup show
       - uses: Swatinem/rust-cache@v2
+        with:
+          cache-directories:
+            "dist/target"
+            "target"
+          cache-all-crates: true
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
@@ -75,10 +80,10 @@ jobs:
       - run: rustup show
       - uses: Swatinem/rust-cache@v2
         with:
-          cache-directories: "dist/target"
+          cache-directories:
+            "dist/target"
+            "target"
           cache-all-crates: true
-      - run: ls
-      - run: ls dist
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
@@ -124,6 +129,11 @@ jobs:
           cache: true
       - run: rustup toolchain install stable --profile minimal
       - uses: Swatinem/rust-cache@v2
+        with:
+          cache-directories:
+            "dist/target"
+            "target"
+          cache-all-crates: true
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
@@ -169,6 +179,11 @@ jobs:
           cache: true
       - run: rustup toolchain install stable --profile minimal
       - uses: Swatinem/rust-cache@v2
+        with:
+          cache-directories:
+            "dist/target"
+            "target"
+          cache-all-crates: true
       - run: go version
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
@@ -218,6 +233,11 @@ jobs:
           cache: true
       - run: rustup toolchain install stable --profile minimal
       - uses: Swatinem/rust-cache@v2
+        with:
+          cache-directories:
+            "dist/target"
+            "target"
+          cache-all-crates: true
       - run: go version
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
