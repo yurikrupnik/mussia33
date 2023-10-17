@@ -74,6 +74,9 @@ jobs:
       - run: rustup toolchain install stable --profile minimal
       - run: rustup show
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: dist/target
+          cache-targets: dist/target/release
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
