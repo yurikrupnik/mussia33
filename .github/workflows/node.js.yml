@@ -75,9 +75,8 @@ jobs:
       - run: rustup show
       - uses: Swatinem/rust-cache@v2
         with:
-#          workspaces: dist/target
-#          cache-targets: dist/target
           cache-directories: "dist/target"
+          cache-all-crates: true
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
