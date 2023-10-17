@@ -113,8 +113,12 @@ impl<T> MongoRepository<T>
 
 // TODO finish this - pay attention to response types
 // #[async_trait]
-// trait MongoCrud<U: Serialize + DeserializeOwned + Sync + Send + Unpin + Validate + 'static> {
-//     async fn create_item(db: Data<MongoRepo<U>>, body: Json<U>) -> HttpResponse {
+// trait MongoCrud<T, U>
+// where
+//     T: Serialize + DeserializeOwned + Sync + Send + Unpin + Validate + 'static,
+//     U: Serialize + DeserializeOwned + Sync + Send + Unpin + Validate + 'static,
+// {
+//     async fn create_item(db: Data<MongoRepository<T>>, body: Json<U>) -> HttpResponse {
 //         match body.validate() {
 //             Ok(_) => (),
 //             Err(e) => {

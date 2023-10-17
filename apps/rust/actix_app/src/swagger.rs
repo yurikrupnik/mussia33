@@ -60,12 +60,16 @@ pub struct ApiDoc;
 paths(
 product::add_product,
 product::get_products,
+product::update_product,
+product::get_product,
+product::delete_product,
+product::delete_products,
 ),
 components(
-schemas(product::Product, ErrorResponse),
+schemas(product::Product, product::CreateDto, product::UpdateDto, ErrorResponse),
 ),
 tags(
-(name = "product", description = "Products management endpoints."),
+(name = "Products", description = "Products management endpoints."),
 ),
 modifiers(&SecurityAddon)
 )]

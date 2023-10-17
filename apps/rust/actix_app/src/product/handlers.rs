@@ -1,12 +1,16 @@
 use crate::product::model::Product;
-// use crate::user::User;
-use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
+use crate::product::dto::{CreateDto, UpdateDto};
+use actix_web::{delete, get, post, put, web, HttpResponse, Responder, error};
 use futures::TryStreamExt;
 use mongodb::{
-    bson::{doc, oid::ObjectId},
-    options::FindOptions,
+    bson::{doc, oid::ObjectId, to_document, Document, from_document},
+    options::{
+        FindOptions, ReturnDocument, FindOneAndUpdateOptions
+    },
     Client, Collection,
+
 };
+use validator::Validate;
 
 pub const DB_NAME: &str = "rustApp";
 
@@ -17,31 +21,55 @@ pub const DB_NAME: &str = "rustApp";
 ///
 /// One could call the api with.
 /// ```text
-/// curl localhost:8080/products -d '{"name": "Product 2"}'
+/// curl localhost:8080/api/product -d '{"name": "Product 2"}'
 /// ```
 #[utoipa::path(
-request_body = Product,
+path = "/api/product",
+tag = Product::TAG,
+request_body = CreateDto,
 responses(
-(status = 201, description = "Product created successfully", body = Product),
+(status = CREATED, description = "Product created successfully", body = Product),
+(status = BAD_REQUEST, description = "Json deserialize error")
 )
 )]
-#[post("/products")]
-pub async fn add_product(client: web::Data<Client>, body: web::Json<Product>) -> impl Responder {
-    let collection: Collection<Product> = client.database(DB_NAME).collection(Product::COLLECTION);
+#[post("/product")]
+pub async fn add_product(client: web::Data<Client>, body: web::Json<CreateDto>) -> impl Responder {
+    match body.validate() {
+        Ok(_) => (),
+        Err(e) => {
+            return HttpResponse::BadRequest().json(e.errors());
+        }
+    }
+    let collection: Collection<Document> = client
+        .database(DB_NAME).collection(Product::COLLECTION);
+    let document = to_document(&body).unwrap();
     let result = collection
-        .insert_one(body.clone(), None)
+        .insert_one(document, None)
         .await
         .expect("Error creating item");
     let new_id = result.inserted_id.as_object_id().unwrap();
     let res = collection.find_one(doc! {"_id": new_id}, None).await;
     match res {
-        Ok(Some(payload)) => HttpResponse::Created().json(payload),
+        Ok(Some(payload)) => {
+            let doc: Product = from_document(payload).unwrap();
+            HttpResponse::Created().json(doc)
+        },
         Ok(None) => HttpResponse::NotFound().body(format!("No user found with id {new_id}")),
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
     }
 }
 
-#[get("/products/{id}")]
+#[utoipa::path(
+path = "/api/product/{id}",
+tag = Product::TAG,
+params(
+("id" = String, description = "Unique id of Item to get")
+),
+responses(
+(status = 200, description = "Product created successfully", body = Product),
+)
+)]
+#[get("/product/{id}")]
 pub async fn get_product(client: web::Data<Client>, path: web::Path<String>) -> impl Responder {
     let id = path.into_inner();
     if id.is_empty() || id.len() != 24 {
@@ -67,11 +95,13 @@ pub async fn get_product(client: web::Data<Client>, path: web::Path<String>) -> 
 /// curl localhost:8080/products
 /// ```
 #[utoipa::path(
+path = "/api/product",
+tag = Product::TAG,
 responses(
 (status = 200, description = "List current product items", body = [Product])
 )
 )]
-#[get("/products")]
+#[get("/product")]
 pub async fn get_products(client: web::Data<Client>) -> impl Responder {
     let collection: Collection<Product> = client.database(DB_NAME).collection(Product::COLLECTION);
     // let filter = doc! {"name": "product 1".to_string()};
@@ -83,7 +113,6 @@ pub async fn get_products(client: web::Data<Client>) -> impl Responder {
         .build();
 
     let mut cursor = collection
-        // .clone_with_type()
         .find(None, find_options)
         .await
         .expect("failed fetching");
@@ -99,7 +128,17 @@ pub async fn get_products(client: web::Data<Client>) -> impl Responder {
     HttpResponse::Ok().json(payload)
 }
 
-#[delete("/products/{id}")]
+#[utoipa::path(
+path = "/api/product/{id}",
+tag = Product::TAG,
+params(
+("id" = String, description = "Id of item to delete")
+),
+responses(
+(status = 200, description = "Product deleted successfully", body = Product),
+)
+)]
+#[delete("/product/{id}")]
 pub async fn delete_product(client: web::Data<Client>, path: web::Path<String>) -> impl Responder {
     let id = path.into_inner();
     if id.is_empty() || id.len() != 24 {
@@ -119,7 +158,14 @@ pub async fn delete_product(client: web::Data<Client>, path: web::Path<String>) 
     }
 }
 
-#[delete("/products")]
+#[utoipa::path(
+path = "/api/product",
+tag = Product::TAG,
+responses(
+(status = 200, description = "Product deleted successfully"),
+)
+)]
+#[delete("/product")]
 pub async fn delete_products(client: web::Data<Client>) -> impl Responder {
     let collection: Collection<Product> = client.database(DB_NAME).collection(Product::COLLECTION);
     collection.drop(None).await.expect("failed deleting");
@@ -127,11 +173,20 @@ pub async fn delete_products(client: web::Data<Client>) -> impl Responder {
 }
 
 // todo update the update function to use full struct!
-#[put("/products/{id}")]
+#[utoipa::path(
+path = "/api/product/{id}",
+tag = Product::TAG,
+request_body = UpdateDto,
+responses(
+(status = 200, description = "Product deleted successfully", body = Product),
+(status = NOT_FOUND, description = "ERROR HERE"),
+)
+)]
+#[put("/product/{id}")]
 pub async fn update_product(
     client: web::Data<Client>,
     path: web::Path<String>,
-    body: web::Json<Product>,
+    body: web::Json<UpdateDto>,
 ) -> impl Responder {
     let id = path.into_inner();
     if id.is_empty() || id.len() != 24 {
@@ -139,20 +194,23 @@ pub async fn update_product(
     };
     let obj_id = ObjectId::parse_str(id).unwrap();
     let filter = doc! {"_id": obj_id};
-    let collection: Collection<Product> = client.database(DB_NAME).collection(Product::COLLECTION);
-    // let result = collection.update_one();
+    let collection: Collection<Document> = client.database(DB_NAME).collection(Product::COLLECTION);
+    let serialized_item = to_document(&body).expect("Error serializing item");
     let new_doc = doc! {
-        "$set":
-            {
-                "name": body.name.clone()
-            },
+        "$set": serialized_item
     };
+    let options = FindOneAndUpdateOptions::builder()
+        .return_document(ReturnDocument::After)
+        .build();
     let result = collection
-        .find_one_and_update(filter, new_doc, None)
+        .find_one_and_update(filter, new_doc, options)
         .await
-        .ok();
+        .unwrap();
     match result {
-        Some(res) => HttpResponse::Ok().json(res),
-        None => HttpResponse::Ok().json("ads"),
+        Some(payload) => {
+            let doc: Product = from_document(payload).unwrap();
+            HttpResponse::Created().json(doc)
+        }
+        None => HttpResponse::NotFound().json("not found item"),
     }
 }

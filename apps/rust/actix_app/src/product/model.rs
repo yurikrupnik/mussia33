@@ -1,29 +1,32 @@
-use crate::mongo::serialize_object_id;
+// use crate::mongo::serialize_object_id;
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use utoipa::ToSchema;
+use rust_generic_api::serialize_object_id;
 
 /// Request to update existing `Product` item.
-#[derive(Clone, ToSchema, Debug, PartialEq, Eq, Deserialize, Serialize, TS)]
+#[derive(Clone, ToSchema, Debug,
+PartialEq, Eq, Deserialize, Serialize, TS)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub struct Product {
     #[serde(
         rename(deserialize = "_id"),
         serialize_with = "serialize_object_id",
-        skip_serializing_if = "Option::is_none"
     )]
     #[ts(type = "string")]
-    pub id: Option<ObjectId>,
+    pub id: ObjectId,
     #[schema(default = "product 1")]
     pub name: String,
     #[schema(default = false)]
     pub is_true: bool,
-    #[serde(serialize_with = "serialize_object_id")]
-    #[ts(type = "string")]
-    pub user_id: Option<ObjectId>,
+    #[schema(default = "Product 1 description")]
+    pub description: String,
 }
 
 impl Product {
     pub const COLLECTION: &'static str = "products";
+    // pub const URL: &'static str = "/product";
+    pub const TAG: &'static str = "Products";
 }
