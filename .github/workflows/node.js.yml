@@ -21,8 +21,7 @@ jobs:
           deno-version: v1.x
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.20.0'
-          run_install: true
+          go-version: 'stable'
           check-latest: true
           cache: true
       - run: rustup toolchain install stable --profile minimal
@@ -70,8 +69,7 @@ jobs:
           deno-version: v1.x
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.20.0'
-          run_install: true
+          go-version: 'stable'
           check-latest: true
           cache: true
       - run: rustup toolchain install stable --profile minimal
@@ -120,7 +118,7 @@ jobs:
           deno-version: v1.x
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.20.0'
+          go-version: 'stable'
           check-latest: true
           cache: true
       - run: rustup toolchain install stable --profile minimal
@@ -220,7 +218,7 @@ jobs:
           deno-version: v1.x
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.20.0'
+          go-version: 'stable'
           check-latest: true
           cache: true
       - run: rustup toolchain install stable --profile minimal
