@@ -1,0 +1,16 @@
+[package]
+name = "rust_books_api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+validator = { workspace = true }
+ts-rs = { workspace = true }
+utoipa = { workspace = true }
+mongodb = { workspace = true }
+rust_generic_api = { workspace = true }
+log = "0.4.20"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

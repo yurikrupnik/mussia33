@@ -21,13 +21,15 @@ jobs:
           deno-version: v1.x
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.20.0'
-          run_install: true
+          go-version: 'stable'
           check-latest: true
           cache: true
       - run: rustup toolchain install stable --profile minimal
       - run: rustup show
       - uses: Swatinem/rust-cache@v2
+        with:
+          cache-directories: "dist/target"
+          cache-all-crates: true
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
@@ -67,13 +69,15 @@ jobs:
           deno-version: v1.x
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.20.0'
-          run_install: true
+          go-version: 'stable'
           check-latest: true
           cache: true
       - run: rustup toolchain install stable --profile minimal
       - run: rustup show
       - uses: Swatinem/rust-cache@v2
+        with:
+          cache-directories: "dist/target"
+          cache-all-crates: true
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
@@ -114,11 +118,14 @@ jobs:
           deno-version: v1.x
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.20.0'
+          go-version: 'stable'
           check-latest: true
           cache: true
       - run: rustup toolchain install stable --profile minimal
       - uses: Swatinem/rust-cache@v2
+        with:
+          cache-directories: "dist/target"
+          cache-all-crates: true
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
@@ -159,11 +166,14 @@ jobs:
           deno-version: v1.x
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.20.0'
+          go-version: 'stable'
           check-latest: true
           cache: true
       - run: rustup toolchain install stable --profile minimal
       - uses: Swatinem/rust-cache@v2
+        with:
+          cache-directories: "dist/target"
+          cache-all-crates: true
       - run: go version
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
@@ -208,11 +218,14 @@ jobs:
           deno-version: v1.x
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.20.0'
+          go-version: 'stable'
           check-latest: true
           cache: true
       - run: rustup toolchain install stable --profile minimal
       - uses: Swatinem/rust-cache@v2
+        with:
+          cache-directories: "dist/target"
+          cache-all-crates: true
       - run: go version
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3

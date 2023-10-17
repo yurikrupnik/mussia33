@@ -5,17 +5,35 @@ mod todo;
 mod user; // only for docker local
 
 use actix_cors::Cors;
-use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer};
+use actix_web::{middleware::Logger, web, Scope, App, HttpResponse, HttpServer};
 use env_logger::Env;
 use mongodb::Client;
 use std::env;
 use swagger::{ApiDoc, ApiDoc1};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::{SwaggerUi, Url};
-use rust_servers_shared::get_env_port;
+use rust_servers_shared::{get_port, get_status};
+use rust_generic_api::{create_configure};
+use rust_books_api::book::{Book, books_routes};
+use rust_author_api::author::{Author, authors_routes};
 
-async fn get_status() -> HttpResponse {
-    HttpResponse::Ok().body("data")
+use user::{add_user, delete_user, drop_users, get_user, update_user, user_list};
+
+fn users_service() -> Scope {
+    web::scope(user::User::URL)
+        .service(
+            web::resource("")
+                .route(web::get().to(user_list))
+                .route(web::delete().to(drop_users))
+                .route(web::post().to(add_user)),
+        )
+        .service(
+            web::resource("/{id}")
+                .route(web::delete().to(delete_user))
+                .route(web::put().to(update_user))
+                .route(web::get().to(get_user)),
+        )
+
 }
 
 #[actix_web::main]
@@ -29,6 +47,9 @@ async fn main() -> std::io::Result<()> {
     // data here
     let client_data = web::Data::new(client);
 
+    let port = get_port();
+    log::info!("Starting HTTP server on http://localhost:{port}");
+
     HttpServer::new(move || {
         let cors = Cors::default()
             // .allowed_origin("http://localhost:5173")
@@ -39,7 +60,7 @@ async fn main() -> std::io::Result<()> {
             .allowed_methods(vec!["GET", "POST", "DELETE", "PUT"])
             .max_age(3600);
         App::new()
-            .route("/status", web::get().to(get_status))
+            .route("/health", web::get().to(get_status))
             .service(
                 web::scope("/api")
                     .app_data(client_data.clone())
@@ -51,7 +72,18 @@ async fn main() -> std::io::Result<()> {
                     .service(product::update_product)
                     .configure(user::create_config_by_type::<user::User>(
                         "rustApp",
-                        user::User::get_collection(2),
+                        user::User::COLLECTION,
+                        users_service()
+                    ))
+                    .configure(create_configure::<Author>(
+                        "rustApp",
+                        Author::COLLECTION,
+                        authors_routes()
+                    ))
+                    .configure(create_configure::<Book>(
+                        "rustApp",
+                        Book::COLLECTION,
+                        books_routes()
                     )),
             )
             .wrap(cors)
@@ -69,7 +101,8 @@ async fn main() -> std::io::Result<()> {
             ]))
             .default_service(web::to(HttpResponse::NotFound))
     })
-    .bind(("0.0.0.0", get_env_port()))?
+    .bind(("0.0.0.0", port))?
+    .workers(1) // remove me after development
     .run()
     .await
 }
