@@ -189,6 +189,12 @@ pub async fn update_product(
     path: web::Path<String>,
     body: web::Json<UpdateDto>,
 ) -> impl Responder {
+    match body.validate() {
+        Ok(_) => (),
+        Err(e) => {
+            return HttpResponse::BadRequest().json(e.errors());
+        }
+    }
     let id = path.into_inner();
     if id.is_empty() || id.len() != 24 {
         return HttpResponse::BadRequest().body("invalid ID");

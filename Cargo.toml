@@ -16,35 +16,36 @@ members = [
 	'libs/rust/generic_api',
 	'libs/rust/books_api',
 	'libs/rust/author_api',
+	'apps/rust/actix_sql',
 ]
 resolver = '2'
 
 [workspace.dependencies]
-actix-web = '4'
-actix-cors = '0.6'
-async-trait = { version = '0.1' }
-env_logger = '0.10'
-futures = '0.3'
-log = '0.4'
-mongodb = '2.7'
-plurals = '0.4'
-#rust_macros = { path = 'libs/rust/macros' }
-#rust_proc_macros = { path = 'libs/rust/proc_macros' }
+actix-web = '4.4.0'
+actix-cors = '0.6.4'
+async-trait = { version = '0.1.74' }
+clap = { version = "4.4.6", features = ["derive"] }
+env_logger = '0.10.0'
+futures = '0.3.28'
+log = '0.4.20'
+mongodb = '2.7.0'
+plurals = '0.4.0'
+sqlx = { version = "0.7.2", default-features = false, features = ["postgres", "runtime-tokio-rustls", "macros"] }
 rust_books_api = { path = 'libs/rust/books_api' }
 rust_author_api = { path = 'libs/rust/author_api' }
 rust_napi_shared = { path = 'libs/rust/napi_shared' }
 rust_servers_shared = { path = 'libs/rust/servers_shared' }
 rust_generic_api = { path = 'libs/rust/generic_api' }
-schemars = '0.8'
-serde = { version = '1.0', features = ['derive'] }
-serde_json = { version = '1.0', features = ['arbitrary_precision'] }
-serde_derive = '1.0'
-thiserror = '1.0'
-tokio = '1.32'
-ts-rs = { version = '7.0', features = ['serde-compat'] }
-utoipa = { version = '4.0', features = ['actix_extras'] }
-utoipa-swagger-ui = { version = '4.0', features = ['actix-web'] }
-validator = { version = '0.16', features = ['derive'] }
+schemars = '0.8.15'
+serde = { version = '1.0.189', features = ['derive'] }
+serde_json = { version = '1.0.107', features = ['arbitrary_precision'] }
+serde_derive = '1.0.189'
+thiserror = '1.0.50'
+tokio = '1.33.0'
+ts-rs = { version = '7.0.0', features = ['serde-compat'] }
+utoipa = { version = '4.0.0', features = ['actix_extras'] }
+utoipa-swagger-ui = { version = '4.0.0', features = ['actix-web'] }
+validator = { version = '0.16.1', features = ['derive'] }
 
 [profile.release]
 lto = true

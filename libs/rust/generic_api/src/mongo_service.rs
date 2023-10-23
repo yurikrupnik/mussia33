@@ -109,27 +109,56 @@ impl<T> MongoRepository<T>
 // use async_trait::async_trait;
 // use actix_web::{web::{Json, Data}, HttpResponse};
 // use validator::Validate;
-
-
-// TODO finish this - pay attention to response types
+//
+// // use utoipa::schema;
+// pub struct Repos {
+//     col: Collection<Document>,
+// }
+//
+// impl Repos {
+//     pub async fn new(db_name: &str, col_name: &str) -> Self {
+//         let uri = std::env::var("MONGO_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
+//         let client = Client::with_uri_str(uri).await.expect("failed to connect");
+//         let col = client.database(db_name).collection(col_name);
+//         Self { col }
+//     }
+// }
+//
+//
+// // TODO finish this - pay attention to response types
 // #[async_trait]
 // trait MongoCrud<T, U>
 // where
 //     T: Serialize + DeserializeOwned + Sync + Send + Unpin + Validate + 'static,
 //     U: Serialize + DeserializeOwned + Sync + Send + Unpin + Validate + 'static,
 // {
-//     async fn create_item(db: Data<MongoRepository<T>>, body: Json<U>) -> HttpResponse {
+//     async fn create_item(&self, db: Data<Repos>, body: Json<T>) -> HttpResponse {
 //         match body.validate() {
 //             Ok(_) => (),
 //             Err(e) => {
 //                 return HttpResponse::BadRequest().json(e.errors());
 //             }
 //         }
-//         let result = db.create(body.into_inner()).await;
-//         match result {
-//             Ok(res) => HttpResponse::Ok().json(res),
-//             Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+//         // let result = db.create(body.into_inner()).await;
+//         // match result {
+//         //     Ok(res) => HttpResponse::Ok().json(res),
+//         //     Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+//         // }
+//         HttpResponse::Ok().finish()
+//     }
+//     async fn update_item(db: Data<Repos>, body: Json<U>) -> HttpResponse {
+//         match body.validate() {
+//             Ok(_) => (),
+//             Err(e) => {
+//                 return HttpResponse::BadRequest().json(e.errors());
+//             }
 //         }
+//         // let result = db.create(body.into_inner()).await;
+//         // match result {
+//         //     Ok(res) => HttpResponse::Ok().json(res),
+//         //     Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+//         // }
+//         HttpResponse::Ok().finish()
 //     }
 // }
 // async fn create(&self, item: T) -> Result<Option<T>, Error>;

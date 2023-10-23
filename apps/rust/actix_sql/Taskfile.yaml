@@ -1,0 +1,24 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  GREETING: Hello, World!
+
+tasks:
+  default:
+    cmds:
+      - echo "{{.GREETING}}"
+    silent: true
+  install:
+    cmds:
+      - cargo install sqlx-cli
+  migrate-add:
+    cmds:
+      - sqlx migrate add foundation
+  migrate:
+    cmds:
+      - sqlx migrate run --database-url postgres://myuser:mypassword@localhost/mydatabase
+  create-build-script:
+    cmds:
+      - sqlx migrate build-script
