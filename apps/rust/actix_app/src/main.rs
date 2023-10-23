@@ -102,7 +102,6 @@ async fn main() -> std::io::Result<()> {
             .default_service(web::to(HttpResponse::NotFound))
     })
     .bind(("0.0.0.0", port))?
-    .workers(1) // remove me after development
     .run()
     .await
 }
