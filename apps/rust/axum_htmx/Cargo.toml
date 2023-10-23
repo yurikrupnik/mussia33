@@ -8,7 +8,7 @@ edition = "2021"
 actix-web = "4"
 listenfd = "1.0.1"
 axum = {version = "0.6.20", features = ["macros"]}
-axum-extra = "0.7.7"
+axum-extra = "0.8.0"
 deadpool-diesel = { version = "0.4.1", features = ["postgres"] }
 diesel = { version = "2", features = ["postgres"] }
 diesel_migrations = "2"
