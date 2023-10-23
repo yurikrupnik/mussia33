@@ -57,7 +57,7 @@
     "ts-proto": "^1.148.0",
     "typescript": "~5.2.0",
     "vite": "4.4.11",
-    "vite-plugin-solid": "2.7.1"
+    "vite-plugin-solid": "2.7.2"
   },
   "dependencies": {
     "@faker-js/faker": "^8.0.1",
