@@ -9,7 +9,7 @@ actix-web = "4"
 listenfd = "1.0.1"
 axum = {version = "0.6.20", features = ["macros"]}
 axum-extra = "0.7.7"
-deadpool-diesel = { version = "0.4.1", features = ["postgres"] }
+deadpool-diesel = { version = "0.5.0", features = ["postgres"] }
 diesel = { version = "2", features = ["postgres"] }
 diesel_migrations = "2"
 serde = { version = "1.0", features = ["derive"] }
