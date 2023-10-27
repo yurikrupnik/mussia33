@@ -10,7 +10,8 @@ serde = { workspace = true }
 sqlx = { workspace = true }
 rust_servers_shared = { workspace = true }
 log = { workspace = true }
-env_logger = { workspace = true }
+utoipa = { workspace = true }
+utoipa-swagger-ui = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [package.metadata.scripts]

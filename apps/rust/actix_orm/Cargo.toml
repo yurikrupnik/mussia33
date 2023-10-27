@@ -1,11 +1,10 @@
 [package]
-name = "rust_servers_shared"
+name = "rust_actix_orm"
 version = "0.1.0"
 edition = "2021"
 
+
 [dependencies]
-actix-web = { workspace = true }
-actix-cors = { workspace = true }
-env_logger = { workspace = true }
-sqlx = { workspace = true }
+
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

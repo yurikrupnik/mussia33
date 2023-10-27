@@ -17,6 +17,9 @@ members = [
 	'libs/rust/books_api',
 	'libs/rust/author_api',
 	'apps/rust/actix_sql',
+	'apps/rust/actix_orm',
+	'libs/rust/macros',
+	'libs/rust/proc_macros',
 ]
 resolver = '2'
 
@@ -24,13 +27,13 @@ resolver = '2'
 actix-web = '4.4.0'
 actix-cors = '0.6.4'
 async-trait = { version = '0.1.74' }
-clap = { version = "4.4.6", features = ["derive"] }
+clap = { version = '4.4.6', features = ['derive'] }
 env_logger = '0.10.0'
 futures = '0.3.28'
 log = '0.4.20'
 mongodb = '2.7.0'
 plurals = '0.4.0'
-sqlx = { version = "0.7.2", default-features = false, features = ["postgres", "runtime-tokio-rustls", "macros"] }
+sqlx = { version = '0.7.2', default-features = false, features = ['postgres', 'runtime-tokio-rustls', 'macros'] }
 rust_books_api = { path = 'libs/rust/books_api' }
 rust_author_api = { path = 'libs/rust/author_api' }
 rust_napi_shared = { path = 'libs/rust/napi_shared' }

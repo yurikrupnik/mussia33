@@ -4,15 +4,13 @@ mod swagger;
 mod todo;
 mod user; // only for docker local
 
-use actix_cors::Cors;
 use actix_web::{middleware::Logger, web, Scope, App, HttpResponse, HttpServer};
-use env_logger::Env;
 use mongodb::Client;
 use std::env;
 use swagger::{ApiDoc, ApiDoc1};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::{SwaggerUi, Url};
-use rust_servers_shared::{get_port, get_status};
+use rust_servers_shared::{get_port, actix::{set_cors, get_status, set_logger}};
 use rust_generic_api::{create_configure};
 use rust_books_api::book::{Book, books_routes};
 use rust_author_api::author::{Author, authors_routes};
@@ -38,9 +36,7 @@ fn users_service() -> Scope {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::init_from_env(Env::default().default_filter_or("info"));
-
-    // let port = get_env_port();
+    set_logger(None);
     let uri = env::var("MONGO_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
     let client = Client::with_uri_str(uri).await.expect("failed to connect");
     let store = web::Data::new(todo::TodoStore::default());
@@ -51,14 +47,6 @@ async fn main() -> std::io::Result<()> {
     log::info!("Starting HTTP server on http://localhost:{port}");
 
     HttpServer::new(move || {
-        let cors = Cors::default()
-            // .allowed_origin("http://localhost:5173")
-            .allowed_origin_fn(|origin, _req_head| {
-                print!("origin!! {}, url!! {}", origin.is_empty(), _req_head.uri);
-                true
-            })
-            .allowed_methods(vec!["GET", "POST", "DELETE", "PUT"])
-            .max_age(3600);
         App::new()
             .route("/health", web::get().to(get_status))
             .service(
@@ -86,7 +74,7 @@ async fn main() -> std::io::Result<()> {
                         books_routes()
                     )),
             )
-            .wrap(cors)
+            .wrap(set_cors())
             .wrap(Logger::default())
             .configure(todo::configure(store.clone()))
             .service(SwaggerUi::new("/swagger-ui/{_:.*}").urls(vec![

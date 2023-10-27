@@ -54,19 +54,40 @@ struct Person {
     age: u8,
 }
 
-fn main() -> Result<(), Box<dyn Error>>
-{
-    let mut di_container = DIContainer::new();
+use reqwest::get;
 
-    di_container.bind::<dyn IWeapon>().to::<Sword>()?;
-
-    di_container.bind::<dyn IWarrior>().to::<Warrior>()?;
-
-    let warrior = di_container.get::<dyn IWarrior>()?.transient()?;
-
-    warrior.fight();
-
-    println!("Warrior has fighted");
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Todo {
+    pub id: i32,
+    pub title: String,
+    pub completed: bool,
+}
+async fn data() -> Result<Vec<Todo>, reqwest::Error>{
+    get(
+        "http://localhost:8080/api/todo"
+    ).await?.json::<Vec<Todo>>().await
+}
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    let data = &data().await?;
+    println!("data {:?}", data);
+    let count = data.len();
+    println!("count {:?}", count);
+    // let names = data.iter().map(|mut v| {
+    //     v.completed;
+    // }).collect::<Vec<Todo>>();
+    // println!("names {:?}", names);
+    // let mut di_container = DIContainer::new();
+    //
+    // di_container.bind::<dyn IWeapon>().to::<Sword>()?;
+    //
+    // di_container.bind::<dyn IWarrior>().to::<Warrior>()?;
+    //
+    // let warrior = di_container.get::<dyn IWarrior>()?.transient()?;
+    //
+    // warrior.fight();
+    //
+    // println!("Warrior has fighted");
 
     Ok(())
 }
