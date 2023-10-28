@@ -26,9 +26,9 @@ jobs:
           cache: true
       - run: rustup toolchain install stable --profile minimal
       - uses: Swatinem/rust-cache@v2
-#        with:
-#          cache-directories: "dist/target"
-#          cache-all-crates: true
+        with:
+          cache-directories: "dist/target"
+          cache-all-crates: true
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
@@ -54,4 +54,4 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
-      - run: pnpm nx affected --target=test --parallel --max-parallel=3
+      - run: pnpm nx affected --target=lint --parallel --max-parallel=3
