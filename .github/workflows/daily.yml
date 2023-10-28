@@ -112,7 +112,7 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
-      - run: pnpm nx run-many --target=build.yaml --parallel --max-parallel=3 --prod --all --skip-nx-cache
+      - run: pnpm nx run-many --target=build --parallel --max-parallel=3 --prod --all --skip-nx-cache
   test:
     runs-on: ubuntu-latest
     steps:
