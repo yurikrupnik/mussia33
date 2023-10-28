@@ -1,8 +1,6 @@
-use actix_web::{
-    web::{ServiceConfig, scope, get, put, post, delete, resource},
-};
 use super::handlers::*;
 use super::model::Book;
+use actix_web::web::{delete, get, post, put, resource, scope, ServiceConfig};
 
 pub fn book_configure(cfg: &mut ServiceConfig) {
     cfg.service(
@@ -18,6 +16,6 @@ pub fn book_configure(cfg: &mut ServiceConfig) {
                     .route(delete().to(delete_book))
                     .route(put().to(update_book))
                     .route(get().to(get_book)),
-            )
+            ),
     );
 }

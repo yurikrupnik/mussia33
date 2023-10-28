@@ -4,12 +4,7 @@ use utoipa::ToSchema;
 use validator::Validate;
 
 /// Request to create existing `Product` item.
-#[derive(
-Clone, ToSchema,
-Debug, PartialEq,
-Validate,
-Eq, Deserialize,
-Serialize, TS)]
+#[derive(Clone, ToSchema, Debug, PartialEq, Validate, Eq, Deserialize, Serialize, TS)]
 #[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateDto {

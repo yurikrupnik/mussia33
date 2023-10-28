@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
-use utoipa::{IntoParams};
+use utoipa::IntoParams;
 use validator::Validate;
-
 
 #[derive(Deserialize, Serialize, Debug, Validate, TS, IntoParams)]
 #[ts(export)]
@@ -17,7 +16,7 @@ pub struct Pagination {
     #[ts(type = "number")]
     total: Option<u64>,
 }
-    // #[ts(type = "number")]
+// #[ts(type = "number")]
 
 #[derive(Deserialize, Serialize, Debug, Validate, TS, IntoParams)]
 // #[serde(deny_unknown_fields)]

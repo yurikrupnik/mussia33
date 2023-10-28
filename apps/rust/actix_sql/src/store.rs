@@ -11,4 +11,3 @@ impl Store {
         Self { pool }
     }
 }
-

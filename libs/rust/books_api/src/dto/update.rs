@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
-use utoipa::{IntoParams};
+use utoipa::IntoParams;
 use validator::Validate;
 
 #[derive(Deserialize, Serialize, Debug, Validate, TS, IntoParams)]

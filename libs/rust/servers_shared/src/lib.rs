@@ -1,8 +1,8 @@
+mod cors;
 mod envs;
 mod handlers;
-mod sql;
 mod logger;
-mod cors;
+mod sql;
 
 pub use envs::*;
 // pub use handlers::*;

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
-use utoipa::{ToSchema, IntoParams};
+use utoipa::{IntoParams, ToSchema};
 use validator::Validate;
 
 /// Request to update existing `User` item.
@@ -14,10 +14,7 @@ pub struct UpdateDto {
     // #[serde(rename = "firstName")]
     pub name: Option<String>,
     #[schema(default = "Doe")]
-    #[serde(
-    rename = "lastName",
-    skip_serializing_if = "Option::is_none")
-    ]
+    #[serde(rename = "lastName", skip_serializing_if = "Option::is_none")]
     pub last_name: Option<String>,
     #[schema(default = "job-doe")]
     #[serde(skip_serializing_if = "Option::is_none")]

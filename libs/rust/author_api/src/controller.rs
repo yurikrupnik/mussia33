@@ -1,8 +1,12 @@
-use actix_web::{web::{Data, Query, Json}, Responder};
-use crate::model::{Author};
-use crate::dto::{QueryParams,CreateDto};
-use rust_generic_api::{MongoRepository, list_items, create_item, get_item, update_item, delete_item};
-
+use crate::dto::{CreateDto, QueryParams};
+use crate::model::Author;
+use actix_web::{
+    web::{Data, Json, Query},
+    Responder,
+};
+use rust_generic_api::{
+    create_item, delete_item, get_item, list_items, update_item, MongoRepository,
+};
 
 /// Get list of authors.
 ///
@@ -48,6 +52,9 @@ responses(
 (status = 201, description = "Book created successfully", body = Author),
 )
 )]
-pub async fn create_author(db: Data<MongoRepository<Author>>, body: Json<Author>) -> impl Responder {
+pub async fn create_author(
+    db: Data<MongoRepository<Author>>,
+    body: Json<Author>,
+) -> impl Responder {
     create_item::<Author>(db, body).await
 }

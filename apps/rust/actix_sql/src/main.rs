@@ -1,29 +1,29 @@
 use actix_web::{
     middleware::Logger,
-    web::{
-        to, get, Data
-    },
-    App, HttpResponse, HttpServer
+    web::{get, to, Data},
+    App, HttpResponse, HttpServer,
 };
 use rust_servers_shared::{
-    get_port, postgres::create_pool,
-    actix::{get_status, set_cors, set_logger}
+    actix::{get_status, set_cors, set_logger},
+    get_port,
+    postgres::create_pool,
 };
 
-mod todos;
 mod books;
 mod generic;
-mod store;
 mod routes;
-use store::{Store};
-use todos::todo_configure;
+mod store;
+mod todos;
 use books::book_configure;
-
+use store::Store;
+use todos::todo_configure;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     set_logger(None);
-    let pool = create_pool(None, None).await.expect("Failed to create pool");
+    let pool = create_pool(None, None)
+        .await
+        .expect("Failed to create pool");
     let app_state = Store::new(pool);
     let port = get_port();
     log::info!("Starting HTTP server on http://localhost:{port}");
@@ -36,10 +36,9 @@ async fn main() -> std::io::Result<()> {
             .configure(todo_configure)
             .configure(book_configure)
             .default_service(to(HttpResponse::NotFound))
-
     })
-        .bind(("0.0.0.0", port))?
-        .workers(1) // remove me after development
-        .run()
-        .await
+    .bind(("0.0.0.0", port))?
+    .workers(1) // remove me after development
+    .run()
+    .await
 }

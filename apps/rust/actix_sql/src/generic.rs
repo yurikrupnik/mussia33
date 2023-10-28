@@ -1,25 +1,24 @@
-
-use serde::Serialize;
 use actix_web::HttpResponse;
+use serde::Serialize;
 // use sqlx::Result;
 
 pub fn handle_result<T>(result: Result<T, sqlx::Error>) -> HttpResponse
-    where
-        T: Serialize,
+where
+    T: Serialize,
 {
     match result {
         Ok(payload) => HttpResponse::Ok().json(payload),
-        Err(e) => HttpResponse::InternalServerError().json(e.to_string())
+        Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
     }
 }
 
 pub fn handle_create_result<T>(result: Result<T, sqlx::Error>) -> HttpResponse
-    where
-        T: Serialize,
+where
+    T: Serialize,
 {
     match result {
-        Ok(item,) => HttpResponse::Created().json(item),
-        Err(e) => HttpResponse::InternalServerError().json(e.to_string())
+        Ok(item) => HttpResponse::Created().json(item),
+        Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
     }
 }
 

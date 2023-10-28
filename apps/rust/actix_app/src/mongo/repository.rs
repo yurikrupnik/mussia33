@@ -1,22 +1,21 @@
+use actix_web::{
+    web::{Data, Json},
+    HttpResponse,
+};
+use async_trait::async_trait;
 use futures::TryStreamExt;
 use mongodb::{
-    options::{
-        FindOptions, ReturnDocument, FindOneAndUpdateOptions
-    },
     bson::{
-        Document,
         doc,
         oid::{Error, ObjectId},
-        to_document,
+        to_document, Document,
     },
+    options::{FindOneAndUpdateOptions, FindOptions, ReturnDocument},
     results::DeleteResult,
     Client, Collection,
 };
 use serde::{de::DeserializeOwned, Serialize};
-use async_trait::async_trait;
-use actix_web::{web::{Json, Data}, HttpResponse};
 use validator::Validate;
-
 
 // TODO finish this - pay attention to response types
 #[async_trait]
@@ -46,22 +45,21 @@ struct Shit {
     pub name: String,
 }
 #[async_trait]
-impl<T> MongoCrud<T> for Shit
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + Validate + 'static,
-{}
-
+impl<T> MongoCrud<T> for Shit where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + Validate + 'static
+{
+}
 
 #[async_trait]
-impl<T> MongoCrud<T> for MongoRepo<T>
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + Validate + 'static,
-{}
+impl<T> MongoCrud<T> for MongoRepo<T> where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + Validate + 'static
+{
+}
 
 // #[async_trait]
 impl<T> MongoRepo<T>
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin,
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin,
 {
     pub async fn init(db_name: &str, col_name: &str) -> Self {
         let uri = std::env::var("MONGO_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());

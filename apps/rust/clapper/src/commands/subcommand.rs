@@ -2,11 +2,10 @@ use std::any::Any;
 // use std::error::Error;
 use std::fmt::Debug;
 
-use clap::Parser;
 use crate::commands::{ClusterAction, ClusterSubcommand};
-use crate::commands::{UserAction, UsersSubcommand};
 use crate::commands::{SystemAction, SystemSubcommand};
-
+use crate::commands::{UserAction, UsersSubcommand};
+use clap::Parser;
 
 /// Simple program to manage personal cli application
 #[derive(Parser, Debug)]
@@ -63,7 +62,6 @@ fn handle_read() {
     println!("calling my script1!!");
     run_command_with_spawn("kubectx");
 }
-
 
 use std::process::{Child, Command};
 pub fn run_command_with_spawn(command: &str) -> Child {
@@ -186,7 +184,7 @@ pub fn parse_subcommand() {
             }
             // ClusterAction::Delete(handle_read(deleteCluster)),
             ClusterAction::Read => handle_read(),
-        }
+        },
         Subcommand::Systems(cmd) => match cmd.action {
             SystemAction::Create(cmd) => {
                 // cmd:
@@ -216,7 +214,7 @@ pub fn parse_subcommand() {
                 // ClusterSubcommand::default().action
                 // Subcommand::Cluster(ClusterSubcommand);
             }
-        }
+        },
         Subcommand::Users(cmd) => match cmd.action {
             UserAction::Create(_) => {}
             UserAction::Update(_) => {}

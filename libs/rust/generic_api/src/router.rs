@@ -1,11 +1,14 @@
-use actix_web::{web::{ServiceConfig, Data}, Scope};
+use crate::mongo_service::MongoRepository;
+use actix_web::{
+    web::{Data, ServiceConfig},
+    Scope,
+};
 use futures::executor::block_on;
 use serde::{de::DeserializeOwned, Serialize};
-use crate::mongo_service::MongoRepository;
 
 async fn create_repository<T>(config: &mut ServiceConfig, db: &str, collection: &str)
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static,
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static,
 {
     let repository = MongoRepository::<T>::new(db, collection).await;
     let data: Data<MongoRepository<T>> = Data::new(repository);
@@ -17,8 +20,8 @@ pub fn create_configure<T>(
     collection: &'static str,
     router: Scope,
 ) -> impl FnOnce(&mut ServiceConfig) + 'static
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static,
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static,
 {
     move |cfg: &mut ServiceConfig| {
         block_on(create_repository::<T>(cfg, db, collection));

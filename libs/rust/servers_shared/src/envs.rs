@@ -12,8 +12,7 @@ const REDIS_STR: &str = "REDIS_HOST";
 const DEFAULT_REDIS_URI: &str = "redis://localhost:6379";
 
 fn get_env_variable(variable_name: &str, default_value: &str) -> String {
-    std::env::var(variable_name)
-        .unwrap_or(default_value.to_string())
+    std::env::var(variable_name).unwrap_or(default_value.to_string())
 }
 
 pub fn get_mongo_uri() -> String {

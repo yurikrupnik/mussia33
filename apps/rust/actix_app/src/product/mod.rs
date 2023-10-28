@@ -1,7 +1,7 @@
+mod dto;
 mod handlers;
 mod model;
-mod dto;
 
+pub use dto::*;
 pub use handlers::*;
 pub use model::*;
-pub use dto::*;

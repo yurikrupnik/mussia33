@@ -1,9 +1,9 @@
+use mongodb::bson::oid::ObjectId;
+use rust_generic_api::serialize_object_id;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
-use utoipa::{ToSchema};
+use utoipa::ToSchema;
 use validator::Validate;
-use rust_generic_api::serialize_object_id;
-use mongodb::bson::oid::ObjectId;
 
 /// Request to update existing `Book` item.
 #[derive(Clone, ToSchema, Debug, PartialEq, Eq, Deserialize, Serialize, Validate, TS)]
@@ -11,10 +11,7 @@ use mongodb::bson::oid::ObjectId;
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct Book {
-    #[serde(
-    rename(deserialize = "_id"),
-    serialize_with = "serialize_object_id",
-    )]
+    #[serde(rename(deserialize = "_id"), serialize_with = "serialize_object_id")]
     #[schema(default = "000000000000000000000000")]
     #[ts(type = "string")]
     pub id: ObjectId,

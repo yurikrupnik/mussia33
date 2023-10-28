@@ -1,93 +1,67 @@
-extern crate serde;
-extern crate serde_json;
-mod dmongo;
-use serde::{Serialize, Deserialize};
+use rust_proc_macros::{DbResource, Reflective};
+use serde::{Deserialize, Serialize};
 
-use std::error::Error;
-use syrette::injectable;
-use syrette::DIContainer;
-use syrette::ptr::TransientPtr;
-
-trait IWeapon {
-    fn deal_damage(&self, damage: i32);
+#[derive(Reflective, DbResource)]
+struct Aris {
+    x: String,
+    y: u8,
 }
 
-struct Sword {}
-
-#[injectable(IWeapon)]
-impl Sword {
-    fn new() -> Self {
-        Self {}
-    }
+#[derive(Serialize, Deserialize, DbResource, Reflective)]
+// #[collection(pluralize)]
+struct User {
+    pub name: String,
+    pub age: u8,
 }
 
-impl IWeapon for Sword {
-    fn deal_damage(&self, damage: i32) {
-        println!("Sword dealt {} damage!", damage);
-    }
-}
+fn main() {
+    // let st = String::from("aris");
+    let url = User::URL;
+    let coll = User::COLLECTION;
+    let tag = User::TAG;
+    let names = User::field_names();
+    let name = User::name();
+    println!("url {url}");
+    println!("coll {coll}");
+    println!("tag {tag}");
+    println!("names {names:?}");
+    println!("name {name}");
+    // println!("sp {sp}");
+    // println!("ssp {ssp}");
+    // println!("{}", answer());
+    // let users = Users {pagination: }
 
-trait IWarrior {
-    fn fight(&self);
-}
-
-struct Warrior {
-    weapon: TransientPtr<dyn IWeapon>,
-}
-
-#[injectable(IWarrior)]
-impl Warrior {
-    fn new(weapon: TransientPtr<dyn IWeapon>) -> Self {
-        Self { weapon }
-    }
-}
-
-impl IWarrior for Warrior {
-    fn fight(&self) {
-        self.weapon.deal_damage(30);
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Person {
-    name: String,
-    age: u8,
-}
-
-use reqwest::get;
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct Todo {
-    pub id: i32,
-    pub title: String,
-    pub completed: bool,
-}
-async fn data() -> Result<Vec<Todo>, reqwest::Error>{
-    get(
-        "http://localhost:8080/api/todo"
-    ).await?.json::<Vec<Todo>>().await
-}
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    let data = &data().await?;
-    println!("data {:?}", data);
-    let count = data.len();
-    println!("count {:?}", count);
-    // let names = data.iter().map(|mut v| {
-    //     v.completed;
-    // }).collect::<Vec<Todo>>();
-    // println!("names {:?}", names);
-    // let mut di_container = DIContainer::new();
+    // println!("{}", pluralize("story", 2, false)); // 2 Houses
+    // println!("{}", pluralize("House", 2, false)); // 2 Houses
     //
-    // di_container.bind::<dyn IWeapon>().to::<Sword>()?;
+    // // But also can convert to singular
+    // println!("{}", pluralize("Houses", 1, true)); // 1 House
     //
-    // di_container.bind::<dyn IWarrior>().to::<Warrior>()?;
+    // let users = Users {
+    //     pagination: Pagination {
+    //         limit: 10,
+    //         offset: 0,
+    //         total: 100,
+    //     },
+    //     users: vec![
+    //         User {
+    //             name: String::from("Alice"),
+    //             age: 30,
+    //         },
+    //         User {
+    //             name: String::from("Bob"),
+    //             age: 20,
+    //         },
+    //     ],
+    // };
     //
-    // let warrior = di_container.get::<dyn IWarrior>()?.transient()?;
-    //
-    // warrior.fight();
-    //
-    // println!("Warrior has fighted");
-
-    Ok(())
+    // let json_string = serde_json::to_string_pretty(&users).expect("Failed to serialize to JSON");
+    // println!("jj {:?}", json_string);
+    // let p = Aris {
+    //     x: String::from("Alice"),
+    //     y: 30,
+    // };
+    // println!("{}", p.name());
+    // println!("{:?}", p.field_names());
+    // println!("{:?}", p.field_values());
 }

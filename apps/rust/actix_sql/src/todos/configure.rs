@@ -1,8 +1,7 @@
-use actix_web::{
-    web::{ServiceConfig, scope, get, put, post, delete, resource},
-};
 use super::handlers::*;
 use super::model::Todo;
+use actix_web::web::{delete, get, post, put, resource, scope, ServiceConfig};
+use rust_proc_macros::DbResource;
 
 pub fn todo_configure(cfg: &mut ServiceConfig) {
     cfg.service(
@@ -18,6 +17,6 @@ pub fn todo_configure(cfg: &mut ServiceConfig) {
                     .route(delete().to(delete_todo))
                     .route(put().to(update_todo))
                     .route(get().to(get_todo)),
-            )
+            ),
     );
 }

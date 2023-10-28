@@ -4,16 +4,19 @@ mod swagger;
 mod todo;
 mod user; // only for docker local
 
-use actix_web::{middleware::Logger, web, Scope, App, HttpResponse, HttpServer};
+use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer, Scope};
 use mongodb::Client;
+use rust_author_api::author::{authors_routes, Author};
+use rust_books_api::book::{books_routes, Book};
+use rust_generic_api::create_configure;
+use rust_servers_shared::{
+    actix::{get_status, set_cors, set_logger},
+    get_port,
+};
 use std::env;
 use swagger::{ApiDoc, ApiDoc1};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::{SwaggerUi, Url};
-use rust_servers_shared::{get_port, actix::{set_cors, get_status, set_logger}};
-use rust_generic_api::{create_configure};
-use rust_books_api::book::{Book, books_routes};
-use rust_author_api::author::{Author, authors_routes};
 
 use user::{add_user, delete_user, drop_users, get_user, update_user, user_list};
 
@@ -31,7 +34,6 @@ fn users_service() -> Scope {
                 .route(web::put().to(update_user))
                 .route(web::get().to(get_user)),
         )
-
 }
 
 #[actix_web::main]
@@ -61,17 +63,17 @@ async fn main() -> std::io::Result<()> {
                     .configure(user::create_config_by_type::<user::User>(
                         "rustApp",
                         user::User::COLLECTION,
-                        users_service()
+                        users_service(),
                     ))
                     .configure(create_configure::<Author>(
                         "rustApp",
                         Author::COLLECTION,
-                        authors_routes()
+                        authors_routes(),
                     ))
                     .configure(create_configure::<Book>(
                         "rustApp",
                         Book::COLLECTION,
-                        books_routes()
+                        books_routes(),
                     )),
             )
             .wrap(set_cors())

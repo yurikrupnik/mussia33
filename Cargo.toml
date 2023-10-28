@@ -34,6 +34,7 @@ log = '0.4.20'
 mongodb = '2.7.0'
 plurals = '0.4.0'
 sqlx = { version = '0.7.2', default-features = false, features = ['postgres', 'runtime-tokio-rustls', 'macros'] }
+rust_proc_macros = { path = 'libs/rust/proc_macros' }
 rust_books_api = { path = 'libs/rust/books_api' }
 rust_author_api = { path = 'libs/rust/author_api' }
 rust_napi_shared = { path = 'libs/rust/napi_shared' }
@@ -49,6 +50,11 @@ ts-rs = { version = '7.0.0', features = ['serde-compat'] }
 utoipa = { version = '4.0.0', features = ['actix_extras'] }
 utoipa-swagger-ui = { version = '4.0.0', features = ['actix-web'] }
 validator = { version = '0.16.1', features = ['derive'] }
+# Proc macros
+syn = "2.0"
+quote = "1.0"
+pluralizer = "0.4"
+trybuild = { version = "1.0.85", features = ["diff"] }
 
 [profile.release]
 lto = true

@@ -1,9 +1,14 @@
-use actix_web::{web::{Data, Query, Json}, Responder};
+use actix_web::{
+    web::{Data, Json, Query},
+    Responder,
+};
 use log::error;
 // use serde::{de::DeserializeOwned, Serialize};
-use crate::model::Book;
 use crate::dto::{QueryParams, UpdateDto};
-use rust_generic_api::{MongoRepository, list_items, create_item, get_item, update_item, delete_item};
+use crate::model::Book;
+use rust_generic_api::{
+    create_item, delete_item, get_item, list_items, update_item, MongoRepository,
+};
 
 /// Get list of book collection.
 ///

@@ -1,34 +1,21 @@
-use serde::{Serialize, Deserialize};
+use rust_proc_macros::{DbResource, Reflective};
+use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 #[derive(FromRow, Deserialize, Serialize, Debug)]
 #[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
+#[derive(DbResource)]
 pub struct Todo {
     pub id: i32,
     pub title: String,
-    pub completed: bool
+    pub completed: bool,
 }
 
-impl Todo {
-    pub const URL: &'static str = "/api/todo";
-    pub const COLLECTION: &'static str = "todos";
-    pub const TAG: &'static str = "Todos";
-}
-
-trait Queries {
-    // fn read(&self) -> &'static str {
-    //     // &format!("SELECT * FROM {}", self::COLLECTION)
-    // }
-    // fn list() -> &'static str;
-    // fn delete() -> &'static str;
-    // fn delete_list() -> &'static str;
-    // fn params() -> &'static str;
-}
-
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Reflective)]
 pub struct CreateTodo {
     pub title: String,
+    pub completed: bool,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

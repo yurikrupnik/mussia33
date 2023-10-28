@@ -1,13 +1,15 @@
 use crate::mongo::{ErrorResponse, MongoRepo};
-use crate::user::{User, QueryParams};
-use actix_web::{web::{Json, Data, Path, Query}, HttpResponse, Responder};
-use mongodb::bson::{Document, doc, to_document};
+use crate::user::{QueryParams, User};
+use actix_web::{
+    web::{Data, Json, Path, Query},
+    HttpResponse, Responder,
+};
+use mongodb::bson::{doc, to_document, Document};
 use mongodb::options::FindOptions;
 use serde::{de::DeserializeOwned, Serialize};
-use validator::Validate;
 use serde_json::json;
+use validator::Validate;
 // use rust_generic_api::{list_items, create_item, get_item, update_item, delete_item};
-
 
 /// Get list of users.
 ///
@@ -28,10 +30,7 @@ responses(
 ),
 params(QueryParams),
 )]
-pub async fn user_list(
-    db: Data<MongoRepo<User>>,
-    mut query: Query<QueryParams>,
-) -> impl Responder {
+pub async fn user_list(db: Data<MongoRepo<User>>, mut query: Query<QueryParams>) -> impl Responder {
     let mut options = FindOptions::builder().build();
 
     if let Some(limit) = &query.limit {
@@ -40,11 +39,10 @@ pub async fn user_list(
     }
     if let Some(projection) = &query.projection {
         if projection.contains(',') {
-            let doc = projection.split(',')
-                .fold(doc! {}, |mut acc, item| {
-                    acc.insert(item.trim(), 1);
-                    acc
-                });
+            let doc = projection.split(',').fold(doc! {}, |mut acc, item| {
+                acc.insert(item.trim(), 1);
+                acc
+            });
             options.projection = Some(doc);
         } else {
             options.projection = Some(doc! {
@@ -60,11 +58,11 @@ pub async fn user_list(
 pub async fn list_items<T, U>(
     db: Data<MongoRepo<T>>,
     query: Query<U>,
-    options: Option<FindOptions>
+    options: Option<FindOptions>,
 ) -> impl Responder
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static,
-        U: Serialize,
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static,
+    U: Serialize,
 {
     let query_params_json = json!(query.into_inner());
     let filter = to_document(&query_params_json).unwrap_or_else(|_| Document::new());
@@ -76,8 +74,8 @@ pub async fn list_items<T, U>(
 }
 
 pub async fn create_item<T>(db: Data<MongoRepo<T>>, body: Json<T>) -> impl Responder
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
 {
     match body.validate() {
         Ok(_) => (),
@@ -93,8 +91,8 @@ pub async fn create_item<T>(db: Data<MongoRepo<T>>, body: Json<T>) -> impl Respo
 }
 
 pub async fn get_item<T>(db: Data<MongoRepo<T>>, path: Path<String>) -> impl Responder
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
 {
     let id = path.into_inner();
     if id.is_empty() || id.len() != 24 {
@@ -109,8 +107,8 @@ pub async fn get_item<T>(db: Data<MongoRepo<T>>, path: Path<String>) -> impl Res
 }
 
 pub async fn drop_items<T>(db: Data<MongoRepo<T>>) -> impl Responder
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
 {
     let result = db.drop_db().await;
     match result {
@@ -120,8 +118,8 @@ pub async fn drop_items<T>(db: Data<MongoRepo<T>>) -> impl Responder
 }
 
 pub async fn delete_item<T>(db: Data<MongoRepo<T>>, path: Path<String>) -> impl Responder
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
 {
     let id = path.into_inner();
     if id.is_empty() || id.len() != 24 {
@@ -141,9 +139,13 @@ pub async fn delete_item<T>(db: Data<MongoRepo<T>>, path: Path<String>) -> impl 
     }
 }
 
-pub async fn update_item<T>(db: Data<MongoRepo<T>>, path: Path<String>, body: Json<T>) -> impl Responder
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
+pub async fn update_item<T>(
+    db: Data<MongoRepo<T>>,
+    path: Path<String>,
+    body: Json<T>,
+) -> impl Responder
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
 {
     let id = path.into_inner();
     if id.is_empty() || id.len() != 24 {
@@ -196,7 +198,6 @@ params(
 pub async fn get_user(db: Data<MongoRepo<User>>, path: Path<String>) -> impl Responder {
     get_item(db, path).await
 }
-
 
 /// Delete User by given path variable id.
 ///
@@ -267,7 +268,11 @@ security(
 ("api_key" = [])
 )
 )]
-pub async fn update_user(db: Data<MongoRepo<User>>, path: Path<String>, body: Json<User>) -> impl Responder {
+pub async fn update_user(
+    db: Data<MongoRepo<User>>,
+    path: Path<String>,
+    body: Json<User>,
+) -> impl Responder {
     update_item(db, path, body).await
     // let id = path.into_inner();
     // if id.is_empty() || id.len() != 24 {

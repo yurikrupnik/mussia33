@@ -1,14 +1,11 @@
-use crate::product::model::Product;
 use crate::product::dto::{CreateDto, UpdateDto};
+use crate::product::model::Product;
 use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
 use futures::TryStreamExt;
 use mongodb::{
-    bson::{doc, oid::ObjectId, to_document, Document, from_document},
-    options::{
-        FindOptions, ReturnDocument, FindOneAndUpdateOptions
-    },
+    bson::{doc, from_document, oid::ObjectId, to_document, Document},
+    options::{FindOneAndUpdateOptions, FindOptions, ReturnDocument},
     Client, Collection,
-
 };
 use validator::Validate;
 
@@ -41,8 +38,7 @@ pub async fn add_product(client: web::Data<Client>, body: web::Json<CreateDto>) 
             return HttpResponse::BadRequest().json(e.errors());
         }
     }
-    let collection: Collection<Document> = client
-        .database(DB_NAME).collection(Product::COLLECTION);
+    let collection: Collection<Document> = client.database(DB_NAME).collection(Product::COLLECTION);
     let document = to_document(&body).unwrap();
     let result = collection
         .insert_one(document, None)
@@ -54,7 +50,7 @@ pub async fn add_product(client: web::Data<Client>, body: web::Json<CreateDto>) 
         Ok(Some(payload)) => {
             let doc: Product = from_document(payload).unwrap();
             HttpResponse::Created().json(doc)
-        },
+        }
         Ok(None) => HttpResponse::NotFound().body(format!("No user found with id {new_id}")),
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
     }

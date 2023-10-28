@@ -4,8 +4,7 @@ use utoipa::ToSchema;
 use validator::Validate;
 
 /// Request to update existing `Author` item.
-#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize, Validate)]
-#[derive(ToSchema, TS)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize, Validate, ToSchema, TS)]
 #[serde(deny_unknown_fields)]
 #[serde(rename_all = "snake_case")]
 #[ts(export)]
