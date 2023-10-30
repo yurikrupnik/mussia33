@@ -27,7 +27,7 @@
     "@nx/vite": "16.10.0",
     "@nx/webpack": "16.10.0",
     "@nx/workspace": "16.10.0",
-    "@nxext/solid": "^15.7.0",
+    "@nxext/solid": "^16.0.0",
     "@nxrs/cargo": "^0.3.3",
     "@solidjs/testing-library": "^0.8.4",
     "@types/express": "^4.17.17",
