@@ -5,7 +5,7 @@ version = '0.1.0'
 edition = '2021'
 
 [dependencies]
-napi = { version = '2.10.2', default-features = false, features = [
+napi = { version = '2.13.3', default-features = false, features = [
 	'napi4',
 ] }
 napi-derive = '2.9.3'
