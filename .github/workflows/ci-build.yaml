@@ -54,4 +54,4 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
-      - run: pnpm nx affected --target=build --parallel --max-parallel=4
+      - run: pnpm nx affected --target=build --parallel --max-parallel=3
