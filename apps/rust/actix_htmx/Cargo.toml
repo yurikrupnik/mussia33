@@ -19,6 +19,6 @@ google-cloud-default = "0.4"
 serde_derive = "1.0"
 futures-util = "0.3"
 #tokio-util = "0.7.8"
-tokio = "1.32"
+tokio = "1.33"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
