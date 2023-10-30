@@ -1,20 +1,23 @@
-use actix_web::{web::{Json, Data, Path, Query}, HttpResponse, Responder};
-use mongodb::bson::{Document, to_document};
-use mongodb::options::FindOptions;
-use serde::{de::DeserializeOwned, Serialize};
-use validator::Validate;
 use crate::errors::ErrorResponse;
 use crate::MongoRepository;
+use actix_web::{
+    web::{Data, Json, Path, Query},
+    HttpResponse, Responder,
+};
+use mongodb::bson::{to_document, Document};
+use mongodb::options::FindOptions;
+use serde::{de::DeserializeOwned, Serialize};
 use serde_json::json;
+use validator::Validate;
 
 pub async fn list_items<T, U>(
     db: Data<MongoRepository<T>>,
     query: Query<U>,
-    options: Option<FindOptions>
+    options: Option<FindOptions>,
 ) -> impl Responder
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static,
-        U: Serialize,
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static,
+    U: Serialize,
 {
     let query_params_json = json!(query.into_inner());
     let filter = to_document(&query_params_json).unwrap_or_else(|_| Document::new());
@@ -26,8 +29,8 @@ pub async fn list_items<T, U>(
 }
 
 pub async fn create_item<T>(db: Data<MongoRepository<T>>, body: Json<T>) -> impl Responder
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
 {
     match body.validate() {
         Ok(_) => (),
@@ -43,8 +46,8 @@ pub async fn create_item<T>(db: Data<MongoRepository<T>>, body: Json<T>) -> impl
 }
 
 pub async fn get_item<T>(db: Data<MongoRepository<T>>, path: Path<String>) -> impl Responder
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
 {
     let id = path.into_inner();
     if id.is_empty() || id.len() != 24 {
@@ -59,8 +62,8 @@ pub async fn get_item<T>(db: Data<MongoRepository<T>>, path: Path<String>) -> im
 }
 
 pub async fn drop_items<T>(db: Data<MongoRepository<T>>) -> impl Responder
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
 {
     let result = db.drop_db().await;
     match result {
@@ -70,8 +73,8 @@ pub async fn drop_items<T>(db: Data<MongoRepository<T>>) -> impl Responder
 }
 
 pub async fn delete_item<T>(db: Data<MongoRepository<T>>, path: Path<String>) -> impl Responder
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
 {
     let id = path.into_inner();
     if id.is_empty() || id.len() != 24 {
@@ -91,9 +94,13 @@ pub async fn delete_item<T>(db: Data<MongoRepository<T>>, path: Path<String>) ->
     }
 }
 
-pub async fn update_item<T>(db: Data<MongoRepository<T>>, path: Path<String>, body: Json<T>) -> impl Responder
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
+pub async fn update_item<T>(
+    db: Data<MongoRepository<T>>,
+    path: Path<String>,
+    body: Json<T>,
+) -> impl Responder
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin + 'static + Validate,
 {
     let id = path.into_inner();
     if id.is_empty() || id.len() != 24 {

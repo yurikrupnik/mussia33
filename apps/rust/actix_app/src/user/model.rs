@@ -1,9 +1,9 @@
+use mongodb::bson::oid::ObjectId;
+use rust_generic_api::serialize_object_id;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
-use utoipa::{ToSchema, IntoParams};
+use utoipa::{IntoParams, ToSchema};
 use validator::Validate;
-use rust_generic_api::serialize_object_id;
-use mongodb::bson::oid::ObjectId;
 
 /// Request to get existing `User` item.
 #[derive(Clone, ToSchema, Debug, PartialEq, Eq, Deserialize, Serialize, Validate, TS)]
@@ -11,10 +11,7 @@ use mongodb::bson::oid::ObjectId;
 #[serde(deny_unknown_fields)]
 #[ts(export)]
 pub struct User {
-    #[serde(
-    rename(deserialize = "_id"),
-    serialize_with = "serialize_object_id",
-    )]
+    #[serde(rename(deserialize = "_id"), serialize_with = "serialize_object_id")]
     #[ts(type = "string")]
     pub id: ObjectId,
     #[schema(default = "Jon")]
@@ -38,7 +35,6 @@ pub struct User {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub role: Option<String>,
 }
-
 
 // #[derive(Clone, ToSchema, Debug, PartialEq, Eq, Deserialize, Serialize, Validate, TS)]
 #[derive(Deserialize, Serialize, Debug, TS, IntoParams)]

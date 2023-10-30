@@ -8,7 +8,8 @@ use kube::{
         wait::{await_condition, conditions},
         watcher, WatchStreamExt,
     },
-    Client, CustomResource,
+    Client,
+    CustomResource,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -30,14 +31,13 @@ pub struct FooSpec {
     replicas: i32,
 }
 
-
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
 enum CloudProviders {
     GCP,
     AWS,
     AlI,
     AZURE,
-    ORACLE
+    ORACLE,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
@@ -55,7 +55,7 @@ pub struct ProjectSpec {
     name: String,
     cloud_provider: Vec<CloudProviders>,
     manager_cluster: bool,
-    user: Users
+    user: Users,
 }
 
 #[tokio::main]
@@ -69,14 +69,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         &PatchParams::apply("my_manager"),
         &Patch::Apply(Foo::crd()),
     )
-        .await?;
+    .await?;
 
     crds.patch(
         "projects.clux.dev",
         &PatchParams::apply("my_manager"),
         &Patch::Apply(Project::crd()),
     )
-        .await?;
+    .await?;
     // Wait for the CRD to be ready
     tokio::time::timeout(
         std::time::Duration::from_secs(10),
@@ -86,7 +86,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             conditions::is_crd_established(),
         ),
     )
-        .await?.expect("TODO: panic message");
+    .await?
+    .expect("TODO: panic message");
 
     // Wait for the CRD to be ready
     tokio::time::timeout(
@@ -97,7 +98,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             conditions::is_crd_established(),
         ),
     )
-        .await?.expect("TODO: panic message");
+    .await?
+    .expect("TODO: panic message");
     // crds.patch("projects.clux.dev",
     //            &PatchParams::apply("my_manager"),
     //            &Patch::Apply(Project::crd())

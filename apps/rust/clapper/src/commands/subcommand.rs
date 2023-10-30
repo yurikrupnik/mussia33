@@ -1,12 +1,11 @@
 use std::any::Any;
-use std::error::Error;
+// use std::error::Error;
 use std::fmt::Debug;
 
-use clap::Parser;
 use crate::commands::{ClusterAction, ClusterSubcommand};
-use crate::commands::{UserAction, UsersSubcommand};
 use crate::commands::{SystemAction, SystemSubcommand};
-
+use crate::commands::{UserAction, UsersSubcommand};
+use clap::Parser;
 
 /// Simple program to manage personal cli application
 #[derive(Parser, Debug)]
@@ -64,14 +63,7 @@ fn handle_read() {
     run_command_with_spawn("kubectx");
 }
 
-fn handle_delete<T>(deleteCluster: T) {
-    println!("calling my script1!!");
-    // run_command("kubectx".to_string());
-}
-
-// use std::error::Error;
-
-use std::process::{Child, Command, ExitStatus, Output};
+use std::process::{Child, Command};
 pub fn run_command_with_spawn(command: &str) -> Child {
     let child = Command::new("sh")
         .arg("-c")
@@ -83,13 +75,13 @@ pub fn run_command_with_spawn(command: &str) -> Child {
 }
 
 // Modify run_command to return a Result<ExitStatus, Box<dyn Error>> instead of Child
-fn run_command_with_statuses_blocking(command: &str) -> Result<Child, Box<dyn Error>> {
-    let status = Command::new(command)
-        // .arg("-c")
-        // .arg(command)
-        .spawn()?; // This will block until the command completes
-    Ok(status)
-}
+// fn run_command_with_statuses_blocking(command: &str) -> Result<Child, Box<dyn Error>> {
+//     let status = Command::new(command)
+//         // .arg("-c")
+//         // .arg(command)
+//         .spawn()?; // This will block until the command completes
+//     Ok(status)
+// }
 
 // #[derive(Debug, Deserialize, Serialize)]
 // struct HelmSearchResult {
@@ -102,10 +94,10 @@ fn run_command_with_statuses_blocking(command: &str) -> Result<Child, Box<dyn Er
 //     // Add other fields as needed.
 // }
 
-use std::process::{Stdio};
-use std::io::{BufRead, BufReader};
-
-use serde_json::Value;
+// use std::process::{Stdio};
+// use std::io::{BufRead, BufReader};
+//
+// use serde_json::Value;
 // async fn run_multiple_commands(command: &str) {
 //     // let child = run_command_with_spawn("helm search repo external-secrets --output json");
 //     // let child = Command::new("sh")
@@ -192,7 +184,7 @@ pub fn parse_subcommand() {
             }
             // ClusterAction::Delete(handle_read(deleteCluster)),
             ClusterAction::Read => handle_read(),
-        }
+        },
         Subcommand::Systems(cmd) => match cmd.action {
             SystemAction::Create(cmd) => {
                 // cmd:
@@ -222,7 +214,7 @@ pub fn parse_subcommand() {
                 // ClusterSubcommand::default().action
                 // Subcommand::Cluster(ClusterSubcommand);
             }
-        }
+        },
         Subcommand::Users(cmd) => match cmd.action {
             UserAction::Create(_) => {}
             UserAction::Update(_) => {}

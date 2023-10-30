@@ -1,7 +1,10 @@
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 // use futures::{StreamExt, TryStreamExt};
-use kube::{Client, api::{Api, ResourceExt, ListParams}};
 use k8s_openapi::api::core::v1::Pod;
+use kube::{
+    api::{Api, ListParams, ResourceExt},
+    Client,
+};
 
 #[get("/")]
 async fn hello() -> impl Responder {

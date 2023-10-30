@@ -1,7 +1,4 @@
-use axum::{
-    routing::get,
-    Router,
-};
+use axum::{routing::get, Router};
 use rust_servers_shared::get_port;
 
 #[tokio::main]

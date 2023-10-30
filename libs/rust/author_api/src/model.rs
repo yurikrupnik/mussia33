@@ -1,22 +1,18 @@
+use mongodb::bson::oid::ObjectId;
+use rust_generic_api::serialize_object_id;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use utoipa::ToSchema;
 use validator::Validate;
-use rust_generic_api::serialize_object_id;
-use mongodb::bson::oid::ObjectId;
 // use rust_generic_api::Id;
 
 /// Request to update existing `Author` item.
-#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize, Validate)]
-#[derive(ToSchema, TS)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize, Validate, ToSchema, TS)]
 #[serde(deny_unknown_fields)]
 #[serde(rename_all = "snake_case")]
 #[ts(export)]
 pub struct Author {
-    #[serde(
-    rename(deserialize = "_id"),
-    serialize_with = "serialize_object_id",
-    )]
+    #[serde(rename(deserialize = "_id"), serialize_with = "serialize_object_id")]
     #[ts(type = "string")]
     pub id: ObjectId,
     #[schema(default = "Herman")]

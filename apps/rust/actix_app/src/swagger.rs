@@ -13,8 +13,8 @@ use utoipa::{
 use crate::product;
 use crate::todo;
 use crate::user;
-use rust_books_api::book;
 use rust_author_api::author;
+use rust_books_api::book;
 
 const API_KEY_NAME: &str = "todo_apikey";
 const API_KEY: &str = "utoipa-rocks";
@@ -91,13 +91,13 @@ impl Modify for SecurityAddon {
 pub struct RequireApiKey;
 
 impl<S> Transform<S, ServiceRequest> for RequireApiKey
-    where
-        S: Service<
-            ServiceRequest,
-            Response = ServiceResponse<actix_web::body::BoxBody>,
-            Error = actix_web::Error,
-        >,
-        S::Future: 'static,
+where
+    S: Service<
+        ServiceRequest,
+        Response = ServiceResponse<actix_web::body::BoxBody>,
+        Error = actix_web::Error,
+    >,
+    S::Future: 'static,
 {
     type Response = ServiceResponse<actix_web::body::BoxBody>;
     type Error = actix_web::Error;
@@ -117,13 +117,13 @@ impl<S> Transform<S, ServiceRequest> for RequireApiKey
 pub struct LogApiKey;
 
 impl<S> Transform<S, ServiceRequest> for LogApiKey
-    where
-        S: Service<
-            ServiceRequest,
-            Response = ServiceResponse<actix_web::body::BoxBody>,
-            Error = actix_web::Error,
-        >,
-        S::Future: 'static,
+where
+    S: Service<
+        ServiceRequest,
+        Response = ServiceResponse<actix_web::body::BoxBody>,
+        Error = actix_web::Error,
+    >,
+    S::Future: 'static,
 {
     type Response = ServiceResponse<actix_web::body::BoxBody>;
     type Error = actix_web::Error;
@@ -145,13 +145,13 @@ pub struct ApiKeyMiddleware<S> {
 }
 
 impl<S> Service<ServiceRequest> for ApiKeyMiddleware<S>
-    where
-        S: Service<
-            ServiceRequest,
-            Response = ServiceResponse<actix_web::body::BoxBody>,
-            Error = actix_web::Error,
-        >,
-        S::Future: 'static,
+where
+    S: Service<
+        ServiceRequest,
+        Response = ServiceResponse<actix_web::body::BoxBody>,
+        Error = actix_web::Error,
+    >,
+    S::Future: 'static,
 {
     type Response = ServiceResponse<actix_web::body::BoxBody>;
     type Error = actix_web::Error;

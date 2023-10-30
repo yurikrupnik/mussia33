@@ -1,0 +1,20 @@
+[package]
+name = "db-resource"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[[test]]
+name = "tests"
+path = "tests/progress.rs"
+
+[dev-dependencies]
+trybuild = { workspace = true }
+rust_proc_macros = { workspace = true }
+
+[dependencies]
+syn =  { workspace = true }
+quote =  { workspace = true }
+pluralizer =  { workspace = true }

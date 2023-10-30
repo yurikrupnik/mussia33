@@ -1,27 +1,23 @@
 use futures::TryStreamExt;
 use mongodb::{
-    options::{
-        FindOptions, ReturnDocument, FindOneAndUpdateOptions
-    },
     bson::{
-        Document,
         doc,
         oid::{Error, ObjectId},
-        to_document,
+        to_document, Document,
     },
+    options::{FindOneAndUpdateOptions, FindOptions, ReturnDocument},
     results::DeleteResult,
     Client, Collection,
 };
 use serde::{de::DeserializeOwned, Serialize};
-
 
 pub struct MongoRepository<T> {
     col: Collection<T>,
 }
 
 impl<T> MongoRepository<T>
-    where
-        T: Serialize + DeserializeOwned + Sync + Send + Unpin,
+where
+    T: Serialize + DeserializeOwned + Sync + Send + Unpin,
 {
     pub async fn new(db_name: &str, col_name: &str) -> Self {
         let uri = std::env::var("MONGO_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
@@ -37,7 +33,11 @@ impl<T> MongoRepository<T>
             .expect("Error creating item");
         let obj_id = item.inserted_id.as_object_id().unwrap();
         let filter = doc! {"_id": obj_id};
-        let result = self.col.find_one(filter, None).await.expect("Error finding item");
+        let result = self
+            .col
+            .find_one(filter, None)
+            .await
+            .expect("Error finding item");
         Ok(result)
     }
     pub async fn delete(&self, id: &str) -> Result<DeleteResult, Error> {

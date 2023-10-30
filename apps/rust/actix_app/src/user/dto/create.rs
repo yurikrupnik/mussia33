@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
-use utoipa::{ToSchema, IntoParams, IntoResponses, ToResponse, PartialSchema };
+use utoipa::{IntoParams, IntoResponses, PartialSchema, ToResponse, ToSchema};
 use validator::Validate;
 
 /// Request to create existing `User` item.
