@@ -42,7 +42,7 @@ rust_servers_shared = { path = 'libs/rust/servers_shared' }
 rust_generic_api = { path = 'libs/rust/generic_api' }
 schemars = '0.8.15'
 serde = { version = '1.0.189', features = ['derive'] }
-serde_json = { version = '1.0.107', features = ['arbitrary_precision'] }
+serde_json = { version = '1.0.108', features = ['arbitrary_precision'] }
 serde_derive = '1.0.189'
 thiserror = '1.0.50'
 tokio = '1.33.0'

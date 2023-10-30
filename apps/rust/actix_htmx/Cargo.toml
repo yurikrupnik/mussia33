@@ -8,7 +8,7 @@ edition = "2021"
 actix-web = "4"
 serde = { version = "1.0", features = ["derive"] }
 actix-rt = "2.9.0"
-serde_json = { version = "1.0.106", features = ["arbitrary_precision"] }
+serde_json = { version = "1.0.108", features = ["arbitrary_precision"] }
 #env_logger = "0.10.0"
 #log = "0.4"
 #futures = "0.3"
