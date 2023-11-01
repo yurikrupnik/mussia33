@@ -8,7 +8,7 @@ anyhow = "1.0.75"
 backoff = "0.4.0"
 clap = { workspace = true }
 futures = "0.3.28"
-kube = { version = "0.86", features = ["runtime", "derive"] }
+kube = { version = "0.87", features = ["runtime", "derive"] }
 k8s-openapi = { version = "0.20", features = ["latest"] }
 log = { workspace = true }
 schemars = { workspace = true }
