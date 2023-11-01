@@ -31,7 +31,7 @@ clap = { version = '4.4.7', features = ['derive'] }
 env_logger = '0.10.0'
 futures = '0.3.28'
 log = '0.4.20'
-mongodb = '2.7.0'
+mongodb = '2.7.1'
 plurals = '0.4.0'
 sqlx = { version = '0.7.2', default-features = false, features = ['postgres', 'runtime-tokio-rustls', 'macros'] }
 rust_proc_macros = { path = 'libs/rust/proc_macros' }
