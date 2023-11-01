@@ -9,7 +9,7 @@
   "devDependencies": {
     "@monodon/rust": "^1.1.2",
     "@napi-rs/cli": "^2.16.4",
-    "@nestjs/schematics": "10.0.2",
+    "@nestjs/schematics": "10.0.3",
     "@nestjs/testing": "10.2.7",
     "@nx-extend/pulumi": "^3.0.0",
     "@nx-go/nx-go": "^2.7.0",
