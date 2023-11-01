@@ -45,7 +45,7 @@ serde = { version = '1.0.189', features = ['derive'] }
 serde_json = { version = '1.0.107', features = ['arbitrary_precision'] }
 serde_derive = '1.0.189'
 thiserror = '1.0.50'
-tokio = '1.33.0'
+tokio = { version = "1.33.0", features = ["macros", "signal", "rt-multi-thread"] }
 ts-rs = { version = '7.0.0', features = ['serde-compat'] }
 utoipa = { version = '4.0.0', features = ['actix_extras'] }
 utoipa-swagger-ui = { version = '4.0.0', features = ['actix-web'] }

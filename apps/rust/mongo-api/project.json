@@ -7,7 +7,7 @@
     "build": {
       "executor": "@nxrs/cargo:build",
       "options": {
-        "release": false
+        "release": true
       },
       "configurations": {
         "production": {
