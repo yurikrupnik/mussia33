@@ -18,9 +18,14 @@ use books::book_configure;
 use store::Store;
 use todos::todo_configure;
 
+// use tracing_subscriber;
+// use tracing::info;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     set_logger(None);
+    // std::env::set_var("RUST_LOG", "debug");
+    // tracing_subscriber::fmt().json().init();
+    // tracing_subscriber::fmt::init();
     let pool = create_pool(None, None)
         .await
         .expect("Failed to create pool");

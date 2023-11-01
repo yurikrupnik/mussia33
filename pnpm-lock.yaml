@@ -185,8 +185,8 @@ devDependencies:
     specifier: ^15.7.0
     version: 15.7.0(@nrwl/cypress@15.9.7)(@nrwl/linter@15.9.7)(@nrwl/workspace@15.9.7)(nx@16.10.0)(rxjs@7.8.1)(solid-js@1.8.4)(typescript@5.2.2)(vite@4.4.11)
   '@nxrs/cargo':
-    specifier: ^0.3.3
-    version: 0.3.4(@nrwl/devkit@17.0.2)
+    specifier: ^0.4.0
+    version: 0.4.0(@nrwl/devkit@17.0.2)
   '@solidjs/testing-library':
     specifier: ^0.8.4
     version: 0.8.4(@solidjs/router@0.8.3)(solid-js@1.8.4)
@@ -221,8 +221,8 @@ devDependencies:
     specifier: 8.10.0
     version: 8.10.0(eslint@8.49.0)
   eslint-plugin-cypress:
-    specifier: 2.14.0
-    version: 2.14.0(eslint@8.49.0)
+    specifier: 2.15.1
+    version: 2.15.1(eslint@8.49.0)
   eslint-plugin-solid:
     specifier: 0.13.0
     version: 0.13.0(eslint@8.49.0)(typescript@5.2.2)
@@ -4477,13 +4477,14 @@ packages:
       '@nrwl/devkit': 15.7.0(nx@16.10.0)(typescript@5.2.2)
     dev: true
 
-  /@nxrs/cargo@0.3.4(@nrwl/devkit@17.0.2):
-    resolution: {integrity: sha512-ag+tNlButAKkTBhQCdbLCdZ/aKg+FH7IMUYXdedxDuPxabuNGjcnxRAS0/PXuTDueve207E1okTfbfJ2uDI4ng==}
+  /@nxrs/cargo@0.4.0(@nrwl/devkit@17.0.2):
+    resolution: {integrity: sha512-NC1fj+Fm4kr1dvbWm2xuyrsh6UEGPHBJZ23AZ4TlnHYb54Qfud/WxVH4h/nmYCWNS80RLuGqsBWSTDjkXgslzQ==}
     peerDependencies:
       '@nrwl/devkit': '>= 12.7.0'
     dependencies:
       '@nrwl/devkit': 17.0.2(nx@16.10.0)
       chalk: 4.1.2
+      lodash: 4.17.21
     dev: true
 
   /@octokit/auth-token@2.5.0:
@@ -8000,8 +8001,8 @@ packages:
       eslint: 8.49.0
     dev: true
 
-  /eslint-plugin-cypress@2.14.0(eslint@8.49.0):
-    resolution: {integrity: sha512-eW6tv7iIg7xujleAJX4Ujm649Bf5jweqa4ObPEIuueYRyLZt7qXGWhCY/n4bfeFW/j6nQZwbIBHKZt6EKcL/cg==}
+  /eslint-plugin-cypress@2.15.1(eslint@8.49.0):
+    resolution: {integrity: sha512-eLHLWP5Q+I4j2AWepYq0PgFEei9/s5LvjuSqWrxurkg1YZ8ltxdvMNmdSf0drnsNo57CTgYY/NIHHLRSWejR7w==}
     peerDependencies:
       eslint: '>= 3.2.1'
     dependencies:
