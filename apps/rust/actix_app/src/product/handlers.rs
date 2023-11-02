@@ -89,7 +89,7 @@ pub async fn get_product(client: web::Data<Client>, path: web::Path<String>) -> 
 ///
 /// One could call the api endpoint with following curl.
 /// ```text
-/// curl localhost:8080/products
+/// curl localhost:8080/api/products
 /// ```
 #[utoipa::path(
 path = "/api/product",

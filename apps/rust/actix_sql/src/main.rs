@@ -8,15 +8,19 @@ use rust_servers_shared::{
     get_port,
     postgres::create_pool,
 };
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
+mod swagger;
 
 mod books;
 mod generic;
 mod routes;
 mod store;
 mod todos;
-use books::book_configure;
 use store::Store;
+use books::book_configure;
 use todos::todo_configure;
+use swagger::ApiDoc;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -35,6 +39,9 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(app_state.clone()))
             .configure(todo_configure)
             .configure(book_configure)
+            .service(
+                SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-docs/openapi.json", ApiDoc::openapi()),
+            )
             .default_service(to(HttpResponse::NotFound))
     })
     .bind(("0.0.0.0", port))?

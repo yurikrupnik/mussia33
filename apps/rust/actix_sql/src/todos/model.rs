@@ -1,8 +1,9 @@
 use rust_proc_macros::{DbResource, Reflective};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use utoipa::ToSchema;
 
-#[derive(FromRow, Deserialize, Serialize, Debug)]
+#[derive(ToSchema, FromRow, Deserialize, Serialize, Debug)]
 #[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 #[derive(DbResource)]
@@ -12,13 +13,13 @@ pub struct Todo {
     pub completed: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug, Reflective)]
+#[derive(ToSchema, Deserialize, Serialize, Debug, Reflective)]
 pub struct CreateTodo {
     pub title: String,
     pub completed: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(ToSchema, Deserialize, Serialize, Debug)]
 pub struct UpdateTodo {
     // pub title: String,
     pub completed: bool,
