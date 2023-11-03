@@ -3,6 +3,7 @@ mod envs;
 mod handlers;
 mod logger;
 mod sql;
+mod swagger;
 
 pub use envs::*;
 // pub use handlers::*;
@@ -16,3 +17,5 @@ pub mod actix {
     pub use super::handlers::*;
     pub use super::logger::*;
 }
+
+pub use swagger::*;

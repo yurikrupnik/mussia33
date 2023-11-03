@@ -3049,10 +3049,13 @@ name = "rust_actix_sql"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "futures",
  "log",
+ "mongo",
  "rust_proc_macros",
  "rust_servers_shared",
  "serde",
+ "serde_json",
  "sqlx",
  "utoipa",
  "utoipa-swagger-ui",
@@ -3186,7 +3189,11 @@ dependencies = [
  "actix-cors",
  "actix-web",
  "env_logger",
+ "futures",
+ "log",
+ "mongo",
  "sqlx",
+ "utoipa",
 ]
 
 [[package]]

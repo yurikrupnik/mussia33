@@ -1,5 +1,5 @@
 use crate::mongo::ErrorResponse;
-use crate::swagger::{LogApiKey, RequireApiKey};
+use rust_servers_shared::{LogApiKey, RequireApiKey};
 use actix_web::{
     delete, get, post, put,
     web::{Data, Json, Path, Query, ServiceConfig},
