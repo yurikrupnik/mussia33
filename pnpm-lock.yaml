@@ -54,8 +54,8 @@ dependencies:
     specifier: ^5.8.0
     version: 5.21.0
   '@pulumi/kubernetes':
-    specifier: ^3.25.0
-    version: 3.30.2
+    specifier: ^4.0.0
+    version: 4.5.3
   '@pulumi/pulumi':
     specifier: ^3.59.1
     version: 3.91.1
@@ -4849,8 +4849,8 @@ packages:
       - supports-color
     dev: false
 
-  /@pulumi/kubernetes@3.30.2:
-    resolution: {integrity: sha512-3877pq6eA8HAgULAtPUtihafG8glO8VKUNy6+/4sY9rE9xjnVcIFHE4ymuN+j0e40Wf49pupflhi7taZz1lSMQ==}
+  /@pulumi/kubernetes@4.5.3:
+    resolution: {integrity: sha512-KD/AYI0oi+WLkotcWj3Xg1m4hWlHZkC6u461epVlCLgMxjEQRZuQkM5K0X8mCtTNzeW2dqwr7wcW00rxTnK5JA==}
     requiresBuild: true
     dependencies:
       '@pulumi/pulumi': 3.91.1
