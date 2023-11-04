@@ -134,8 +134,8 @@ devDependencies:
     specifier: 10.2.8
     version: 10.2.8(@nestjs/common@10.2.8)(@nestjs/core@10.2.8)(@nestjs/microservices@10.2.7)(@nestjs/platform-express@10.2.8)
   '@nx-extend/pulumi':
-    specifier: ^3.0.0
-    version: 3.4.2(nx@16.10.0)
+    specifier: ^4.0.0
+    version: 4.0.0(nx@16.10.0)
   '@nx-go/nx-go':
     specifier: ^2.7.0
     version: 2.8.0
@@ -3082,14 +3082,6 @@ packages:
       - nx
     dev: true
 
-  /@nrwl/devkit@16.8.1(nx@16.10.0):
-    resolution: {integrity: sha512-Y7yYDh62Hi4q99Q4+ipIQ3K9iLuAld3WcwjLv6vtl6Livu+TU3eqbraBEno7DQL8JuIuwgBT4lX7Bp3w3N9RDg==}
-    dependencies:
-      '@nx/devkit': 16.8.1(nx@16.10.0)
-    transitivePeerDependencies:
-      - nx
-    dev: true
-
   /@nrwl/devkit@17.0.2(nx@16.10.0):
     resolution: {integrity: sha512-zgqTFYmvs80D3T/TwmR/EBdV1OU2c96YYHngAe3DX8kXhjlV3dq+VPZVBROM0AzYLGaSckW3mHBhgL+JrDp5Pg==}
     dependencies:
@@ -3558,25 +3550,23 @@ packages:
     transitivePeerDependencies:
       - encoding
 
-  /@nx-extend/core@4.4.1(nx@16.10.0)(tslib@2.6.2):
-    resolution: {integrity: sha512-uGGTMVEbobdkItMDR18tnS8bPzjhHGDi6OF5XW7CIWQ6+sw2bd9yU+ByPxYbesAP49slcHtLvlF/d2TfgruU7g==}
-    peerDependencies:
-      tslib: 1.14.1
+  /@nx-extend/core@5.0.0(nx@16.10.0):
+    resolution: {integrity: sha512-bwToBmya8/OwrxWX7rfzyyHsdqtK6Kam1nx+yAMTyJOAZHD8v3hQEbMH3iFvw9pt5QrYz9SQv2g6+YgpS0QHtA==}
     dependencies:
-      '@nx/devkit': 16.8.1(nx@16.10.0)
+      '@nx/devkit': 17.0.2(nx@16.10.0)
       shelljs: 0.8.5
-      tslib: 2.6.2
+      tslib: 2.5.3
     transitivePeerDependencies:
       - nx
     dev: true
 
-  /@nx-extend/pulumi@3.4.2(nx@16.10.0):
-    resolution: {integrity: sha512-9+gwtmexIiN4+/6LK8SOuMBk5pPdJkMuTiYbyiT/MZaV6E4FaN2/65vHlEp8hQUQltIbXRTKzTqBp/qKyVYWkA==}
+  /@nx-extend/pulumi@4.0.0(nx@16.10.0):
+    resolution: {integrity: sha512-IBJLo4RUztJwrhCGawye7itEImqqHR6VinKJMazcblVLyOTM7OViCXPFIreEjoS9aZAaImcMVvHCV1lWf7rBow==}
     dependencies:
-      '@nx-extend/core': 4.4.1(nx@16.10.0)(tslib@2.6.2)
-      '@nx/devkit': 16.8.1(nx@16.10.0)
+      '@nx-extend/core': 5.0.0(nx@16.10.0)
+      '@nx/devkit': 17.0.2(nx@16.10.0)
       shelljs: 0.8.5
-      tslib: 2.6.2
+      tslib: 2.5.3
     transitivePeerDependencies:
       - nx
     dev: true
@@ -3745,21 +3735,6 @@ packages:
       ejs: 3.1.9
       ignore: 5.2.4
       nx: 16.4.1
-      semver: 7.5.3
-      tmp: 0.2.1
-      tslib: 2.6.2
-    dev: true
-
-  /@nx/devkit@16.8.1(nx@16.10.0):
-    resolution: {integrity: sha512-I+Cg+lXk0wRz6KC9FZbWFuJWQTXAt5O3bNl9ksISmzqmEyuy72Cv+/MBHvF7o54Sq80DNw+RKWB1re5HFOsqCA==}
-    peerDependencies:
-      nx: '>= 15 <= 17'
-    dependencies:
-      '@nrwl/devkit': 16.8.1(nx@16.10.0)
-      ejs: 3.1.9
-      enquirer: 2.3.6
-      ignore: 5.2.4
-      nx: 16.10.0
       semver: 7.5.3
       tmp: 0.2.1
       tslib: 2.6.2
@@ -6535,7 +6510,7 @@ packages:
   /builtins@5.0.1:
     resolution: {integrity: sha512-qwVpFEHNfhYJIzNRBvd2C1kyo6jz3ZSMPyyuR47OPdiKWlbYnZNyDWuyR175qDnAJLiCo5fBBqPb3RiXgWlkOQ==}
     dependencies:
-      semver: 7.5.3
+      semver: 7.5.4
     dev: true
 
   /busboy@1.6.0:
@@ -11080,7 +11055,7 @@ packages:
     dependencies:
       hosted-git-info: 7.0.1
       proc-log: 3.0.0
-      semver: 7.5.3
+      semver: 7.5.4
       validate-npm-package-name: 5.0.0
     dev: true
 
@@ -13749,6 +13724,10 @@ packages:
 
   /tslib@1.14.1:
     resolution: {integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==}
+    dev: true
+
+  /tslib@2.5.3:
+    resolution: {integrity: sha512-mSxlJJwl3BMEQCUNnxXBU9jP4JBktcEGhURcPR6VQVlnP0FdDEsIaz0C35dXNGLyRfrATNofF0F5p2KPxQgB+w==}
     dev: true
 
   /tslib@2.6.2:
