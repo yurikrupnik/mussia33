@@ -46,7 +46,7 @@
     "jest-environment-jsdom": "^29.4.1",
     "jest-environment-node": "^29.4.1",
     "nx": "16.10.0",
-    "nx-cloud": "16.4.0",
+    "nx-cloud": "16.5.2",
     "postcss": "^8.4.21",
     "prettier": "^3.0.0",
     "solid-jest": "^0.2.0",
