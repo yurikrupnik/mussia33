@@ -1,7 +1,7 @@
 version: 2.1
 orbs:
   nx: nrwl/nx@1.6.2
-  go: circleci/go@1.8.0
+  go: circleci/go@1.9.0
   rust: circleci/rust@1.6.0
 jobs:
   main:
