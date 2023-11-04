@@ -1,6 +1,7 @@
 use utoipa::OpenApi;
 use crate::todos;
 use crate::books;
+use crate::users;
 use rust_servers_shared::SecurityAddon;
 
 #[derive(OpenApi)]
@@ -18,14 +19,22 @@ books::delete_book,
 books::create_book,
 books::drop_books,
 books::update_book,
+users::get_user,
+users::get_users,
+users::delete_user,
+users::create_user,
+users::drop_users,
+users::update_user,
 ),
 components(
 schemas(todos::Todo, todos::UpdateTodo, todos::CreateTodo),
 schemas(books::Book, books::UpdateBook, books::CreateBook),
+schemas(users::User, users::NewUser, users::UpdateProfile),
 ),
 tags(
 (name = "Todos", description = "Todo management endpoints."),
 (name = "Books", description = "Books management endpoints."),
+(name = "Users", description = "Users management endpoints."),
 ),
 modifiers(&SecurityAddon)
 )]
