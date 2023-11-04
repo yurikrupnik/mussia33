@@ -40,7 +40,7 @@ jobs:
           cache-directories: "dist/target"
           cache-all-crates: true
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
       - uses: pnpm/action-setup@v2
@@ -88,7 +88,7 @@ jobs:
           cache-directories: "dist/target"
           cache-all-crates: true
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
       - uses: pnpm/action-setup@v2
@@ -135,7 +135,7 @@ jobs:
           cache-directories: "dist/target"
           cache-all-crates: true
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
       - uses: pnpm/action-setup@v2
@@ -183,7 +183,7 @@ jobs:
           cache-all-crates: true
       - run: go version
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
       - uses: pnpm/action-setup@v2
