@@ -4,8 +4,8 @@ import instance from "../../request";
 import { User } from "@mussia33/node/nest/users-api";
 import { createResource, For } from "solid-js";
 
-function getUsers() {
-  return instance.get<User[]>("/api/users").then((r: any) => r.data);
+async function getUsers() {
+  return instance.get<User[]>("/api/user").then((r) => r.data);
 }
 
 const toggleMachine = createMachine({

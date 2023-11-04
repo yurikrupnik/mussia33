@@ -6,6 +6,7 @@ const Users = lazy(() => import("./routes/users"));
 const Home = lazy(() => import("./routes/home"));
 const SecretManager = lazy(() => import("./routes/secretManager"));
 const Shit = lazy(() => import("./routes/shit"));
+const Login = lazy(() => import("./routes/login"));
 
 const NotFound = () => {
   return <div>error</div>;
@@ -26,6 +27,7 @@ function App() {
       </nav>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/user" element={<Users />} />
         <Route path="/about" element={<About />} />
         <Route path="/secret-manager" element={<SecretManager />} />

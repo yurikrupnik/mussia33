@@ -23,17 +23,26 @@ members = [
 ]
 resolver = '2'
 
+[workspace.metadata.scripts]
+shit = "docker compose up"
+sql = "psql -h localhost -p 5432 -d mydatabase -U myuser -W mypassword"
+
 [workspace.dependencies]
+actix-rt = "2.9.0"
 actix-web = '4.4.0'
 actix-cors = '0.6.4'
 async-trait = { version = '0.1.74' }
+anyhow = "1.0.75"
 clap = { version = '4.4.7', features = ['derive'] }
 env_logger = '0.10.0'
-futures = '0.3.28'
+futures = '0.3.29'
+futures-util = "0.3.29"
 log = '0.4.20'
-mongodb = '2.7.0'
+mongodb = '2.7.1'
 plurals = '0.4.0'
-sqlx = { version = '0.7.2', default-features = false, features = ['postgres', 'runtime-tokio-rustls', 'macros'] }
+kube = { version = "0.87.1", features = ["runtime", "derive"] }
+k8s-openapi = { version = "0.20.0", features = ["latest"] }
+sqlx = { version = '0.7.2', default-features = false, features = ["postgres", "runtime-tokio-rustls", "macros", "uuid", "chrono"] }
 rust_proc_macros = { path = 'libs/rust/proc_macros' }
 rust_books_api = { path = 'libs/rust/books_api' }
 rust_author_api = { path = 'libs/rust/author_api' }
@@ -41,19 +50,22 @@ rust_napi_shared = { path = 'libs/rust/napi_shared' }
 rust_servers_shared = { path = 'libs/rust/servers_shared' }
 rust_generic_api = { path = 'libs/rust/generic_api' }
 schemars = '0.8.15'
-serde = { version = '1.0.189', features = ['derive'] }
-serde_json = { version = '1.0.107', features = ['arbitrary_precision'] }
-serde_derive = '1.0.189'
+serde = { version = '1.0.190', features = ['derive'] }
+serde_json = { version = '1.0.108', features = ['arbitrary_precision'] }
+serde_derive = '1.0.190'
+serde_yaml = "0.9.27"
 thiserror = '1.0.50'
 tokio = { version = "1.33.0", features = ["macros", "signal", "rt-multi-thread"] }
 ts-rs = { version = '7.0.0', features = ['serde-compat'] }
 utoipa = { version = '4.0.0', features = ['actix_extras'] }
 utoipa-swagger-ui = { version = '4.0.0', features = ['actix-web'] }
 validator = { version = '0.16.1', features = ['derive'] }
+tracing = "0.1.40"
+tracing-subscriber = "0.3.17"
 # Proc macros
-syn = "2.0"
-quote = "1.0"
-pluralizer = "0.4"
+syn = "2.0.38"
+quote = "1.0.33"
+pluralizer = "0.4.0"
 trybuild = { version = "1.0.85", features = ["diff"] }
 
 [profile.release]

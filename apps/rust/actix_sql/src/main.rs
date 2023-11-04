@@ -10,6 +10,7 @@ use rust_servers_shared::{
 };
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
+mod users;
 mod swagger;
 
 mod books;
@@ -20,7 +21,11 @@ mod todos;
 use store::Store;
 use books::book_configure;
 use todos::todo_configure;
+use users::user_configure;
 use swagger::ApiDoc;
+
+mod extractors;
+// use extractors::Auth;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -39,6 +44,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(app_state.clone()))
             .configure(todo_configure)
             .configure(book_configure)
+            .configure(user_configure)
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-docs/openapi.json", ApiDoc::openapi()),
             )

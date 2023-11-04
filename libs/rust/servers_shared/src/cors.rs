@@ -8,5 +8,6 @@ pub fn set_cors() -> Cors {
             true
         })
         .allowed_methods(vec!["GET", "POST", "DELETE", "PUT"])
+        // .supports_credentials()
         .max_age(3600)
 }
