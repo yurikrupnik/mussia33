@@ -1,4 +1,4 @@
-import { register, collectDefaultMetrics, Registry } from "prom-client";
+// import { register, collectDefaultMetrics, Registry } from "prom-client";
 import { VersioningType, ValidationPipe, Logger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import helmet from "helmet";
@@ -15,7 +15,7 @@ async function bootstrap() {
   // Register Prometheus metrics
   // const collectDefaultMetrics = collectDefaultMetrics;
   // const register = new Registry();
-  collectDefaultMetrics({});
+  // collectDefaultMetrics({});
   // start custom config here
   const globalPrefix = "api";
   const configService = app.get(ConfigService);

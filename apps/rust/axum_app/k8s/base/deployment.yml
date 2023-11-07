@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: axum-app
+  labels:
+    app: axum-app
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: axum-app
+      labels:
+        app: axum-app
+    spec:
+      serviceAccountName: axum-app
+      restartPolicy: Always
+      containers:
+        - name: axum-app
+          image: yurikrupnik/axum-app:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          env:
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  key: mongo-uri
+                  name: mongo-uri
+  selector:
+    matchLabels:
+      app: axum-app
