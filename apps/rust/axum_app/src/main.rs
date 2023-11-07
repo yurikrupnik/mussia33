@@ -1,9 +1,16 @@
 use axum::{routing::get, Router};
 use rust_servers_shared::get_port;
 
+
+fn handler() {
+
+}
+
 #[tokio::main]
 async fn main() {
-    let app = Router::new().route("/", get(|| async { "Hello, World!" }));
+    let app = Router::new()
+      .route("/", get(|| async { "Hello, World!" }))
+      .route("/f", get(|| async { "g Shit!!" }));
 
     let url = format!("0.0.0.0:{}", get_port());
     println!("Listening on {}", url);

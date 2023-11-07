@@ -22,6 +22,5 @@ docker_build(
   # ],
 )
 
-k8s_yaml(kustomize('k8s/base'))
 
 

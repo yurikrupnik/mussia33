@@ -20,6 +20,7 @@ local_resource('pnpm', cmd='pnpm install', deps=['package.json'], labels=['pnpm'
 k8s_yaml(kustomize('_proto/'))
 
 include('./apps/rust/actix_app/Tiltfile')
+include('./apps/rust/axum_app/Tiltfile')
 include('./apps/rust/mongo-api/Tiltfile')
 include('./apps/rust/clapper/Tiltfile')
 include('./apps/go/fiber-app/Tiltfile')

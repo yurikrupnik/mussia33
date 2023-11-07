@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: axum-app-service
+  annotations:
+    "prometheus.io/scrape": "true"
+  labels:
+    run: axum-app-service
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+  selector:
+    app: axum-app
