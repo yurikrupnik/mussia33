@@ -1,14 +1,16 @@
-use std::future::{Ready, ready};
 use actix_web::{
-    dev::Payload, FromRequest, HttpRequest,
+    dev::Payload,
     // http::{
     //     header::{AUTHORIZATION,
-        // HeaderValue,
+    // HeaderValue,
     // }},
     // error::ErrorUnauthorized,
-    Error
+    Error,
+    FromRequest,
+    HttpRequest,
 };
 use serde::{Deserialize, Serialize};
+use std::future::{ready, Ready};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Auth {

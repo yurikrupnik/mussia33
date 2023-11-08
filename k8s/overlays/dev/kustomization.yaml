@@ -3,6 +3,7 @@ resources:
   - mongodb.yaml
   - redis.yaml
 #  - surrealdb.yaml
+  - ../../../apps/rust/salvo_app/k8s/overlays/dev
   - ../../../apps/rust/axum_app/k8s/overlays/dev
   - ../../../apps/rust/actix_app/k8s/overlays/dev
   - ../../../apps/rust/mongo-api/k8s/overlays/dev

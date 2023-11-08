@@ -21,6 +21,12 @@ fn main() {
     let tag = User::TAG;
     let names = User::field_names();
     let name = User::name();
+    let user = User {
+        name: String::from("Alice"),
+        age: 30,
+    };
+    let values = user.field_values();
+    println!("values {values:?}");
     println!("url {url}");
     println!("coll {coll}");
     println!("tag {tag}");

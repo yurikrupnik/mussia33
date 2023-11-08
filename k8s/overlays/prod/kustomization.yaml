@@ -1,4 +1,5 @@
 resources:
+  - ../../../apps/rust/salvo_app/k8s/overlays/prod
   - ../../../apps/rust/axum_app/k8s/overlays/prod
   - ../../../apps/rust/actix_app/k8s/overlays/prod
   - ../../../apps/rust/mongo-api/k8s/overlays/prod

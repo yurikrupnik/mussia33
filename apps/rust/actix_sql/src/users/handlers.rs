@@ -1,4 +1,4 @@
-use super::model::{NewUser, User, UpdateProfile};
+use super::model::{NewUser, UpdateProfile, User};
 use crate::generic::{handle_create_result, handle_result};
 use crate::Store;
 use actix_web::{
@@ -6,13 +6,10 @@ use actix_web::{
     HttpResponse, Responder,
 };
 use log::error;
-use rust_proc_macros::{
-    DbResource,
-    // Reflective
-};
+use mongo::ErrorResponse;
+use rust_proc_macros::DbResource;
 use sqlx::{query, query_as};
 use validator::Validate;
-use mongo::ErrorResponse;
 // use serde_json::Value;
 use crate::extractors::Auth;
 
@@ -59,10 +56,12 @@ params(
 )]
 pub async fn get_user(id: Path<String>, app_state: Data<Store>) -> impl Responder {
     let item_id = id.into_inner();
-    let query = &format!("SELECT * FROM {} where id = '{}'", User::COLLECTION, item_id);
-    let result = query_as::<_, User>(query)
-        .fetch_one(&app_state.pool)
-        .await;
+    let query = &format!(
+        "SELECT * FROM {} where id = '{}'",
+        User::COLLECTION,
+        item_id
+    );
+    let result = query_as::<_, User>(query).fetch_one(&app_state.pool).await;
 
     handle_result(result)
 }
@@ -95,9 +94,7 @@ security(
 pub async fn delete_user(id: Path<String>, app_state: Data<Store>) -> impl Responder {
     let item_id = id.into_inner();
     let q = &format!("DELETE FROM {} WHERE id = '{}'", User::COLLECTION, item_id);
-    let result = query(q)
-        .execute(&app_state.pool)
-        .await;
+    let result = query(q).execute(&app_state.pool).await;
     match result {
         Ok(result) => {
             if result.rows_affected() > 0 {
@@ -109,7 +106,6 @@ pub async fn delete_user(id: Path<String>, app_state: Data<Store>) -> impl Respo
         Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
     }
 }
-
 
 /// Create new User.
 ///
@@ -154,7 +150,6 @@ pub async fn create_user(body: Json<NewUser>, app_state: Data<Store>) -> impl Re
 
     handle_create_result(result)
 }
-
 
 /// Drop User collection.
 ///

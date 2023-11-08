@@ -1,10 +1,10 @@
-use uuid::Uuid;
 use chrono::NaiveDateTime;
+use rust_proc_macros::{DbResource, Reflective};
 use serde::{Deserialize, Serialize};
-use validator::Validate;
 use sqlx::FromRow;
 use utoipa::ToSchema;
-use rust_proc_macros::{DbResource, Reflective};
+use uuid::Uuid;
+use validator::Validate;
 
 #[derive(ToSchema, DbResource, FromRow, Debug, Deserialize, Serialize, Validate)]
 pub struct User {
@@ -32,7 +32,6 @@ pub struct NewUser {
     #[validate(length(min = 5))]
     pub password: String,
 }
-
 
 #[derive(ToSchema, FromRow, Debug, Deserialize, Serialize, Validate)]
 pub struct UpdateProfile {

@@ -1,11 +1,11 @@
 use crate::mongo::ErrorResponse;
-use utoipa::OpenApi;
-use rust_servers_shared::{SecurityAddon};
 use crate::product;
 use crate::todo;
 use crate::user;
 use rust_author_api::author;
 use rust_books_api::book;
+use rust_servers_shared::SecurityAddon;
+use utoipa::OpenApi;
 
 #[derive(OpenApi)]
 #[openapi(

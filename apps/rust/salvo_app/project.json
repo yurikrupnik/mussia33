@@ -1,8 +1,8 @@
 {
-  "name": "rust_actix_app",
+  "name": "rust_salvo_app",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "sourceRoot": "apps/rust/actix_app/src",
+  "sourceRoot": "apps/rust/salvo_app/src",
   "targets": {
     "build": {
       "executor": "@monodon/rust:build",
@@ -10,7 +10,7 @@
         "{options.target-dir}"
       ],
       "options": {
-        "target-dir": "dist/target/rust_actix_app"
+        "target-dir": "dist/target/rust_salvo_app"
       },
       "configurations": {
         "production": {
@@ -24,7 +24,7 @@
         "{options.target-dir}"
       ],
       "options": {
-        "target-dir": "dist/target/rust_actix_app"
+        "target-dir": "dist/target/rust_salvo_app"
       },
       "configurations": {
         "production": {
@@ -38,7 +38,7 @@
         "{options.target-dir}"
       ],
       "options": {
-        "target-dir": "dist/target/rust_actix_app"
+        "target-dir": "dist/target/rust_salvo_app"
       }
     },
     "run": {
@@ -47,38 +47,11 @@
         "{options.target-dir}"
       ],
       "options": {
-        "target-dir": "dist/target/rust_actix_app"
+        "target-dir": "dist/target/rust_salvo_app"
       },
       "configurations": {
         "production": {
           "release": true
-        }
-      }
-    },
-    "docker": {
-      "executor": "@nx-tools/nx-container:build",
-      "options": {
-        "push": true,
-        "file": "./rust.Dockerfile",
-        "target": "rust",
-        "build-args": [
-          "APP_NAME=rust_actix_app"
-        ],
-        "metadata": {
-          "images": [
-            "yurikrupnik/actix-app",
-            "$REGISTRY/actix-app"
-          ],
-          "tags": [
-            "type=schedule",
-            "type=ref,event=branch",
-            "type=ref,event=tag",
-            "type=ref,event=pr",
-            "type=semver,pattern={{version}}",
-            "type=semver,pattern={{major}}.{{minor}}",
-            "type=semver,pattern={{major}}",
-            "type=sha"
-          ]
         }
       }
     }

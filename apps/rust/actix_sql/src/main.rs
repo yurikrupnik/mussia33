@@ -10,19 +10,19 @@ use rust_servers_shared::{
 };
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
-mod users;
 mod swagger;
+mod users;
 
 mod books;
 mod generic;
 mod routes;
 mod store;
 mod todos;
-use store::Store;
 use books::book_configure;
+use store::Store;
+use swagger::ApiDoc;
 use todos::todo_configure;
 use users::user_configure;
-use swagger::ApiDoc;
 
 mod extractors;
 // use extractors::Auth;
@@ -46,7 +46,8 @@ async fn main() -> std::io::Result<()> {
             .configure(book_configure)
             .configure(user_configure)
             .service(
-                SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-docs/openapi.json", ApiDoc::openapi()),
+                SwaggerUi::new("/swagger-ui/{_:.*}")
+                    .url("/api-docs/openapi.json", ApiDoc::openapi()),
             )
             .default_service(to(HttpResponse::NotFound))
     })

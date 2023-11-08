@@ -1,0 +1,12 @@
+[package]
+name = "rust_salvo_app"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+
+salvo = { version = "0.58.3" }
+tokio = { version = "1.33.0", features = ["macros"] }
+#tracing.workspace = {version = "0.1.40" }
+#tracing-subscriber.workspace = { version = "0.3.17"}
