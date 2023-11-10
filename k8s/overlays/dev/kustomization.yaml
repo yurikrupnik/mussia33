@@ -3,16 +3,38 @@ resources:
   - mongodb.yaml
   - redis.yaml
 #  - surrealdb.yaml
-  - ../../../apps/rust/salvo_app/k8s/overlays/dev
-  - ../../../apps/rust/axum_app/k8s/overlays/dev
-  - ../../../apps/rust/actix_app/k8s/overlays/dev
-  - ../../../apps/rust/mongo-api/k8s/overlays/dev
-  - ../../../apps/rust/clapper/k8s/overlays/dev
-  - ../../../apps/go/fiber-app/k8s/overlays/dev
-  - ../../../apps/node/nest-app/k8s/overlays/dev
-  - ../../../apps/node/node-users-redis/k8s/overlays/dev
-  - ../../../apps/node/node-users-grpc/k8s/overlays/dev
+#  - ../../../apps/rust/salvo_app/k8s/overlays/dev
+#  - ../../../apps/rust/axum_app/k8s/overlays/dev
+#  - ../../../apps/rust/actix_app/k8s/overlays/dev
+#  - ../../../apps/rust/mongo-api/k8s/overlays/dev
+#  - ../../../apps/rust/clapper/k8s/overlays/dev
+#  - ../../../apps/go/fiber-app/k8s/overlays/dev
+#  - ../../../apps/node/nest-app/k8s/overlays/dev
+#  - ../../../apps/node/node-users-redis/k8s/overlays/dev
+#  - ../../../apps/node/node-users-grpc/k8s/overlays/dev
   - ../../../apps/frontend/solid-app/k8s/overlays/dev
 #  - ../../../apps/frontend/astro/k8s/overlays/dev
-#helmCharts:
-#  -
+
+helmCharts:
+  - name: minecraft
+    includeCRDs: false
+    valuesInline:
+      minecraftServer:
+        eula: true
+        difficulty: hard
+        rcon:
+          enabled: true
+    releaseName: moria
+    version: 3.1.3
+    repo: https://itzg.github.io/minecraft-server-charts
+  - name: argo-rollouts
+    includeCRDs: true
+#    valuesInline:
+#      minecraftServer:
+#        eula: true
+#        difficulty: hard
+#        rcon:
+#          enabled: true
+    releaseName: argo-rollouts
+    version: 3.1.3
+    repo: https://itzg.github.io/minecraft-server-charts

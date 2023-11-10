@@ -1,5 +1,7 @@
 resources:
   - core/core.yaml
+  - core/core1.yaml
+  - ../../_proto
 #  - cdk8s-output/app1.k8s.yaml
 #  - cdk8s-output/app2.k8s.yaml
 #  - cdk8s-output/cdk8s-example.k8s.yaml

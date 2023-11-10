@@ -1,4 +1,4 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, post, App, HttpResponse, HttpServer, Responder};
 // use futures::{StreamExt, TryStreamExt};
 // use k8s_openapi::api::core::v1::Pod;
 // use kube::{

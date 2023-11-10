@@ -75,7 +75,7 @@ tasks:
 #      - kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.44.0/release.yaml
 #      - kubectl apply --filename https://github.com/shipwright-io/build/releases/download/v0.11.0/release.yaml
 #      - kubectl apply --filename https://github.com/shipwright-io/build/releases/download/v0.11.0/sample-strategies.yaml
-#      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
+#      - kubectl w ait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
 #      - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
 #      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
 #      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd

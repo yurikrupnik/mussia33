@@ -47,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     //check at least one member of apps is present
     let has_apps = members
         .iter()
-        .any(|x| x.as_str().map(|s| s.contains("apps")).unwrap_or(false));
+        .any(|x| x.as_str().map(|s| s.contains(app)).unwrap_or(false));
 
     if !has_apps {
         // Print an error in red

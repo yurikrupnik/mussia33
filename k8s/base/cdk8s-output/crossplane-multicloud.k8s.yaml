@@ -216,7 +216,7 @@ spec:
       name: crossplane-yuri-network-subnet3
       patches:
         - fromFieldPath: spec.id
-          toFieldPath: metadata.lakbels[networks.multik8s.platformref.crossplane.io/network-id]
+          toFieldPath: metadata.labels[networks.multik8s.platformref.crossplane.io/network-id]
     - base:
         apiVersion: ec2.aws.upbound.io/v1beta1
         kind: SecurityGroup

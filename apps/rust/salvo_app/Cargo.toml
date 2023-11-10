@@ -6,7 +6,8 @@ edition = "2021"
 
 [dependencies]
 
-salvo = { version = "0.58.3" }
+salvo = { version = "0.58.3", features = ["oapi"] }
 tokio = { version = "1.33.0", features = ["macros"] }
-#tracing.workspace = {version = "0.1.40" }
-#tracing-subscriber.workspace = { version = "0.3.17"}
+serde.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
