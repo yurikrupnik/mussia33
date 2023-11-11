@@ -280,7 +280,7 @@ jobs:
           GOARCH: amd64
           CGO_ENABLED: 0
           INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REGISTRY: europe-central2-docker.pkg.dev/mussia-infra/container-repository
+          REGISTRY: europe-central2-docker.pkg.dev/shared-404221/container-repository
   datree:
     runs-on: ubuntu-latest
     env:
