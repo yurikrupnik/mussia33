@@ -267,7 +267,7 @@ jobs:
       - id: 'auth'
         uses: 'google-github-actions/auth@v1'
         with:
-          workload_identity_provider: 'projects/191986664052/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          workload_identity_provider: 'projects/191986664052/locations/global/workloadIdentityPools/git-pool/providers/github-identity-pool-provider'
           service_account: 'container-builder-sa@shared-404221.iam.gserviceaccount.com'
       - run: |-
           gcloud --quiet auth configure-docker europe-central2-docker.pkg.dev

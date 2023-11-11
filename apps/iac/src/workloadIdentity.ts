@@ -16,7 +16,7 @@ export class WorkloadIdentityResource extends pulumi.ComponentResource {
   constructor(
     name: string,
     workloadIdentityResourceProps: WorkloadIdentityResourceProps,
-    opts?: pulumi.ResourceOptions
+    opts?: pulumi.ResourceOptions,
   ) {
     super("mussia33:core:workloadIdentity:", name, {}, opts);
 
@@ -31,7 +31,7 @@ export class WorkloadIdentityResource extends pulumi.ComponentResource {
         description: "Github actions service account to create containers",
         displayName: "Container builder",
       },
-      { parent: this }
+      { parent: this },
     );
 
     new gcp.projects.IAMBinding(
@@ -41,24 +41,24 @@ export class WorkloadIdentityResource extends pulumi.ComponentResource {
         members: [sa.email.apply((email) => `serviceAccount:${email}`)],
         role: "roles/artifactregistry.writer",
       },
-      { parent: this }
+      { parent: this },
     );
 
     const pool = new gcp.iam.WorkloadIdentityPool(
       "example-pool-pulumi",
       {
-        description: "Github Pool",
-        displayName: "Github pool",
-        workloadIdentityPoolId: "github-pool",
+        description: "Git Pool",
+        displayName: "Git pool",
+        workloadIdentityPoolId: "git-pool",
         project,
       },
-      { parent: this }
+      { parent: this },
     );
     const poolProvider = new gcp.iam.WorkloadIdentityPoolProvider(
       "github-pool-provider",
       {
         workloadIdentityPoolId: pool.workloadIdentityPoolId,
-        workloadIdentityPoolProviderId: "github-provider",
+        workloadIdentityPoolProviderId: "github-identity-pool-provider",
         displayName: "Github provider",
         attributeMapping: {
           "google.subject": "assertion.sub",
@@ -69,7 +69,7 @@ export class WorkloadIdentityResource extends pulumi.ComponentResource {
           issuerUri: "https://token.actions.githubusercontent.com",
         },
       },
-      { parent: this }
+      { parent: this },
     );
 
     const members = repos.map((repo) => {
@@ -83,7 +83,7 @@ export class WorkloadIdentityResource extends pulumi.ComponentResource {
         role: "roles/iam.workloadIdentityUser",
         members: members,
       },
-      { parent: this }
+      { parent: this },
     );
 
     this.workload_identity_provider = poolProvider.name;
