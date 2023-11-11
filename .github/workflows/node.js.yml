@@ -267,14 +267,14 @@ jobs:
       - id: 'auth'
         uses: 'google-github-actions/auth@v1'
         with:
-          workload_identity_provider: 'projects/922939596495/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
-          service_account: 'container-builder-sa@mussia-infra.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/191986664052/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'container-builder-sa@shared-404221.iam.gserviceaccount.com'
       - run: |-
           gcloud --quiet auth configure-docker europe-central2-docker.pkg.dev
 # End of gcp containers
       - name: Container build
 #        todo change back to docker
-        run: pnpm nx affected --target=d --parallel --max-parallel=3 --prod
+        run: pnpm nx affected --target=container --parallel --max-parallel=3 --prod
         env:
           GOOS: linux
           GOARCH: amd64

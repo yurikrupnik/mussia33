@@ -3849,11 +3849,30 @@ version = "0.58.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "510e7dbb3e5bf53bd7144a17a71d2be3db5f4bfdf698fa3dc76e0e0f0a9810a5"
 dependencies = [
+ "salvo-compression",
  "salvo-oapi",
  "salvo-serve-static",
  "salvo-session",
  "salvo_core",
  "salvo_extra",
+]
+
+[[package]]
+name = "salvo-compression"
+version = "0.58.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d68b52f4ddfcfd8d066f9545d751d347a89cc7e209e1a69f60d220bacf5daa9"
+dependencies = [
+ "brotli",
+ "bytes",
+ "flate2",
+ "futures-util",
+ "indexmap 2.0.0",
+ "salvo_core",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "zstd 0.13.0",
 ]
 
 [[package]]

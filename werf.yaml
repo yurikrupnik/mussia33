@@ -1,0 +1,28 @@
+project: mussia33
+configVersion: 1
+#build:
+#  platform: [ string, ... ]
+#deploy:
+#  helmChartDir: string
+#  helmRelease: string
+#  helmReleaseSlug: bool
+#  namespace: string
+#  namespaceSlug: bool
+image: yurikrupnik/fiber-app:main
+dockerfile: Dockerfile
+#staged: bool
+#context: string
+#platform: [ string, ... ]
+#contextAddFiles: [ string, ... ]
+target: alpine
+#  build_args={"DIST_PATH":"dist/apps/go/fiber-app"},
+args: { "DIST_PATH": "dist/apps/go/fiber-app" }
+---
+#image: string || [ string, ... ] || ~
+#dockerfile: string
+#staged: bool
+#context: string
+#platform: [ string, ... ]
+#contextAddFiles: [ string, ... ]
+#target: string
+#args: { name string: value string, ... }

@@ -9,7 +9,7 @@ includes:
   gcloud: ./platform/gcloud
   argocd: ./platform/gitops/argocd
   fluxcd: ./platform/gitops/fluxcd
-  scripts: ./scripts
+  # compose: ./platform/scriptscompose
 
 vars:
   GREETING: Hello, World!
@@ -44,7 +44,7 @@ tasks:
     cmds:
 #     - up uxp install
 #     - kubectl auth can-i create namespaces --as=system:serviceaccount:crossplane-system:provider-helm-503c3591121b
-#     - task: crossplane:setup
+     - task: crossplane:setup
 
 #     - cargo run -p rust_master_operator
 #      - up ctp attach remote-virtual -a hashheddan | KUBECONFIG=kubeconfig.yaml up uxp connect -
@@ -70,7 +70,7 @@ tasks:
 #     - kubectl port-forward -n kubeshark service/kubeshark-front 8899:80
 #     - kubectl schemahero install
 #     - argocd app sync previews
-     - task: tilt:up
+#     - task: tilt:up
 
 #      - kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.44.0/release.yaml
 #      - kubectl apply --filename https://github.com/shipwright-io/build/releases/download/v0.11.0/release.yaml

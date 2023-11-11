@@ -2,6 +2,8 @@ use salvo::http::{StatusCode, StatusError};
 use salvo::oapi::extract::*;
 use salvo::oapi::{self, EndpointOutRegister, ToSchema};
 use salvo::prelude::*;
+use tracing::instrument::WithSubscriber;
+use tracing_subscriber::fmt::format;
 
 struct App {}
 impl App {
@@ -76,13 +78,21 @@ async fn get_todos(name: QueryParam<String, false>) -> String {
     format!("create_todos, {}!", name.as_deref().unwrap_or("World"))
 }
 
-fn new_route() -> Router {
-    Router::with_path("/api")
-        .push(Router::with_path("hello").get(hallo))
-        .push(Router::with_path("hallo").get(hello))
-        .push(Router::with_path("todo:{id}").get(get_todo))
+fn todo_config()-> Router {
+  Router::with_path("todo")
+        // .push(Router::with_path("todo:{id}").get(get_todo))
         .push(Router::with_path("todo").get(get_todos))
         .push(Router::with_path("todo").post(create_todo))
+}
+
+fn new_route() -> Router {
+    Router::with_path("/api")
+      // .push(todo_config())
+        .push(Router::with_path("hello").get(hello))
+        .push(Router::with_path("hallo").get(hallo))
+        // .push(Router::with_path("todo:{id}").get(get_todo))
+        // .push(Router::with_path("todo").get(get_todos))
+        // .push(Router::with_path("todo").post(create_todo))
 }
 
 #[tokio::main]
@@ -90,8 +100,10 @@ async fn main() {
     tracing_subscriber::fmt().init();
 
     let router = Router::new()
-        .push(new_route())
-        .push(Router::with_path("hello").get(hello));
+      // .hoop(CachingHeaders::new())
+      // .hoop(Compression::new().min_length(0))
+      .push(new_route())
+      .push(Router::with_path("hello").get(hello));
 
     let doc = OpenApi::new("Salvo Api", "0.0.1").merge_router(&router);
 
@@ -99,6 +111,7 @@ async fn main() {
         .push(doc.into_router("/api-doc/openapi.json"))
         .push(SwaggerUi::new("/api-doc/openapi.json").into_router("swagger-ui"));
 
+    // let tcp_str = format!("0.0.0.0:{}", 8080);
     let acceptor = TcpListener::new("0.0.0.0:8080").bind().await;
     Server::new(acceptor).serve(router).await;
 }

@@ -341,30 +341,56 @@ spec:
 #    automated:
 #      selfHeal: true
 #      prune: true
-#---
-#apiVersion: argoproj.io/v1alpha1
-#kind: Application
-#metadata:
-#  name: crossplane
-#  namespace: argocd
-#  finalizers:
-#    - resources-finalizer.argocd.argoproj.io
-#spec:
-#  project: default
-#  source:
-#    chart: crossplane
-#    repoURL: https://charts.crossplane.io/stable
-#    targetRevision: "1.11.3"
-#  destination:
-#    namespace: crossplane-system
-#    server: https://kubernetes.default.svc
-#  syncPolicy:
-#    automated:
-#      selfHeal: true
-#      prune: true
-#      allowEmpty: true
-#    syncOptions:
-#      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: crossplane
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: crossplane
+    repoURL: https://charts.crossplane.io/stable
+    targetRevision: "1.11.3"
+  destination:
+    namespace: crossplane-system
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: komodor
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: komodor
+    repoURL: https://helm-charts.komodor.io
+    targetRevision: "2.0.4"
+  destination:
+    namespace: komodor-system
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true
+
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application

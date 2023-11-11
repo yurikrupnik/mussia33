@@ -15,26 +15,26 @@ resources:
   - ../../../apps/frontend/solid-app/k8s/overlays/dev
 #  - ../../../apps/frontend/astro/k8s/overlays/dev
 
-helmCharts:
-  - name: minecraft
-    includeCRDs: false
-    valuesInline:
-      minecraftServer:
-        eula: true
-        difficulty: hard
-        rcon:
-          enabled: true
-    releaseName: moria
-    version: 3.1.3
-    repo: https://itzg.github.io/minecraft-server-charts
-  - name: argo-rollouts
-    includeCRDs: true
+#helmCharts:
+#  - name: minecraft
+#    includeCRDs: false
 #    valuesInline:
 #      minecraftServer:
 #        eula: true
 #        difficulty: hard
 #        rcon:
 #          enabled: true
-    releaseName: argo-rollouts
-    version: 3.1.3
-    repo: https://itzg.github.io/minecraft-server-charts
+#    releaseName: moria
+#    version: 3.1.3
+#    repo: https://itzg.github.io/minecraft-server-charts
+#  - name: argo-rollouts
+#    includeCRDs: true
+##    valuesInline:
+##      minecraftServer:
+##        eula: true
+##        difficulty: hard
+##        rcon:
+##          enabled: true
+#    releaseName: argo-rollouts
+#    version: 3.1.3
+#    repo: https://itzg.github.io/minecraft-server-charts

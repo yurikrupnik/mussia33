@@ -1,6 +1,6 @@
 version: '3'
 vars:
-  CLUSTER_TYPE: kind
+  CLUSTER_TYPE: minikube
   INGRESS_TYPE: ingress
 tasks:
   kind-local-cluster:up:
@@ -10,18 +10,20 @@ tasks:
       - create
     dir: platform/cluster
     preconditions:
-      - test -f cluster.yaml
+      - echo default CLUSTER_TYPE: {{.CLUSTER_TYPE}}
+      - ctlptl create cluster -h
     cmds:
-#      - ctlptl create cluster {{.CLUSTER_TYPE}} --registry=ctlptl-registry
-      - kind create cluster --config cluster.yaml
-      - task: ingress
+      - ctlptl create cluster {{.CLUSTER_TYPE}} --registry=ctlptl-registry
+#      - kind create cluster --config cluster.yaml
+      - task: istio
+      - echo create cluster {{.CLUSTER_TYPE}}
   kind-local-cluster:down:
     desc: Delete Kind Cluster.
     summary: Delete Kind Cluster.
     aliases:
       - delete
     cmds:
-      - kind delete cluster
+      - ctlptl delete cluster {{.CLUSTER_TYPE}}
 
   ingress:
     cmds:
@@ -35,7 +37,7 @@ tasks:
 
   istio:
     cmds:
-      - echo
+      - up uxp install
 
   linkerd:
     cmds:
