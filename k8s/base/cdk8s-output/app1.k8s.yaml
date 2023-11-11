@@ -220,7 +220,8 @@ metadata:
     app.kubernetes.io/instance: app1-redis-c8121b73
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redis
-    helm.sh/chart: redis-18.1.0
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.3.2
   name: app1-redis-c8121b73
   namespace: default
 automountServiceAccountToken: true
@@ -232,11 +233,12 @@ metadata:
     app.kubernetes.io/instance: app1-redis-c8121b73
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redis
-    helm.sh/chart: redis-18.1.0
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.3.2
   name: app1-redis-c8121b73
   namespace: default
 data:
-  redis-password: ek1yUHNWdjhqSw==
+  redis-password: c0JCNVpKRDNyMQ==
 type: Opaque
 ---
 apiVersion: v1
@@ -246,7 +248,8 @@ metadata:
     app.kubernetes.io/instance: app1-redis-c8121b73
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redis
-    helm.sh/chart: redis-18.1.0
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.3.2
   name: app1-redis-c8121b73-configuration
   namespace: default
 data:
@@ -277,7 +280,8 @@ metadata:
     app.kubernetes.io/instance: app1-redis-c8121b73
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redis
-    helm.sh/chart: redis-18.1.0
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.3.2
   name: app1-redis-c8121b73-health
   namespace: default
 data:
@@ -383,7 +387,8 @@ metadata:
     app.kubernetes.io/instance: app1-redis-c8121b73
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redis
-    helm.sh/chart: redis-18.1.0
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.3.2
   name: app1-redis-c8121b73-scripts
   namespace: default
 data:
@@ -463,7 +468,8 @@ metadata:
     app.kubernetes.io/instance: app1-redis-c8121b73
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redis
-    helm.sh/chart: redis-18.1.0
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.3.2
   name: app1-redis-c8121b73-headless
   namespace: default
 spec:
@@ -485,7 +491,8 @@ metadata:
     app.kubernetes.io/instance: app1-redis-c8121b73
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redis
-    helm.sh/chart: redis-18.1.0
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.3.2
   name: app1-redis-c8121b73-master
   namespace: default
 spec:
@@ -509,7 +516,8 @@ metadata:
     app.kubernetes.io/instance: app1-redis-c8121b73
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redis
-    helm.sh/chart: redis-18.1.0
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.3.2
   name: app1-redis-c8121b73-replicas
   namespace: default
 spec:
@@ -533,7 +541,8 @@ metadata:
     app.kubernetes.io/instance: app1-redis-c8121b73
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redis
-    helm.sh/chart: redis-18.1.0
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.3.2
   name: app1-redis-c8121b73-master
   namespace: default
 spec:
@@ -550,13 +559,14 @@ spec:
         checksum/configmap: 86bcc953bb473748a3d3dc60b7c11f34e60c93519234d4c37f42e22ada559d47
         checksum/health: aff24913d801436ea469d8d374b2ddb3ec4c43ee7ab24663d5f8ff1a1b6991a9
         checksum/scripts: f06ac90c19804a01936e3bbf5c2db727ca061835efb4f06157e3092f1c802dc3
-        checksum/secret: 633b7c9800e86bce404945c610fd322a3f80bf124b494a6739c1b7962b25729c
+        checksum/secret: 6576b990185b6a40f90474da483942be0cf9e5074156bec6226f3600d1922117
       labels:
         app.kubernetes.io/component: master
         app.kubernetes.io/instance: app1-redis-c8121b73
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: redis
-        helm.sh/chart: redis-18.1.0
+        app.kubernetes.io/version: 7.2.3
+        helm.sh/chart: redis-18.3.2
     spec:
       affinity:
         podAntiAffinity:
@@ -592,7 +602,7 @@ spec:
               value: "no"
             - name: REDIS_PORT
               value: "6379"
-          image: docker.io/bitnami/redis:7.2.1-debian-11-r0
+          image: docker.io/bitnami/redis:7.2.3-debian-11-r1
           imagePullPolicy: IfNotPresent
           livenessProbe:
             exec:
@@ -693,7 +703,8 @@ metadata:
     app.kubernetes.io/instance: app1-redis-c8121b73
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: redis
-    helm.sh/chart: redis-18.1.0
+    app.kubernetes.io/version: 7.2.3
+    helm.sh/chart: redis-18.3.2
   name: app1-redis-c8121b73-replicas
   namespace: default
 spec:
@@ -710,13 +721,14 @@ spec:
         checksum/configmap: 86bcc953bb473748a3d3dc60b7c11f34e60c93519234d4c37f42e22ada559d47
         checksum/health: aff24913d801436ea469d8d374b2ddb3ec4c43ee7ab24663d5f8ff1a1b6991a9
         checksum/scripts: f06ac90c19804a01936e3bbf5c2db727ca061835efb4f06157e3092f1c802dc3
-        checksum/secret: debd0a14d34032297c14e354f27342f5937b04dd007ece7510db27f7bdb2d2e9
+        checksum/secret: 282f9c479a8fb0e31ddd066dc21b1c6c3c5a577937f646db35ed7b1f4735fdef
       labels:
         app.kubernetes.io/component: replica
         app.kubernetes.io/instance: app1-redis-c8121b73
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: redis
-        helm.sh/chart: redis-18.1.0
+        app.kubernetes.io/version: 7.2.3
+        helm.sh/chart: redis-18.3.2
     spec:
       affinity:
         podAntiAffinity:
@@ -761,7 +773,7 @@ spec:
               value: "no"
             - name: REDIS_PORT
               value: "6379"
-          image: docker.io/bitnami/redis:7.2.1-debian-11-r0
+          image: docker.io/bitnami/redis:7.2.3-debian-11-r1
           imagePullPolicy: IfNotPresent
           livenessProbe:
             exec:

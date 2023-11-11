@@ -9,3 +9,18 @@ tokio = { workspace = true }
 axum = { version = "0.6.20" }
 rust_servers_shared = { path = "../../../libs/rust/servers_shared" }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+tower = { version = "0.4", features = ["util"] }
+#tracing = "0.1"
+#tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+#hyper = { version = "0.14", features = ["full"] }
+#serde = { version = "1.0", features = ["derive"] }
+#serde_json = "1.0"
+#env_logger = "0.10.0"
+#log = "0.4"
+#utoipa-swagger-ui = { version = "4.0.0", features = ["axum"] }
+#utoipa-redoc = { version = "1.0.0", features = ["axum"] }
+#utoipa-rapidoc = { version = "1.0.0", features = ["axum"] }
+# fails with this package!!!!!
+#utoipa = { version = "4.0.0", features = ["axum_extras"] }
+

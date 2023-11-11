@@ -36,7 +36,7 @@
         "command": "docker buildx build --push --target alpine --build-arg DIST_PATH=dist/apps/go/fiber-app . -t yurikrupnik/fiber-app:$TAG -t europe-central2-docker.pkg.dev/mussia33/container-repository/fiber-app:$TAG"
       }
     },
-    "container": {
+    "container1": {
       "executor": "@nx-tools/nx-container:build",
       "options": {
         "engine": "kaniko",

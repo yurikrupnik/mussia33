@@ -202,7 +202,7 @@ jobs:
         with:
           bump_version_scheme: minor
           use_github_release_notes: true
-  docker:
+  container:
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
@@ -270,12 +270,12 @@ jobs:
           gcloud --quiet auth configure-docker europe-central2-docker.pkg.dev
       # End of gcp containers
       - name: Container build
-        run: pnpm nx run-many --target=docker --parallel --max-parallel=3 --prod
+        run: pnpm nx run-many --target=container --parallel --max-parallel=3 --prod
         env:
           GOOS: linux
           GOARCH: amd64
           CGO_ENABLED: 0
           INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REGISTRY: europe-central2-docker.pkg.dev/mussia-infra/container-repository
+          REGISTRY: europe-central2-docker.pkg.dev/shared-404221/container-repository
 
 

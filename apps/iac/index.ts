@@ -157,27 +157,27 @@ const cloudKMS = new gcp.projects.Service("cloudkms.googleapis.com", {
 // );
 // end security
 
-const tempBucket = new gcp.storage.Bucket("temp-bucket", {
-  name: `${project}-temp-bucket`,
-  location: region,
-  forceDestroy: true,
-  labels: {
-    type: "temp",
-    team: "util",
-  },
-});
-
-const eventsBucket = new gcp.storage.Bucket("events-bucket", {
-  name: `${project}-events-bucket`,
-  location: region,
-  forceDestroy: true,
-  labels: {
-    type: "events",
-    team: "big-data",
-  },
-  versioning: { enabled: true },
-  // website
-});
+// const tempBucket = new gcp.storage.Bucket("temp-bucket", {
+//   name: `${project}-temp-bucket`,
+//   location: region,
+//   forceDestroy: true,
+//   labels: {
+//     type: "temp",
+//     team: "util",
+//   },
+// });
+//
+// const eventsBucket = new gcp.storage.Bucket("events-bucket", {
+//   name: `${project}-events-bucket`,
+//   location: region,
+//   forceDestroy: true,
+//   labels: {
+//     type: "events",
+//     team: "big-data",
+//   },
+//   versioning: { enabled: true },
+//   // website
+// });
 
 const funcBucket = new gcp.storage.Bucket(`${project}-func-bucket`, {
   name: `${project}-func-bucket`,
@@ -193,17 +193,17 @@ const funcBucket = new gcp.storage.Bucket(`${project}-func-bucket`, {
   },
 });
 
-const dataset = new gcp.bigquery.Dataset("applications_events", {
-  datasetId: "applications_events",
-  description: "This is a test description",
-  friendlyName: "Test logs",
-  location: region,
-  // defaultTableExpirationMs: 3600000,
-  labels: {
-    env: "default",
-    name: "aris-test",
-  },
-});
+// const dataset = new gcp.bigquery.Dataset("applications_events", {
+//   datasetId: "applications_events",
+//   description: "This is a test description",
+//   friendlyName: "Test logs",
+//   location: region,
+//   // defaultTableExpirationMs: 3600000,
+//   labels: {
+//     env: "default",
+//     name: "aris-test",
+//   },
+// });
 
 const servicesNames = [
   "cloudfunctions.googleapis.com",
@@ -211,10 +211,10 @@ const servicesNames = [
   "pubsub.googleapis.com",
 ];
 
-const gcpFunctionServices = new ServicesResource("GcpFunctionServices", {
-  services: servicesNames,
-  provider: Providers.GCP,
-});
+// const gcpFunctionServices = new ServicesResource("GcpFunctionServices", {
+//   services: servicesNames,
+//   provider: Providers.GCP,
+// });
 
 const functionsPath = "../../dist/apps/node/";
 
@@ -275,7 +275,7 @@ const secretManager = new ServicesResource(
     provider: Providers.GCP,
     services: ["secretmanager.googleapis.com"],
   },
-  {}
+  {},
 );
 
 const eventarc = new ServicesResource(
@@ -284,7 +284,7 @@ const eventarc = new ServicesResource(
     provider: Providers.GCP,
     services: ["eventarc.googleapis.com"],
   },
-  {}
+  {},
 );
 
 const _project = gcp.organizations.getProject({});
@@ -294,7 +294,7 @@ new gcp.projects.IAMBinding("pubsub-token-creator", {
   members: [
     _project.then(
       (project) =>
-        `serviceAccount:service-${project.number}@gcp-sa-pubsub.iam.gserviceaccount.com`
+        `serviceAccount:service-${project.number}@gcp-sa-pubsub.iam.gserviceaccount.com`,
     ),
   ],
   role: "roles/iam.serviceAccountTokenCreator",
@@ -326,7 +326,7 @@ const deadLetter = new gcp.pubsub.Topic(
   },
   {
     // provider: Providers.gcp
-  }
+  },
 );
 
 const userAdded = new gcp.pubsub.Topic("user-added", {
@@ -367,7 +367,7 @@ const eventarcpublishing = new gcp.projects.Service(
   {
     disableDependentServices: true,
     service: "eventarcpublishing.googleapis.com",
-  }
+  },
 );
 
 const iamcredentials = new gcp.projects.Service(
@@ -375,7 +375,7 @@ const iamcredentials = new gcp.projects.Service(
   {
     disableDependentServices: true,
     service: "iamcredentials.googleapis.com",
-  }
+  },
 );
 const workloadIdentity = new WorkloadIdentityResource(
   "WorkloadIdentityResource",
@@ -387,7 +387,7 @@ const workloadIdentity = new WorkloadIdentityResource(
     ],
     project,
   },
-  { dependsOn: [iamcredentials], parent: iamcredentials }
+  { dependsOn: [iamcredentials], parent: iamcredentials },
 );
 
 const cloudScheduler = new gcp.projects.Service(
@@ -395,7 +395,7 @@ const cloudScheduler = new gcp.projects.Service(
   {
     disableDependentServices: true,
     service: "cloudscheduler.googleapis.com",
-  }
+  },
 );
 
 const binaryAuthorization = new gcp.projects.Service(
@@ -403,7 +403,7 @@ const binaryAuthorization = new gcp.projects.Service(
   {
     disableDependentServices: true,
     service: "binaryauthorization.googleapis.com",
-  }
+  },
 );
 
 // high price
@@ -417,7 +417,7 @@ const artifactRegistry = new gcp.projects.Service(
   {
     disableDependentServices: true,
     service: "artifactregistry.googleapis.com",
-  }
+  },
 );
 
 const dockerRegistry = new ArtifactoryResource(
@@ -435,7 +435,7 @@ const dockerRegistry = new ArtifactoryResource(
       description: "Example docker repository.",
     },
   },
-  { parent: artifactRegistry, dependsOn: [artifactRegistry] }
+  { parent: artifactRegistry, dependsOn: [artifactRegistry] },
 );
 
 const mesh = new gcp.projects.Service("mesh.googleapis.com", {
@@ -450,7 +450,7 @@ const computeServices = new ServicesResource(
     provider: Providers.GCP,
     services: ["compute.googleapis.com"],
   },
-  {}
+  {},
 );
 
 new NetworkResource(
@@ -459,7 +459,7 @@ new NetworkResource(
     region,
     project,
   },
-  { dependsOn: computeServices }
+  { dependsOn: computeServices },
 );
 // DB SQL
 const migrationServices = new ServicesResource(
@@ -468,7 +468,7 @@ const migrationServices = new ServicesResource(
     provider: Providers.GCP,
     services: ["datamigration.googleapis.com"],
   },
-  {}
+  {},
 );
 
 // const instance = new gcp.sql.DatabaseInstance("instance", {
@@ -547,7 +547,7 @@ const containerReaderSa = new gcp.serviceaccount.Account(
     disabled: false,
     description: "Kubernetes containers puller sa",
     displayName: "Container puller",
-  }
+  },
 );
 
 new gcp.projects.IAMBinding("artifact-registry-reader", {

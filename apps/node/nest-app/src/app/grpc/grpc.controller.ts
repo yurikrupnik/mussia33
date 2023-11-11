@@ -41,7 +41,7 @@ export class GrpcController {
 
   onModuleInit() {
     this.grpcService = this.client.getService<users.AppControllerClient>(
-      users.APP_CONTROLLER_SERVICE_NAME
+      users.APP_CONTROLLER_SERVICE_NAME,
     );
   }
 
@@ -49,7 +49,7 @@ export class GrpcController {
   @SwaggerGetDecorators<User>(
     Projection,
     User,
-    PartialType(OmitType(User, ["_id", "password"]))
+    PartialType(OmitType(User, ["_id", "password"])),
   )
 
   // Todo fix stream via grpc
@@ -65,7 +65,7 @@ export class GrpcController {
   // }
   findAll(
     @Query("projection") projection: Projection | [Projection] | null,
-    @Query("limit") limit = 0
+    @Query("limit") limit = 0,
   ) {
     const payload = {
       limit,
@@ -79,7 +79,7 @@ export class GrpcController {
     return this.grpcService.getUsers(payload).pipe(
       map((response) => {
         return response.data;
-      })
+      }),
     );
   }
 
@@ -99,7 +99,7 @@ export class GrpcController {
   @SwaggerGetByIdDecorators(Projection, User)
   getUser(
     @Param("id") id: string,
-    @Query("projection") projection: Projection | [Projection] | null
+    @Query("projection") projection: Projection | [Projection] | null,
   ) {
     const payload = {
       id,

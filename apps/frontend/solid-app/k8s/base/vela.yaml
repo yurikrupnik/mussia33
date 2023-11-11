@@ -1,0 +1,45 @@
+apiVersion: core.oam.dev/v1beta1
+kind: Application
+metadata:
+  name: fiber-app
+spec:
+  components:
+    - name: fiber-app
+      type: webservice
+      properties:
+        image: yurikrupnik/fiber-app:main
+        ports:
+          - port: 8080
+            expose: true
+      traits:
+        - type: scaler
+          properties:
+            replicas: 1
+        - type: ingress
+          properties:
+            domain: localhost
+            http:
+              "/": 8080
+---
+apiVersion: core.oam.dev/v1beta1
+kind: Application
+metadata:
+  name: actix-app
+spec:
+  components:
+    - name: actix-app
+      type: webservice
+      properties:
+        image: yurikrupnik/actix-app:sha-c84ded4
+        ports:
+          - port: 8080
+            expose: true
+      traits:
+        - type: scaler
+          properties:
+            replicas: 1
+        - type: ingress
+          properties:
+            domain: localhost
+            http:
+              "/": 8080

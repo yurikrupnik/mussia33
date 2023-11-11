@@ -1,0 +1,9 @@
+docker_build(
+  "yurikrupnik/salvo-app",
+  "../../..",
+  dockerfile="../../../rust.Dockerfile",
+  build_args={"APP_NAME":"rust_salvo_app"},
+  target="rust",
+)
+
+k8s_resource("salvo-app", port_forwards="5211:8080")

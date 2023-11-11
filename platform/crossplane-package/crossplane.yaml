@@ -55,3 +55,15 @@ spec:
       version: ">=v0.15.0-0"
     - provider: xpkg.upbound.io/crossplane-contrib/provider-argocd
       version: ">=v0.2.0-0"
+    - provider: xpkg.upbound.io/crossplane-contrib/provider-terraform
+      version: ">=v0.11.0-0"
+    - provider: xpkg.upbound.io/crossplane-contrib/provider-azure
+      version: ">=v0.11.0-0"
+    - provider: xpkg.upbound.io/coopnorge/provider-github
+      version: ">=v0.3.0-0"
+    - provider: xpkg.upbound.io/crossplane-contrib/provider-azure
+      version: ">=v0.20.0-0"
+    - provider: xpkg.upbound.io/crossplane-contrib/function-go-templating
+      version: ">=v0.2.2-0"
+    - provider: xpkg.upbound.io/linode/provider-linode
+      version: ">=v0.0.15-0"

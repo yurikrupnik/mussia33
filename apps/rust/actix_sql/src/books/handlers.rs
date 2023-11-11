@@ -5,8 +5,8 @@ use actix_web::{
     web::{Data, Json, Path},
     HttpResponse, Responder,
 };
-use sqlx::{query, query_as};
 use mongo::ErrorResponse;
+use sqlx::{query, query_as};
 
 /// Get list of books.
 ///
@@ -32,7 +32,6 @@ pub async fn get_books(app_state: Data<Store>) -> impl Responder {
         .await;
     handle_result(result)
 }
-
 
 /// Get Book by given user id.
 ///

@@ -1,8 +1,8 @@
-use utoipa::OpenApi;
-use crate::todos;
 use crate::books;
+use crate::todos;
 use crate::users;
 use rust_servers_shared::SecurityAddon;
+use utoipa::OpenApi;
 
 #[derive(OpenApi)]
 #[openapi(

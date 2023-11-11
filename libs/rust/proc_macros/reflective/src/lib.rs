@@ -51,6 +51,14 @@ fn impl_reflective_macro(ast: DeriveInput) -> TokenStream {
         .iter()
         .map(|f| f.to_string())
         .collect::<Vec<String>>();
+
+    // Here we assume that all fields implement the `ToString` trait
+    let field_access = field_idents.iter().map(|ident| {
+        quote! {
+            self.#ident.to_string()
+        }
+    });
+
     // generate implementation
     let gen = quote! {
         impl Reflective for #ident {
@@ -64,10 +72,9 @@ fn impl_reflective_macro(ast: DeriveInput) -> TokenStream {
                 vec![#(#field_idents_str),*]
             }
 
-            // fn field_values(&self) -> Vec<String> {
-            //     vec![#(self.#field_idents),*]
-            //     // (#(self.#field_idents),*)
-            // }
+            fn field_values(&self) -> Vec<String> {
+              vec![#(#field_access),*]
+            }
         }
     };
     gen.into()

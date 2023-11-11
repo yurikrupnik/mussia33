@@ -5,9 +5,9 @@ use actix_web::{
     web::{Data, Json, Path},
     HttpResponse, Responder,
 };
+use mongo::ErrorResponse;
 use rust_proc_macros::{DbResource, Reflective};
 use sqlx::{query, query_as};
-use mongo::ErrorResponse;
 
 /// Get list of todos.
 ///
@@ -148,7 +148,6 @@ pub async fn create_todo(body: Json<CreateTodo>, app_state: Data<Store>) -> impl
 
     handle_create_result(result)
 }
-
 
 /// Drop Todo collection.
 ///

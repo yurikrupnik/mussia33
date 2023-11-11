@@ -4,24 +4,6 @@ docker_build(
   dockerfile="../../../rust.Dockerfile",
   build_args={"APP_NAME":"rust_axum_app"},
   target="rust",
-#  only=[
- #   "Cargo.toml",
- #   "Cargo.lock",
- #   "nx.json",
- #   "libs/rust/",
- #   "apps/rust/",
- #   "apps/rust/axum_app/src",
- # ],
- # live_update=[
- #   sync("./libs/rust", "/workspace/libs/rust"),
- #   sync("./apps/rust", "/workspace/apps/rust"),
- #   sync("./Cargo.toml", "/workspace/Cargo.toml"),
- #   sync("./Cargo.lock", "/workspace/Cargo.lock"),
- #   sync("./nx.json", "/workspace/nx.json"),
- #   sync("./apps/rust/axum_app/src", "/workspace/apps/rust/axum_app/src"),
- #   # If cargo-watch is being used, you can trigger a rebuild on sync
- #   run("cargo build --release -p rust_axum_app --target x86_64-unknown-linux-musl", trigger="./apps/rust/axum_app/src"),
- # ]
 )
 
 k8s_resource("axum-app", port_forwards="5221:8080")

@@ -1,9 +1,9 @@
-use mongo::ErrorResponse;
 use actix_web::{
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
     HttpResponse,
 };
 use futures::future::LocalBoxFuture;
+use mongo::ErrorResponse;
 use std::future::{self, Ready};
 use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
@@ -29,13 +29,13 @@ impl Modify for SecurityAddon {
 pub struct RequireApiKey;
 
 impl<S> Transform<S, ServiceRequest> for RequireApiKey
-    where
-        S: Service<
-            ServiceRequest,
-            Response = ServiceResponse<actix_web::body::BoxBody>,
-            Error = actix_web::Error,
-        >,
-        S::Future: 'static,
+where
+    S: Service<
+        ServiceRequest,
+        Response = ServiceResponse<actix_web::body::BoxBody>,
+        Error = actix_web::Error,
+    >,
+    S::Future: 'static,
 {
     type Response = ServiceResponse<actix_web::body::BoxBody>;
     type Error = actix_web::Error;
@@ -55,13 +55,13 @@ impl<S> Transform<S, ServiceRequest> for RequireApiKey
 pub struct LogApiKey;
 
 impl<S> Transform<S, ServiceRequest> for LogApiKey
-    where
-        S: Service<
-            ServiceRequest,
-            Response = ServiceResponse<actix_web::body::BoxBody>,
-            Error = actix_web::Error,
-        >,
-        S::Future: 'static,
+where
+    S: Service<
+        ServiceRequest,
+        Response = ServiceResponse<actix_web::body::BoxBody>,
+        Error = actix_web::Error,
+    >,
+    S::Future: 'static,
 {
     type Response = ServiceResponse<actix_web::body::BoxBody>;
     type Error = actix_web::Error;
@@ -83,13 +83,13 @@ pub struct ApiKeyMiddleware<S> {
 }
 
 impl<S> Service<ServiceRequest> for ApiKeyMiddleware<S>
-    where
-        S: Service<
-            ServiceRequest,
-            Response = ServiceResponse<actix_web::body::BoxBody>,
-            Error = actix_web::Error,
-        >,
-        S::Future: 'static,
+where
+    S: Service<
+        ServiceRequest,
+        Response = ServiceResponse<actix_web::body::BoxBody>,
+        Error = actix_web::Error,
+    >,
+    S::Future: 'static,
 {
     type Response = ServiceResponse<actix_web::body::BoxBody>;
     type Error = actix_web::Error;

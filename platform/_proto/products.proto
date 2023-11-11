@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package products;
+
+option go_package = "grpc/products";
+
+// Declare a service for each controller you have
+service ProductsController {
+  // Declare an rpc for each method that is called via gRPC
+  rpc Create (Product) returns (Product) {};
+  rpc Get (GetUserRequestDto) returns (Product) {};
+  rpc Delete (DeleteUserRequestDto) returns (VoidResponse) {};
+  rpc Update (UpdateRequestDto) returns (Product) {};
+  rpc List (ListRequestDto) returns (Products) {};
+  rpc ListStream (ListRequestDto) returns (stream Product) {};
+}
+
+message ListRequestDto {
+  string limit = 1;
+  repeated string projection = 2;
+}
+
+message UpdateRequestDto {
+  string id = 1;
+}
+
+message VoidResponse {};
+message DeleteUserRequestDto {
+  string id = 1;
+}
+
+message GetUserRequestDto {
+  string id = 1;
+  repeated string projection = 2;
+}
+
+message Product {
+  string _id = 1;
+  string name = 2;
+}
+
+message Products {
+  repeated Product data = 1;
+}

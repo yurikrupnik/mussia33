@@ -4,7 +4,7 @@ pub use reflective::Reflective;
 pub trait Reflective {
     fn name() -> &'static str;
     fn field_names() -> Vec<&'static str>;
-    // fn field_values(&self) -> Vec<String>;
+    fn field_values(&self) -> Vec<String>;
 }
 
 pub trait DbResource {

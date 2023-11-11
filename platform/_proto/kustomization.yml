@@ -1,0 +1,9 @@
+configMapGenerator:
+  - name: proto-configs
+    options:
+      disableNameSuffixHash: true
+    files:
+      - service.proto
+      - users.proto
+      - products.proto
+      - commons.proto
