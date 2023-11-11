@@ -274,7 +274,7 @@ jobs:
 # End of gcp containers
       - name: Container build
 #        todo change back to docker
-        run: pnpm nx affected --target=container --parallel --max-parallel=3 --prod
+        run: pnpm nx affected --target=docker --parallel --max-parallel=3 --prod
         env:
           GOOS: linux
           GOARCH: amd64
