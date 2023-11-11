@@ -1,0 +1,3 @@
+config:
+  gcp:project: shared-404221
+  gcp:region: europe-central2
