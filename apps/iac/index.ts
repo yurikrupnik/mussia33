@@ -6,6 +6,7 @@
 import * as pulumi from "@pulumi/pulumi";
 // import * as k8s from "@pulumi/kubernetes";
 import * as gcp from "@pulumi/gcp";
+import * as aws from "@pulumi/aws";
 // import * as gcp from "@pulumi/datadog";
 import { ServicesResource } from "./src/servicesResource";
 import { NetworkResource } from "./src/network";
@@ -21,6 +22,68 @@ const nodeCount = config.get("nodeCount");
 const gcpConfig = new pulumi.Config("gcp");
 const region = gcpConfig.get("region");
 const project = gcpConfig.get("project");
+
+// Todo aws new user
+const lbUser = new aws.iam.User("crossplaneUser", {
+  path: "/system/",
+  name: "crossplane-lb-user",
+  tags: {
+    "tag-key": "tag-value",
+  },
+});
+const lbAccessKey = new aws.iam.AccessKey("crossplaneUserAccessKey", {
+  user: lbUser.name,
+});
+const lbRoPolicyDocument = aws.iam.getPolicyDocument({
+  statements: [
+    {
+      effect: "Allow",
+      actions: ["ec2:Describe*", "s3:*"],
+      resources: ["*"],
+    },
+  ],
+});
+const lbRoUserPolicy = new aws.iam.UserPolicy("lbRoUserPolicy", {
+  user: lbUser.name,
+  policy: lbRoPolicyDocument.then(
+    (lbRoPolicyDocument) => lbRoPolicyDocument.json,
+  ),
+});
+
+const cm = new gcp.serviceaccount.Account("crossplane-manager", {
+  project,
+  accountId: "iac-manager",
+  disabled: false,
+  description: "IaC manager service account",
+  displayName: "IaC Manager",
+});
+// cm.accountId
+new gcp.projects.IAMBinding(
+  "iac-manager-binding-secretmanager-resourcemanager-projectIamAdmin",
+  {
+    project: project,
+    members: [cm.email.apply((email) => `serviceAccount:${email}`)],
+    role: "roles/resourcemanager.projectIamAdmin",
+  },
+);
+
+new gcp.projects.IAMBinding("iac-manager-binding-container-developer", {
+  project: project,
+  members: [cm.email.apply((email) => `serviceAccount:${email}`)],
+  role: "roles/container.developer",
+});
+
+new gcp.projects.IAMBinding("iac-manager-binding-secretmanager-admin", {
+  project: project,
+  members: [cm.email.apply((email) => `serviceAccount:${email}`)],
+  role: "roles/secretmanager.admin",
+});
+
+new gcp.projects.IAMBinding("iac-manager-binding-storage-admin", {
+  project: project,
+  members: [cm.email.apply((email) => `serviceAccount:${email}`)],
+  role: "roles/storage.admin",
+});
 
 const sa = new gcp.serviceaccount.Account("secret-puller", {
   project,
@@ -116,20 +179,20 @@ new gcp.projects.IAMBinding("secret-puller-binding-token-creator", {
 //   permission: "pull",
 // });
 
-const dataflow = new gcp.projects.Service("dataflow.googleapis.com", {
-  disableOnDestroy: false,
-  disableDependentServices: false,
-  service: "dataflow.googleapis.com",
-  project,
-});
-
-// security
-const cloudKMS = new gcp.projects.Service("cloudkms.googleapis.com", {
-  disableOnDestroy: false,
-  disableDependentServices: false,
-  service: "cloudkms.googleapis.com",
-  project,
-});
+// const dataflow = new gcp.projects.Service("dataflow.googleapis.com", {
+//   disableOnDestroy: false,
+//   disableDependentServices: false,
+//   service: "dataflow.googleapis.com",
+//   project,
+// });
+//
+// // security
+// const cloudKMS = new gcp.projects.Service("cloudkms.googleapis.com", {
+//   disableOnDestroy: false,
+//   disableDependentServices: false,
+//   service: "cloudkms.googleapis.com",
+//   project,
+// });
 
 // const keyRing = new gcp.kms.KeyRing("keyring", {
 //   name: "first-keyring",
@@ -179,19 +242,19 @@ const cloudKMS = new gcp.projects.Service("cloudkms.googleapis.com", {
 //   // website
 // });
 
-const funcBucket = new gcp.storage.Bucket(`${project}-func-bucket`, {
-  name: `${project}-func-bucket`,
-  location: "eu",
-  // location: "EU",
-  // location: region,
-  forceDestroy: true,
-  versioning: {
-    enabled: true,
-  },
-  labels: {
-    type: "code",
-  },
-});
+// const funcBucket = new gcp.storage.Bucket(`${project}-func-bucket`, {
+//   name: `${project}-func-bucket`,
+//   location: "eu",
+//   // location: "EU",
+//   // location: region,
+//   forceDestroy: true,
+//   versioning: {
+//     enabled: true,
+//   },
+//   labels: {
+//     type: "code",
+//   },
+// });
 
 // const dataset = new gcp.bigquery.Dataset("applications_events", {
 //   datasetId: "applications_events",
@@ -216,26 +279,26 @@ const servicesNames = [
 //   provider: Providers.GCP,
 // });
 
-const functionsPath = "../../dist/apps/node/";
-
-const functions: GcpFunction[] = [
-  {
-    name: "nest-app",
-    bucket: funcBucket,
-    path: functionsPath,
-    member: "allUsers",
-    functionArgs: {
-      availableMemoryMb: 256,
-      region,
-      triggerHttp: true,
-      entryPoint: "dead",
-      project,
-      sourceArchiveBucket: funcBucket.name,
-      eventTrigger: undefined,
-      runtime: "nodejs18",
-    },
-  },
-];
+// const functionsPath = "../../dist/apps/node/";
+//
+// const functions: GcpFunction[] = [
+//   {
+//     name: "nest-app",
+//     bucket: funcBucket,
+//     path: functionsPath,
+//     member: "allUsers",
+//     functionArgs: {
+//       availableMemoryMb: 256,
+//       region,
+//       triggerHttp: true,
+//       entryPoint: "dead",
+//       project,
+//       sourceArchiveBucket: funcBucket.name,
+//       eventTrigger: undefined,
+//       runtime: "nodejs18",
+//     },
+//   },
+// ];
 
 // const funcs = functions.map((f) => {
 //   return new GcpFunctionResource(f.name, f, {
@@ -278,14 +341,14 @@ const secretManager = new ServicesResource(
   {},
 );
 
-const eventarc = new ServicesResource(
-  "eventArcServices",
-  {
-    provider: Providers.GCP,
-    services: ["eventarc.googleapis.com"],
-  },
-  {},
-);
+// const eventarc = new ServicesResource(
+//   "eventArcServices",
+//   {
+//     provider: Providers.GCP,
+//     services: ["eventarc.googleapis.com"],
+//   },
+//   {},
+// );
 
 const _project = gcp.organizations.getProject({});
 // allow eventarc pubsub
@@ -319,28 +382,29 @@ new gcp.projects.IAMBinding("pubsub-token-creator", {
 //   ],
 // });
 
-const deadLetter = new gcp.pubsub.Topic(
-  "dead-letter",
-  {
-    name: "dead-letter",
-  },
-  {
-    // provider: Providers.gcp
-  },
-);
+// const deadLetter = new gcp.pubsub.Topic(
+//   "dead-letter",
+//   {
+//     name: "dead-letter",
+//   },
+//   {
+//     // provider: Providers.gcp
+//   },
+// );
 
-const userAdded = new gcp.pubsub.Topic("user-added", {
-  name: "user-added",
-});
-
-const sub = new gcp.pubsub.Subscription("exampleSubscription", {
-  topic: userAdded.id,
-  labels: {
-    foo: "bar",
-  },
-  name: Subscriptions.yes,
-  enableMessageOrdering: true,
-});
+// const userAdded = new gcp.pubsub.Topic("user-added", {
+//   name: "user-added",
+//   messageRetentionDuration: "86600s",
+// });
+//
+// const sub = new gcp.pubsub.Subscription("exampleSubscription", {
+//   topic: userAdded.id,
+//   labels: {
+//     foo: "bar",
+//   },
+//   name: Subscriptions.yes,
+//   enableMessageOrdering: true,
+// });
 
 // const subscription = new gcp.pubsub.Subscription("subscription", {
 //   topic: deadLetter.name,
@@ -362,49 +426,49 @@ const sub = new gcp.pubsub.Subscription("exampleSubscription", {
 //   destination,
 // });
 
-const eventarcpublishing = new gcp.projects.Service(
-  "eventarcpublishing.googleapis.com",
-  {
-    disableDependentServices: true,
-    service: "eventarcpublishing.googleapis.com",
-  },
-);
+// const eventarcpublishing = new gcp.projects.Service(
+//   "eventarcpublishing.googleapis.com",
+//   {
+//     disableDependentServices: true,
+//     service: "eventarcpublishing.googleapis.com",
+//   },
+// );
+//
+// const iamcredentials = new gcp.projects.Service(
+//   "iamcredentials.googleapis.com",
+//   {
+//     disableDependentServices: true,
+//     service: "iamcredentials.googleapis.com",
+//   },
+// );
+// const workloadIdentity = new WorkloadIdentityResource(
+//   "WorkloadIdentityResource",
+//   {
+//     repos: [
+//       "yurikrupnik/mussia33",
+//       "yurikrupnik/first-rust-app",
+//       "yurikrupnik/fiber-mongo",
+//     ],
+//     project,
+//   },
+//   { dependsOn: [iamcredentials], parent: iamcredentials },
+// );
+//
+// const cloudScheduler = new gcp.projects.Service(
+//   "cloudscheduler.googleapis.com",
+//   {
+//     disableDependentServices: true,
+//     service: "cloudscheduler.googleapis.com",
+//   },
+// );
 
-const iamcredentials = new gcp.projects.Service(
-  "iamcredentials.googleapis.com",
-  {
-    disableDependentServices: true,
-    service: "iamcredentials.googleapis.com",
-  },
-);
-const workloadIdentity = new WorkloadIdentityResource(
-  "WorkloadIdentityResource",
-  {
-    repos: [
-      "yurikrupnik/mussia33",
-      "yurikrupnik/first-rust-app",
-      "yurikrupnik/fiber-mongo",
-    ],
-    project,
-  },
-  { dependsOn: [iamcredentials], parent: iamcredentials },
-);
-
-const cloudScheduler = new gcp.projects.Service(
-  "cloudscheduler.googleapis.com",
-  {
-    disableDependentServices: true,
-    service: "cloudscheduler.googleapis.com",
-  },
-);
-
-const binaryAuthorization = new gcp.projects.Service(
-  "binaryauthorization.googleapis.com",
-  {
-    disableDependentServices: true,
-    service: "binaryauthorization.googleapis.com",
-  },
-);
+// const binaryAuthorization = new gcp.projects.Service(
+//   "binaryauthorization.googleapis.com",
+//   {
+//     disableDependentServices: true,
+//     service: "binaryauthorization.googleapis.com",
+//   },
+// );
 
 // high price
 // const scanning = new gcp.projects.Service("containerscanning.googleapis.com", {
@@ -412,64 +476,64 @@ const binaryAuthorization = new gcp.projects.Service(
 //   service: "containerscanning.googleapis.com",
 // });
 
-const artifactRegistry = new gcp.projects.Service(
-  "artifactregistry.googleapis.com",
-  {
-    disableDependentServices: true,
-    service: "artifactregistry.googleapis.com",
-  },
-);
-
-const dockerRegistry = new ArtifactoryResource(
-  "docker-registry",
-  {
-    repositoryArgs: {
-      mode: "STANDARD_REPOSITORY",
-      project,
-      labels: {
-        iac: "pulumi",
-      },
-      repositoryId: "container-repository",
-      location: region,
-      format: "DOCKER",
-      description: "Example docker repository.",
-    },
-  },
-  { parent: artifactRegistry, dependsOn: [artifactRegistry] },
-);
-
-const mesh = new gcp.projects.Service("mesh.googleapis.com", {
-  disableDependentServices: true,
-  service: "mesh.googleapis.com",
-});
+// const artifactRegistry = new gcp.projects.Service(
+//   "artifactregistry.googleapis.com",
+//   {
+//     disableDependentServices: true,
+//     service: "artifactregistry.googleapis.com",
+//   },
+// );
+//
+// const dockerRegistry = new ArtifactoryResource(
+//   "docker-registry",
+//   {
+//     repositoryArgs: {
+//       mode: "STANDARD_REPOSITORY",
+//       project,
+//       labels: {
+//         iac: "pulumi",
+//       },
+//       repositoryId: "container-repository",
+//       location: region,
+//       format: "DOCKER",
+//       description: "Example docker repository.",
+//     },
+//   },
+//   { parent: artifactRegistry, dependsOn: [artifactRegistry] },
+// );
+//
+// const mesh = new gcp.projects.Service("mesh.googleapis.com", {
+//   disableDependentServices: true,
+//   service: "mesh.googleapis.com",
+// });
 
 // networking
-const computeServices = new ServicesResource(
-  "computeServices",
-  {
-    provider: Providers.GCP,
-    services: ["compute.googleapis.com"],
-  },
-  {},
-);
+// const computeServices = new ServicesResource(
+//   "computeServices",
+//   {
+//     provider: Providers.GCP,
+//     services: ["compute.googleapis.com"],
+//   },
+//   {},
+// );
 
-new NetworkResource(
-  "network",
-  {
-    region,
-    project,
-  },
-  { dependsOn: computeServices },
-);
+// new NetworkResource(
+//   "network",
+//   {
+//     region,
+//     project,
+//   },
+//   { dependsOn: computeServices },
+// );
 // DB SQL
-const migrationServices = new ServicesResource(
-  "migrationServices",
-  {
-    provider: Providers.GCP,
-    services: ["datamigration.googleapis.com"],
-  },
-  {},
-);
+// const migrationServices = new ServicesResource(
+//   "migrationServices",
+//   {
+//     provider: Providers.GCP,
+//     services: ["datamigration.googleapis.com"],
+//   },
+//   {},
+// );
 
 // const instance = new gcp.sql.DatabaseInstance("instance", {
 //   name: "test-instance",
@@ -540,13 +604,13 @@ const migrationServices = new ServicesResource(
 // export const connectorId = vpcConnector.id;
 
 const containerReaderSa = new gcp.serviceaccount.Account(
-  "container-puller-sa",
+  "container-reader-sa",
   {
     project,
-    accountId: "container-puller-sa",
+    accountId: "container-reader-sa",
     disabled: false,
-    description: "Kubernetes containers puller sa",
-    displayName: "Container puller",
+    description: "Kubernetes containers reader sa",
+    displayName: "Container reader",
   },
 );
 
@@ -558,6 +622,6 @@ new gcp.projects.IAMBinding("artifact-registry-reader", {
   role: "roles/artifactregistry.reader",
 });
 
-export const dockerRepo = dockerRegistry.dockerRepo;
-export const workloadName = workloadIdentity.workload_identity_provider;
-export const workloadSAEmail = workloadIdentity.saEmail;
+// export const dockerRepo = dockerRegistry.dockerRepo;
+// export const workloadName = workloadIdentity.workload_identity_provider;
+// export const workloadSAEmail = workloadIdentity.saEmail;

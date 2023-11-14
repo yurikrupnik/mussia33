@@ -31,8 +31,8 @@ tasks:
       - kubectl get deployments -n crossplane-system
   create-secret:
     cmds:
-      - kubectl create secret generic aws-secret -n crossplane-system --from-file=creds=./aws_creds.txt
-      - kubectl create secret generic gcp-secret -n crossplane-system --from-file=creds=./gcp-credentials.json
+      - kubectl create secret generic aws-secret -n crossplane-system --from-file=creds=./tmp/aws_creds.txt
+      - kubectl create secret generic gcp-secret -n crossplane-system --from-file=creds=./tmp/gcp-credentials.json
   create-gcp-provider:
     dir: platform/crossplane
     cmds:
@@ -45,6 +45,7 @@ tasks:
       - kubectl wait "providers.pkg.crossplane.io/provider-aws" --for=condition=Healthy --timeout=600s
       - kubectl get providers
       - kubectl apply -f gcpProviderConfig.yaml
+      - kubectl get pkgrev
   create-resources:
     dir: platform/crossplane
     cmds:

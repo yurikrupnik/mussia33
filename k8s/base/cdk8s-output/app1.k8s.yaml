@@ -238,7 +238,7 @@ metadata:
   name: app1-redis-c8121b73
   namespace: default
 data:
-  redis-password: c0JCNVpKRDNyMQ==
+  redis-password: MXRBV2hjZzZGUw==
 type: Opaque
 ---
 apiVersion: v1
@@ -559,7 +559,7 @@ spec:
         checksum/configmap: 86bcc953bb473748a3d3dc60b7c11f34e60c93519234d4c37f42e22ada559d47
         checksum/health: aff24913d801436ea469d8d374b2ddb3ec4c43ee7ab24663d5f8ff1a1b6991a9
         checksum/scripts: f06ac90c19804a01936e3bbf5c2db727ca061835efb4f06157e3092f1c802dc3
-        checksum/secret: 6576b990185b6a40f90474da483942be0cf9e5074156bec6226f3600d1922117
+        checksum/secret: 9e0e2853f181d0ec51364520fc1fa5a02ff922750a18d0761f42bc9329b7ca14
       labels:
         app.kubernetes.io/component: master
         app.kubernetes.io/instance: app1-redis-c8121b73
@@ -721,7 +721,7 @@ spec:
         checksum/configmap: 86bcc953bb473748a3d3dc60b7c11f34e60c93519234d4c37f42e22ada559d47
         checksum/health: aff24913d801436ea469d8d374b2ddb3ec4c43ee7ab24663d5f8ff1a1b6991a9
         checksum/scripts: f06ac90c19804a01936e3bbf5c2db727ca061835efb4f06157e3092f1c802dc3
-        checksum/secret: 282f9c479a8fb0e31ddd066dc21b1c6c3c5a577937f646db35ed7b1f4735fdef
+        checksum/secret: 3d9d118e25e03695e20485757c3a4866e858447c3f67a596542b43f570d3b87d
       labels:
         app.kubernetes.io/component: replica
         app.kubernetes.io/instance: app1-redis-c8121b73

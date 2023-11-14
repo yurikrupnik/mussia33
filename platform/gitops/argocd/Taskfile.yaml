@@ -17,6 +17,7 @@ tasks:
   apply:
     dir: platform/gitops/argocd
     cmds:
+      - kubectl apply -f ingress.yaml
       - kubectl apply -f apps.yaml
   get-secret:
     cmds:

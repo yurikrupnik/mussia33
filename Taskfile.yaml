@@ -3,6 +3,7 @@
 version: '3'
 
 includes:
+  external-secrets: ./platform/external-secrets
   cluster: ./platform/cluster
   crossplane: ./platform/crossplane
   kubevela: ./platform/kubevela
@@ -38,14 +39,28 @@ tasks:
   image-pull-secret:
     cmds:
       - kubectl create secret docker-registry my-registry-secret --docker-server=europe-central2-docker.pkg.dev --docker-username=_json_key --docker-password="$(cat mussia-infra-a6504e8e275d.json)" --docker-email=container-puller-sa@mussia-infra.iam.gserviceaccount.com
-  start:
+  start-cluster:
     deps:
       - cluster:kind-local-cluster:up
     cmds:
 #     - up uxp install
 #     - kubectl auth can-i create namespaces --as=system:serviceaccount:crossplane-system:provider-helm-503c3591121b
+     - task: argocd:install
+#     - task: argocd:apply
      - task: crossplane:setup
-
+     - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
+#     - kubectl -n argocd wait deployment argocd-server --for=condition=Available --timeout=180s
+#     - kubectl -n external-secrets wait deployment external-secrets-webhook --for=condition=Available --timeout=180s
+#     - kubectl -n external-secrets wait deployment external-secrets-cert-controller --for=condition=Available --timeout=180s
+#     - task: external-secrets:using-key1
+  start:
+    deps:
+      - task: start-cluster
+    cmds:
+      - echo ready to work on!.
+#      - timoni apply cluster platform/app/timoni/cluster
+#      - tilt up
+#      - task: kubevela:install
 #     - cargo run -p rust_master_operator
 #      - up ctp attach remote-virtual -a hashheddan | KUBECONFIG=kubeconfig.yaml up uxp connect -
 #     - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
@@ -75,7 +90,7 @@ tasks:
 #      - kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.44.0/release.yaml
 #      - kubectl apply --filename https://github.com/shipwright-io/build/releases/download/v0.11.0/release.yaml
 #      - kubectl apply --filename https://github.com/shipwright-io/build/releases/download/v0.11.0/sample-strategies.yaml
-#      - kubectl w ait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
+#      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
 #      - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
 #      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
 #      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd

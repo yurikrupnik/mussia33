@@ -117,8 +117,8 @@ metadata:
   name: k8s-managers
 spec:
   forProvider:
-    member: serviceAccount:k8sowners@mussia-infra.iam.gserviceaccount.com
-    project: mussia-infra
+    member: serviceAccount:k8sowners@shared-404221.iam.gserviceaccount.com
+    project: shared-404221
     role: "roles/container.developer"
 ---
 apiVersion: container.gcp.upbound.io/v1beta1
@@ -132,7 +132,7 @@ metadata:
   name: my-cluster1
 spec:
   forProvider:
-#    serviceAccount: k8sowners@mussia-infra.iam.gserviceaccount.com
+#    serviceAccount: k8sowners@shared-404221.iam.gserviceaccount.com
     initialNodeCount: 1
     location: us-central1-a
     nodeConfig:
