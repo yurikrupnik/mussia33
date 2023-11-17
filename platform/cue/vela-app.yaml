@@ -1,0 +1,47 @@
+apiVersion: core.com.dev/v1beta1
+kind: Application
+metadata:
+  name: mussia33
+  labels:
+      app: mussia33
+spec:
+  components:
+    - name: frontend-solid-app
+      type: webservice
+      properties:
+        image: yurikrupnik/frontend-solid-app
+        port: 80
+      traits:
+        - type: ingress
+          properties:
+#            todo check way1
+            domain: localhost
+            http:
+              "/": 80
+#              todo check way2
+#            rules:
+#              - host: frontend-solid-app.localhost
+#                http:
+#                  paths:
+#                    - path: /
+#                      backend:
+#                        serviceName: frontend-solid-app-service
+#                        servicePort: 80
+#    env:
+#      - name: REACT_APP_API_URL
+#        value: http://localhost:8080
+#
+#    - name: redis
+#      image: redis
+#      port: 6379
+#    - name: frontend-solid-app
+#      source:
+#        git:
+#          url:
+#    - name: frontend-solid-app
+#      type: kustomize
+#      source:
+#          git:
+#          url:
+#          path: platform/kustomize/frontend-solid-app
+#          ref: master

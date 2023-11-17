@@ -1,0 +1,163 @@
+#apiVersion: argocd.crossplane.io/v1alpha1
+#kind: ProviderConfig
+#metadata:
+#  name: argocd-provider
+#spec:
+#  credentials:
+#    secretRef:
+#      key: authToken
+#      name: argocd-credentials
+#      namespace: crossplane-system
+#    source: Secret
+#  insecure: true
+#  plainText: false
+#  serverAddr: argocd-server.argocd.svc:443
+#---
+apiVersion: applications.argocd.crossplane.io/v1alpha1
+kind: Application
+metadata:
+  name: example-application
+spec:
+  forProvider:
+    destination:
+      namespace: default
+      server: https://kubernetes.default.svc
+    project: default
+    source:
+      path: charts/podinfo
+      repoURL: https://github.com/stefanprodan/podinfo/
+      targetRevision: HEAD
+  providerConfigRef:
+    name: argocd-provider
+---
+apiVersion: helm.crossplane.io/v1beta1
+kind: Release
+metadata:
+  name: wordpress-example-patched
+spec:
+  forProvider:
+    chart:
+      name: wordpress
+      repository: https://charts.bitnami.com/bitnami
+      version: 15.2.5
+    namespace: wordpress
+  providerRef:
+    name: crossplane-provider-helm
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Storage
+metadata:
+  name: storage-aws
+spec:
+  location: us-west-2
+  compositionSelector:
+    matchLabels:
+      provider: AWS
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Storage
+metadata:
+  name: storage-gcp
+spec:
+  location: us-west1
+  compositionSelector:
+    matchLabels:
+      provider: GCP
+---
+apiVersion: storage.gcp.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  annotations:
+    meta.upbound.io/example-id: storage/v1beta1/notification
+  labels:
+    testing.upbound.io/example-name: project-usage-tracking-bucket-11
+  name: project-usage-tracking-bucket-11
+spec:
+  forProvider:
+    location: US
+---
+
+#---
+#apiVersion: yurikrupnik.dev/v1
+#kind: Topology
+#metadata:
+#  name: nir
+##  namespace: shit
+#spec:
+#  image: yurissss
+#  name: "Moby Dick"
+#  info: "all good"
+#  nodes:
+#    - node1
+#    - node2
+#---
+#apidVersion: yurikrupnik.dev/v1
+#kind: Topology
+#metadata:
+#  name: omg
+##  namespace: shit
+#spec:
+#  image: yurissss
+#  name: "Moby Dick"
+#  info: "all good"
+#  nodes:
+#    - node1
+#    - node2
+#---
+#apiVersion: clux.dev/v1
+#kind: Foo
+#metadata:
+#  name: dsssss
+#spec:
+#  info: omg is it my info
+#  name: shalom
+#  replicas: 4
+#  namespaces:
+#    - dev
+#    - prod
+#    - aris
+#---
+#apiVersion: clux.dev/v1
+#kind: Foo
+#metadata:
+#  name: shit
+#spec:
+#  info: omg is it my info
+#  name: shalom
+#  replicas: 1
+#  namespaces:
+#    - aris
+#---
+#apiVersion: clux.dev/v1
+#kind: Foo
+#metadata:
+#  name: ss
+#spec:
+#  info: omg is it my info
+#  name: shalom
+#  replicas: 1
+#  namespaces:
+#    - aris
+#    - arisass
+#---
+#apiVersion: v1
+#kind: Pod
+#metadata:
+#  name: d
+#spec:
+#  containers:
+#    - name: nginx
+#      image: sds:1.14.2
+#      ports:
+#        - containerPort: 80
+#---
+#apiVersion: v1
+#kind: Pod
+#metadata:
+#  name: ddsds
+#spec:
+#  containers:
+#    - name: nginx
+#      image: nginx:1.14.2
+#      ports:
+#        - containerPort: 80

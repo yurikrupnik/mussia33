@@ -1,3 +1,4 @@
+
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
@@ -26,8 +27,6 @@ metadata:
 spec:
   package: xpkg.upbound.io/crossplane-contrib/provider-argocd:v0.3.0
 ---
----
-
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -68,3 +67,17 @@ spec:
   package: xpkg.upbound.io/crossplane-contrib/provider-helm:v0.15.0
   controllerConfigRef:
     name: crossplane-provider-helm
+---
+apiVersion: pkg.crossplane.io/v1beta1
+kind: Function
+metadata:
+  name: function-patch-and-transform
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-patch-and-transform:v0.1.4
+---
+apiVersion: pkg.crossplane.io/v1beta1
+kind: Function
+metadata:
+  name: loop
+spec:
+  package: 'c8n.io/vfarcic/crossplane-function-loop:v0.0.3'

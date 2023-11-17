@@ -1,6 +1,6 @@
-local_resource('pnpm', cmd='pnpm install', deps=['package.json'], labels=['pnpm'])
+# local_resource('pnpm', cmd='pnpm install', deps=['package.json'], labels=['pnpm'])
 # local_resource('compose', cmd='task compose:up', deps=['scripts/compose.yaml'], labels=['task'])
-local_resource('protoc', cmd='task protoc', deps=['_porot/'], labels=['task'])
+# local_resource('protoc', cmd='task protoc', deps=['_porot/'], labels=['task'])
 # local_resource('protoc', cmd='task protoc', deps=['_porot/'], labels=['task'])
 
 #k8s_yaml(local('helm template --set key1=val1,key2=val2 ./charts/main-chart'))
@@ -15,12 +15,13 @@ local_resource('protoc', cmd='task protoc', deps=['_porot/'], labels=['task'])
 # k8s_yaml('k8s/base/core/core1.yaml')
 # k8s_yaml(["platform/crossplane/storage/compositeResourceDefinition.yaml", "platform/crossplane/storage/composition.yaml"])
 # Local dev resources
-include('./libs/cdk8s/Tiltfile')
+# include('./libs/cdk8s/Tiltfile')
 
 # include('./apps/rust/master_operator/Tiltfile')
-k8s_yaml(kustomize('_proto/'))
+# k8s_yaml(kustomize('_proto/'))
 
 # include('./apps/rust/actix_app/Tiltfile')
+# include('./apps/rust/master_operator/Tiltfile')
 # include('./apps/rust/axum_app/Tiltfile')
 # include('./apps/rust/mongo-api/Tiltfile')
 # include('./apps/rust/clapper/Tiltfile')

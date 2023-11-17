@@ -49,6 +49,8 @@ tasks:
   create-resources:
     dir: platform/crossplane
     cmds:
+      - kubectl apply -f provider-helm-incluster.yaml
+      - kubectl apply -f provider-kubernetes-incluster.yaml
       - kubectl apply -f compositeResourceDefinition.yaml
       - kubectl apply -f composition.yaml
 
