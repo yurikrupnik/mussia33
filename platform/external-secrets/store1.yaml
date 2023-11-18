@@ -11,4 +11,4 @@ spec:
           secretAccessKeySecretRef:
             name: secret-puller              # secret name containing SA key
             key: creds  # key name containing SA key
-      projectID: mussia-infra
+      projectID: shared-404221

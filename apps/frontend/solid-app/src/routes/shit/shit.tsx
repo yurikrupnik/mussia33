@@ -29,6 +29,7 @@ const Shit = () => {
             <div class="flex items-stretch">
               <div class="py-6 w-full">{item.name}</div>
               <div class="py-6 w-full">{item.email}</div>
+              <div class="py-6 w-full">{item.tenantId}</div>
               <button>Delete</button>
             </div>
           );

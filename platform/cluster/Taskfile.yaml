@@ -9,14 +9,13 @@ tasks:
     aliases:
       - create
     dir: platform/cluster
-    preconditions:
-      - echo default CLUSTER_TYPE: {{.CLUSTER_TYPE}}
-      - ctlptl create cluster -h
+#    preconditions:
+#      - echo default CLUSTER_TYPE: {{.CLUSTER_TYPE}}
+#      - ctlptl create cluster -h
     cmds:
       - ctlptl create cluster {{.CLUSTER_TYPE}} --registry=ctlptl-registry
 #      - kind create cluster --config cluster.yaml
-      - task: istio
-      - echo create cluster {{.CLUSTER_TYPE}}
+#      - task: istio
   kind-local-cluster:down:
     desc: Delete Kind Cluster.
     summary: Delete Kind Cluster.
@@ -24,6 +23,7 @@ tasks:
       - delete
     cmds:
       - ctlptl delete cluster {{.CLUSTER_TYPE}}
+#      - kind delete cluster
 
   ingress:
     cmds:
@@ -37,7 +37,7 @@ tasks:
 
   istio:
     cmds:
-      - up uxp install
+      - istioctl install --set profile=demo -y
 
   linkerd:
     cmds:

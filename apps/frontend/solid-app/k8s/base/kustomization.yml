@@ -4,10 +4,10 @@ resources:
   - service.yml
   - deployment.yml
   - ingress.yaml
-commonLabels:
-  demo: web-host
-  service: web-host
-  my-type: static
+#commonLabels:
+#  demo: web-host
+#  service: web-host
+#  my-type: static
 #namespace: users
 #  - servi
 configMapGenerator:

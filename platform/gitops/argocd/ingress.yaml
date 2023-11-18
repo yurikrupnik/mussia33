@@ -28,14 +28,6 @@ spec:
     - match:
         - uri:
             exact: /argocd
-      #        - uri:
-      #            prefix: /static
-      #        - uri:
-      #            exact: /login
-      #        - uri:
-      #            exact: /logout
-      #        - uri:
-      #            prefix: /api/v1/products
       route:
         - destination:
             #            host: argocd-server.argocd.svc.cluster.local
@@ -43,24 +35,26 @@ spec:
             #            host: prometheus.istio-system.svc.cluster.local
             port:
               number: 8080
-
+#---
 #apiVersion: networking.k8s.io/v1
 #kind: Ingress
 #metadata:
-#  name: example-ingress
+#  name: argo-ingress
+#  namespace: argocd
 #  annotations:
 #    #    kubernetes.io/ingress.class: nginx
-#    nginx.ingress.kubernetes.io/rewrite-target: /
+#    nginx.ingress.kubernetes.io/rewrite-target: /$2
 #spec:
 #  rules:
 #    - http:
 #        paths:
-#
-#          - pathType: Prefix
-#            path: /
+##          - pathType: Prefix
+#          - pathType: Exact
+#            path: /as
+##            path: /as(/|$)(.*)
 #            backend:
 #              service:
 #                name: argocd-server
 #                port:
-#                  number: 80
-#---
+#                  number: 8080
+---

@@ -46,7 +46,20 @@ import { Application as A } from "../imports/argoproj.io";
 import {} from "../imports/argocd.crossplane.io";
 import { Application } from "../imports/applications.argocd.crossplane.io";
 import { Release } from "../imports/helm.crossplane.io";
+import {} from "../imports/apiextensions.crossplane.io";
+import {} from "../imports/pkg.crossplane.io";
+import { Function } from "../imports/meta.pkg.crossplane.io";
 // import { App } from "../imports/argoproj.io"
+// const s = Function.manifest({
+//   metadata: {
+//     name: "ads",
+//   },
+//   spec: {
+//     crossplane: { version: "v1alpha1" },
+//     dependsOn: [],
+//   },
+// });
+
 // const helmChars: Array<Application> = [
 //   {
 //     metadata: {

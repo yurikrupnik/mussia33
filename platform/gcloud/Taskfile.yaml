@@ -3,10 +3,10 @@
 version: '3'
 
 vars:
-  #  ACCOUNT: krupnik.yuri@gmail.com
-  #  PROJECT: mussia-infra
-  PROJECT: yuri-sandbox
-  ACCOUNT: yurik@sela.co.il
+    ACCOUNT: krupnik.yuri@gmail.com
+    PROJECT: shared-404221
+#  PROJECT: yuri-sandbox
+#  ACCOUNT: yurik@sela.co.il
 
 tasks:
   set-gcp:

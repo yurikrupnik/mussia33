@@ -12,9 +12,9 @@
 docker_build(
   "yurikrupnik/master-operator",
   "../../..",
-  dockerfile="../../../Dockerfile.rust",
+  dockerfile="../../../rust.Dockerfile",
   build_args={"APP_NAME":"rust_master_operator"},
   target="rust",
 )
 
-k8s_yaml(kustomize('k8s/base'))
+# k8s_yaml(kustomize('k8s/base'))

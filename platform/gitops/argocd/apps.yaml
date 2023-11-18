@@ -171,29 +171,30 @@ spec:
       selfHeal: true
       prune: true
       allowEmpty: true
+#---
+#apiVersion: argoproj.io/v1alpha1
+#kind: Application
+#metadata:
+# name: myapp-argo-application
+# namespace: argocd
+#spec:
+# project: default
+# source:
+#   repoURL: https://github.com/yurikrupnik/nx-go-playground.git
+#   targetRevision: HEAD
+#   path: k8s/base
+# destination:
+#   server: https://kubernetes.default.svc
+#   namespace: nx-go-playground
+#
+# syncPolicy:
+#   syncOptions:
+#     - CreateNamespace=true
+#
+#   automated:
+#     selfHeal: true
+#     prune: true
 ---
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
- name: myapp-argo-application
- namespace: argocd
-spec:
- project: default
- source:
-   repoURL: https://github.com/yurikrupnik/nx-go-playground.git
-   targetRevision: HEAD
-   path: k8s/base
- destination:
-   server: https://kubernetes.default.svc
-   namespace: nx-go-playground
-
- syncPolicy:
-   syncOptions:
-     - CreateNamespace=true
-
-   automated:
-     selfHeal: true
-     prune: true
 # apiVersion: argoproj.io/v1alpha1
 # kind: Application
 # metadata:
@@ -263,62 +264,62 @@ spec:
      selfHeal: true
      prune: true
 ---
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: mussia33
-  namespace: argocd
+#apiVersion: argoproj.io/v1alpha1
+#kind: Application
+#metadata:
+#  name: mussia33
+#  namespace: argocd
+##  labels:
+##    argocd.argoproj.io/instance: argocd
+##    argocd.argoproj.io/managed-by: argocd-server
+##    argocd.argoproj.io/secret-type: repository
+##    argocd.argoproj.io/private-repo: "false"
+##    argocd.argoproj.io/repo:
+#spec:
+#  project: default
+#  source:
+#    repoURL: https://github.com/yurikrupnik/mussia33.git
+#    targetRevision: HEAD
+#    path: k8s/base
+#  destination:
+#    server: https://kubernetes.default.svc
+#    namespace: mussia33
+#  syncPolicy:
+#    syncOptions:
+#      - CreateNamespace=true
+#
+#    automated:
+#      selfHeal: true
+#      prune: true
+#---
+#apiVersion: argoproj.io/v1alpha1
+#kind: Application
+#metadata:
+#  name: mussia34
+#  namespace: argocd
 #  labels:
 #    argocd.argoproj.io/instance: argocd
 #    argocd.argoproj.io/managed-by: argocd-server
 #    argocd.argoproj.io/secret-type: repository
-#    argocd.argoproj.io/private-repo: "false"
-#    argocd.argoproj.io/repo:
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/yurikrupnik/mussia33.git
-    targetRevision: HEAD
-    path: k8s/base
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: mussia33
-  syncPolicy:
-    syncOptions:
-      - CreateNamespace=true
-
-    automated:
-      selfHeal: true
-      prune: true
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: mussia34
-  namespace: argocd
-  labels:
-    argocd.argoproj.io/instance: argocd
-    argocd.argoproj.io/managed-by: argocd-server
-    argocd.argoproj.io/secret-type: repository
-    argocd.argoproj.io/private-repo: "true"
-#    argocd.argoproj.io/repo:
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/yurikrupnik/mussia34.git
-    targetRevision: HEAD
-    path: k8s/base
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: mussia34
-  syncPolicy:
-    syncOptions:
-      - CreateNamespace=true
-
-    automated:
-      selfHeal: true
-      prune: true
----
+#    argocd.argoproj.io/private-repo: "true"
+##    argocd.argoproj.io/repo:
+#spec:
+#  project: default
+#  source:
+#    repoURL: https://github.com/yurikrupnik/mussia34.git
+#    targetRevision: HEAD
+#    path: k8s/base
+#  destination:
+#    server: https://kubernetes.default.svc
+#    namespace: mussia34
+#  syncPolicy:
+#    syncOptions:
+#      - CreateNamespace=true
+#
+#    automated:
+#      selfHeal: true
+#      prune: true
+#---
 #apiVersion: argoproj.io/v1alpha1
 #kind: Application
 #metadata:
@@ -341,30 +342,30 @@ spec:
 #    automated:
 #      selfHeal: true
 #      prune: true
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: crossplane
-  namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-spec:
-  project: default
-  source:
-    chart: crossplane
-    repoURL: https://charts.crossplane.io/stable
-    targetRevision: "1.11.3"
-  destination:
-    namespace: crossplane-system
-    server: https://kubernetes.default.svc
-  syncPolicy:
-    automated:
-      selfHeal: true
-      prune: true
-      allowEmpty: true
-    syncOptions:
-      - CreateNamespace=true
+#---
+#apiVersion: argoproj.io/v1alpha1
+#kind: Application
+#metadata:
+#  name: crossplane
+#  namespace: argocd
+#  finalizers:
+#    - resources-finalizer.argocd.argoproj.io
+#spec:
+#  project: default
+#  source:
+#    chart: crossplane
+#    repoURL: https://charts.crossplane.io/stable
+#    targetRevision: "1.11.3"
+#  destination:
+#    namespace: crossplane-system
+#    server: https://kubernetes.default.svc
+#  syncPolicy:
+#    automated:
+#      selfHeal: true
+#      prune: true
+#      allowEmpty: true
+#    syncOptions:
+#      - CreateNamespace=true
 
 ---
 apiVersion: argoproj.io/v1alpha1

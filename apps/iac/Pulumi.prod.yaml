@@ -1,0 +1,4 @@
+config:
+  aws:region: il-central-1
+  gcp:project: shared-404221
+  gcp:region: me-west1

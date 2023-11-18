@@ -19,3 +19,4 @@ spec:
                 name: komoplane
                 port:
                   number: 8090
+---

@@ -21,14 +21,14 @@ tasks:
       - kubectl apply -f store.yaml
       - kubectl apply -f secrets.yaml
   using-key1:
-    #    dir: ./platform/external-secrets
     cmds:
-      - kind create cluster
-      - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
-      - kubectl create secret generic secret-puller --from-file=creds=./secret-puller-key.json
-      - kubectl create namespace aris
       - kubectl -n external-secrets wait deployment external-secrets-webhook --for=condition=Available --timeout=180s
       - kubectl -n external-secrets wait deployment external-secrets-cert-controller --for=condition=Available --timeout=180s
+      - kubectl create secret generic secret-puller --from-file=creds=./tmp/secret-puller-key.json
+      - task: apply
+  apply:
+    dir: ./platform/external-secrets
+    cmds:
       - kubectl apply -f store1.yaml
       - kubectl apply -f secrets.yaml
   using-minikube: # does not work with key - fix!!!

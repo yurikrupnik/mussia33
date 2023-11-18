@@ -1,0 +1,29 @@
+apiVersion: core.oam.dev/v1beta1
+kind: Application
+metadata:
+  name: fiber-app
+spec:
+  components:
+    - name: fiber-app
+      type: webservice
+      properties:
+        image: yurikrupnik/fiber-app:sha-b9d0e7e
+        ports:
+          - port: 8080
+            expose: true
+    - name: fiber-app
+      type: webservice
+      properties:
+        image: yurikrupnik/fiber-app:sha-b9d0e7e
+        ports:
+          - port: 8080
+            expose: true
+#      traits:
+#        - type: scaler
+#          properties:
+#            replicas: 1
+#        - type: ingress
+#          properties:
+#            domain: localhost
+#            http:
+#              "/": 8080
