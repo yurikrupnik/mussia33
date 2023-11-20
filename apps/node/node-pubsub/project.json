@@ -20,7 +20,8 @@
           "apps/node/node-pubsub/src/assets"
         ],
         "isolatedConfig": true,
-        "webpackConfig": "apps/node/node-pubsub/webpack.config.js"
+        "webpackConfig": "apps/node/node-pubsub/webpack.config.js",
+        "generatePackageJson": true
       },
       "configurations": {
         "development": {},

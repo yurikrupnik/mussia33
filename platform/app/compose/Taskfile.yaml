@@ -11,8 +11,10 @@ tasks:
       - echo "{{.GREETING}}"
     silent: true
   up:
+    dir: platform/app/compose
     cmds:
       - docker-compose up -d
   down:
+    dir: platform/app/compose
     cmds:
       - docker-compose down

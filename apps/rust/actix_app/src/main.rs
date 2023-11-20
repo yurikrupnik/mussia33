@@ -46,11 +46,11 @@ async fn main() -> std::io::Result<()> {
     let client_data = web::Data::new(client);
 
     let port = get_port();
-    log::info!("Starting HTTP server on http://localhost:{port}");
+    log::info!("Starting HTTP server on http://localhost:{port}!");
 
     HttpServer::new(move || {
         App::new()
-            .route("/health", web::get().to(get_status))
+            .route("/a", web::get().to(get_status))
             .service(
                 web::scope("/api")
                     .app_data(client_data.clone())

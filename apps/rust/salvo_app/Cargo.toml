@@ -6,8 +6,22 @@ edition = "2021"
 
 [dependencies]
 
-salvo = { version = "0.58.3", features = ["caching-headers", "compression", "oapi"] }
+salvo = { version = "0.58.3", features = ["caching-headers", "compression", "oapi", "logging"] }
 tokio = { version = "1.33.0", features = ["macros"] }
+rust_generic_api.workspace = true
+rust_servers_shared.workspace = true
+rust_proc_macros.workspace = true
+mongodb.workspace = true
+ts-rs.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+validator.workspace = true
+uuid = { version = "1.5.0", features = ["serde", "v4", "js"] }
+chrono = {version = "0.4.31", features = ["serde"] }
+jsonwebtoken = { version = "9.1.0" }
+log = { workspace = true }
+sqlx = { workspace = true }
+once_cell = { version = "1.18.0" }
+futures = { workspace = true }
