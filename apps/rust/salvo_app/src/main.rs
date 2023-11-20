@@ -1,17 +1,25 @@
-use salvo::http::{StatusCode, StatusError};
+// mod product;
+// mod author;
+use salvo::logging::Logger;
+mod users;
+mod author;
+use users::user_router;
+use author::author_router;
+// use salvo::http::{StatusCode, StatusError};
 use salvo::oapi::extract::*;
-use salvo::oapi::{self, EndpointOutRegister, ToSchema};
+use salvo::oapi::{EndpointOutRegister, ToSchema};
 use salvo::prelude::*;
-use tracing::instrument::WithSubscriber;
-use tracing_subscriber::fmt::format;
-
-struct App {}
-impl App {
-    pub const TAG: &'static str = "Products";
-    fn get_tag() -> String {
-        "Tags".to_string()
-    }
-}
+use mongodb::Client;
+// use tracing::instrument::WithSubscriber;
+// use tracing_subscriber::fmt::format;
+use rust_servers_shared::get_sql_uri;
+// struct App {}
+// impl App {
+//     pub const TAG: &'static str = "Products";
+//     fn get_tag() -> String {
+//         "Tags".to_string()
+//     }
+// }
 
 /// This is a summary of the operation
 ///
@@ -27,78 +35,54 @@ struct Todo {
     text: String,
     completed: bool,
 }
-// #[endpoint(status_codes(201))]
-// pub async fn create_todo(new_todo: JsonBody<Todo>) -> Result<StatusCode, Err> {
-//   Ok(StatusCode::CREATED)
-// }
 
-// impl EndpointOutRegister for Error {
-//   fn register(components: &mut oapi::Components, operation: &mut oapi::Operation) {
-//     operation.responses.insert(
-//       StatusCode::INTERNAL_SERVER_ERROR.as_str(),
-//       oapi::Response::new("Internal server error").add_content("application/json", StatusError::to_schema(components)),
-//     );
-//     operation.responses.insert(
-//       StatusCode::NOT_FOUND.as_str(),
-//       oapi::Response::new("Not found").add_content("application/json", StatusError::to_schema(components)),
-//     );
-//     operation.responses.insert(
-//       StatusCode::BAD_REQUEST.as_str(),
-//       oapi::Response::new("Bad request").add_content("application/json", StatusError::to_schema(components)),
-//     );
-//   }
-// }
 
 /// This is a summary of the operation
 ///
 /// All lines of the doc comment will be included to operation description.
 #[endpoint(status_codes(200, 409), tags("Default"))]
 async fn hallo(name: QueryParam<String, false>) -> String {
-    format!("Hallo, {}!", name.as_deref().unwrap_or("World"))
-}
-
-#[endpoint(status_codes(201, 409), tags("Default"))]
-async fn create_todo(name: QueryParam<String, false>) -> String {
-    // let s = name.iter().map(|x| x.text.clone()).collect::<Vec<String>>().join(",");
-    // format!("Create todo, {}!", name.as_deref().unwrap_or("World"))
-    format!("create_todo, {}!", name.as_deref().unwrap_or("World"))
-}
-
-#[endpoint(status_codes(200, 409), tags("Default"))]
-async fn get_todo(name: QueryParam<String, false>) -> String {
-    // let s = name.iter().map(|x| x.text.clone()).collect::<Vec<String>>().join(",");
-    // format!("Create todo, {}!", name.as_deref().unwrap_or("World"))
-    format!("create_todo, {}!", name.as_deref().unwrap_or("World"))
-}
-
-#[endpoint(status_codes(200, 409), tags("Default"))]
-async fn get_todos(name: QueryParam<String, false>) -> String {
-    // let s = name.iter().map(|x| x.text.clone()).collect::<Vec<String>>().join(",");
-    // format!("Create todo, {}!", name.as_deref().unwrap_or("World"))
-    format!("create_todos, {}!", name.as_deref().unwrap_or("World"))
-}
-
-fn todo_config()-> Router {
-  Router::with_path("todo")
-        // .push(Router::with_path("todo:{id}").get(get_todo))
-        .push(Router::with_path("todo").get(get_todos))
-        .push(Router::with_path("todo").post(create_todo))
+  format!("Hallo, {}!", name.as_deref().unwrap_or("World"))
 }
 
 fn new_route() -> Router {
     Router::with_path("/api")
-      // .push(todo_config())
-        .push(Router::with_path("hello").get(hello))
-        .push(Router::with_path("hallo").get(hallo))
-        // .push(Router::with_path("todo:{id}").get(get_todo))
-        // .push(Router::with_path("todo").get(get_todos))
-        // .push(Router::with_path("todo").post(create_todo))
+      .hoop(Logger::new())
+      .push(user_router())
+      .push(author_router())
+      .push(Router::with_path("hello").get(hello))
+      .push(Router::with_path("hallo").get(hallo))
+}
+
+use sqlx::{Pool, PgPool};
+use mongodb::{Client as MongoClient, options::ClientOptions};
+use once_cell::sync::OnceCell;
+
+pub static DB_POOL: OnceCell<PgPool> = OnceCell::new();
+pub fn db_pool<'a>() -> &'a PgPool {
+  DB_POOL.get().unwrap()
+}
+
+pub static MONGO_POOL: OnceCell<MongoClient> = OnceCell::new();
+
+pub fn mongo_pool<'a>() -> &'a MongoClient {
+  MONGO_POOL.get().unwrap()
+}
+
+pub async fn make_db_pool(db_url: &str) -> PgPool {
+  Pool::connect(&db_url).await.unwrap()
 }
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt().init();
-
+    let pool = make_db_pool(&get_sql_uri()).await;
+    DB_POOL.set(pool).unwrap();
+    let uri = std::env::var("MONGO_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
+    let client = Client::with_uri_str(uri).await.expect("failed to connect");
+    MONGO_POOL.set(client).unwrap();
+  //   let s= MONGO_POOL.get().unwrap();
+  // s.database("Ds").collection();
     let router = Router::new()
       // .hoop(CachingHeaders::new())
       // .hoop(Compression::new().min_length(0))

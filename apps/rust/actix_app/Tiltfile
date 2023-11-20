@@ -6,4 +6,25 @@ docker_build(
   target="rust",
 )
 
+# local_resource(
+#   'build-actix-app',
+#   dir="../../..",
+#   cmd='pnpm nx run go-fiber-app:build --prod',
+#   deps=['.', '../../../libs/rust'],
+#   # resource_deps=[""],
+#   ignore=["k8s"],
+#   # env={"GOOS":"linux","GOARCH":"amd64"},
+#   labels=["pnpm"],
+# )
+
+# docker_build(
+#   "yurikrupnik/actix-app",
+#   "../../..",
+#   dockerfile="../../../Dockerfile",
+#   build_args={"DIST_PATH":"dist/target/rust_actix_app/release/rust_actix_app"},
+#   # only=["dist/target/rust_actix_app/release/rust_actix_app"],
+#   target="scratch",
+# )
+
+
 k8s_resource("actix-app", port_forwards="5201:8080")

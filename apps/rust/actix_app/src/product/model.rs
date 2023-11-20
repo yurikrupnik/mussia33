@@ -7,7 +7,7 @@ use utoipa::ToSchema;
 /// Request to update existing `Product` item.
 #[derive(Clone, ToSchema, Debug, PartialEq, Eq, Deserialize, Serialize, TS)]
 #[serde(deny_unknown_fields)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct Product {
     #[serde(rename(deserialize = "_id"), serialize_with = "serialize_object_id")]
     #[ts(type = "string")]

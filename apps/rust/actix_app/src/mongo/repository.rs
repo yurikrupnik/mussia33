@@ -12,7 +12,8 @@ use mongodb::{
     },
     options::{FindOneAndUpdateOptions, FindOptions, ReturnDocument},
     results::DeleteResult,
-    Client, Collection,
+    Client, Collection, Database,
+
 };
 use serde::{de::DeserializeOwned, Serialize};
 use validator::Validate;

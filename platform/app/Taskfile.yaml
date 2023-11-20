@@ -1,7 +1,9 @@
 # https://taskfile.dev
 
 version: '3'
-
+#includes:
+#  compose: ./compose
+#  cluster: ./platform/cluster
 vars:
   GREETING: Hello, World!
 
