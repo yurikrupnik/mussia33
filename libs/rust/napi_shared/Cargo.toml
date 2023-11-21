@@ -8,7 +8,7 @@ edition = '2021'
 napi = { version = '2.13.3', default-features = false, features = [
 	'napi4',
 ] }
-napi-derive = '2.13.0'
+napi-derive = '2.14.2'
 
 [lib]
 crate-type = [
