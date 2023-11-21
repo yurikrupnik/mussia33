@@ -16,4 +16,4 @@ crate-type = [
 ]
 
 [build-dependencies]
-napi-build = '2.0.1'
+napi-build = '2.1.0'
