@@ -47,7 +47,7 @@ rust_author_api = { path = 'libs/rust/author_api' }
 rust_napi_shared = { path = 'libs/rust/napi_shared' }
 rust_servers_shared = { path = 'libs/rust/servers_shared' }
 rust_generic_api = { path = 'libs/rust/generic_api' }
-schemars = '0.8.15'
+schemars = '0.8.16'
 serde = { version = '1.0.192', features = ['derive'] }
 serde_json = { version = '1.0.108', features = ['arbitrary_precision'] }
 serde_derive = '1.0.192'
