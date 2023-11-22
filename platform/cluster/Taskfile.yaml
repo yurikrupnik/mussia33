@@ -1,6 +1,6 @@
 version: '3'
 vars:
-  CLUSTER_TYPE: minikube
+  CLUSTER_TYPE: kind
   INGRESS_TYPE: ingress
 tasks:
   kind-local-cluster:up:

@@ -30,7 +30,7 @@ spec:
           forProvider:
             initialClusterVersion: "1.27"
             location: us-west2
-            serviceAccount: sa-test
+#            serviceAccount: sa-test
             masterAuthorizedNetworksConfig:
               enabled: false
             ipAllocationPolicy:

@@ -1,0 +1,33 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: aws.compositeregistrys.multicloud.platformref.yurikrupnik.com
+  labels:
+    provider: AWS
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+    kind: CompositeRegistry
+  resources:
+    - base:
+        apiVersion: ecr.aws.upbound.io/v1beta1
+        kind: Repository
+        metadata:
+          labels:
+            testing.upbound.io/example-name: example
+          name: example
+        spec:
+          forProvider:
+            imageScanningConfiguration:
+              - scanOnPush: true
+            imageTagMutability: IMMUTABLE
+            region: us-west-1
+            tags:
+              iac: crossplane
+      patches:
+        - fromFieldPath: spec.forProvider.region
+          toFieldPath: spec.forProvider.location
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[networks.multicloud.platformref.yurikrupnik.com/network-id]
+

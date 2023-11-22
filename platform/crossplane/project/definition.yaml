@@ -1,0 +1,45 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: project.multicloud.platformref.yurikrupnik.com
+spec:
+  claimNames:
+    kind: Project
+    plural: projects
+  group: multicloud.platformref.yurikrupnik.com
+  names:
+    kind: CompositeProject
+    plural: compositeprojects
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                region:
+                  type: string
+                  description: ID of this Registry that other objects will use to refer to it.
+                cloud:
+                  type: string
+                  description: ID of this Registry that other objects will use to refer to it.
+#                clusterRef:
+#                  type: object
+#                  description: "A reference to the Cluster object that this registry will be used for."
+
+#                clusterRef:
+#                  type: object
+#                  description: "A reference to the Cluster object that this registry will be used for."
+#                  properties:
+#                    id:
+#                      type: string
+#                      description: ID of the Cluster object this ref points to.
+#                  required:
+#                    - id
+#              required:
+#                - id
+#                - clusterRef

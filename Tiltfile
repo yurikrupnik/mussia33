@@ -20,7 +20,7 @@ local_resource('protoc', cmd='task protoc', deps=['_porot/'], labels=['task'])
 # k8s_yaml(kustomize('_proto/'))
 
 # include('./apps/rust/actix_app/Tiltfile')
-include('./apps/rust/salvo_app/Tiltfile')
+# include('./apps/rust/salvo_app/Tiltfile')
 # include('./apps/rust/master_operator/Tiltfile')
 # include('./apps/rust/axum_app/Tiltfile')
 # include('./apps/rust/mongo-api/Tiltfile')

@@ -43,9 +43,9 @@ tasks:
     deps:
       - task: argocd:install
       - task: crossplane:setup
-#      - task: kubevela:install
       - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
-      - helm upgrade --install k8s-watcher komodorio/k8s-watcher --set apiKey=4b11ca71-2163-45d8-88a8-bd0c0d450657 --set watcher.clusterName=master-cluster  --wait --timeout=90s && open https://app.komodor.com/main/services
+#      - helm upgrade --install k8s-watcher komodorio/k8s-watcher --set apiKey=4b11ca71-2163-45d8-88a8-bd0c0d450657 --set watcher.clusterName=master-cluster  --wait --timeout=90s && open https://app.komodor.com/main/services
+      - task: kubevela:install
     cmds:
       - echo installed all deps!
   start-cluster:
@@ -69,12 +69,12 @@ tasks:
       - task: start-cluster
     cmds:
       - echo ready to work on!.
-      - helm repo add komodorio https://helm-charts.komodor.io
-      - helm repo update
+#      - open https://app.komodor.com/main/services
+#      - helm repo add komodorio https://helm-charts.komodor.io
+#      - helm repo update
 #      --set apiKey=4b11ca71-2163-45d8-88a8-bd0c0d450657
-      - helm upgrade --install k8s-watcher komodorio/k8s-watcher --set apiKey=4b11ca71-2163-45d8-88a8-bd0c0d450657 --set watcher.clusterName=master-cluster  --wait --timeout=90s && open https://app.komodor.com/main/services
-      - task: kubevela:install
-      - open https://app.komodor.com/main/services
+#      - helm upgrade --install k8s-watcher komodorio/k8s-watcher --set apiKey=4b11ca71-2163-45d8-88a8-bd0c0d450657 --set watcher.clusterName=master-cluster  --wait --timeout=90s && open https://app.komodor.com/main/services
+#      - task: kubevela:install
 #     - cargo run -p rust_master_operator
 #      - timoni apply cluster platform/app/timoni/cluster
 #      - tilt up

@@ -33,6 +33,8 @@ tasks:
     cmds:
       - kubectl create secret generic aws-secret -n crossplane-system --from-file=creds=./tmp/aws_creds.txt
       - kubectl create secret generic gcp-secret -n crossplane-system --from-file=creds=./tmp/gcp-credentials.json
+      - kubectl create secret generic azure-secret -n crossplane-system --from-file=creds=./tmp/azure.json
+
   create-gcp-provider:
     dir: platform/crossplane
     cmds:

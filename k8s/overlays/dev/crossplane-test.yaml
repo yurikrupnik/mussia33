@@ -1,0 +1,184 @@
+apiVersion: cloudplatform.gcp.upbound.io/v1beta1
+kind: ProjectService
+metadata:
+  annotations:
+    meta.upbound.io/example-id: cloudplatform/v1beta1/cloudresourcemanager
+  labels:
+    testing.upbound.io/example-name: cloudresourcemanager
+  name: cloudresourcemanager
+spec:
+  forProvider:
+    disableDependentServices: false
+    service: cloudresourcemanager.googleapis.com
+    project: shared-404221
+    #    disableOnDestroy: false
+#    service: artifactregistry.googleapis.com
+---
+apiVersion: cloudplatform.gcp.upbound.io/v1beta1
+kind: ProjectService
+metadata:
+  annotations:
+    meta.upbound.io/example-id: cloudplatform/v1beta1/cloudbuild
+  labels:
+    testing.upbound.io/example-name: cloudbuild
+  name: cloudbuild
+spec:
+  forProvider:
+    disableDependentServices: false
+    #    disableOnDestroy: false
+    service: cloudbuild.googleapis.com
+    #    service: artifactregistry.googleapis.com
+    project: shared-404221
+---
+apiVersion: cloudplatform.gcp.upbound.io/v1beta1
+kind: ProjectService
+metadata:
+  annotations:
+    meta.upbound.io/example-id: cloudplatform/v1beta1/build
+  labels:
+    testing.upbound.io/example-name: container
+  name: container
+spec:
+  forProvider:
+    disableDependentServices: false
+    #    disableOnDestroy: false
+    service: container.googleapis.com
+    #    service: artifactregistry.googleapis.com
+    project: shared-404221
+---
+apiVersion: cloudplatform.gcp.upbound.io/v1beta1
+kind: ProjectService
+metadata:
+  annotations:
+    meta.upbound.io/example-id: cloudplatform/v1beta1/compute
+  labels:
+    testing.upbound.io/example-name: compute
+  name: compute
+spec:
+  forProvider:
+    disableDependentServices: false
+    #    disableOnDestroy: false
+    service: compute.googleapis.com
+    project: shared-404221
+---
+apiVersion: container.gcp.upbound.io/v1beta1
+kind: Cluster
+metadata:
+  annotations:
+    meta.upbound.io/example-id: gkehub/v1beta1/my-cluster1
+  #    upjet.upbound.io/manual-intervention: "Error 404: Method not found"
+  labels:
+    testing.upbound.io/example-name: my-cluster1
+  name: my-cluster1
+spec:
+  forProvider:
+    #    serviceAccount: k8sowners@shared-404221.iam.gserviceaccount.com
+    initialNodeCount: 1
+    location: us-central1-a
+    nodeConfig:
+      - machineType: e2-standard-4
+---
+apiVersion: container.gcp.upbound.io/v1beta1
+kind: NodePool
+metadata:
+  annotations:
+    meta.upbound.io/example-id: container/v1beta1/nodepool
+  labels:
+    testing.upbound.io/example-name: nodepool
+  name: nodepool
+spec:
+  forProvider:
+    clusterSelector:
+      matchLabels:
+        testing.upbound.io/example-name: my-cluster1
+    nodeConfig:
+      - machineType: e2-medium
+        oauthScopes:
+          - https://www.googleapis.com/auth/cloud-platform
+    nodeCount: 1
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Storage
+metadata:
+  name: storage-aws
+spec:
+  location: us-west-2
+  compositionSelector:
+    matchLabels:
+      provider: AWS
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Storage
+metadata:
+  name: storage-gcp
+spec:
+  location: us-west1
+  labels:
+    provider: GCP
+  compositionSelector:
+    matchLabels:
+      provider: GCP
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Network
+metadata:
+  name: network-gcp
+spec:
+  id: multik8s-network-gcp
+  clusterRef:
+    id: multik8s-cluster-gcp
+  compositionSelector:
+    matchLabels:
+      provider: GCP
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Network
+metadata:
+  name: network-aws
+spec:
+  id: multik8s-network-aws
+  clusterRef:
+    id: multik8s-cluster-aws
+  compositionSelector:
+    matchLabels:
+      provider: AWS
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Registry
+metadata:
+  name: a-team-registry
+spec:
+  id: a-team-registry
+  location: us-west1
+  compositionSelector:
+    matchLabels:
+      provider: GCP
+#---
+#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#kind: Cluster
+#metadata:
+#  name: a-team-gke
+#spec:
+#  id: multik8s-cluster-gcp
+#  parameters:
+#    nodes:
+#      count: 1
+#      size: small
+#    networkRef:
+#      id: multik8s-network-gcp
+#  writeConnectionSecretToRef:
+#    name: a-team-eks
+#  compositionSelector:
+#    matchLabels:
+#      provider: GCP
+#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#kind: Network
+#metadata:
+#  name: network-gcp
+#spec:
+#  id: multik8s-network-gcp
+#  clusterRef:
+#    id: multik8s-cluster-gcp
+#  compositionSelector:
+#    matchLabels:
+#      provider: GCP

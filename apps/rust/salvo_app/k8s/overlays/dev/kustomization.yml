@@ -1,6 +1,7 @@
 resources:
   - ../../base
 patches:
+#      Todo fix DATABASE_URL
   - patch: |-
       - op: replace
         path: "/spec/template/spec/containers/0/env/0"
@@ -8,5 +9,11 @@ patches:
           name: MONGO_URI
           #    value: "mongodb://host.docker.internal"
           value: "mongodb://mongodb-service.default.svc.cluster.local"
+      - op: replace
+        path: "/spec/template/spec/containers/0/env/1"
+        value:
+          name: DATABASE_URL
+          value: "postgres://myuser:mypassword@postgres-service.default.svc.cluster.local"
+#          value: "postgres://myuser:mypassword@postgres-service.default.svc.cluster.local/mydatabase"
     target:
       kind: Deployment
