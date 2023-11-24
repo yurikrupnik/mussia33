@@ -93,7 +93,7 @@
     "lodash": "^4.17.21",
     "mongoose": "^8.0.0",
     "nestjs-seeder": "^0.3.1",
-    "prom-client": "^14.2.0",
+    "prom-client": "^15.0.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0",
     "tslib": "^2.3.0",
