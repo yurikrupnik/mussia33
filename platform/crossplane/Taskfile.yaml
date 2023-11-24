@@ -41,10 +41,25 @@ tasks:
       - kubectl apply -f gcpProvider.yaml
       - kubectl get providers
       - sleep 60
-      - kubectl wait "providers.pkg.crossplane.io/provider-gcp" --for=condition=Installed --timeout=600s
-      - kubectl wait "providers.pkg.crossplane.io/provider-aws" --for=condition=Installed --timeout=600s
-      - kubectl wait "providers.pkg.crossplane.io/provider-gcp" --for=condition=Healthy --timeout=600s
-      - kubectl wait "providers.pkg.crossplane.io/provider-aws" --for=condition=Healthy --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-gcp-storage" --for=condition=Healthy --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-gcp-storage" --for=condition=Installed --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-gcp-artifact" --for=condition=Healthy --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-gcp-artifact" --for=condition=Installed --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-gcp-compute" --for=condition=Healthy --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-gcp-compute" --for=condition=Installed --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-gcp-cloudrun" --for=condition=Healthy --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-gcp-cloudrun" --for=condition=Installed --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-gcp-cloudplatform" --for=condition=Healthy --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-gcp-cloudplatform" --for=condition=Installed --timeout=600s
+#      - kubectl wait "providers.pkg.crossplane.io/provider-gcp-container" --for=condition=Healthy --timeout=600s
+#      - kubectl wait "providers.pkg.crossplane.io/provider-gcp-container" --for=condition=Installed --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-aws-s3" --for=condition=Healthy --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-aws-s3" --for=condition=Installed --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-aws-ecr" --for=condition=Healthy --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/provider-aws-ecr" --for=condition=Installed --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/upbound-provider-family-gcp" --for=condition=Installed --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/upbound-provider-family-aws" --for=condition=Installed --timeout=600s
+      - kubectl wait "providers.pkg.crossplane.io/upbound-provider-family-azure" --for=condition=Installed --timeout=600s
       - kubectl get providers
       - kubectl apply -f gcpProviderConfig.yaml
       - kubectl get pkgrev
@@ -67,6 +82,9 @@ tasks:
       - kubectl apply -f registry/definition.yaml
       - kubectl apply -f registry/composition-aws.yaml
       - kubectl apply -f registry/composition-gcp.yaml
+      - kubectl apply -f project/definition.yaml
+      - kubectl apply -f project/composition-gcp.yaml
+#      - kubectl apply -f project/composition-aws.yaml
   get-buckets:
     cmds:
       - kubectl get bucket

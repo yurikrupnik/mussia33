@@ -228,7 +228,7 @@ export class MyChart extends Chart {
     //   },
     // });
 
-    new Composition(this, "gcp-network", {
+    const gcpNetwork = new Composition(this, "gcp-network", {
       metadata: {
         name: "gcp.networks",
         labels: {
@@ -317,6 +317,8 @@ export class MyChart extends Chart {
         ],
       },
     });
+
+    // gcpNetwork.
 
     new Composition(this, "aws-network", {
       metadata: {

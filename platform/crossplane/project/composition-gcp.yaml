@@ -1,40 +1,63 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: gcp.compositeregistrys.multicloud.platformref.yurikrupnik.com
+  name: gcp.compositeprojects.multicloud.platformref.yurikrupnik.com
   labels:
     provider: GCP
 spec:
   writeConnectionSecretsToNamespace: crossplane-system
   compositeTypeRef:
     apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
-    kind: CompositeRegistry
+    kind: CompositeProject
   resources:
-    - base:
-        apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
-        kind: Storage
+    - name: Registry
+      base:
+        apiVersion: apps/v1
+        kind: Deployment
         metadata:
-          name: storage-aws
+          name: nginx-deployment
         spec:
-          location: us-west-2
-          compositionSelector:
+          selector:
             matchLabels:
-              provider: aws
+              app: nginx
+          replicas: 2 # tells deployment to run 2 pods matching the template
+          template:
+            metadata:
+              labels:
+                app: nginx
+            spec:
+              containers:
+                - name: nginx
+                  image: nginx:1.14.2
+                  ports:
+                    - containerPort: 80
+#    - name: Storage
+#      base:
+#        apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#        kind: Storage
+#        metadata:
+#          name: project-storage
+#        spec:
+#          location: us-west-2
+#          compositionSelector:
+#            matchLabels:
+#              provider: GCP
 #      patches:
 #        - fromFieldPath: spec.forProvider.region
 #          toFieldPath: spec.forProvider.location
 #        - fromFieldPath: spec.id
 #          toFieldPath: metadata.labels[networks.multicloud.platformref.yurikrupnik.com/network-id]
 
-    - base:
-        apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
-        kind: Network
-        metadata:
-          name: network-gcp
-        spec:
-          id: multik8s-network-gcp
-          clusterRef:
-            id: multik8s-cluster-gcp
-          compositionSelector:
-            matchLabels:
-              provider: GCP
+#    - name: Network
+#      base:
+#        apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#        kind: Network
+#        metadata:
+#          name: project-network
+#        spec:
+#          id: project-network
+#          clusterRef:
+#            id: multik8s-cluster-gcp
+#          compositionSelector:
+#            matchLabels:
+#              provider: GCP

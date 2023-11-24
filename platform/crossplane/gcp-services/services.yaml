@@ -1,0 +1,62 @@
+apiVersion: cloudplatform.gcp.upbound.io/v1beta1
+kind: ProjectService
+metadata:
+  annotations:
+    meta.upbound.io/example-id: cloudplatform/v1beta1/cloudresourcemanager
+  labels:
+    testing.upbound.io/example-name: cloudresourcemanager
+  name: cloudresourcemanager
+spec:
+  forProvider:
+    disableDependentServices: false
+    service: cloudresourcemanager.googleapis.com
+    project: shared-404221
+    #    disableOnDestroy: false
+#    service: artifactregistry.googleapis.com
+---
+apiVersion: cloudplatform.gcp.upbound.io/v1beta1
+kind: ProjectService
+metadata:
+  annotations:
+    meta.upbound.io/example-id: cloudplatform/v1beta1/cloudbuild
+  labels:
+    testing.upbound.io/example-name: cloudbuild
+  name: cloudbuild
+spec:
+  forProvider:
+    disableDependentServices: false
+    #    disableOnDestroy: false
+    service: cloudbuild.googleapis.com
+    #    service: artifactregistry.googleapis.com
+    project: shared-404221
+---
+apiVersion: cloudplatform.gcp.upbound.io/v1beta1
+kind: ProjectService
+metadata:
+  annotations:
+    meta.upbound.io/example-id: cloudplatform/v1beta1/build
+  labels:
+    testing.upbound.io/example-name: container
+  name: container
+spec:
+  forProvider:
+    disableDependentServices: false
+    #    disableOnDestroy: false
+    service: container.googleapis.com
+    #    service: artifactregistry.googleapis.com
+    project: shared-404221
+---
+apiVersion: cloudplatform.gcp.upbound.io/v1beta1
+kind: ProjectService
+metadata:
+  annotations:
+    meta.upbound.io/example-id: cloudplatform/v1beta1/compute
+  labels:
+    testing.upbound.io/example-name: compute
+  name: compute
+spec:
+  forProvider:
+    disableDependentServices: false
+    #    disableOnDestroy: false
+    service: compute.googleapis.com
+    project: shared-404221

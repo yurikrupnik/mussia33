@@ -1,4 +1,4 @@
-package github
+package workflows
 
 import (
 	"strings"
