@@ -31,7 +31,7 @@ dependencies:
     version: 10.2.7(@grpc/grpc-js@1.9.8)(@nestjs/common@10.2.10)(@nestjs/core@10.2.10)(ioredis@5.3.2)(reflect-metadata@0.1.13)(rxjs@7.8.1)
   '@nestjs/mongoose':
     specifier: ^10.0.0
-    version: 10.0.1(@nestjs/common@10.2.10)(@nestjs/core@10.2.10)(mongoose@7.6.3)(reflect-metadata@0.1.13)(rxjs@7.8.1)
+    version: 10.0.1(@nestjs/common@10.2.10)(@nestjs/core@10.2.10)(mongoose@8.0.1)(reflect-metadata@0.1.13)(rxjs@7.8.1)
   '@nestjs/platform-express':
     specifier: 10.2.10
     version: 10.2.10(@nestjs/common@10.2.10)(@nestjs/core@10.2.10)
@@ -40,7 +40,7 @@ dependencies:
     version: 7.1.14(@nestjs/common@10.2.10)(@nestjs/core@10.2.10)(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)
   '@nestjs/terminus':
     specifier: ^10.0.0
-    version: 10.1.1(@grpc/grpc-js@1.9.8)(@grpc/proto-loader@0.7.10)(@nestjs/common@10.2.10)(@nestjs/core@10.2.10)(@nestjs/microservices@10.2.7)(@nestjs/mongoose@10.0.1)(mongoose@7.6.3)(reflect-metadata@0.1.13)(rxjs@7.8.1)
+    version: 10.1.1(@grpc/grpc-js@1.9.8)(@grpc/proto-loader@0.7.10)(@nestjs/common@10.2.10)(@nestjs/core@10.2.10)(@nestjs/microservices@10.2.7)(@nestjs/mongoose@10.0.1)(mongoose@8.0.1)(reflect-metadata@0.1.13)(rxjs@7.8.1)
   '@pulumi/aws':
     specifier: ^6.0.0
     version: 6.6.1
@@ -99,8 +99,8 @@ dependencies:
     specifier: ^4.17.21
     version: 4.17.21
   mongoose:
-    specifier: ^7.2.0
-    version: 7.6.3
+    specifier: ^8.0.0
+    version: 8.0.1
   nestjs-seeder:
     specifier: ^0.3.1
     version: 0.3.2(@faker-js/faker@8.2.0)
@@ -2605,7 +2605,6 @@ packages:
     dependencies:
       sparse-bitfield: 3.0.3
     dev: false
-    optional: true
 
   /@monodon/rust@1.2.0(nx@16.10.0)(typescript@5.3.2):
     resolution: {integrity: sha512-LyOvVYYcm1AvLfd5CJKGskzM+tWfaQ21pimKd4X9+D+SjcR0xMSdBszFnOXZk39SV11SMHO820GaXVs6SkXTEQ==}
@@ -2762,7 +2761,7 @@ packages:
       rxjs: 7.8.1
       tslib: 2.6.2
 
-  /@nestjs/mongoose@10.0.1(@nestjs/common@10.2.10)(@nestjs/core@10.2.10)(mongoose@7.6.3)(reflect-metadata@0.1.13)(rxjs@7.8.1):
+  /@nestjs/mongoose@10.0.1(@nestjs/common@10.2.10)(@nestjs/core@10.2.10)(mongoose@8.0.1)(reflect-metadata@0.1.13)(rxjs@7.8.1):
     resolution: {integrity: sha512-woUViG28WKf/kRiv6NFXu4Oc0DvAPeX4+fT4coDVt2OqndnfJZTXwkkys23uVsBpKSIflRyjPvmcVBHQvcunZw==}
     peerDependencies:
       '@nestjs/common': ^8.0.0 || ^9.0.0 || ^10.0.0
@@ -2773,7 +2772,7 @@ packages:
     dependencies:
       '@nestjs/common': 10.2.10(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)(rxjs@7.8.1)
       '@nestjs/core': 10.2.10(@nestjs/common@10.2.10)(@nestjs/microservices@10.2.7)(@nestjs/platform-express@10.2.10)(reflect-metadata@0.1.13)(rxjs@7.8.1)
-      mongoose: 7.6.3
+      mongoose: 8.0.1
       reflect-metadata: 0.1.13
       rxjs: 7.8.1
     dev: false
@@ -2852,7 +2851,7 @@ packages:
       swagger-ui-dist: 5.9.0
     dev: false
 
-  /@nestjs/terminus@10.1.1(@grpc/grpc-js@1.9.8)(@grpc/proto-loader@0.7.10)(@nestjs/common@10.2.10)(@nestjs/core@10.2.10)(@nestjs/microservices@10.2.7)(@nestjs/mongoose@10.0.1)(mongoose@7.6.3)(reflect-metadata@0.1.13)(rxjs@7.8.1):
+  /@nestjs/terminus@10.1.1(@grpc/grpc-js@1.9.8)(@grpc/proto-loader@0.7.10)(@nestjs/common@10.2.10)(@nestjs/core@10.2.10)(@nestjs/microservices@10.2.7)(@nestjs/mongoose@10.0.1)(mongoose@8.0.1)(reflect-metadata@0.1.13)(rxjs@7.8.1):
     resolution: {integrity: sha512-aDoPK/uaR9PHn56xzand6zqpp+S3Ibm+y/OrG3M01F1WnScLfo29hbS6MdnIMqmVRAS11r/8X3xWTSo8TT/Lig==}
     peerDependencies:
       '@grpc/grpc-js': '*'
@@ -2905,10 +2904,10 @@ packages:
       '@nestjs/common': 10.2.10(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)(rxjs@7.8.1)
       '@nestjs/core': 10.2.10(@nestjs/common@10.2.10)(@nestjs/microservices@10.2.7)(@nestjs/platform-express@10.2.10)(reflect-metadata@0.1.13)(rxjs@7.8.1)
       '@nestjs/microservices': 10.2.7(@grpc/grpc-js@1.9.8)(@nestjs/common@10.2.10)(@nestjs/core@10.2.10)(ioredis@5.3.2)(reflect-metadata@0.1.13)(rxjs@7.8.1)
-      '@nestjs/mongoose': 10.0.1(@nestjs/common@10.2.10)(@nestjs/core@10.2.10)(mongoose@7.6.3)(reflect-metadata@0.1.13)(rxjs@7.8.1)
+      '@nestjs/mongoose': 10.0.1(@nestjs/common@10.2.10)(@nestjs/core@10.2.10)(mongoose@8.0.1)(reflect-metadata@0.1.13)(rxjs@7.8.1)
       boxen: 5.1.2
       check-disk-space: 3.4.0
-      mongoose: 7.6.3
+      mongoose: 8.0.1
       reflect-metadata: 0.1.13
       rxjs: 7.8.1
     dev: false
@@ -6717,9 +6716,9 @@ packages:
       node-int64: 0.4.0
     dev: true
 
-  /bson@5.5.1:
-    resolution: {integrity: sha512-ix0EwukN2EpC0SRWIj/7B5+A6uQMQy6KMREI9qQqvgpkV2frH63T0UDVd1SYedL6dNCmDBYB3QtXi4ISk9YT+g==}
-    engines: {node: '>=14.20.1'}
+  /bson@6.2.0:
+    resolution: {integrity: sha512-ID1cI+7bazPDyL9wYy9GaQ8gEEohWvcUl/Yf0dIdutJxnmInEEyCsb4awy/OiBfall7zBA179Pahi3vCdFze3Q==}
+    engines: {node: '>=16.20.1'}
     dev: false
 
   /buffer-crc32@0.2.13:
@@ -9477,10 +9476,6 @@ packages:
     transitivePeerDependencies:
       - supports-color
 
-  /ip@2.0.0:
-    resolution: {integrity: sha512-WKa+XuLG1A1R0UWhl2+1XQSi+fZWMsYKffMZTTYsiZaUD8k2yDAj5atimTUD2TZkyCkNEeYE5NhFZmupOGtjYQ==}
-    dev: false
-
   /ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
     engines: {node: '>= 0.10'}
@@ -10919,7 +10914,6 @@ packages:
     resolution: {integrity: sha512-ZS4Bp4r/Zoeq6+NLJpP+0Zzm0pR8whtGPf1XExKLJBAczGMnSi3It14OiNCStjQjM6NU1okjQGSxgEZN8eBYKg==}
     requiresBuild: true
     dev: false
-    optional: true
 
   /merge-anything@5.1.7:
     resolution: {integrity: sha512-eRtbOb1N5iyH0tkQDAoQ4Ipsp/5qSR79Dzrz8hEPxRX10RWWR/iQXdoKmBSRCThY1Fh5EhISDtpSc93fpxUniQ==}
@@ -11064,19 +11058,23 @@ packages:
       whatwg-url: 11.0.0
     dev: false
 
-  /mongodb@5.9.0:
-    resolution: {integrity: sha512-g+GCMHN1CoRUA+wb1Agv0TI4YTSiWr42B5ulkiAfLLHitGK1R+PkSAf3Lr5rPZwi/3F04LiaZEW0Kxro9Fi2TA==}
-    engines: {node: '>=14.20.1'}
+  /mongodb@6.2.0:
+    resolution: {integrity: sha512-d7OSuGjGWDZ5usZPqfvb36laQ9CPhnWkAGHT61x5P95p/8nMVeH8asloMwW6GcYFeB0Vj4CB/1wOTDG2RA9BFA==}
+    engines: {node: '>=16.20.1'}
     peerDependencies:
       '@aws-sdk/credential-providers': ^3.188.0
-      '@mongodb-js/zstd': ^1.0.0
-      kerberos: ^1.0.0 || ^2.0.0
-      mongodb-client-encryption: '>=2.3.0 <3'
+      '@mongodb-js/zstd': ^1.1.0
+      gcp-metadata: ^5.2.0
+      kerberos: ^2.0.1
+      mongodb-client-encryption: '>=6.0.0 <7'
       snappy: ^7.2.2
+      socks: ^2.7.1
     peerDependenciesMeta:
       '@aws-sdk/credential-providers':
         optional: true
       '@mongodb-js/zstd':
+        optional: true
+      gcp-metadata:
         optional: true
       kerberos:
         optional: true
@@ -11084,21 +11082,21 @@ packages:
         optional: true
       snappy:
         optional: true
+      socks:
+        optional: true
     dependencies:
-      bson: 5.5.1
-      mongodb-connection-string-url: 2.6.0
-      socks: 2.7.1
-    optionalDependencies:
       '@mongodb-js/saslprep': 1.1.1
+      bson: 6.2.0
+      mongodb-connection-string-url: 2.6.0
     dev: false
 
-  /mongoose@7.6.3:
-    resolution: {integrity: sha512-moYP2qWCOdWRDeBxqB/zYwQmQnTBsF5DoolX5uPyI218BkiA1ujGY27P0NTd4oWIX+LLkZPw0LDzlc/7oh1plg==}
-    engines: {node: '>=14.20.1'}
+  /mongoose@8.0.1:
+    resolution: {integrity: sha512-O3TJrtLCt4H1eGf2HoHGcnOcCTWloQkpmIP3hA9olybX3OX2KUjdIIq135HD5paGjZEDJYKn9fw4eH5N477zqQ==}
+    engines: {node: '>=16.20.1'}
     dependencies:
-      bson: 5.5.1
+      bson: 6.2.0
       kareem: 2.5.1
-      mongodb: 5.9.0
+      mongodb: 6.2.0
       mpath: 0.9.0
       mquery: 5.0.0
       ms: 2.1.3
@@ -11106,9 +11104,11 @@ packages:
     transitivePeerDependencies:
       - '@aws-sdk/credential-providers'
       - '@mongodb-js/zstd'
+      - gcp-metadata
       - kerberos
       - mongodb-client-encryption
       - snappy
+      - socks
       - supports-color
     dev: false
 
@@ -13176,11 +13176,6 @@ packages:
       is-fullwidth-code-point: 3.0.0
     dev: true
 
-  /smart-buffer@4.2.0:
-    resolution: {integrity: sha512-94hK0Hh8rPqQl2xXc3HsaBoOXKV20MToPkcXvwbISWLEs+64sBq5kFgn2kJDHb1Pry9yrP0dxrCI9RRci7RXKg==}
-    engines: {node: '>= 6.0.0', npm: '>= 3.0.0'}
-    dev: false
-
   /sockjs@0.3.24:
     resolution: {integrity: sha512-GJgLTZ7vYb/JtPSSZ10hsOYIvEYsjbNU+zPdIHcUaWVNUEPivzxku31865sSSud0Da0W4lEeOPlmw93zLQchuQ==}
     dependencies:
@@ -13188,14 +13183,6 @@ packages:
       uuid: 8.3.2
       websocket-driver: 0.7.4
     dev: true
-
-  /socks@2.7.1:
-    resolution: {integrity: sha512-7maUZy1N7uo6+WVEX6psASxtNlKaNVMlGQKkG/63nEDdLOWNbiUMoLK7X4uYoLhQstau72mLgfEWcXcwsaHbYQ==}
-    engines: {node: '>= 10.13.0', npm: '>= 3.0.0'}
-    dependencies:
-      ip: 2.0.0
-      smart-buffer: 4.2.0
-    dev: false
 
   /solid-jest@0.2.0(@babel/core@7.23.2)(babel-preset-solid@1.8.4):
     resolution: {integrity: sha512-1ILtAj+z6bh1vTvaDlcT8501vmkzkVZMk2aiexJy+XWTZ+sb9B7IWedvWadIhOwwL97fiW4eMmN6SrbaHjn12A==}
@@ -13280,7 +13267,6 @@ packages:
     dependencies:
       memory-pager: 1.5.0
     dev: false
-    optional: true
 
   /spdx-correct@3.2.0:
     resolution: {integrity: sha512-kN9dJbvnySHULIluDHy32WHRUu3Og7B9sbY7tsFLctQkIqnMh3hErYgdMjTYuqmcXX+lK5T1lnUt3G7zNswmZA==}
