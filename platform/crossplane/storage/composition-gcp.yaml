@@ -42,7 +42,8 @@ spec:
         - type: ToCompositeFieldPath
           fromFieldPath: status.atProvider.selfLink
           toFieldPath: status.shit
-#          toFieldPath: metadata.labels['URL']
+#          next line does not sync
+#          toFieldPath: metadata.labels['self-link']
         #           todo test it!
         - type: CombineToComposite
           combine:

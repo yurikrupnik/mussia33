@@ -44,16 +44,16 @@
 #    matchLabels:
 #      provider: AWS
 #---
-apiVersion: apiextensions.crossplane.io/v1alpha1
-kind: EnvironmentConfig
-metadata:
-  name: example-environment
-data:
-  locations:
-    us: us-east2
-    eu: me-west1
-  key1: value1
-  key2: value2
+#apiVersion: apiextensions.crossplane.io/v1alpha1
+#kind: EnvironmentConfig
+#metadata:
+#  name: example-environment
+#data:
+#  locations:
+#    us: us-east2
+#    eu: me-west1
+#  key1: value1
+#  key2: value2
 
 ---
 apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
@@ -63,7 +63,7 @@ metadata:
   namespace: crossplane-system
 spec:
   location: me-west1
-  storageClass: NEARLINE
+#  storageClass: NEARLINE
 #  labels:
 #    provider: GCP
   compositionSelector:
