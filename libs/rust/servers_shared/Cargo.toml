@@ -13,7 +13,7 @@ futures = { workspace = true }
 log = { workspace = true }
 mongo = { path = "../mongo" }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-salvo = { version = "0.58.3", features = ["basic-auth", "test", "oapi", "session", "serve-static"] }
+salvo = { version = "0.58.5", features = ["basic-auth", "test", "oapi", "session", "serve-static"] }
 tokio = { version = "1.33.0", features = ["macros"] }
 serde.workspace = true
 tracing.workspace = true
