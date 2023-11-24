@@ -28,22 +28,24 @@ spec:
         kind: Cluster
         spec:
           forProvider:
-            initialClusterVersion: "1.27"
-            location: us-west2
-            serviceAccount: sa-test
-            masterAuthorizedNetworksConfig:
-              enabled: false
-            ipAllocationPolicy:
-              useIpAliases: true
-              clusterSecondaryRangeName: pods
-              servicesSecondaryRangeName: services
-            networkConfig:
-              enableIntraNodeVisibility: true
-            loggingService: logging.googleapis.com/kubernetes
-            monitoringService: monitoring.googleapis.com/kubernetes
-            addonsConfig:
-              gcePersistentDiskCsiDriverConfig:
-                enabled: true
+#            initialClusterVersion: "1.27"
+            initialNodeCount: 1
+            removeDefaultNodePool: true
+            location: me-west1
+#            serviceAccount: sa-test
+#            masterAuthorizedNetworksConfig:
+#              enabled: false
+#            ipAllocationPolicy:
+#              useIpAliases: true
+#              clusterSecondaryRangeName: pods
+#              servicesSecondaryRangeName: services
+#            networkConfig:
+#              enableIntraNodeVisibility: true
+#            loggingService: logging.googleapis.com/kubernetes
+#            monitoringService: monitoring.googleapis.com/kubernetes
+#            addonsConfig:
+#              gcePersistentDiskCsiDriverConfig:
+#                enabled: true
       patches:
         - fromFieldPath: metadata.uid
           toFieldPath: spec.writeConnectionSecretToRef.name
@@ -70,32 +72,30 @@ spec:
         spec:
           forProvider:
             initialNodeCount: 1
-            location: us-central1-a
-#          forProvider:
-#            location: us-west2
-#            initialNodeCount: 1
-#            clusterSelector:
-#              # Attach this node pool to the GKECluster created above.
-#              matchControllerRef: true
-#            autoscaling:
+            location: me-west1
+            clusterSelector:
+              # Attach this node pool to the GKECluster created above.
+              matchControllerRef: true
+            autoscaling:
+            - maxNodeCount: 3
 #              enabled: true
-#            config:
-#              diskType: pd-standard
-#              diskSizeGb: 100
-#              imageType: COS
-#              preemptible: true
-#              shieldedInstanceConfig:
-#                enableIntegrityMonitoring: true
-#                enableSecureBoot: true
-#              metadata:
-#                disable-legacy-endpoints: "true"
-#              oauthScopes:
-#                - https://www.googleapis.com/auth/cloud-platform
-#            management:
-#              autoRepair: true
-#              autoUpgrade: false
-#            maxPodsConstraint:
-#              maxPodsPerNode: 100
+            config:
+              diskType: pd-standard
+              diskSizeGb: 100
+              imageType: COS
+              preemptible: true
+              shieldedInstanceConfig:
+                enableIntegrityMonitoring: true
+                enableSecureBoot: true
+              metadata:
+                disable-legacy-endpoints: "true"
+              oauthScopes:
+                - https://www.googleapis.com/auth/cloud-platform
+            management:
+              autoRepair: true
+              autoUpgrade: true
+            maxPodsConstraint:
+              maxPodsPerNode: 100
           reclaimPolicy: Delete
       patches:
         # Derive the node count and type of this node pool from the XR. Note that

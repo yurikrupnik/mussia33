@@ -1,10 +1,12 @@
 resources:
 #  - ../../base
-  - mongodb.yaml
-  - redis.yaml
+#  - mongodb.yaml
+#  - redis.yaml
+#  - postgress.yaml
 #  - ta.yaml
+  - crossplane-test.yaml
 #  - surrealdb.yaml
-  - ../../../apps/rust/salvo_app/k8s/overlays/dev
+#  - ../../../apps/rust/salvo_app/k8s/overlays/dev
 #  - ../../../apps/rust/actix_app/k8s/overlays/dev
 #  - ../../../apps/rust/master_operator/k8s/overlays/dev
 #  - ../../../apps/rust/axum_app/k8s/overlays/dev

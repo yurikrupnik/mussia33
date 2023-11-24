@@ -1,0 +1,169 @@
+#apiVersion: container.gcp.upbound.io/v1beta1
+#kind: Cluster
+#metadata:
+#  annotations:
+#    meta.upbound.io/example-id: gkehub/v1beta1/my-cluster1
+#  #    upjet.upbound.io/manual-intervention: "Error 404: Method not found"
+#  labels:
+#    testing.upbound.io/example-name: my-cluster1
+#  name: my-cluster1
+#spec:
+#  forProvider:
+#    #    serviceAccount: k8sowners@shared-404221.iam.gserviceaccount.com
+#    initialNodeCount: 1
+#    location: us-central1-a
+#    nodeConfig:
+#      - machineType: e2-standard-4
+#---
+#apiVersion: container.gcp.upbound.io/v1beta1
+#kind: NodePool
+#metadata:
+#  annotations:
+#    meta.upbound.io/example-id: container/v1beta1/nodepool
+#  labels:
+#    testing.upbound.io/example-name: nodepool
+#  name: nodepool
+#spec:
+#  forProvider:
+#    clusterSelector:
+#      matchLabels:
+#        testing.upbound.io/example-name: my-cluster1
+#    nodeConfig:
+#      - machineType: e2-medium
+#        oauthScopes:
+#          - https://www.googleapis.com/auth/cloud-platform
+#    nodeCount: 1
+---
+#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#kind: Storage
+#metadata:
+#  name: storage-aws
+#spec:
+#  location: us-west-2
+#  compositionSelector:
+#    matchLabels:
+#      provider: AWS
+#---
+#apiVersion: apiextensions.crossplane.io/v1alpha1
+#kind: EnvironmentConfig
+#metadata:
+#  name: example-environment
+#data:
+#  locations:
+#    us: us-east2
+#    eu: me-west1
+#  key1: value1
+#  key2: value2
+
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Storage
+metadata:
+  name: storage-gcp1
+  namespace: crossplane-system
+spec:
+  location: me-west1
+#  storageClass: NEARLINE
+#  labels:
+#    provider: GCP
+  compositionSelector:
+    matchLabels:
+      provider: GCP
+  writeConnectionSecretToRef:
+    name: my-access-key-secret
+---
+#apiVersion: sql.gcp.upbound.io/v1beta1
+#kind: DatabaseInstance
+#metadata:
+#  annotations:
+#    meta.upbound.io/example-id: sql/v1beta1/user
+#    uptest.upbound.io/pre-delete-hook: testhooks/delete-user.sh
+#  labels:
+#    testing.upbound.io/example-name: example_instance
+#  name: example-instance
+##  name: example-instance-${Rand.RFC1123Subdomain}
+#spec:
+#  forProvider:
+#    databaseVersion: MYSQL_5_7
+#    deletionProtection: false
+#    region: us-central1
+#    settings:
+#      - diskSize: 20
+#        tier: db-f1-micro
+#  writeConnectionSecretToRef:
+#    name: example-sql-db-instance-secret
+---
+#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#kind: Network
+#metadata:
+#  name: network-gcp
+#spec:
+#  id: multik8s-network-gcp
+#  clusterRef:
+#    id: multik8s-cluster-gcp
+#  compositionSelector:
+#    matchLabels:
+#      provider: GCP
+#---
+#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#kind: Network
+#metadata:
+#  name: network-aws
+#spec:
+#  id: multik8s-network-aws
+#  clusterRef:
+#    id: multik8s-cluster-aws
+#  compositionSelector:
+#    matchLabels:
+#      provider: AWS
+#---
+#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#kind: Registry
+#metadata:
+#  name: a-team-registry
+#spec:
+#  id: a-team-registry
+#  location: us-west1
+#  compositionSelector:
+#    matchLabels:
+#      provider: GCP
+#---
+#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#kind: Project
+#metadata:
+#  name: a-team-project-test
+#spec:
+#  id: a-team-registry-test
+#  region: me-west1
+#  cloud: GCP
+#  compositionSelector:
+#    matchLabels:
+#      provider: GCP
+#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#kind: Cluster
+#metadata:
+#  name: a-team-gke
+#spec:
+#  id: multik8s-cluster-gcp
+#  parameters:
+#    nodes:
+#      count: 1
+#      size: small
+#    networkRef:
+#      id: multik8s-network-gcp
+#  writeConnectionSecretToRef:
+#    name: a-team-eks
+#  compositionSelector:
+#    matchLabels:
+#      provider: GCP
+#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#kind: Network
+#metadata:
+#  name: network-gcp
+#spec:
+#  id: multik8s-network-gcp
+#  clusterRef:
+#    id: multik8s-cluster-gcp
+#  compositionSelector:
+#    matchLabels:
+#      provider: GCP

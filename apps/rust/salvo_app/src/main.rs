@@ -70,12 +70,14 @@ pub fn mongo_pool<'a>() -> &'a MongoClient {
 }
 
 pub async fn make_db_pool(db_url: &str) -> PgPool {
-  Pool::connect(&db_url).await.unwrap()
+  Pool::connect(db_url).await.unwrap()
 }
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt().init();
+    let sql_url = get_sql_uri();
+    println!("sql_url: {}", sql_url);
     let pool = make_db_pool(&get_sql_uri()).await;
     DB_POOL.set(pool).unwrap();
     let uri = std::env::var("MONGO_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());

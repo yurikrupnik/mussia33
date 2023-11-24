@@ -19,6 +19,6 @@ spec:
           forProvider:
             region: eu-west-1
       patches:
-        - fromFieldPath: spec.forProvider.region
-          toFieldPath: spec.forProvider.location
+        - fromFieldPath: spec.location
+          toFieldPath: spec.forProvider.region
 

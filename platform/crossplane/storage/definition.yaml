@@ -7,6 +7,13 @@ spec:
     kind: Storage
     plural: storages
   group: multicloud.platformref.yurikrupnik.com
+  #           todo test it!
+#  connectionSecretKeys:
+#    - kubeconfig
+#    - value
+  #           todo test it!
+#  defaultCompositionRef:
+#    name: cluster-aws
   names:
     kind: CompositeStorage
     plural: compositestorages
@@ -24,5 +31,34 @@ spec:
                 location:
                   type: string
                   description: Location where the bucket should be created.
+                storageClass:
+                  type: string
+                  description: Storage Class of the bucket.
+                  default: STANDARD
+                  enum:
+                    - STANDARD
+                    - MULTI_REGIONAL
+                    - REGIONAL
+                    - NEARLINE
+                    - COLDLINE
+                    - ARCHIVE
+#                labels:
+#                  type: array
+#                  description: Labels to apply to the bucket.
+#                  items:
+#                    type: object
+#                    properties:
+#                      key:
+#                        type: string
+#                        description: Label key.
+#                      value:
+#                        type: string
+#                        description: Label value.
               required:
                 - location
+
+            status:
+              type: object
+              properties:
+                url:
+                  type: string

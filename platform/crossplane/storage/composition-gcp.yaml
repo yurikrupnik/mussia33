@@ -16,9 +16,73 @@ spec:
         metadata:
           name: yuriks-bucket-via-crossplane
         spec:
+#           todo test it!
+#          writeConnectionSecretToRef:
+#            namespace: upbound-system
+#           todo test it! and compare with writeConnectionSecretToRef
+          publishConnectionDetailsTo:
+            name: "yuriks-sercret-via-crossplane"
           forProvider:
             location: US
+            uniformBucketLevelAccess: true
+            storageClass: STANDARD
+#            tags:
+#              - key: key1
+#                value: value1
+#              - key: key2
+#                value: value2
+#            labels:
+#              - key: label1
+#                value: value1
+#              - key: label2
+#                value: value2
       patches:
-        - fromFieldPath: spec.forProvider.location
+        - fromFieldPath: spec.location
           toFieldPath: spec.forProvider.location
-
+        - fromFieldPath: spec.storageClass
+          toFieldPath: spec.forProvider.storageClass
+          #           todo test it!
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.selfLink
+          toFieldPath: status.shit
+#          next line does not sync
+#          toFieldPath: metadata.labels['self-link']
+        #           todo test it!
+        - type: CombineToComposite
+          combine:
+            variables:
+              - fromFieldPath: metadata.name
+              - fromFieldPath: spec.forProvider.region
+            strategy: string
+            string:
+              fmt: "https://%s.%s.com"
+          toFieldPath: status.url
+#        - fromFieldPath: spec.labels
+#          toFieldPath: spec.forProvider.labels
+#        - fromFieldPath: spec.location
+#          toFieldPath: spec.writeConnectionSecretToRef.name
+#          transforms:
+#            - type: string
+#              string:
+#                fmt: "%s-secret2"
+      connectionDetails:
+#        - fromConnectionSecretKey: requesterPays
+#          name: requesterPays
+#        - fromFieldPath: "status.atProvider.id"
+#          name: id
+#        - fromFieldPath: "status.atProvider.location"
+#          name: location
+        - fromFieldPath: "status.atProvider.selfLink"
+          name: selfLink
+        - fromFieldPath: "spec.forProvider.project"
+          name: project
+#          todo how does this work? - value is coming in same as in status.at|Provider.storageClass
+#        without passing through spec.forProvider.storageClass
+        - fromFieldPath: "spec.forProvider.storageClass"
+          name: storageClass
+        - fromFieldPath: "status.atProvider.storageClass"
+          name: class
+        - fromFieldPath: "status.atProvider.url"
+          name: url
+#        - fromConnectionSecretKey: "attribute.password"
+#          name: password
