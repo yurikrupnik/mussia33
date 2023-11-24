@@ -8,11 +8,12 @@ spec:
     plural: storages
   group: multicloud.platformref.yurikrupnik.com
   #           todo test it!
-  connectionSecretKeys:
-    - name
-#    - storageClass
-#    - requesterPays
-#    - password
+#  connectionSecretKeys:
+#    - kubeconfig
+#    - value
+  #           todo test it!
+#  defaultCompositionRef:
+#    name: cluster-aws
   names:
     kind: CompositeStorage
     plural: compositestorages

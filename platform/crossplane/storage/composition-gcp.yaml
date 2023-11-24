@@ -17,6 +17,9 @@ spec:
           name: yuriks-bucket-via-crossplane
         spec:
 #           todo test it!
+#          writeConnectionSecretToRef:
+#            namespace: upbound-system
+#           todo test it! and compare with writeConnectionSecretToRef
           publishConnectionDetailsTo:
             name: "yuriks-sercret-via-crossplane"
           forProvider:
