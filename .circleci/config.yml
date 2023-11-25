@@ -7,7 +7,7 @@ jobs:
   main:
     docker:
       #      - image: cimg/node:lts-browsers
-      - image: docker:17.12.1-ce-git
+      - image: docker:18.06.3-ce-git
     #      - image: denoland/deno:alpine
     steps:
       - checkout
