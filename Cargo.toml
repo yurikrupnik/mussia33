@@ -40,7 +40,7 @@ mongodb = '2.7.1'
 plurals = '0.4.0'
 kube = { version = '0.87.1', features = ['runtime', 'derive'] }
 k8s-openapi = { version = '0.20.0', features = ['latest'] }
-sqlx = { version = '0.7.2', default-features = false, features = ['postgres', 'runtime-tokio-rustls', 'macros', 'uuid', 'chrono'] }
+sqlx = { version = '0.7.3', default-features = false, features = ['postgres', 'runtime-tokio-rustls', 'macros', 'uuid', 'chrono'] }
 rust_proc_macros = { path = 'libs/rust/proc_macros' }
 rust_books_api = { path = 'libs/rust/books_api' }
 rust_author_api = { path = 'libs/rust/author_api' }
