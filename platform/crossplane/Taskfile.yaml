@@ -76,6 +76,18 @@ tasks:
       - kubectl apply -f network/composition-aws.yaml
       - kubectl apply -f network/composition-gcp.yaml
 
+      - kubectl apply -f redis/definition.yaml
+      - kubectl apply -f redis/composition-aws.yaml
+      - kubectl apply -f redis/composition-gcp.yaml
+
+      - kubectl apply -f sql/definition.yaml
+      - kubectl apply -f sql/composition-aws.yaml
+      - kubectl apply -f sql/composition-gcp.yaml
+
+      - kubectl apply -f cluster/definition.yaml
+#      - kubectl apply -f sql/composition-aws.yaml
+      - kubectl apply -f cluster/composition-gcp.yaml
+
       - kubectl apply -f storage/definition.yaml
       - kubectl apply -f storage/composition-aws.yaml
       - kubectl apply -f storage/composition-gcp.yaml

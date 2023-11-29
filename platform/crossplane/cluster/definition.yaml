@@ -23,40 +23,66 @@ spec:
               properties:
                 id:
                   type: string
-                  description: ID of this Cluster that other objects will use to refer to it.
+                  description: ID of this Cluster that other objects can refer.
                 parameters:
                   type: object
-                  description: GKE configuration parameters.
+                  description: Parameters used to customize the cluster
                   properties:
-                    nodes:
-                      type: object
-                      description: GKE node configuration parameters.
-                      properties:
-                        count:
-                          type: integer
-                          description: Desired node count, from 1 to 100.
-                        size:
-                          type: string
-                          description: Size of node.
-                          enum:
-                            - small
-                            - medium
-                            - large
-                      required:
-                        - count
-                        - size
-                    networkRef:
-                      type: object
-                      description: "A reference to the Network object that this cluster should be
-                              connected to."
-                      properties:
-                        id:
-                          type: string
-                          description: ID of the Network object this ref points to.
-                      required:
-                        - id
+                    version:
+                      description: The Kubernetes version for the cluster.
+                      type: string
+                    nodeSize:
+                      description: The size of the nodes; small, medium, large.
+                      type: string
+                      default: small
+                    minNodeCount:
+                      description: The minimum number of nodes.
+                      type: integer
+                      default: 1
+                    namespaces:
+                      description: List of Namespaces that should be created in the cluster
+                      type: array
+                      items:
+                        type: string
+                      default:
+                        - dev
+                        - production
+                    # TODO: Uncomment and implement
+                    # apps:
+                    #   type: object
+                    #   description: List of apps that should be installed in the cluster
+                    #   properties:
+                    #     crossplane:
+                    #       description: Install Crossplane
+                    #       type: boolean
+                    #       default: false
                   required:
-                    - nodes
-                    - networkRef
+                    - nodeSize
               required:
+                - id
                 - parameters
+            status:
+              type: object
+              properties:
+                clusterName:
+                  description: The name of the cluster.
+                  type: string
+                controlPlaneStatus:
+                  description: The status of the control plane.
+                  type: string
+                nodePoolStatus:
+                  description: The status of the node pool.
+                  type: string
+                field1:
+                  description: A placeholder
+                  type: string
+      additionalPrinterColumns:
+        - name: clusterName
+          type: string
+          jsonPath: ".status.clusterName"
+        - name: controlPlane
+          type: string
+          jsonPath: ".status.controlPlaneStatus"
+        - name: nodePool
+          type: string
+          jsonPath: ".status.nodePoolStatus"

@@ -1,0 +1,36 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: azure.compositestorages.multicloud.platformref.yurikrupnik.com
+  labels:
+    provider: AZURE
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+    kind: CompositeStorage
+  resources:
+    - base:
+        apiVersion: storage.azure.upbound.io/v1beta1
+        kind: Blob
+        metadata:
+          annotations:
+            meta.upbound.io/example-id: storage/v1beta1/blob
+          labels:
+            testing.upbound.io/example-name: example
+          name: example
+        spec:
+          forProvider:
+            sourceContent: inline content for this blob
+            storageAccountNameSelector:
+              matchLabels:
+                testing.upbound.io/example-name: example
+            storageContainerNameSelector:
+              matchLabels:
+                testing.upbound.io/example-name: example
+            type: Block
+      patches:
+        - fromFieldPath: spec.location
+          toFieldPath: spec.forProvider.location
+#        - fromFieldPath: spec.labels
+#          toFieldPath: spec.forProvider.labels

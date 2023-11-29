@@ -13,12 +13,12 @@ spec:
     - base:
         apiVersion: artifact.gcp.upbound.io/v1beta1
         kind: RegistryRepository
-        metadata:
-          #  annotations:
-          #    meta.upbound.io/example-id: artifact/v1beta1/registryrepository
-          labels:
-            testing.upbound.io/example-name: container-repo
-          name: container-repo
+#        metadata:
+#          annotations:
+#            meta.upbound.io/example-id: artifact/v1beta1/registryrepository
+#          labels:
+#            testing.upbound.io/example-name: container-repo
+#          name: container-repo
         spec:
           forProvider:
             description: example docker repository by crossplane

@@ -1,21 +1,22 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: CompositeResourceDefinition
 metadata:
-  name: compositestorages.multicloud.platformref.yurikrupnik.com
+  name: compositesqls.multicloud.platformref.yurikrupnik.com
 spec:
   claimNames:
-    kind: Storage
-    plural: storages
+    kind: Sql
+    plural: sqls
   group: multicloud.platformref.yurikrupnik.com
   #           todo test it!
 #  connectionSecretKeys:
 #    - kubeconfig
 #    - value
-  defaultCompositionRef:
-    name: gcp.compositestorages.multicloud.platformref.yurikrupnik.com
+  #           todo test it!
+#  defaultCompositionRef:
+#    name: cluster-aws
   names:
-    kind: CompositeStorage
-    plural: compositestorages
+    kind: CompositeSql
+    plural: compositesqls
   versions:
     - name: v1alpha1
       served: true
@@ -27,23 +28,20 @@ spec:
             spec:
               type: object
               properties:
-#                id:
-#                  type: string
-#                  description: Id of the bucket that should be created.
                 location:
                   type: string
-                  description: Location where the bucket should be created.
-                storageClass:
-                  type: string
-                  description: Storage Class of the bucket.
-                  default: STANDARD
-                  enum:
-                    - STANDARD
-                    - MULTI_REGIONAL
-                    - REGIONAL
-                    - NEARLINE
-                    - COLDLINE
-                    - ARCHIVE
+                  description: Location where the instance should be created.
+#                storageClass:
+#                  type: string
+#                  description: Storage Class of the bucket.
+#                  default: STANDARD
+#                  enum:
+#                    - STANDARD
+#                    - MULTI_REGIONAL
+#                    - REGIONAL
+#                    - NEARLINE
+#                    - COLDLINE
+#                    - ARCHIVE
 #                labels:
 #                  type: array
 #                  description: Labels to apply to the bucket.
@@ -57,7 +55,6 @@ spec:
 #                        type: string
 #                        description: Label value.
               required:
-#                - id
                 - location
 
             status:

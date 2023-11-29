@@ -10,41 +10,44 @@ spec:
     apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
     kind: CompositeProject
   resources:
-    - name: Registry
-      base:
-        apiVersion: apps/v1
-        kind: Deployment
-        metadata:
-          name: nginx-deployment
-        spec:
-          selector:
-            matchLabels:
-              app: nginx
-          replicas: 2 # tells deployment to run 2 pods matching the template
-          template:
-            metadata:
-              labels:
-                app: nginx
-            spec:
-              containers:
-                - name: nginx
-                  image: nginx:1.14.2
-                  ports:
-                    - containerPort: 80
-#    - name: Storage
+#    - name: Cache
 #      base:
 #        apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
-#        kind: Storage
+#        kind: Redis
 #        metadata:
-#          name: project-storage
+#          name: redis-gcp-instance
+#          namespace: crossplane-system
 #        spec:
-#          location: us-west-2
+#          location: me-west1
 #          compositionSelector:
 #            matchLabels:
 #              provider: GCP
-#      patches:
-#        - fromFieldPath: spec.forProvider.region
-#          toFieldPath: spec.forProvider.location
+#    - name: Database
+#      base:
+#        apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#        kind: Sql
+##        metadata:
+##          name: sql-main-db
+##          namespace: crossplane-system
+#        spec:
+#          location: me-west1
+#          compositionSelector:
+#            matchLabels:
+#              provider: GCP
+#    - name: Storage
+    - base:
+        apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+        kind: Storage
+        metadata:
+          name: project-storage
+        spec:
+          location: us-west-2
+          compositionSelector:
+            matchLabels:
+              provider: GCP
+      patches:
+        - fromFieldPath: spec.region
+          toFieldPath: spec.location
 #        - fromFieldPath: spec.id
 #          toFieldPath: metadata.labels[networks.multicloud.platformref.yurikrupnik.com/network-id]
 

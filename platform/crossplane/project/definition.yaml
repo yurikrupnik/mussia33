@@ -24,14 +24,14 @@ spec:
                 region:
                   type: string
                   description: ID of this Registry that other objects will use to refer to it.
-                cloud:
-                  type: string
-                  description: ID of this Registry that other objects will use to refer to it.
-                  enum:
-                    - AWS
-                    - GCP
-                    - AZURE
-                    - ALIBABA
+#                cloud:
+#                  type: string
+#                  description: ID of this Registry that other objects will use to refer to it.
+#                  enum:
+#                    - AWS
+#                    - GCP
+#                    - AZURE
+#                    - ALIBABA
 #                clusterRef:
 #                  type: object
 #                  description: "A reference to the Cluster object that this registry will be used for."

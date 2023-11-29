@@ -1,3 +1,4 @@
+
 #apiVersion: container.gcp.upbound.io/v1beta1
 #kind: Cluster
 #metadata:
@@ -14,6 +15,8 @@
 #    location: us-central1-a
 #    nodeConfig:
 #      - machineType: e2-standard-4
+#  writeConnectionSecretToRef:
+#    name: my-access-cluster-secret
 #---
 #apiVersion: container.gcp.upbound.io/v1beta1
 #kind: NodePool
@@ -33,17 +36,64 @@
 #        oauthScopes:
 #          - https://www.googleapis.com/auth/cloud-platform
 #    nodeCount: 1
+#  writeConnectionSecretToRef:
+#    name: my-access-nodepool-secret
+#---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Storage
+metadata:
+  name: storage-aws
+  namespace: crossplane-system
+spec:
+  location: us-west-2
+#  id: aris1
+  compositionSelector:
+    matchLabels:
+      provider: AWS
 ---
-#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
-#kind: Storage
-#metadata:
-#  name: storage-aws
-#spec:
-#  location: us-west-2
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Storage
+metadata:
+  name: storage-gcp2
+  namespace: crossplane-system
+spec:
+#  id: aris2
+  location: me-west1
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Storage
+metadata:
+  name: storage-gcp3
+  namespace: crossplane-system
+spec:
+#  id: aris3
+  location: me-west1
+---
+apiVersion: storage.gcp.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  annotations:
+    meta.upbound.io/example-id: cloudplatform/v1beta1/projectusageexportbucket
+  labels:
+    testing.upbound.io/example-name: omg-my-bucket-is-here
+  name: omg-my-bucket-is-here
+spec:
+  forProvider:
+    location: US
+---
+apiVersion: storage.gcp.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  name: omg-my-bucket-is-here1
+spec:
+  forProvider:
+    location: US
+#    storageClass: MULTI_REGIONAL
+---
 #  compositionSelector:
 #    matchLabels:
-#      provider: AWS
-#---
+#      provider: GCP
+---
 #apiVersion: apiextensions.crossplane.io/v1alpha1
 #kind: EnvironmentConfig
 #metadata:
@@ -54,44 +104,43 @@
 #    eu: me-west1
 #  key1: value1
 #  key2: value2
-
----
-apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
-kind: Storage
-metadata:
-  name: storage-gcp1
-  namespace: crossplane-system
-spec:
-  location: me-west1
-#  storageClass: NEARLINE
-#  labels:
-#    provider: GCP
-  compositionSelector:
-    matchLabels:
-      provider: GCP
-  writeConnectionSecretToRef:
-    name: my-access-key-secret
----
-#apiVersion: sql.gcp.upbound.io/v1beta1
-#kind: DatabaseInstance
+#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#kind: Project
 #metadata:
-#  annotations:
-#    meta.upbound.io/example-id: sql/v1beta1/user
-#    uptest.upbound.io/pre-delete-hook: testhooks/delete-user.sh
-#  labels:
-#    testing.upbound.io/example-name: example_instance
-#  name: example-instance
-##  name: example-instance-${Rand.RFC1123Subdomain}
+#  name: a-team-project
 #spec:
-#  forProvider:
-#    databaseVersion: MYSQL_5_7
-#    deletionProtection: false
-#    region: us-central1
-#    settings:
-#      - diskSize: 20
-#        tier: db-f1-micro
+#  region: me-west1
+##  id: a-team-project
+#  compositionSelector:
+#    matchLabels:
+#      provider: GCP
+#  parameters:
+#    nodeSize: small
+#    minNodeCount: 1
 #  writeConnectionSecretToRef:
-#    name: example-sql-db-instance-secret
+#    name: a-team-gke
+#---
+#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#kind: Redis
+#metadata:
+#  name: redis-gcp1
+#  namespace: crossplane-system
+#spec:
+#  location: me-west1
+#  compositionSelector:
+#    matchLabels:
+#      provider: GCP
+#---
+#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#kind: Sql
+#metadata:
+#  name: sql-main-db
+#  namespace: crossplane-system
+#spec:
+#  location: me-west1
+#  compositionSelector:
+#    matchLabels:
+#      provider: GCP
 ---
 #apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
 #kind: Network
@@ -116,17 +165,17 @@ spec:
 #  compositionSelector:
 #    matchLabels:
 #      provider: AWS
-#---
-#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
-#kind: Registry
-#metadata:
-#  name: a-team-registry
-#spec:
-#  id: a-team-registry
-#  location: us-west1
-#  compositionSelector:
-#    matchLabels:
-#      provider: GCP
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Registry
+metadata:
+  name: a-team-registry
+spec:
+  id: a-team-registry
+  location: us-west1
+  compositionSelector:
+    matchLabels:
+      provider: GCP
 #---
 #apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
 #kind: Project
@@ -156,6 +205,7 @@ spec:
 #  compositionSelector:
 #    matchLabels:
 #      provider: GCP
+#---
 #apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
 #kind: Network
 #metadata:
@@ -163,7 +213,7 @@ spec:
 #spec:
 #  id: multik8s-network-gcp
 #  clusterRef:
-#    id: multik8s-cluster-gcp
+#    id: not-being-used
 #  compositionSelector:
 #    matchLabels:
 #      provider: GCP
