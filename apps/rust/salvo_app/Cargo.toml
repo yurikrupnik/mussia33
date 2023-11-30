@@ -18,7 +18,7 @@ serde_json.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 validator.workspace = true
-uuid = { version = "1.5.0", features = ["serde", "v4", "js"] }
+uuid = { version = "1.6.1", features = ["serde", "v4", "js"] }
 chrono = {version = "0.4.31", features = ["serde"] }
 jsonwebtoken = { version = "9.1.0" }
 log = { workspace = true }
