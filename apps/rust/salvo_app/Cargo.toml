@@ -7,7 +7,7 @@ edition = "2021"
 [dependencies]
 
 salvo = { version = "0.59.0", features = ["caching-headers", "compression", "oapi", "logging"] }
-tokio = { version = "1.33.0", features = ["macros"] }
+tokio = { version = "1.34.0", features = ["macros"] }
 rust_generic_api.workspace = true
 rust_servers_shared.workspace = true
 rust_proc_macros.workspace = true
