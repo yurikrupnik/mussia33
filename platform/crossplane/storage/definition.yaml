@@ -11,9 +11,8 @@ spec:
 #  connectionSecretKeys:
 #    - kubeconfig
 #    - value
-  #           todo test it!
-#  defaultCompositionRef:
-#    name: cluster-aws
+  defaultCompositionRef:
+    name: gcp.compositestorages.multicloud.platformref.yurikrupnik.com
   names:
     kind: CompositeStorage
     plural: compositestorages
@@ -28,6 +27,18 @@ spec:
             spec:
               type: object
               properties:
+                providerConfigRef:
+                  type: object
+                  description: "A reference to the ProviderConfig object that this registry will be used for."
+                  properties:
+                    name:
+                      type: string
+                      description: Name of the ProviderConfig object this ref points to.
+                  required:
+                    - name
+                id:
+                  type: string
+                  description: Id of the bucket that should be created.
                 location:
                   type: string
                   description: Location where the bucket should be created.
@@ -55,6 +66,7 @@ spec:
 #                        type: string
 #                        description: Label value.
               required:
+                - id
                 - location
 
             status:

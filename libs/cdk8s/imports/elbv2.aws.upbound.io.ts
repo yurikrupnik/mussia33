@@ -99,7 +99,7 @@ export function toJson_LbProps(obj: LbProps | undefined): Record<string, any> | 
  */
 export interface LbSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema LbSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface LbSpec {
   readonly forProvider: LbSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema LbSpec#managementPolicy
+   * @schema LbSpec#initProvider
    */
-  readonly managementPolicy?: LbSpecManagementPolicy;
+  readonly initProvider?: LbSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema LbSpec#managementPolicies
+   */
+  readonly managementPolicies?: LbSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface LbSpec {
    * @schema LbSpec#providerConfigRef
    */
   readonly providerConfigRef?: LbSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema LbSpec#providerRef
-   */
-  readonly providerRef?: LbSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_LbSpec(obj: LbSpec | undefined): Record<string, any> | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_LbSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_LbSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_LbSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_LbSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_LbSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_LbSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_LbSpec(obj: LbSpec | undefined): Record<string, any> | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema LbSpecDeletionPolicy
  */
@@ -415,17 +415,204 @@ export function toJson_LbSpecForProvider(obj: LbSpecForProvider | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema LbSpecManagementPolicy
+ * @schema LbSpecInitProvider
  */
-export enum LbSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface LbSpecInitProvider {
+  /**
+   * An Access Logs block. Access Logs documented below.
+   *
+   * @schema LbSpecInitProvider#accessLogs
+   */
+  readonly accessLogs?: LbSpecInitProviderAccessLogs[];
+
+  /**
+   * The ID of the customer owned ipv4 pool to use for this load balancer.
+   *
+   * @schema LbSpecInitProvider#customerOwnedIpv4Pool
+   */
+  readonly customerOwnedIpv4Pool?: string;
+
+  /**
+   * Determines how the load balancer handles requests that might pose a security risk to an application due to HTTP desync. Valid values are monitor, defensive (default), strictest.
+   *
+   * @schema LbSpecInitProvider#desyncMitigationMode
+   */
+  readonly desyncMitigationMode?: string;
+
+  /**
+   * Indicates whether HTTP headers with header fields that are not valid are removed by the load balancer (true) or routed to targets (false). The default is false. Elastic Load Balancing requires that message header names contain only alphanumeric characters and hyphens. Only valid for Load Balancers of type application.
+   *
+   * @schema LbSpecInitProvider#dropInvalidHeaderFields
+   */
+  readonly dropInvalidHeaderFields?: boolean;
+
+  /**
+   * If true, cross-zone load balancing of the load balancer will be enabled. For network and gateway type load balancers, this feature is disabled by default (false). For application load balancer this feature is always enabled (true) and cannot be disabled. Defaults to false.
+   *
+   * @default false.
+   * @schema LbSpecInitProvider#enableCrossZoneLoadBalancing
+   */
+  readonly enableCrossZoneLoadBalancing?: boolean;
+
+  /**
+   * If true, deletion of the load balancer will be disabled via the AWS API. Defaults to false.
+   *
+   * @default false.
+   * @schema LbSpecInitProvider#enableDeletionProtection
+   */
+  readonly enableDeletionProtection?: boolean;
+
+  /**
+   * Indicates whether HTTP/2 is enabled in application load balancers. Defaults to true.
+   *
+   * @default true.
+   * @schema LbSpecInitProvider#enableHttp2
+   */
+  readonly enableHttp2?: boolean;
+
+  /**
+   * Indicates whether the two headers (x-amzn-tls-version and x-amzn-tls-cipher-suite), which contain information about the negotiated TLS version and cipher suite, are added to the client request before sending it to the target. Only valid for Load Balancers of type application. Defaults to false
+   *
+   * @default false
+   * @schema LbSpecInitProvider#enableTlsVersionAndCipherSuiteHeaders
+   */
+  readonly enableTlsVersionAndCipherSuiteHeaders?: boolean;
+
+  /**
+   * Indicates whether to allow a WAF-enabled load balancer to route requests to targets if it is unable to forward the request to AWS WAF. Defaults to false.
+   *
+   * @default false.
+   * @schema LbSpecInitProvider#enableWafFailOpen
+   */
+  readonly enableWafFailOpen?: boolean;
+
+  /**
+   * Indicates whether the X-Forwarded-For header should preserve the source port that the client used to connect to the load balancer in application load balancers. Defaults to false.
+   *
+   * @default false.
+   * @schema LbSpecInitProvider#enableXffClientPort
+   */
+  readonly enableXffClientPort?: boolean;
+
+  /**
+   * The time in seconds that the connection is allowed to be idle. Only valid for Load Balancers of type application. Default: 60.
+   *
+   * @schema LbSpecInitProvider#idleTimeout
+   */
+  readonly idleTimeout?: number;
+
+  /**
+   * If true, the LB will be internal. Defaults to false.
+   *
+   * @default false.
+   * @schema LbSpecInitProvider#internal
+   */
+  readonly internal?: boolean;
+
+  /**
+   * The type of IP addresses used by the subnets for your load balancer. The possible values are ipv4 and dualstack.
+   *
+   * @schema LbSpecInitProvider#ipAddressType
+   */
+  readonly ipAddressType?: string;
+
+  /**
+   * The type of load balancer to create. Possible values are application, gateway, or network. The default value is application.
+   *
+   * @schema LbSpecInitProvider#loadBalancerType
+   */
+  readonly loadBalancerType?: string;
+
+  /**
+   * The name of the LB. This name must be unique within your AWS account, can have a maximum of 32 characters, must contain only alphanumeric characters or hyphens, and must not begin or end with a hyphen.
+   *
+   * @schema LbSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Indicates whether the Application Load Balancer should preserve the Host header in the HTTP request and send it to the target without any change. Defaults to false.
+   *
+   * @default false.
+   * @schema LbSpecInitProvider#preserveHostHeader
+   */
+  readonly preserveHostHeader?: boolean;
+
+  /**
+   * A subnet mapping block as documented below.
+   *
+   * @schema LbSpecInitProvider#subnetMapping
+   */
+  readonly subnetMapping?: LbSpecInitProviderSubnetMapping[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema LbSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Determines how the load balancer modifies the X-Forwarded-For header in the HTTP request before sending the request to the target. The possible values are append, preserve, and remove. Only valid for Load Balancers of type application. The default is append.
+   *
+   * @schema LbSpecInitProvider#xffHeaderProcessingMode
+   */
+  readonly xffHeaderProcessingMode?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbSpecInitProvider(obj: LbSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessLogs': obj.accessLogs?.map(y => toJson_LbSpecInitProviderAccessLogs(y)),
+    'customerOwnedIpv4Pool': obj.customerOwnedIpv4Pool,
+    'desyncMitigationMode': obj.desyncMitigationMode,
+    'dropInvalidHeaderFields': obj.dropInvalidHeaderFields,
+    'enableCrossZoneLoadBalancing': obj.enableCrossZoneLoadBalancing,
+    'enableDeletionProtection': obj.enableDeletionProtection,
+    'enableHttp2': obj.enableHttp2,
+    'enableTlsVersionAndCipherSuiteHeaders': obj.enableTlsVersionAndCipherSuiteHeaders,
+    'enableWafFailOpen': obj.enableWafFailOpen,
+    'enableXffClientPort': obj.enableXffClientPort,
+    'idleTimeout': obj.idleTimeout,
+    'internal': obj.internal,
+    'ipAddressType': obj.ipAddressType,
+    'loadBalancerType': obj.loadBalancerType,
+    'name': obj.name,
+    'preserveHostHeader': obj.preserveHostHeader,
+    'subnetMapping': obj.subnetMapping?.map(y => toJson_LbSpecInitProviderSubnetMapping(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'xffHeaderProcessingMode': obj.xffHeaderProcessingMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema LbSpecManagementPolicies
+ */
+export enum LbSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -459,43 +646,6 @@ export function toJson_LbSpecProviderConfigRef(obj: LbSpecProviderConfigRef | un
   const result = {
     'name': obj.name,
     'policy': toJson_LbSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema LbSpecProviderRef
- */
-export interface LbSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema LbSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema LbSpecProviderRef#policy
-   */
-  readonly policy?: LbSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'LbSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LbSpecProviderRef(obj: LbSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_LbSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -876,6 +1026,85 @@ export function toJson_LbSpecForProviderSubnetSelector(obj: LbSpecForProviderSub
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema LbSpecInitProviderAccessLogs
+ */
+export interface LbSpecInitProviderAccessLogs {
+  /**
+   * Boolean to enable / disable access_logs. Defaults to false, even when bucket is specified.
+   *
+   * @default false, even when bucket is specified.
+   * @schema LbSpecInitProviderAccessLogs#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The S3 bucket prefix. Logs are stored in the root if not configured.
+   *
+   * @schema LbSpecInitProviderAccessLogs#prefix
+   */
+  readonly prefix?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbSpecInitProviderAccessLogs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbSpecInitProviderAccessLogs(obj: LbSpecInitProviderAccessLogs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'prefix': obj.prefix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbSpecInitProviderSubnetMapping
+ */
+export interface LbSpecInitProviderSubnetMapping {
+  /**
+   * The allocation ID of the Elastic IP address for an internet-facing load balancer.
+   *
+   * @schema LbSpecInitProviderSubnetMapping#allocationId
+   */
+  readonly allocationId?: string;
+
+  /**
+   * The IPv6 address. You associate IPv6 CIDR blocks with your VPC and choose the subnets where you launch both internet-facing and internal Application Load Balancers or Network Load Balancers.
+   *
+   * @schema LbSpecInitProviderSubnetMapping#ipv6Address
+   */
+  readonly ipv6Address?: string;
+
+  /**
+   * The private IPv4 address for an internal load balancer.
+   *
+   * @schema LbSpecInitProviderSubnetMapping#privateIpv4Address
+   */
+  readonly privateIpv4Address?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbSpecInitProviderSubnetMapping' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbSpecInitProviderSubnetMapping(obj: LbSpecInitProviderSubnetMapping | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allocationId': obj.allocationId,
+    'ipv6Address': obj.ipv6Address,
+    'privateIpv4Address': obj.privateIpv4Address,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema LbSpecProviderConfigRefPolicy
@@ -902,43 +1131,6 @@ export interface LbSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_LbSpecProviderConfigRefPolicy(obj: LbSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema LbSpecProviderRefPolicy
- */
-export interface LbSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema LbSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: LbSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema LbSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: LbSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'LbSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LbSpecProviderRefPolicy(obj: LbSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1361,30 +1553,6 @@ export enum LbSpecProviderConfigRefPolicyResolution {
  * @schema LbSpecProviderConfigRefPolicyResolve
  */
 export enum LbSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema LbSpecProviderRefPolicyResolution
- */
-export enum LbSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema LbSpecProviderRefPolicyResolve
- */
-export enum LbSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1889,7 +2057,7 @@ export function toJson_LbListenerProps(obj: LbListenerProps | undefined): Record
  */
 export interface LbListenerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema LbListenerSpec#deletionPolicy
    */
@@ -1901,11 +2069,18 @@ export interface LbListenerSpec {
   readonly forProvider: LbListenerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema LbListenerSpec#managementPolicy
+   * @schema LbListenerSpec#initProvider
    */
-  readonly managementPolicy?: LbListenerSpecManagementPolicy;
+  readonly initProvider?: LbListenerSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema LbListenerSpec#managementPolicies
+   */
+  readonly managementPolicies?: LbListenerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1913,13 +2088,6 @@ export interface LbListenerSpec {
    * @schema LbListenerSpec#providerConfigRef
    */
   readonly providerConfigRef?: LbListenerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema LbListenerSpec#providerRef
-   */
-  readonly providerRef?: LbListenerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1946,9 +2114,9 @@ export function toJson_LbListenerSpec(obj: LbListenerSpec | undefined): Record<s
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_LbListenerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_LbListenerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_LbListenerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_LbListenerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_LbListenerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_LbListenerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1958,7 +2126,7 @@ export function toJson_LbListenerSpec(obj: LbListenerSpec | undefined): Record<s
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema LbListenerSpecDeletionPolicy
  */
@@ -2077,17 +2245,100 @@ export function toJson_LbListenerSpecForProvider(obj: LbListenerSpecForProvider 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema LbListenerSpecManagementPolicy
+ * @schema LbListenerSpecInitProvider
  */
-export enum LbListenerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface LbListenerSpecInitProvider {
+  /**
+   * Name of the Application-Layer Protocol Negotiation (ALPN) policy. Can be set if protocol is TLS. Valid values are HTTP1Only, HTTP2Only, HTTP2Optional, HTTP2Preferred, and None.
+   *
+   * @schema LbListenerSpecInitProvider#alpnPolicy
+   */
+  readonly alpnPolicy?: string;
+
+  /**
+   * ARN of the default SSL server certificate. Exactly one certificate is required if the protocol is HTTPS. For adding additional SSL certificates, see the aws_lb_listener_certificate resource.
+   *
+   * @schema LbListenerSpecInitProvider#certificateArn
+   */
+  readonly certificateArn?: string;
+
+  /**
+   * Configuration block for default actions. Detailed below.
+   *
+   * @schema LbListenerSpecInitProvider#defaultAction
+   */
+  readonly defaultAction?: LbListenerSpecInitProviderDefaultAction[];
+
+  /**
+   * Port on which the load balancer is listening. Not valid for Gateway Load Balancers.
+   *
+   * @schema LbListenerSpecInitProvider#port
+   */
+  readonly port?: number;
+
+  /**
+   * Protocol for connections from clients to the load balancer. For Application Load Balancers, valid values are HTTP and HTTPS, with a default of HTTP. For Network Load Balancers, valid values are TCP, TLS, UDP, and TCP_UDP. Not valid to use UDP or TCP_UDP if dual-stack mode is enabled. Not valid for Gateway Load Balancers.
+   *
+   * @schema LbListenerSpecInitProvider#protocol
+   */
+  readonly protocol?: string;
+
+  /**
+   * Name of the SSL Policy for the listener. Required if protocol is HTTPS or TLS.
+   *
+   * @schema LbListenerSpecInitProvider#sslPolicy
+   */
+  readonly sslPolicy?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema LbListenerSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'LbListenerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerSpecInitProvider(obj: LbListenerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alpnPolicy': obj.alpnPolicy,
+    'certificateArn': obj.certificateArn,
+    'defaultAction': obj.defaultAction?.map(y => toJson_LbListenerSpecInitProviderDefaultAction(y)),
+    'port': obj.port,
+    'protocol': obj.protocol,
+    'sslPolicy': obj.sslPolicy,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema LbListenerSpecManagementPolicies
+ */
+export enum LbListenerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2121,43 +2372,6 @@ export function toJson_LbListenerSpecProviderConfigRef(obj: LbListenerSpecProvid
   const result = {
     'name': obj.name,
     'policy': toJson_LbListenerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema LbListenerSpecProviderRef
- */
-export interface LbListenerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema LbListenerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema LbListenerSpecProviderRef#policy
-   */
-  readonly policy?: LbListenerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'LbListenerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LbListenerSpecProviderRef(obj: LbListenerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_LbListenerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2318,7 +2532,7 @@ export interface LbListenerSpecForProviderDefaultAction {
    *
    * @schema LbListenerSpecForProviderDefaultAction#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -2428,6 +2642,81 @@ export function toJson_LbListenerSpecForProviderLoadBalancerArnSelector(obj: LbL
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema LbListenerSpecInitProviderDefaultAction
+ */
+export interface LbListenerSpecInitProviderDefaultAction {
+  /**
+   * Configuration block for using Amazon Cognito to authenticate users. Specify only when type is authenticate-cognito. Detailed below.
+   *
+   * @schema LbListenerSpecInitProviderDefaultAction#authenticateCognito
+   */
+  readonly authenticateCognito?: LbListenerSpecInitProviderDefaultActionAuthenticateCognito[];
+
+  /**
+   * Configuration block for an identity provider that is compliant with OpenID Connect (OIDC). Specify only when type is authenticate-oidc. Detailed below.
+   *
+   * @schema LbListenerSpecInitProviderDefaultAction#authenticateOidc
+   */
+  readonly authenticateOidc?: LbListenerSpecInitProviderDefaultActionAuthenticateOidc[];
+
+  /**
+   * Information for creating an action that returns a custom HTTP response. Required if type is fixed-response.
+   *
+   * @schema LbListenerSpecInitProviderDefaultAction#fixedResponse
+   */
+  readonly fixedResponse?: LbListenerSpecInitProviderDefaultActionFixedResponse[];
+
+  /**
+   * Configuration block for creating an action that distributes requests among one or more target groups. Specify only if type is forward. If you specify both forward block and target_group_arn attribute, you can specify only one target group using forward and it must be the same target group specified in target_group_arn. Detailed below.
+   *
+   * @schema LbListenerSpecInitProviderDefaultAction#forward
+   */
+  readonly forward?: LbListenerSpecInitProviderDefaultActionForward[];
+
+  /**
+   * Order for the action. This value is required for rules with multiple actions. The action with the lowest value for order is performed first. Valid values are between 1 and 50000.
+   *
+   * @schema LbListenerSpecInitProviderDefaultAction#order
+   */
+  readonly order?: number;
+
+  /**
+   * Configuration block for creating a redirect action. Required if type is redirect. Detailed below.
+   *
+   * @schema LbListenerSpecInitProviderDefaultAction#redirect
+   */
+  readonly redirect?: LbListenerSpecInitProviderDefaultActionRedirect[];
+
+  /**
+   * Type of routing action. Valid values are forward, redirect, fixed-response, authenticate-cognito and authenticate-oidc.
+   *
+   * @schema LbListenerSpecInitProviderDefaultAction#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerSpecInitProviderDefaultAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerSpecInitProviderDefaultAction(obj: LbListenerSpecInitProviderDefaultAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'authenticateCognito': obj.authenticateCognito?.map(y => toJson_LbListenerSpecInitProviderDefaultActionAuthenticateCognito(y)),
+    'authenticateOidc': obj.authenticateOidc?.map(y => toJson_LbListenerSpecInitProviderDefaultActionAuthenticateOidc(y)),
+    'fixedResponse': obj.fixedResponse?.map(y => toJson_LbListenerSpecInitProviderDefaultActionFixedResponse(y)),
+    'forward': obj.forward?.map(y => toJson_LbListenerSpecInitProviderDefaultActionForward(y)),
+    'order': obj.order,
+    'redirect': obj.redirect?.map(y => toJson_LbListenerSpecInitProviderDefaultActionRedirect(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema LbListenerSpecProviderConfigRefPolicy
@@ -2454,43 +2743,6 @@ export interface LbListenerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_LbListenerSpecProviderConfigRefPolicy(obj: LbListenerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema LbListenerSpecProviderRefPolicy
- */
-export interface LbListenerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema LbListenerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: LbListenerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema LbListenerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: LbListenerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'LbListenerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LbListenerSpecProviderRefPolicy(obj: LbListenerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2627,21 +2879,21 @@ export interface LbListenerSpecForProviderDefaultActionAuthenticateCognito {
    *
    * @schema LbListenerSpecForProviderDefaultActionAuthenticateCognito#userPoolArn
    */
-  readonly userPoolArn: string;
+  readonly userPoolArn?: string;
 
   /**
    * ID of the Cognito user pool client.
    *
    * @schema LbListenerSpecForProviderDefaultActionAuthenticateCognito#userPoolClientId
    */
-  readonly userPoolClientId: string;
+  readonly userPoolClientId?: string;
 
   /**
    * Domain prefix or fully-qualified domain name of the Cognito user pool.
    *
    * @schema LbListenerSpecForProviderDefaultActionAuthenticateCognito#userPoolDomain
    */
-  readonly userPoolDomain: string;
+  readonly userPoolDomain?: string;
 
 }
 
@@ -2682,14 +2934,14 @@ export interface LbListenerSpecForProviderDefaultActionAuthenticateOidc {
    *
    * @schema LbListenerSpecForProviderDefaultActionAuthenticateOidc#authorizationEndpoint
    */
-  readonly authorizationEndpoint: string;
+  readonly authorizationEndpoint?: string;
 
   /**
    * OAuth 2.0 client identifier.
    *
    * @schema LbListenerSpecForProviderDefaultActionAuthenticateOidc#clientId
    */
-  readonly clientId: string;
+  readonly clientId?: string;
 
   /**
    * OAuth 2.0 client secret.
@@ -2703,7 +2955,7 @@ export interface LbListenerSpecForProviderDefaultActionAuthenticateOidc {
    *
    * @schema LbListenerSpecForProviderDefaultActionAuthenticateOidc#issuer
    */
-  readonly issuer: string;
+  readonly issuer?: string;
 
   /**
    * Behavior if the user is not authenticated. Valid values: deny, allow and authenticate
@@ -2738,14 +2990,14 @@ export interface LbListenerSpecForProviderDefaultActionAuthenticateOidc {
    *
    * @schema LbListenerSpecForProviderDefaultActionAuthenticateOidc#tokenEndpoint
    */
-  readonly tokenEndpoint: string;
+  readonly tokenEndpoint?: string;
 
   /**
    * User info endpoint of the IdP.
    *
    * @schema LbListenerSpecForProviderDefaultActionAuthenticateOidc#userInfoEndpoint
    */
-  readonly userInfoEndpoint: string;
+  readonly userInfoEndpoint?: string;
 
 }
 
@@ -2782,7 +3034,7 @@ export interface LbListenerSpecForProviderDefaultActionFixedResponse {
    *
    * @schema LbListenerSpecForProviderDefaultActionFixedResponse#contentType
    */
-  readonly contentType: string;
+  readonly contentType?: string;
 
   /**
    * Message body.
@@ -2832,7 +3084,7 @@ export interface LbListenerSpecForProviderDefaultActionForward {
    *
    * @schema LbListenerSpecForProviderDefaultActionForward#targetGroup
    */
-  readonly targetGroup: LbListenerSpecForProviderDefaultActionForwardTargetGroup[];
+  readonly targetGroup?: LbListenerSpecForProviderDefaultActionForwardTargetGroup[];
 
 }
 
@@ -2900,7 +3152,7 @@ export interface LbListenerSpecForProviderDefaultActionRedirect {
    *
    * @schema LbListenerSpecForProviderDefaultActionRedirect#statusCode
    */
-  readonly statusCode: string;
+  readonly statusCode?: string;
 
 }
 
@@ -3080,6 +3332,338 @@ export function toJson_LbListenerSpecForProviderLoadBalancerArnSelectorPolicy(ob
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema LbListenerSpecInitProviderDefaultActionAuthenticateCognito
+ */
+export interface LbListenerSpecInitProviderDefaultActionAuthenticateCognito {
+  /**
+   * Query parameters to include in the redirect request to the authorization endpoint. Max: 10. Detailed below.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateCognito#authenticationRequestExtraParams
+   */
+  readonly authenticationRequestExtraParams?: { [key: string]: string };
+
+  /**
+   * Behavior if the user is not authenticated. Valid values are deny, allow and authenticate.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateCognito#onUnauthenticatedRequest
+   */
+  readonly onUnauthenticatedRequest?: string;
+
+  /**
+   * Set of user claims to be requested from the IdP.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateCognito#scope
+   */
+  readonly scope?: string;
+
+  /**
+   * Name of the cookie used to maintain session information.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateCognito#sessionCookieName
+   */
+  readonly sessionCookieName?: string;
+
+  /**
+   * Maximum duration of the authentication session, in seconds.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateCognito#sessionTimeout
+   */
+  readonly sessionTimeout?: number;
+
+  /**
+   * ARN of the Cognito user pool.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateCognito#userPoolArn
+   */
+  readonly userPoolArn?: string;
+
+  /**
+   * ID of the Cognito user pool client.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateCognito#userPoolClientId
+   */
+  readonly userPoolClientId?: string;
+
+  /**
+   * Domain prefix or fully-qualified domain name of the Cognito user pool.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateCognito#userPoolDomain
+   */
+  readonly userPoolDomain?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerSpecInitProviderDefaultActionAuthenticateCognito' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerSpecInitProviderDefaultActionAuthenticateCognito(obj: LbListenerSpecInitProviderDefaultActionAuthenticateCognito | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'authenticationRequestExtraParams': ((obj.authenticationRequestExtraParams) === undefined) ? undefined : (Object.entries(obj.authenticationRequestExtraParams).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'onUnauthenticatedRequest': obj.onUnauthenticatedRequest,
+    'scope': obj.scope,
+    'sessionCookieName': obj.sessionCookieName,
+    'sessionTimeout': obj.sessionTimeout,
+    'userPoolArn': obj.userPoolArn,
+    'userPoolClientId': obj.userPoolClientId,
+    'userPoolDomain': obj.userPoolDomain,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerSpecInitProviderDefaultActionAuthenticateOidc
+ */
+export interface LbListenerSpecInitProviderDefaultActionAuthenticateOidc {
+  /**
+   * Query parameters to include in the redirect request to the authorization endpoint. Max: 10.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateOidc#authenticationRequestExtraParams
+   */
+  readonly authenticationRequestExtraParams?: { [key: string]: string };
+
+  /**
+   * Authorization endpoint of the IdP.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateOidc#authorizationEndpoint
+   */
+  readonly authorizationEndpoint?: string;
+
+  /**
+   * OAuth 2.0 client identifier.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateOidc#clientId
+   */
+  readonly clientId?: string;
+
+  /**
+   * OIDC issuer identifier of the IdP.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateOidc#issuer
+   */
+  readonly issuer?: string;
+
+  /**
+   * Behavior if the user is not authenticated. Valid values: deny, allow and authenticate
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateOidc#onUnauthenticatedRequest
+   */
+  readonly onUnauthenticatedRequest?: string;
+
+  /**
+   * Set of user claims to be requested from the IdP.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateOidc#scope
+   */
+  readonly scope?: string;
+
+  /**
+   * Name of the cookie used to maintain session information.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateOidc#sessionCookieName
+   */
+  readonly sessionCookieName?: string;
+
+  /**
+   * Maximum duration of the authentication session, in seconds.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateOidc#sessionTimeout
+   */
+  readonly sessionTimeout?: number;
+
+  /**
+   * Token endpoint of the IdP.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateOidc#tokenEndpoint
+   */
+  readonly tokenEndpoint?: string;
+
+  /**
+   * User info endpoint of the IdP.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionAuthenticateOidc#userInfoEndpoint
+   */
+  readonly userInfoEndpoint?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerSpecInitProviderDefaultActionAuthenticateOidc' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerSpecInitProviderDefaultActionAuthenticateOidc(obj: LbListenerSpecInitProviderDefaultActionAuthenticateOidc | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'authenticationRequestExtraParams': ((obj.authenticationRequestExtraParams) === undefined) ? undefined : (Object.entries(obj.authenticationRequestExtraParams).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'authorizationEndpoint': obj.authorizationEndpoint,
+    'clientId': obj.clientId,
+    'issuer': obj.issuer,
+    'onUnauthenticatedRequest': obj.onUnauthenticatedRequest,
+    'scope': obj.scope,
+    'sessionCookieName': obj.sessionCookieName,
+    'sessionTimeout': obj.sessionTimeout,
+    'tokenEndpoint': obj.tokenEndpoint,
+    'userInfoEndpoint': obj.userInfoEndpoint,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerSpecInitProviderDefaultActionFixedResponse
+ */
+export interface LbListenerSpecInitProviderDefaultActionFixedResponse {
+  /**
+   * Content type. Valid values are text/plain, text/css, text/html, application/javascript and application/json.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionFixedResponse#contentType
+   */
+  readonly contentType?: string;
+
+  /**
+   * Message body.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionFixedResponse#messageBody
+   */
+  readonly messageBody?: string;
+
+  /**
+   * HTTP response code. Valid values are 2XX, 4XX, or 5XX.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionFixedResponse#statusCode
+   */
+  readonly statusCode?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerSpecInitProviderDefaultActionFixedResponse' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerSpecInitProviderDefaultActionFixedResponse(obj: LbListenerSpecInitProviderDefaultActionFixedResponse | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'contentType': obj.contentType,
+    'messageBody': obj.messageBody,
+    'statusCode': obj.statusCode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerSpecInitProviderDefaultActionForward
+ */
+export interface LbListenerSpecInitProviderDefaultActionForward {
+  /**
+   * Configuration block for target group stickiness for the rule. Detailed below.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionForward#stickiness
+   */
+  readonly stickiness?: LbListenerSpecInitProviderDefaultActionForwardStickiness[];
+
+  /**
+   * Set of 1-5 target group blocks. Detailed below.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionForward#targetGroup
+   */
+  readonly targetGroup?: LbListenerSpecInitProviderDefaultActionForwardTargetGroup[];
+
+}
+
+/**
+ * Converts an object of type 'LbListenerSpecInitProviderDefaultActionForward' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerSpecInitProviderDefaultActionForward(obj: LbListenerSpecInitProviderDefaultActionForward | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'stickiness': obj.stickiness?.map(y => toJson_LbListenerSpecInitProviderDefaultActionForwardStickiness(y)),
+    'targetGroup': obj.targetGroup?.map(y => toJson_LbListenerSpecInitProviderDefaultActionForwardTargetGroup(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerSpecInitProviderDefaultActionRedirect
+ */
+export interface LbListenerSpecInitProviderDefaultActionRedirect {
+  /**
+   * Hostname. This component is not percent-encoded. The hostname can contain #{host}. Defaults to #{host}.
+   *
+   * @default host}.
+   * @schema LbListenerSpecInitProviderDefaultActionRedirect#host
+   */
+  readonly host?: string;
+
+  /**
+   * Absolute path, starting with the leading "/". This component is not percent-encoded. The path can contain #{host}, #{path}, and #{port}. Defaults to /#{path}.
+   *
+   * @default path}.
+   * @schema LbListenerSpecInitProviderDefaultActionRedirect#path
+   */
+  readonly path?: string;
+
+  /**
+   * Port. Specify a value from 1 to 65535 or #{port}. Defaults to #{port}.
+   *
+   * @default port}.
+   * @schema LbListenerSpecInitProviderDefaultActionRedirect#port
+   */
+  readonly port?: string;
+
+  /**
+   * Protocol. Valid values are HTTP, HTTPS, or #{protocol}. Defaults to #{protocol}.
+   *
+   * @default protocol}.
+   * @schema LbListenerSpecInitProviderDefaultActionRedirect#protocol
+   */
+  readonly protocol?: string;
+
+  /**
+   * Query parameters, URL-encoded when necessary, but not percent-encoded. Do not include the leading "?". Defaults to #{query}.
+   *
+   * @default query}.
+   * @schema LbListenerSpecInitProviderDefaultActionRedirect#query
+   */
+  readonly query?: string;
+
+  /**
+   * HTTP redirect code. The redirect is either permanent (HTTP_301) or temporary (HTTP_302).
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionRedirect#statusCode
+   */
+  readonly statusCode?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerSpecInitProviderDefaultActionRedirect' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerSpecInitProviderDefaultActionRedirect(obj: LbListenerSpecInitProviderDefaultActionRedirect | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'host': obj.host,
+    'path': obj.path,
+    'port': obj.port,
+    'protocol': obj.protocol,
+    'query': obj.query,
+    'statusCode': obj.statusCode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema LbListenerSpecProviderConfigRefPolicyResolution
@@ -3097,30 +3681,6 @@ export enum LbListenerSpecProviderConfigRefPolicyResolution {
  * @schema LbListenerSpecProviderConfigRefPolicyResolve
  */
 export enum LbListenerSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema LbListenerSpecProviderRefPolicyResolution
- */
-export enum LbListenerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema LbListenerSpecProviderRefPolicyResolve
- */
-export enum LbListenerSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3218,7 +3778,7 @@ export interface LbListenerSpecForProviderDefaultActionForwardStickiness {
    *
    * @schema LbListenerSpecForProviderDefaultActionForwardStickiness#duration
    */
-  readonly duration: number;
+  readonly duration?: number;
 
   /**
    * Whether target group stickiness is enabled. Default is false.
@@ -3417,6 +3977,69 @@ export enum LbListenerSpecForProviderLoadBalancerArnSelectorPolicyResolve {
   /** IfNotPresent */
   IF_NOT_PRESENT = "IfNotPresent",
 }
+
+/**
+ * @schema LbListenerSpecInitProviderDefaultActionForwardStickiness
+ */
+export interface LbListenerSpecInitProviderDefaultActionForwardStickiness {
+  /**
+   * Time period, in seconds, during which requests from a client should be routed to the same target group. The range is 1-604800 seconds (7 days).
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionForwardStickiness#duration
+   */
+  readonly duration?: number;
+
+  /**
+   * Whether target group stickiness is enabled. Default is false.
+   *
+   * @default false.
+   * @schema LbListenerSpecInitProviderDefaultActionForwardStickiness#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerSpecInitProviderDefaultActionForwardStickiness' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerSpecInitProviderDefaultActionForwardStickiness(obj: LbListenerSpecInitProviderDefaultActionForwardStickiness | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'duration': obj.duration,
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerSpecInitProviderDefaultActionForwardTargetGroup
+ */
+export interface LbListenerSpecInitProviderDefaultActionForwardTargetGroup {
+  /**
+   * Weight. The range is 0 to 999.
+   *
+   * @schema LbListenerSpecInitProviderDefaultActionForwardTargetGroup#weight
+   */
+  readonly weight?: number;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerSpecInitProviderDefaultActionForwardTargetGroup' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerSpecInitProviderDefaultActionForwardTargetGroup(obj: LbListenerSpecInitProviderDefaultActionForwardTargetGroup | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'weight': obj.weight,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
@@ -3696,6 +4319,1009 @@ export enum LbListenerSpecForProviderDefaultActionForwardTargetGroupArnSelectorP
 
 
 /**
+ * LBListenerCertificate is the Schema for the LBListenerCertificates API. Provides a Load Balancer Listener Certificate resource.
+ *
+ * @schema LBListenerCertificate
+ */
+export class LbListenerCertificate extends ApiObject {
+  /**
+   * Returns the apiVersion and kind for "LBListenerCertificate"
+   */
+  public static readonly GVK: GroupVersionKind = {
+    apiVersion: 'elbv2.aws.upbound.io/v1beta1',
+    kind: 'LBListenerCertificate',
+  }
+
+  /**
+   * Renders a Kubernetes manifest for "LBListenerCertificate".
+   *
+   * This can be used to inline resource manifests inside other objects (e.g. as templates).
+   *
+   * @param props initialization props
+   */
+  public static manifest(props: LbListenerCertificateProps): any {
+    return {
+      ...LbListenerCertificate.GVK,
+      ...toJson_LbListenerCertificateProps(props),
+    };
+  }
+
+  /**
+   * Defines a "LBListenerCertificate" API object
+   * @param scope the scope in which to define this object
+   * @param id a scope-local name for the object
+   * @param props initialization props
+   */
+  public constructor(scope: Construct, id: string, props: LbListenerCertificateProps) {
+    super(scope, id, {
+      ...LbListenerCertificate.GVK,
+      ...props,
+    });
+  }
+
+  /**
+   * Renders the object to Kubernetes JSON.
+   */
+  public toJson(): any {
+    const resolved = super.toJson();
+
+    return {
+      ...LbListenerCertificate.GVK,
+      ...toJson_LbListenerCertificateProps(resolved),
+    };
+  }
+}
+
+/**
+ * LBListenerCertificate is the Schema for the LBListenerCertificates API. Provides a Load Balancer Listener Certificate resource.
+ *
+ * @schema LBListenerCertificate
+ */
+export interface LbListenerCertificateProps {
+  /**
+   * @schema LBListenerCertificate#metadata
+   */
+  readonly metadata?: ApiObjectMetadata;
+
+  /**
+   * LBListenerCertificateSpec defines the desired state of LBListenerCertificate
+   *
+   * @schema LBListenerCertificate#spec
+   */
+  readonly spec: LbListenerCertificateSpec;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateProps' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateProps(obj: LbListenerCertificateProps | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metadata': obj.metadata,
+    'spec': toJson_LbListenerCertificateSpec(obj.spec),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * LBListenerCertificateSpec defines the desired state of LBListenerCertificate
+ *
+ * @schema LbListenerCertificateSpec
+ */
+export interface LbListenerCertificateSpec {
+  /**
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema LbListenerCertificateSpec#deletionPolicy
+   */
+  readonly deletionPolicy?: LbListenerCertificateSpecDeletionPolicy;
+
+  /**
+   * @schema LbListenerCertificateSpec#forProvider
+   */
+  readonly forProvider: LbListenerCertificateSpecForProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
+   *
+   * @schema LbListenerCertificateSpec#initProvider
+   */
+  readonly initProvider?: any;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema LbListenerCertificateSpec#managementPolicies
+   */
+  readonly managementPolicies?: LbListenerCertificateSpecManagementPolicies[];
+
+  /**
+   * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+   *
+   * @schema LbListenerCertificateSpec#providerConfigRef
+   */
+  readonly providerConfigRef?: LbListenerCertificateSpecProviderConfigRef;
+
+  /**
+   * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+   *
+   * @schema LbListenerCertificateSpec#publishConnectionDetailsTo
+   */
+  readonly publishConnectionDetailsTo?: LbListenerCertificateSpecPublishConnectionDetailsTo;
+
+  /**
+   * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+   *
+   * @schema LbListenerCertificateSpec#writeConnectionSecretToRef
+   */
+  readonly writeConnectionSecretToRef?: LbListenerCertificateSpecWriteConnectionSecretToRef;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpec(obj: LbListenerCertificateSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deletionPolicy': obj.deletionPolicy,
+    'forProvider': toJson_LbListenerCertificateSpecForProvider(obj.forProvider),
+    'initProvider': obj.initProvider,
+    'managementPolicies': obj.managementPolicies?.map(y => y),
+    'providerConfigRef': toJson_LbListenerCertificateSpecProviderConfigRef(obj.providerConfigRef),
+    'publishConnectionDetailsTo': toJson_LbListenerCertificateSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
+    'writeConnectionSecretToRef': toJson_LbListenerCertificateSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema LbListenerCertificateSpecDeletionPolicy
+ */
+export enum LbListenerCertificateSpecDeletionPolicy {
+  /** Orphan */
+  ORPHAN = "Orphan",
+  /** Delete */
+  DELETE = "Delete",
+}
+
+/**
+ * @schema LbListenerCertificateSpecForProvider
+ */
+export interface LbListenerCertificateSpecForProvider {
+  /**
+   * The ARN of the certificate to attach to the listener.
+   *
+   * @schema LbListenerCertificateSpecForProvider#certificateArn
+   */
+  readonly certificateArn?: string;
+
+  /**
+   * Reference to a Certificate in acm to populate certificateArn.
+   *
+   * @schema LbListenerCertificateSpecForProvider#certificateArnRef
+   */
+  readonly certificateArnRef?: LbListenerCertificateSpecForProviderCertificateArnRef;
+
+  /**
+   * Selector for a Certificate in acm to populate certificateArn.
+   *
+   * @schema LbListenerCertificateSpecForProvider#certificateArnSelector
+   */
+  readonly certificateArnSelector?: LbListenerCertificateSpecForProviderCertificateArnSelector;
+
+  /**
+   * The ARN of the listener to which to attach the certificate.
+   *
+   * @schema LbListenerCertificateSpecForProvider#listenerArn
+   */
+  readonly listenerArn?: string;
+
+  /**
+   * Reference to a LBListener in elbv2 to populate listenerArn.
+   *
+   * @schema LbListenerCertificateSpecForProvider#listenerArnRef
+   */
+  readonly listenerArnRef?: LbListenerCertificateSpecForProviderListenerArnRef;
+
+  /**
+   * Selector for a LBListener in elbv2 to populate listenerArn.
+   *
+   * @schema LbListenerCertificateSpecForProvider#listenerArnSelector
+   */
+  readonly listenerArnSelector?: LbListenerCertificateSpecForProviderListenerArnSelector;
+
+  /**
+   * Region is the region you'd like your resource to be created in.
+   *
+   * @schema LbListenerCertificateSpecForProvider#region
+   */
+  readonly region: string;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpecForProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpecForProvider(obj: LbListenerCertificateSpecForProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateArn': obj.certificateArn,
+    'certificateArnRef': toJson_LbListenerCertificateSpecForProviderCertificateArnRef(obj.certificateArnRef),
+    'certificateArnSelector': toJson_LbListenerCertificateSpecForProviderCertificateArnSelector(obj.certificateArnSelector),
+    'listenerArn': obj.listenerArn,
+    'listenerArnRef': toJson_LbListenerCertificateSpecForProviderListenerArnRef(obj.listenerArnRef),
+    'listenerArnSelector': toJson_LbListenerCertificateSpecForProviderListenerArnSelector(obj.listenerArnSelector),
+    'region': obj.region,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema LbListenerCertificateSpecManagementPolicies
+ */
+export enum LbListenerCertificateSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
+}
+
+/**
+ * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+ *
+ * @schema LbListenerCertificateSpecProviderConfigRef
+ */
+export interface LbListenerCertificateSpecProviderConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema LbListenerCertificateSpecProviderConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema LbListenerCertificateSpecProviderConfigRef#policy
+   */
+  readonly policy?: LbListenerCertificateSpecProviderConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpecProviderConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpecProviderConfigRef(obj: LbListenerCertificateSpecProviderConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_LbListenerCertificateSpecProviderConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+ *
+ * @schema LbListenerCertificateSpecPublishConnectionDetailsTo
+ */
+export interface LbListenerCertificateSpecPublishConnectionDetailsTo {
+  /**
+   * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+   *
+   * @schema LbListenerCertificateSpecPublishConnectionDetailsTo#configRef
+   */
+  readonly configRef?: LbListenerCertificateSpecPublishConnectionDetailsToConfigRef;
+
+  /**
+   * Metadata is the metadata for connection secret.
+   *
+   * @schema LbListenerCertificateSpecPublishConnectionDetailsTo#metadata
+   */
+  readonly metadata?: LbListenerCertificateSpecPublishConnectionDetailsToMetadata;
+
+  /**
+   * Name is the name of the connection secret.
+   *
+   * @schema LbListenerCertificateSpecPublishConnectionDetailsTo#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpecPublishConnectionDetailsTo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpecPublishConnectionDetailsTo(obj: LbListenerCertificateSpecPublishConnectionDetailsTo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configRef': toJson_LbListenerCertificateSpecPublishConnectionDetailsToConfigRef(obj.configRef),
+    'metadata': toJson_LbListenerCertificateSpecPublishConnectionDetailsToMetadata(obj.metadata),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+ *
+ * @schema LbListenerCertificateSpecWriteConnectionSecretToRef
+ */
+export interface LbListenerCertificateSpecWriteConnectionSecretToRef {
+  /**
+   * Name of the secret.
+   *
+   * @schema LbListenerCertificateSpecWriteConnectionSecretToRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the secret.
+   *
+   * @schema LbListenerCertificateSpecWriteConnectionSecretToRef#namespace
+   */
+  readonly namespace: string;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpecWriteConnectionSecretToRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpecWriteConnectionSecretToRef(obj: LbListenerCertificateSpecWriteConnectionSecretToRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a Certificate in acm to populate certificateArn.
+ *
+ * @schema LbListenerCertificateSpecForProviderCertificateArnRef
+ */
+export interface LbListenerCertificateSpecForProviderCertificateArnRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema LbListenerCertificateSpecForProviderCertificateArnRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema LbListenerCertificateSpecForProviderCertificateArnRef#policy
+   */
+  readonly policy?: LbListenerCertificateSpecForProviderCertificateArnRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpecForProviderCertificateArnRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpecForProviderCertificateArnRef(obj: LbListenerCertificateSpecForProviderCertificateArnRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_LbListenerCertificateSpecForProviderCertificateArnRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a Certificate in acm to populate certificateArn.
+ *
+ * @schema LbListenerCertificateSpecForProviderCertificateArnSelector
+ */
+export interface LbListenerCertificateSpecForProviderCertificateArnSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema LbListenerCertificateSpecForProviderCertificateArnSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema LbListenerCertificateSpecForProviderCertificateArnSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema LbListenerCertificateSpecForProviderCertificateArnSelector#policy
+   */
+  readonly policy?: LbListenerCertificateSpecForProviderCertificateArnSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpecForProviderCertificateArnSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpecForProviderCertificateArnSelector(obj: LbListenerCertificateSpecForProviderCertificateArnSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_LbListenerCertificateSpecForProviderCertificateArnSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a LBListener in elbv2 to populate listenerArn.
+ *
+ * @schema LbListenerCertificateSpecForProviderListenerArnRef
+ */
+export interface LbListenerCertificateSpecForProviderListenerArnRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema LbListenerCertificateSpecForProviderListenerArnRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema LbListenerCertificateSpecForProviderListenerArnRef#policy
+   */
+  readonly policy?: LbListenerCertificateSpecForProviderListenerArnRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpecForProviderListenerArnRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpecForProviderListenerArnRef(obj: LbListenerCertificateSpecForProviderListenerArnRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_LbListenerCertificateSpecForProviderListenerArnRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a LBListener in elbv2 to populate listenerArn.
+ *
+ * @schema LbListenerCertificateSpecForProviderListenerArnSelector
+ */
+export interface LbListenerCertificateSpecForProviderListenerArnSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema LbListenerCertificateSpecForProviderListenerArnSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema LbListenerCertificateSpecForProviderListenerArnSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema LbListenerCertificateSpecForProviderListenerArnSelector#policy
+   */
+  readonly policy?: LbListenerCertificateSpecForProviderListenerArnSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpecForProviderListenerArnSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpecForProviderListenerArnSelector(obj: LbListenerCertificateSpecForProviderListenerArnSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_LbListenerCertificateSpecForProviderListenerArnSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema LbListenerCertificateSpecProviderConfigRefPolicy
+ */
+export interface LbListenerCertificateSpecProviderConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema LbListenerCertificateSpecProviderConfigRefPolicy#resolution
+   */
+  readonly resolution?: LbListenerCertificateSpecProviderConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema LbListenerCertificateSpecProviderConfigRefPolicy#resolve
+   */
+  readonly resolve?: LbListenerCertificateSpecProviderConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpecProviderConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpecProviderConfigRefPolicy(obj: LbListenerCertificateSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+ *
+ * @schema LbListenerCertificateSpecPublishConnectionDetailsToConfigRef
+ */
+export interface LbListenerCertificateSpecPublishConnectionDetailsToConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema LbListenerCertificateSpecPublishConnectionDetailsToConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema LbListenerCertificateSpecPublishConnectionDetailsToConfigRef#policy
+   */
+  readonly policy?: LbListenerCertificateSpecPublishConnectionDetailsToConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpecPublishConnectionDetailsToConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpecPublishConnectionDetailsToConfigRef(obj: LbListenerCertificateSpecPublishConnectionDetailsToConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_LbListenerCertificateSpecPublishConnectionDetailsToConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Metadata is the metadata for connection secret.
+ *
+ * @schema LbListenerCertificateSpecPublishConnectionDetailsToMetadata
+ */
+export interface LbListenerCertificateSpecPublishConnectionDetailsToMetadata {
+  /**
+   * Annotations are the annotations to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.annotations". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema LbListenerCertificateSpecPublishConnectionDetailsToMetadata#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Labels are the labels/tags to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.labels". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema LbListenerCertificateSpecPublishConnectionDetailsToMetadata#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Type is the SecretType for the connection secret. - Only valid for Kubernetes Secret Stores.
+   *
+   * @schema LbListenerCertificateSpecPublishConnectionDetailsToMetadata#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpecPublishConnectionDetailsToMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpecPublishConnectionDetailsToMetadata(obj: LbListenerCertificateSpecPublishConnectionDetailsToMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema LbListenerCertificateSpecForProviderCertificateArnRefPolicy
+ */
+export interface LbListenerCertificateSpecForProviderCertificateArnRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema LbListenerCertificateSpecForProviderCertificateArnRefPolicy#resolution
+   */
+  readonly resolution?: LbListenerCertificateSpecForProviderCertificateArnRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema LbListenerCertificateSpecForProviderCertificateArnRefPolicy#resolve
+   */
+  readonly resolve?: LbListenerCertificateSpecForProviderCertificateArnRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpecForProviderCertificateArnRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpecForProviderCertificateArnRefPolicy(obj: LbListenerCertificateSpecForProviderCertificateArnRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema LbListenerCertificateSpecForProviderCertificateArnSelectorPolicy
+ */
+export interface LbListenerCertificateSpecForProviderCertificateArnSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema LbListenerCertificateSpecForProviderCertificateArnSelectorPolicy#resolution
+   */
+  readonly resolution?: LbListenerCertificateSpecForProviderCertificateArnSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema LbListenerCertificateSpecForProviderCertificateArnSelectorPolicy#resolve
+   */
+  readonly resolve?: LbListenerCertificateSpecForProviderCertificateArnSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpecForProviderCertificateArnSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpecForProviderCertificateArnSelectorPolicy(obj: LbListenerCertificateSpecForProviderCertificateArnSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema LbListenerCertificateSpecForProviderListenerArnRefPolicy
+ */
+export interface LbListenerCertificateSpecForProviderListenerArnRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema LbListenerCertificateSpecForProviderListenerArnRefPolicy#resolution
+   */
+  readonly resolution?: LbListenerCertificateSpecForProviderListenerArnRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema LbListenerCertificateSpecForProviderListenerArnRefPolicy#resolve
+   */
+  readonly resolve?: LbListenerCertificateSpecForProviderListenerArnRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpecForProviderListenerArnRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpecForProviderListenerArnRefPolicy(obj: LbListenerCertificateSpecForProviderListenerArnRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema LbListenerCertificateSpecForProviderListenerArnSelectorPolicy
+ */
+export interface LbListenerCertificateSpecForProviderListenerArnSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema LbListenerCertificateSpecForProviderListenerArnSelectorPolicy#resolution
+   */
+  readonly resolution?: LbListenerCertificateSpecForProviderListenerArnSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema LbListenerCertificateSpecForProviderListenerArnSelectorPolicy#resolve
+   */
+  readonly resolve?: LbListenerCertificateSpecForProviderListenerArnSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpecForProviderListenerArnSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpecForProviderListenerArnSelectorPolicy(obj: LbListenerCertificateSpecForProviderListenerArnSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema LbListenerCertificateSpecProviderConfigRefPolicyResolution
+ */
+export enum LbListenerCertificateSpecProviderConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema LbListenerCertificateSpecProviderConfigRefPolicyResolve
+ */
+export enum LbListenerCertificateSpecProviderConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Policies for referencing.
+ *
+ * @schema LbListenerCertificateSpecPublishConnectionDetailsToConfigRefPolicy
+ */
+export interface LbListenerCertificateSpecPublishConnectionDetailsToConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema LbListenerCertificateSpecPublishConnectionDetailsToConfigRefPolicy#resolution
+   */
+  readonly resolution?: LbListenerCertificateSpecPublishConnectionDetailsToConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema LbListenerCertificateSpecPublishConnectionDetailsToConfigRefPolicy#resolve
+   */
+  readonly resolve?: LbListenerCertificateSpecPublishConnectionDetailsToConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerCertificateSpecPublishConnectionDetailsToConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerCertificateSpecPublishConnectionDetailsToConfigRefPolicy(obj: LbListenerCertificateSpecPublishConnectionDetailsToConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema LbListenerCertificateSpecForProviderCertificateArnRefPolicyResolution
+ */
+export enum LbListenerCertificateSpecForProviderCertificateArnRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema LbListenerCertificateSpecForProviderCertificateArnRefPolicyResolve
+ */
+export enum LbListenerCertificateSpecForProviderCertificateArnRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema LbListenerCertificateSpecForProviderCertificateArnSelectorPolicyResolution
+ */
+export enum LbListenerCertificateSpecForProviderCertificateArnSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema LbListenerCertificateSpecForProviderCertificateArnSelectorPolicyResolve
+ */
+export enum LbListenerCertificateSpecForProviderCertificateArnSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema LbListenerCertificateSpecForProviderListenerArnRefPolicyResolution
+ */
+export enum LbListenerCertificateSpecForProviderListenerArnRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema LbListenerCertificateSpecForProviderListenerArnRefPolicyResolve
+ */
+export enum LbListenerCertificateSpecForProviderListenerArnRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema LbListenerCertificateSpecForProviderListenerArnSelectorPolicyResolution
+ */
+export enum LbListenerCertificateSpecForProviderListenerArnSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema LbListenerCertificateSpecForProviderListenerArnSelectorPolicyResolve
+ */
+export enum LbListenerCertificateSpecForProviderListenerArnSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema LbListenerCertificateSpecPublishConnectionDetailsToConfigRefPolicyResolution
+ */
+export enum LbListenerCertificateSpecPublishConnectionDetailsToConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema LbListenerCertificateSpecPublishConnectionDetailsToConfigRefPolicyResolve
+ */
+export enum LbListenerCertificateSpecPublishConnectionDetailsToConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+
+/**
  * LBListenerRule is the Schema for the LBListenerRules API. Provides a Load Balancer Listener Rule resource.
  *
  * @schema LBListenerRule
@@ -3791,7 +5417,7 @@ export function toJson_LbListenerRuleProps(obj: LbListenerRuleProps | undefined)
  */
 export interface LbListenerRuleSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema LbListenerRuleSpec#deletionPolicy
    */
@@ -3803,11 +5429,18 @@ export interface LbListenerRuleSpec {
   readonly forProvider: LbListenerRuleSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema LbListenerRuleSpec#managementPolicy
+   * @schema LbListenerRuleSpec#initProvider
    */
-  readonly managementPolicy?: LbListenerRuleSpecManagementPolicy;
+  readonly initProvider?: LbListenerRuleSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema LbListenerRuleSpec#managementPolicies
+   */
+  readonly managementPolicies?: LbListenerRuleSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3815,13 +5448,6 @@ export interface LbListenerRuleSpec {
    * @schema LbListenerRuleSpec#providerConfigRef
    */
   readonly providerConfigRef?: LbListenerRuleSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema LbListenerRuleSpec#providerRef
-   */
-  readonly providerRef?: LbListenerRuleSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3848,9 +5474,9 @@ export function toJson_LbListenerRuleSpec(obj: LbListenerRuleSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_LbListenerRuleSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_LbListenerRuleSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_LbListenerRuleSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_LbListenerRuleSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_LbListenerRuleSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_LbListenerRuleSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3860,7 +5486,7 @@ export function toJson_LbListenerRuleSpec(obj: LbListenerRuleSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema LbListenerRuleSpecDeletionPolicy
  */
@@ -3955,17 +5581,76 @@ export function toJson_LbListenerRuleSpecForProvider(obj: LbListenerRuleSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema LbListenerRuleSpecManagementPolicy
+ * @schema LbListenerRuleSpecInitProvider
  */
-export enum LbListenerRuleSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface LbListenerRuleSpecInitProvider {
+  /**
+   * An Action block. Action blocks are documented below.
+   *
+   * @schema LbListenerRuleSpecInitProvider#action
+   */
+  readonly action?: LbListenerRuleSpecInitProviderAction[];
+
+  /**
+   * A Condition block. Multiple condition blocks of different types can be set and all must be satisfied for the rule to match. Condition blocks are documented below.
+   *
+   * @schema LbListenerRuleSpecInitProvider#condition
+   */
+  readonly condition?: LbListenerRuleSpecInitProviderCondition[];
+
+  /**
+   * The priority for the rule between 1 and 50000. Leaving it unset will automatically set the rule with next available priority after currently existing highest rule. A listener can't have multiple rules with the same priority.
+   *
+   * @schema LbListenerRuleSpecInitProvider#priority
+   */
+  readonly priority?: number;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema LbListenerRuleSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'LbListenerRuleSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerRuleSpecInitProvider(obj: LbListenerRuleSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action?.map(y => toJson_LbListenerRuleSpecInitProviderAction(y)),
+    'condition': obj.condition?.map(y => toJson_LbListenerRuleSpecInitProviderCondition(y)),
+    'priority': obj.priority,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema LbListenerRuleSpecManagementPolicies
+ */
+export enum LbListenerRuleSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3999,43 +5684,6 @@ export function toJson_LbListenerRuleSpecProviderConfigRef(obj: LbListenerRuleSp
   const result = {
     'name': obj.name,
     'policy': toJson_LbListenerRuleSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema LbListenerRuleSpecProviderRef
- */
-export interface LbListenerRuleSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema LbListenerRuleSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema LbListenerRuleSpecProviderRef#policy
-   */
-  readonly policy?: LbListenerRuleSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'LbListenerRuleSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LbListenerRuleSpecProviderRef(obj: LbListenerRuleSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_LbListenerRuleSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4194,7 +5842,7 @@ export interface LbListenerRuleSpecForProviderAction {
    *
    * @schema LbListenerRuleSpecForProviderAction#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -4371,6 +6019,146 @@ export function toJson_LbListenerRuleSpecForProviderListenerArnSelector(obj: LbL
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema LbListenerRuleSpecInitProviderAction
+ */
+export interface LbListenerRuleSpecInitProviderAction {
+  /**
+   * Information for creating an authenticate action using Cognito. Required if type is authenticate-cognito.
+   *
+   * @schema LbListenerRuleSpecInitProviderAction#authenticateCognito
+   */
+  readonly authenticateCognito?: LbListenerRuleSpecInitProviderActionAuthenticateCognito[];
+
+  /**
+   * Information for creating an authenticate action using OIDC. Required if type is authenticate-oidc.
+   *
+   * @schema LbListenerRuleSpecInitProviderAction#authenticateOidc
+   */
+  readonly authenticateOidc?: LbListenerRuleSpecInitProviderActionAuthenticateOidc[];
+
+  /**
+   * Information for creating an action that returns a custom HTTP response. Required if type is fixed-response.
+   *
+   * @schema LbListenerRuleSpecInitProviderAction#fixedResponse
+   */
+  readonly fixedResponse?: LbListenerRuleSpecInitProviderActionFixedResponse[];
+
+  /**
+   * Information for creating an action that distributes requests among one or more target groups. Specify only if type is forward. If you specify both forward block and target_group_arn attribute, you can specify only one target group using forward and it must be the same target group specified in target_group_arn.
+   *
+   * @schema LbListenerRuleSpecInitProviderAction#forward
+   */
+  readonly forward?: LbListenerRuleSpecInitProviderActionForward[];
+
+  /**
+   * @schema LbListenerRuleSpecInitProviderAction#order
+   */
+  readonly order?: number;
+
+  /**
+   * Information for creating a redirect action. Required if type is redirect.
+   *
+   * @schema LbListenerRuleSpecInitProviderAction#redirect
+   */
+  readonly redirect?: LbListenerRuleSpecInitProviderActionRedirect[];
+
+  /**
+   * The type of routing action. Valid values are forward, redirect, fixed-response, authenticate-cognito and authenticate-oidc.
+   *
+   * @schema LbListenerRuleSpecInitProviderAction#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerRuleSpecInitProviderAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerRuleSpecInitProviderAction(obj: LbListenerRuleSpecInitProviderAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'authenticateCognito': obj.authenticateCognito?.map(y => toJson_LbListenerRuleSpecInitProviderActionAuthenticateCognito(y)),
+    'authenticateOidc': obj.authenticateOidc?.map(y => toJson_LbListenerRuleSpecInitProviderActionAuthenticateOidc(y)),
+    'fixedResponse': obj.fixedResponse?.map(y => toJson_LbListenerRuleSpecInitProviderActionFixedResponse(y)),
+    'forward': obj.forward?.map(y => toJson_LbListenerRuleSpecInitProviderActionForward(y)),
+    'order': obj.order,
+    'redirect': obj.redirect?.map(y => toJson_LbListenerRuleSpecInitProviderActionRedirect(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerRuleSpecInitProviderCondition
+ */
+export interface LbListenerRuleSpecInitProviderCondition {
+  /**
+   * Contains a single values item which is a list of host header patterns to match. The maximum size of each pattern is 128 characters. Comparison is case insensitive. Wildcard characters supported: * (matches 0 or more characters) and ? (matches exactly 1 character). Only one pattern needs to match for the condition to be satisfied.
+   *
+   * @schema LbListenerRuleSpecInitProviderCondition#hostHeader
+   */
+  readonly hostHeader?: LbListenerRuleSpecInitProviderConditionHostHeader[];
+
+  /**
+   * HTTP headers to match. HTTP Header block fields documented below.
+   *
+   * @schema LbListenerRuleSpecInitProviderCondition#httpHeader
+   */
+  readonly httpHeader?: LbListenerRuleSpecInitProviderConditionHttpHeader[];
+
+  /**
+   * Contains a single values item which is a list of HTTP request methods or verbs to match. Maximum size is 40 characters. Only allowed characters are A-Z, hyphen (-) and underscore (_). Comparison is case sensitive. Wildcards are not supported. Only one needs to match for the condition to be satisfied. AWS recommends that GET and HEAD requests are routed in the same way because the response to a HEAD request may be cached.
+   *
+   * @schema LbListenerRuleSpecInitProviderCondition#httpRequestMethod
+   */
+  readonly httpRequestMethod?: LbListenerRuleSpecInitProviderConditionHttpRequestMethod[];
+
+  /**
+   * Contains a single values item which is a list of path patterns to match against the request URL. Maximum size of each pattern is 128 characters. Comparison is case sensitive. Wildcard characters supported: * (matches 0 or more characters) and ? (matches exactly 1 character). Only one pattern needs to match for the condition to be satisfied. Path pattern is compared only to the path of the URL, not to its query string. To compare against the query string, use a query_string condition.
+   *
+   * @schema LbListenerRuleSpecInitProviderCondition#pathPattern
+   */
+  readonly pathPattern?: LbListenerRuleSpecInitProviderConditionPathPattern[];
+
+  /**
+   * Query strings to match. Query String block fields documented below.
+   *
+   * @schema LbListenerRuleSpecInitProviderCondition#queryString
+   */
+  readonly queryString?: LbListenerRuleSpecInitProviderConditionQueryString[];
+
+  /**
+   * Contains a single values item which is a list of source IP CIDR notations to match. You can use both IPv4 and IPv6 addresses. Wildcards are not supported. Condition is satisfied if the source IP address of the request matches one of the CIDR blocks. Condition is not satisfied by the addresses in the X-Forwarded-For header, use http_header condition instead.
+   *
+   * @schema LbListenerRuleSpecInitProviderCondition#sourceIp
+   */
+  readonly sourceIp?: LbListenerRuleSpecInitProviderConditionSourceIp[];
+
+}
+
+/**
+ * Converts an object of type 'LbListenerRuleSpecInitProviderCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerRuleSpecInitProviderCondition(obj: LbListenerRuleSpecInitProviderCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hostHeader': obj.hostHeader?.map(y => toJson_LbListenerRuleSpecInitProviderConditionHostHeader(y)),
+    'httpHeader': obj.httpHeader?.map(y => toJson_LbListenerRuleSpecInitProviderConditionHttpHeader(y)),
+    'httpRequestMethod': obj.httpRequestMethod?.map(y => toJson_LbListenerRuleSpecInitProviderConditionHttpRequestMethod(y)),
+    'pathPattern': obj.pathPattern?.map(y => toJson_LbListenerRuleSpecInitProviderConditionPathPattern(y)),
+    'queryString': obj.queryString?.map(y => toJson_LbListenerRuleSpecInitProviderConditionQueryString(y)),
+    'sourceIp': obj.sourceIp?.map(y => toJson_LbListenerRuleSpecInitProviderConditionSourceIp(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema LbListenerRuleSpecProviderConfigRefPolicy
@@ -4397,43 +6185,6 @@ export interface LbListenerRuleSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_LbListenerRuleSpecProviderConfigRefPolicy(obj: LbListenerRuleSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema LbListenerRuleSpecProviderRefPolicy
- */
-export interface LbListenerRuleSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema LbListenerRuleSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: LbListenerRuleSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema LbListenerRuleSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: LbListenerRuleSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'LbListenerRuleSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LbListenerRuleSpecProviderRefPolicy(obj: LbListenerRuleSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -4673,14 +6424,14 @@ export interface LbListenerRuleSpecForProviderActionAuthenticateOidc {
    *
    * @schema LbListenerRuleSpecForProviderActionAuthenticateOidc#authorizationEndpoint
    */
-  readonly authorizationEndpoint: string;
+  readonly authorizationEndpoint?: string;
 
   /**
    * The OAuth 2.0 client identifier.
    *
    * @schema LbListenerRuleSpecForProviderActionAuthenticateOidc#clientId
    */
-  readonly clientId: string;
+  readonly clientId?: string;
 
   /**
    * The OAuth 2.0 client secret.
@@ -4694,7 +6445,7 @@ export interface LbListenerRuleSpecForProviderActionAuthenticateOidc {
    *
    * @schema LbListenerRuleSpecForProviderActionAuthenticateOidc#issuer
    */
-  readonly issuer: string;
+  readonly issuer?: string;
 
   /**
    * The behavior if the user is not authenticated. Valid values: deny, allow and authenticate
@@ -4729,14 +6480,14 @@ export interface LbListenerRuleSpecForProviderActionAuthenticateOidc {
    *
    * @schema LbListenerRuleSpecForProviderActionAuthenticateOidc#tokenEndpoint
    */
-  readonly tokenEndpoint: string;
+  readonly tokenEndpoint?: string;
 
   /**
    * The user info endpoint of the IdP.
    *
    * @schema LbListenerRuleSpecForProviderActionAuthenticateOidc#userInfoEndpoint
    */
-  readonly userInfoEndpoint: string;
+  readonly userInfoEndpoint?: string;
 
 }
 
@@ -4773,7 +6524,7 @@ export interface LbListenerRuleSpecForProviderActionFixedResponse {
    *
    * @schema LbListenerRuleSpecForProviderActionFixedResponse#contentType
    */
-  readonly contentType: string;
+  readonly contentType?: string;
 
   /**
    * The message body.
@@ -4823,7 +6574,7 @@ export interface LbListenerRuleSpecForProviderActionForward {
    *
    * @schema LbListenerRuleSpecForProviderActionForward#targetGroup
    */
-  readonly targetGroup: LbListenerRuleSpecForProviderActionForwardTargetGroup[];
+  readonly targetGroup?: LbListenerRuleSpecForProviderActionForwardTargetGroup[];
 
 }
 
@@ -4891,7 +6642,7 @@ export interface LbListenerRuleSpecForProviderActionRedirect {
    *
    * @schema LbListenerRuleSpecForProviderActionRedirect#statusCode
    */
-  readonly statusCode: string;
+  readonly statusCode?: string;
 
 }
 
@@ -5005,7 +6756,7 @@ export interface LbListenerRuleSpecForProviderConditionHostHeader {
    *
    * @schema LbListenerRuleSpecForProviderConditionHostHeader#values
    */
-  readonly values: string[];
+  readonly values?: string[];
 
 }
 
@@ -5032,14 +6783,14 @@ export interface LbListenerRuleSpecForProviderConditionHttpHeader {
    *
    * @schema LbListenerRuleSpecForProviderConditionHttpHeader#httpHeaderName
    */
-  readonly httpHeaderName: string;
+  readonly httpHeaderName?: string;
 
   /**
    * List of header value patterns to match. Maximum size of each pattern is 128 characters. Comparison is case insensitive. Wildcard characters supported: * (matches 0 or more characters) and ? (matches exactly 1 character). If the same header appears multiple times in the request they will be searched in order until a match is found. Only one pattern needs to match for the condition to be satisfied. To require that all of the strings are a match, create one condition block per string.
    *
    * @schema LbListenerRuleSpecForProviderConditionHttpHeader#values
    */
-  readonly values: string[];
+  readonly values?: string[];
 
 }
 
@@ -5067,7 +6818,7 @@ export interface LbListenerRuleSpecForProviderConditionHttpRequestMethod {
    *
    * @schema LbListenerRuleSpecForProviderConditionHttpRequestMethod#values
    */
-  readonly values: string[];
+  readonly values?: string[];
 
 }
 
@@ -5094,7 +6845,7 @@ export interface LbListenerRuleSpecForProviderConditionPathPattern {
    *
    * @schema LbListenerRuleSpecForProviderConditionPathPattern#values
    */
-  readonly values: string[];
+  readonly values?: string[];
 
 }
 
@@ -5128,7 +6879,7 @@ export interface LbListenerRuleSpecForProviderConditionQueryString {
    *
    * @schema LbListenerRuleSpecForProviderConditionQueryString#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5156,7 +6907,7 @@ export interface LbListenerRuleSpecForProviderConditionSourceIp {
    *
    * @schema LbListenerRuleSpecForProviderConditionSourceIp#values
    */
-  readonly values: string[];
+  readonly values?: string[];
 
 }
 
@@ -5249,6 +7000,492 @@ export function toJson_LbListenerRuleSpecForProviderListenerArnSelectorPolicy(ob
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema LbListenerRuleSpecInitProviderActionAuthenticateCognito
+ */
+export interface LbListenerRuleSpecInitProviderActionAuthenticateCognito {
+  /**
+   * The query parameters to include in the redirect request to the authorization endpoint. Max: 10.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionAuthenticateCognito#authenticationRequestExtraParams
+   */
+  readonly authenticationRequestExtraParams?: { [key: string]: string };
+
+  /**
+   * The behavior if the user is not authenticated. Valid values: deny, allow and authenticate
+   *
+   * @schema LbListenerRuleSpecInitProviderActionAuthenticateCognito#onUnauthenticatedRequest
+   */
+  readonly onUnauthenticatedRequest?: string;
+
+  /**
+   * The set of user claims to be requested from the IdP.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionAuthenticateCognito#scope
+   */
+  readonly scope?: string;
+
+  /**
+   * The name of the cookie used to maintain session information.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionAuthenticateCognito#sessionCookieName
+   */
+  readonly sessionCookieName?: string;
+
+  /**
+   * The maximum duration of the authentication session, in seconds.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionAuthenticateCognito#sessionTimeout
+   */
+  readonly sessionTimeout?: number;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerRuleSpecInitProviderActionAuthenticateCognito' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerRuleSpecInitProviderActionAuthenticateCognito(obj: LbListenerRuleSpecInitProviderActionAuthenticateCognito | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'authenticationRequestExtraParams': ((obj.authenticationRequestExtraParams) === undefined) ? undefined : (Object.entries(obj.authenticationRequestExtraParams).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'onUnauthenticatedRequest': obj.onUnauthenticatedRequest,
+    'scope': obj.scope,
+    'sessionCookieName': obj.sessionCookieName,
+    'sessionTimeout': obj.sessionTimeout,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerRuleSpecInitProviderActionAuthenticateOidc
+ */
+export interface LbListenerRuleSpecInitProviderActionAuthenticateOidc {
+  /**
+   * The query parameters to include in the redirect request to the authorization endpoint. Max: 10.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionAuthenticateOidc#authenticationRequestExtraParams
+   */
+  readonly authenticationRequestExtraParams?: { [key: string]: string };
+
+  /**
+   * The authorization endpoint of the IdP.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionAuthenticateOidc#authorizationEndpoint
+   */
+  readonly authorizationEndpoint?: string;
+
+  /**
+   * The OAuth 2.0 client identifier.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionAuthenticateOidc#clientId
+   */
+  readonly clientId?: string;
+
+  /**
+   * The OIDC issuer identifier of the IdP.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionAuthenticateOidc#issuer
+   */
+  readonly issuer?: string;
+
+  /**
+   * The behavior if the user is not authenticated. Valid values: deny, allow and authenticate
+   *
+   * @schema LbListenerRuleSpecInitProviderActionAuthenticateOidc#onUnauthenticatedRequest
+   */
+  readonly onUnauthenticatedRequest?: string;
+
+  /**
+   * The set of user claims to be requested from the IdP.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionAuthenticateOidc#scope
+   */
+  readonly scope?: string;
+
+  /**
+   * The name of the cookie used to maintain session information.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionAuthenticateOidc#sessionCookieName
+   */
+  readonly sessionCookieName?: string;
+
+  /**
+   * The maximum duration of the authentication session, in seconds.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionAuthenticateOidc#sessionTimeout
+   */
+  readonly sessionTimeout?: number;
+
+  /**
+   * The token endpoint of the IdP.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionAuthenticateOidc#tokenEndpoint
+   */
+  readonly tokenEndpoint?: string;
+
+  /**
+   * The user info endpoint of the IdP.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionAuthenticateOidc#userInfoEndpoint
+   */
+  readonly userInfoEndpoint?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerRuleSpecInitProviderActionAuthenticateOidc' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerRuleSpecInitProviderActionAuthenticateOidc(obj: LbListenerRuleSpecInitProviderActionAuthenticateOidc | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'authenticationRequestExtraParams': ((obj.authenticationRequestExtraParams) === undefined) ? undefined : (Object.entries(obj.authenticationRequestExtraParams).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'authorizationEndpoint': obj.authorizationEndpoint,
+    'clientId': obj.clientId,
+    'issuer': obj.issuer,
+    'onUnauthenticatedRequest': obj.onUnauthenticatedRequest,
+    'scope': obj.scope,
+    'sessionCookieName': obj.sessionCookieName,
+    'sessionTimeout': obj.sessionTimeout,
+    'tokenEndpoint': obj.tokenEndpoint,
+    'userInfoEndpoint': obj.userInfoEndpoint,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerRuleSpecInitProviderActionFixedResponse
+ */
+export interface LbListenerRuleSpecInitProviderActionFixedResponse {
+  /**
+   * The content type. Valid values are text/plain, text/css, text/html, application/javascript and application/json.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionFixedResponse#contentType
+   */
+  readonly contentType?: string;
+
+  /**
+   * The message body.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionFixedResponse#messageBody
+   */
+  readonly messageBody?: string;
+
+  /**
+   * The HTTP redirect code. The redirect is either permanent (HTTP_301) or temporary (HTTP_302).
+   *
+   * @schema LbListenerRuleSpecInitProviderActionFixedResponse#statusCode
+   */
+  readonly statusCode?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerRuleSpecInitProviderActionFixedResponse' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerRuleSpecInitProviderActionFixedResponse(obj: LbListenerRuleSpecInitProviderActionFixedResponse | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'contentType': obj.contentType,
+    'messageBody': obj.messageBody,
+    'statusCode': obj.statusCode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerRuleSpecInitProviderActionForward
+ */
+export interface LbListenerRuleSpecInitProviderActionForward {
+  /**
+   * The target group stickiness for the rule.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionForward#stickiness
+   */
+  readonly stickiness?: LbListenerRuleSpecInitProviderActionForwardStickiness[];
+
+  /**
+   * One or more target groups block.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionForward#targetGroup
+   */
+  readonly targetGroup?: LbListenerRuleSpecInitProviderActionForwardTargetGroup[];
+
+}
+
+/**
+ * Converts an object of type 'LbListenerRuleSpecInitProviderActionForward' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerRuleSpecInitProviderActionForward(obj: LbListenerRuleSpecInitProviderActionForward | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'stickiness': obj.stickiness?.map(y => toJson_LbListenerRuleSpecInitProviderActionForwardStickiness(y)),
+    'targetGroup': obj.targetGroup?.map(y => toJson_LbListenerRuleSpecInitProviderActionForwardTargetGroup(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerRuleSpecInitProviderActionRedirect
+ */
+export interface LbListenerRuleSpecInitProviderActionRedirect {
+  /**
+   * The hostname. This component is not percent-encoded. The hostname can contain #{host}. Defaults to #{host}.
+   *
+   * @default host}.
+   * @schema LbListenerRuleSpecInitProviderActionRedirect#host
+   */
+  readonly host?: string;
+
+  /**
+   * The absolute path, starting with the leading "/". This component is not percent-encoded. The path can contain #{host}, #{path}, and #{port}. Defaults to /#{path}.
+   *
+   * @default path}.
+   * @schema LbListenerRuleSpecInitProviderActionRedirect#path
+   */
+  readonly path?: string;
+
+  /**
+   * The port. Specify a value from 1 to 65535 or #{port}. Defaults to #{port}.
+   *
+   * @default port}.
+   * @schema LbListenerRuleSpecInitProviderActionRedirect#port
+   */
+  readonly port?: string;
+
+  /**
+   * The protocol. Valid values are HTTP, HTTPS, or #{protocol}. Defaults to #{protocol}.
+   *
+   * @default protocol}.
+   * @schema LbListenerRuleSpecInitProviderActionRedirect#protocol
+   */
+  readonly protocol?: string;
+
+  /**
+   * The query parameters, URL-encoded when necessary, but not percent-encoded. Do not include the leading "?". Defaults to #{query}.
+   *
+   * @default query}.
+   * @schema LbListenerRuleSpecInitProviderActionRedirect#query
+   */
+  readonly query?: string;
+
+  /**
+   * The HTTP redirect code. The redirect is either permanent (HTTP_301) or temporary (HTTP_302).
+   *
+   * @schema LbListenerRuleSpecInitProviderActionRedirect#statusCode
+   */
+  readonly statusCode?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerRuleSpecInitProviderActionRedirect' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerRuleSpecInitProviderActionRedirect(obj: LbListenerRuleSpecInitProviderActionRedirect | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'host': obj.host,
+    'path': obj.path,
+    'port': obj.port,
+    'protocol': obj.protocol,
+    'query': obj.query,
+    'statusCode': obj.statusCode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerRuleSpecInitProviderConditionHostHeader
+ */
+export interface LbListenerRuleSpecInitProviderConditionHostHeader {
+  /**
+   * Query string pairs or values to match. Query String Value blocks documented below. Multiple values blocks can be specified, see example above. Maximum size of each string is 128 characters. Comparison is case insensitive. Wildcard characters supported: * (matches 0 or more characters) and ? (matches exactly 1 character). To search for a literal '*' or '?' character in a query string, escape the character with a backslash (\). Only one pair needs to match for the condition to be satisfied.
+   *
+   * @schema LbListenerRuleSpecInitProviderConditionHostHeader#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'LbListenerRuleSpecInitProviderConditionHostHeader' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerRuleSpecInitProviderConditionHostHeader(obj: LbListenerRuleSpecInitProviderConditionHostHeader | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerRuleSpecInitProviderConditionHttpHeader
+ */
+export interface LbListenerRuleSpecInitProviderConditionHttpHeader {
+  /**
+   * Name of HTTP header to search. The maximum size is 40 characters. Comparison is case insensitive. Only RFC7240 characters are supported. Wildcards are not supported. You cannot use HTTP header condition to specify the host header, use a host-header condition instead.
+   *
+   * @schema LbListenerRuleSpecInitProviderConditionHttpHeader#httpHeaderName
+   */
+  readonly httpHeaderName?: string;
+
+  /**
+   * List of header value patterns to match. Maximum size of each pattern is 128 characters. Comparison is case insensitive. Wildcard characters supported: * (matches 0 or more characters) and ? (matches exactly 1 character). If the same header appears multiple times in the request they will be searched in order until a match is found. Only one pattern needs to match for the condition to be satisfied. To require that all of the strings are a match, create one condition block per string.
+   *
+   * @schema LbListenerRuleSpecInitProviderConditionHttpHeader#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'LbListenerRuleSpecInitProviderConditionHttpHeader' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerRuleSpecInitProviderConditionHttpHeader(obj: LbListenerRuleSpecInitProviderConditionHttpHeader | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'httpHeaderName': obj.httpHeaderName,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerRuleSpecInitProviderConditionHttpRequestMethod
+ */
+export interface LbListenerRuleSpecInitProviderConditionHttpRequestMethod {
+  /**
+   * Query string pairs or values to match. Query String Value blocks documented below. Multiple values blocks can be specified, see example above. Maximum size of each string is 128 characters. Comparison is case insensitive. Wildcard characters supported: * (matches 0 or more characters) and ? (matches exactly 1 character). To search for a literal '*' or '?' character in a query string, escape the character with a backslash (\). Only one pair needs to match for the condition to be satisfied.
+   *
+   * @schema LbListenerRuleSpecInitProviderConditionHttpRequestMethod#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'LbListenerRuleSpecInitProviderConditionHttpRequestMethod' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerRuleSpecInitProviderConditionHttpRequestMethod(obj: LbListenerRuleSpecInitProviderConditionHttpRequestMethod | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerRuleSpecInitProviderConditionPathPattern
+ */
+export interface LbListenerRuleSpecInitProviderConditionPathPattern {
+  /**
+   * Query string pairs or values to match. Query String Value blocks documented below. Multiple values blocks can be specified, see example above. Maximum size of each string is 128 characters. Comparison is case insensitive. Wildcard characters supported: * (matches 0 or more characters) and ? (matches exactly 1 character). To search for a literal '*' or '?' character in a query string, escape the character with a backslash (\). Only one pair needs to match for the condition to be satisfied.
+   *
+   * @schema LbListenerRuleSpecInitProviderConditionPathPattern#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'LbListenerRuleSpecInitProviderConditionPathPattern' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerRuleSpecInitProviderConditionPathPattern(obj: LbListenerRuleSpecInitProviderConditionPathPattern | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerRuleSpecInitProviderConditionQueryString
+ */
+export interface LbListenerRuleSpecInitProviderConditionQueryString {
+  /**
+   * Query string key pattern to match.
+   *
+   * @schema LbListenerRuleSpecInitProviderConditionQueryString#key
+   */
+  readonly key?: string;
+
+  /**
+   * Query string value pattern to match.
+   *
+   * @schema LbListenerRuleSpecInitProviderConditionQueryString#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerRuleSpecInitProviderConditionQueryString' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerRuleSpecInitProviderConditionQueryString(obj: LbListenerRuleSpecInitProviderConditionQueryString | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerRuleSpecInitProviderConditionSourceIp
+ */
+export interface LbListenerRuleSpecInitProviderConditionSourceIp {
+  /**
+   * Query string pairs or values to match. Query String Value blocks documented below. Multiple values blocks can be specified, see example above. Maximum size of each string is 128 characters. Comparison is case insensitive. Wildcard characters supported: * (matches 0 or more characters) and ? (matches exactly 1 character). To search for a literal '*' or '?' character in a query string, escape the character with a backslash (\). Only one pair needs to match for the condition to be satisfied.
+   *
+   * @schema LbListenerRuleSpecInitProviderConditionSourceIp#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'LbListenerRuleSpecInitProviderConditionSourceIp' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerRuleSpecInitProviderConditionSourceIp(obj: LbListenerRuleSpecInitProviderConditionSourceIp | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema LbListenerRuleSpecProviderConfigRefPolicyResolution
@@ -5266,30 +7503,6 @@ export enum LbListenerRuleSpecProviderConfigRefPolicyResolution {
  * @schema LbListenerRuleSpecProviderConfigRefPolicyResolve
  */
 export enum LbListenerRuleSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema LbListenerRuleSpecProviderRefPolicyResolution
- */
-export enum LbListenerRuleSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema LbListenerRuleSpecProviderRefPolicyResolve
- */
-export enum LbListenerRuleSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -5633,7 +7846,7 @@ export interface LbListenerRuleSpecForProviderActionForwardStickiness {
    *
    * @schema LbListenerRuleSpecForProviderActionForwardStickiness#duration
    */
-  readonly duration: number;
+  readonly duration?: number;
 
   /**
    * Indicates whether target group stickiness is enabled.
@@ -5831,6 +8044,68 @@ export enum LbListenerRuleSpecForProviderListenerArnSelectorPolicyResolve {
   /** IfNotPresent */
   IF_NOT_PRESENT = "IfNotPresent",
 }
+
+/**
+ * @schema LbListenerRuleSpecInitProviderActionForwardStickiness
+ */
+export interface LbListenerRuleSpecInitProviderActionForwardStickiness {
+  /**
+   * The time period, in seconds, during which requests from a client should be routed to the same target group. The range is 1-604800 seconds (7 days).
+   *
+   * @schema LbListenerRuleSpecInitProviderActionForwardStickiness#duration
+   */
+  readonly duration?: number;
+
+  /**
+   * Indicates whether target group stickiness is enabled.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionForwardStickiness#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerRuleSpecInitProviderActionForwardStickiness' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerRuleSpecInitProviderActionForwardStickiness(obj: LbListenerRuleSpecInitProviderActionForwardStickiness | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'duration': obj.duration,
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbListenerRuleSpecInitProviderActionForwardTargetGroup
+ */
+export interface LbListenerRuleSpecInitProviderActionForwardTargetGroup {
+  /**
+   * The weight. The range is 0 to 999.
+   *
+   * @schema LbListenerRuleSpecInitProviderActionForwardTargetGroup#weight
+   */
+  readonly weight?: number;
+
+}
+
+/**
+ * Converts an object of type 'LbListenerRuleSpecInitProviderActionForwardTargetGroup' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbListenerRuleSpecInitProviderActionForwardTargetGroup(obj: LbListenerRuleSpecInitProviderActionForwardTargetGroup | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'weight': obj.weight,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
@@ -6571,7 +8846,7 @@ export function toJson_LbTargetGroupProps(obj: LbTargetGroupProps | undefined): 
  */
 export interface LbTargetGroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema LbTargetGroupSpec#deletionPolicy
    */
@@ -6583,11 +8858,18 @@ export interface LbTargetGroupSpec {
   readonly forProvider: LbTargetGroupSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema LbTargetGroupSpec#managementPolicy
+   * @schema LbTargetGroupSpec#initProvider
    */
-  readonly managementPolicy?: LbTargetGroupSpecManagementPolicy;
+  readonly initProvider?: LbTargetGroupSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema LbTargetGroupSpec#managementPolicies
+   */
+  readonly managementPolicies?: LbTargetGroupSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6595,13 +8877,6 @@ export interface LbTargetGroupSpec {
    * @schema LbTargetGroupSpec#providerConfigRef
    */
   readonly providerConfigRef?: LbTargetGroupSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema LbTargetGroupSpec#providerRef
-   */
-  readonly providerRef?: LbTargetGroupSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -6628,9 +8903,9 @@ export function toJson_LbTargetGroupSpec(obj: LbTargetGroupSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_LbTargetGroupSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_LbTargetGroupSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_LbTargetGroupSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_LbTargetGroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_LbTargetGroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_LbTargetGroupSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -6640,7 +8915,7 @@ export function toJson_LbTargetGroupSpec(obj: LbTargetGroupSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema LbTargetGroupSpecDeletionPolicy
  */
@@ -6850,17 +9125,191 @@ export function toJson_LbTargetGroupSpecForProvider(obj: LbTargetGroupSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema LbTargetGroupSpecManagementPolicy
+ * @schema LbTargetGroupSpecInitProvider
  */
-export enum LbTargetGroupSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface LbTargetGroupSpecInitProvider {
+  /**
+   * Whether to terminate connections at the end of the deregistration timeout on Network Load Balancers. See doc for more information. Default is false.
+   *
+   * @default false.
+   * @schema LbTargetGroupSpecInitProvider#connectionTermination
+   */
+  readonly connectionTermination?: boolean;
+
+  /**
+   * Amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused. The range is 0-3600 seconds. The default value is 300 seconds.
+   *
+   * @schema LbTargetGroupSpecInitProvider#deregistrationDelay
+   */
+  readonly deregistrationDelay?: string;
+
+  /**
+   * Health Check configuration block. Detailed below.
+   *
+   * @schema LbTargetGroupSpecInitProvider#healthCheck
+   */
+  readonly healthCheck?: LbTargetGroupSpecInitProviderHealthCheck[];
+
+  /**
+   * The type of IP addresses used by the target group, only supported when target type is set to ip. Possible values are ipv4 or ipv6.
+   *
+   * @schema LbTargetGroupSpecInitProvider#ipAddressType
+   */
+  readonly ipAddressType?: string;
+
+  /**
+   * Whether the request and response headers exchanged between the load balancer and the Lambda function include arrays of values or strings. Only applies when target_type is lambda. Default is false.
+   *
+   * @default false.
+   * @schema LbTargetGroupSpecInitProvider#lambdaMultiValueHeadersEnabled
+   */
+  readonly lambdaMultiValueHeadersEnabled?: boolean;
+
+  /**
+   * Determines how the load balancer selects targets when routing requests. Only applicable for Application Load Balancer Target Groups. The value is round_robin or least_outstanding_requests. The default is round_robin.
+   *
+   * @schema LbTargetGroupSpecInitProvider#loadBalancingAlgorithmType
+   */
+  readonly loadBalancingAlgorithmType?: string;
+
+  /**
+   * Indicates whether cross zone load balancing is enabled. The value is "true", "false" or "use_load_balancer_configuration". The default is "use_load_balancer_configuration".
+   *
+   * @schema LbTargetGroupSpecInitProvider#loadBalancingCrossZoneEnabled
+   */
+  readonly loadBalancingCrossZoneEnabled?: string;
+
+  /**
+   * Name of the target group. This name must be unique per region per account, can have a maximum of 32 characters, must contain only alphanumeric characters or hyphens, and must not begin or end with a hyphen.
+   *
+   * @schema LbTargetGroupSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * (May be required, Forces new resource) Port on which targets receive traffic, unless overridden when registering a specific target. Required when target_type is instance, ip or alb. Does not apply when target_type is lambda.
+   *
+   * @schema LbTargetGroupSpecInitProvider#port
+   */
+  readonly port?: number;
+
+  /**
+   * Whether client IP preservation is enabled. See doc for more information.
+   *
+   * @schema LbTargetGroupSpecInitProvider#preserveClientIp
+   */
+  readonly preserveClientIp?: string;
+
+  /**
+   * (May be required, Forces new resource) Protocol to use for routing traffic to the targets. Should be one of GENEVE, HTTP, HTTPS, TCP, TCP_UDP, TLS, or UDP. Required when target_type is instance, ip or alb. Does not apply when target_type is lambda.
+   *
+   * @schema LbTargetGroupSpecInitProvider#protocol
+   */
+  readonly protocol?: string;
+
+  /**
+   * Only applicable when protocol is HTTP or HTTPS. The protocol version. Specify GRPC to send requests to targets using gRPC. Specify HTTP2 to send requests to targets using HTTP/2. The default is HTTP1, which sends requests to targets using HTTP/1.1
+   *
+   * @schema LbTargetGroupSpecInitProvider#protocolVersion
+   */
+  readonly protocolVersion?: string;
+
+  /**
+   * Whether to enable support for proxy protocol v2 on Network Load Balancers. See doc for more information. Default is false.
+   *
+   * @default false.
+   * @schema LbTargetGroupSpecInitProvider#proxyProtocolV2
+   */
+  readonly proxyProtocolV2?: boolean;
+
+  /**
+   * Amount time for targets to warm up before the load balancer sends them a full share of requests. The range is 30-900 seconds or 0 to disable. The default value is 0 seconds.
+   *
+   * @schema LbTargetGroupSpecInitProvider#slowStart
+   */
+  readonly slowStart?: number;
+
+  /**
+   * Stickiness configuration block. Detailed below.
+   *
+   * @schema LbTargetGroupSpecInitProvider#stickiness
+   */
+  readonly stickiness?: LbTargetGroupSpecInitProviderStickiness[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema LbTargetGroupSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Target failover block. Only applicable for Gateway Load Balancer target groups. See target_failover for more information.
+   *
+   * @schema LbTargetGroupSpecInitProvider#targetFailover
+   */
+  readonly targetFailover?: LbTargetGroupSpecInitProviderTargetFailover[];
+
+  /**
+   * (May be required, Forces new resource) Type of target that you must specify when registering targets with this target group. See doc for supported values. The default is instance.
+   *
+   * @schema LbTargetGroupSpecInitProvider#targetType
+   */
+  readonly targetType?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbTargetGroupSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbTargetGroupSpecInitProvider(obj: LbTargetGroupSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'connectionTermination': obj.connectionTermination,
+    'deregistrationDelay': obj.deregistrationDelay,
+    'healthCheck': obj.healthCheck?.map(y => toJson_LbTargetGroupSpecInitProviderHealthCheck(y)),
+    'ipAddressType': obj.ipAddressType,
+    'lambdaMultiValueHeadersEnabled': obj.lambdaMultiValueHeadersEnabled,
+    'loadBalancingAlgorithmType': obj.loadBalancingAlgorithmType,
+    'loadBalancingCrossZoneEnabled': obj.loadBalancingCrossZoneEnabled,
+    'name': obj.name,
+    'port': obj.port,
+    'preserveClientIp': obj.preserveClientIp,
+    'protocol': obj.protocol,
+    'protocolVersion': obj.protocolVersion,
+    'proxyProtocolV2': obj.proxyProtocolV2,
+    'slowStart': obj.slowStart,
+    'stickiness': obj.stickiness?.map(y => toJson_LbTargetGroupSpecInitProviderStickiness(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'targetFailover': obj.targetFailover?.map(y => toJson_LbTargetGroupSpecInitProviderTargetFailover(y)),
+    'targetType': obj.targetType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema LbTargetGroupSpecManagementPolicies
+ */
+export enum LbTargetGroupSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -6894,43 +9343,6 @@ export function toJson_LbTargetGroupSpecProviderConfigRef(obj: LbTargetGroupSpec
   const result = {
     'name': obj.name,
     'policy': toJson_LbTargetGroupSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema LbTargetGroupSpecProviderRef
- */
-export interface LbTargetGroupSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema LbTargetGroupSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema LbTargetGroupSpecProviderRef#policy
-   */
-  readonly policy?: LbTargetGroupSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'LbTargetGroupSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LbTargetGroupSpecProviderRef(obj: LbTargetGroupSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_LbTargetGroupSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7147,7 +9559,7 @@ export interface LbTargetGroupSpecForProviderStickiness {
    *
    * @schema LbTargetGroupSpecForProviderStickiness#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -7177,14 +9589,14 @@ export interface LbTargetGroupSpecForProviderTargetFailover {
    *
    * @schema LbTargetGroupSpecForProviderTargetFailover#onDeregistration
    */
-  readonly onDeregistration: string;
+  readonly onDeregistration?: string;
 
   /**
    * Indicates how the GWLB handles existing flows when a target is unhealthy. Possible values are rebalance and no_rebalance. Must match the attribute value set for on_deregistration. Default: no_rebalance.
    *
    * @schema LbTargetGroupSpecForProviderTargetFailover#onUnhealthy
    */
-  readonly onUnhealthy: string;
+  readonly onUnhealthy?: string;
 
 }
 
@@ -7286,6 +9698,190 @@ export function toJson_LbTargetGroupSpecForProviderVpcIdSelector(obj: LbTargetGr
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema LbTargetGroupSpecInitProviderHealthCheck
+ */
+export interface LbTargetGroupSpecInitProviderHealthCheck {
+  /**
+   * Whether health checks are enabled. Defaults to true.
+   *
+   * @default true.
+   * @schema LbTargetGroupSpecInitProviderHealthCheck#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Number of consecutive health check successes required before considering a target healthy. The range is 2-10. Defaults to 3.
+   *
+   * @default 3.
+   * @schema LbTargetGroupSpecInitProviderHealthCheck#healthyThreshold
+   */
+  readonly healthyThreshold?: number;
+
+  /**
+   * Approximate amount of time, in seconds, between health checks of an individual target. The range is 5-300. For lambda target groups, it needs to be greater than the timeout of the underlying lambda. Defaults to 30.
+   *
+   * @default 30.
+   * @schema LbTargetGroupSpecInitProviderHealthCheck#interval
+   */
+  readonly interval?: number;
+
+  /**
+   * 299" or "0-99"). Required for HTTP/HTTPS/GRPC ALB. Only applies to Application Load Balancers (i.e., HTTP/HTTPS/GRPC) not Network Load Balancers (i.e., TCP).
+   *
+   * @schema LbTargetGroupSpecInitProviderHealthCheck#matcher
+   */
+  readonly matcher?: string;
+
+  /**
+   * (May be required) Destination for the health check request. Required for HTTP/HTTPS ALB and HTTP NLB. Only applies to HTTP/HTTPS.
+   *
+   * @schema LbTargetGroupSpecInitProviderHealthCheck#path
+   */
+  readonly path?: string;
+
+  /**
+   * The port the load balancer uses when performing health checks on targets. Default is traffic-port.
+   *
+   * @default traffic-port.
+   * @schema LbTargetGroupSpecInitProviderHealthCheck#port
+   */
+  readonly port?: string;
+
+  /**
+   * Protocol the load balancer uses when performing health checks on targets. Must be either TCP, HTTP, or HTTPS. The TCP protocol is not supported for health checks if the protocol of the target group is HTTP or HTTPS. Defaults to HTTP.
+   *
+   * @default HTTP.
+   * @schema LbTargetGroupSpecInitProviderHealthCheck#protocol
+   */
+  readonly protocol?: string;
+
+  /**
+   * Amount of time, in seconds, during which no response from a target means a failed health check. The range is 2–120 seconds. For target groups with a protocol of HTTP, the default is 6 seconds. For target groups with a protocol of TCP, TLS or HTTPS, the default is 10 seconds. For target groups with a protocol of GENEVE, the default is 5 seconds. If the target type is lambda, the default is 30 seconds.
+   *
+   * @schema LbTargetGroupSpecInitProviderHealthCheck#timeout
+   */
+  readonly timeout?: number;
+
+  /**
+   * Number of consecutive health check failures required before considering a target unhealthy. The range is 2-10. Defaults to 3.
+   *
+   * @default 3.
+   * @schema LbTargetGroupSpecInitProviderHealthCheck#unhealthyThreshold
+   */
+  readonly unhealthyThreshold?: number;
+
+}
+
+/**
+ * Converts an object of type 'LbTargetGroupSpecInitProviderHealthCheck' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbTargetGroupSpecInitProviderHealthCheck(obj: LbTargetGroupSpecInitProviderHealthCheck | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'healthyThreshold': obj.healthyThreshold,
+    'interval': obj.interval,
+    'matcher': obj.matcher,
+    'path': obj.path,
+    'port': obj.port,
+    'protocol': obj.protocol,
+    'timeout': obj.timeout,
+    'unhealthyThreshold': obj.unhealthyThreshold,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbTargetGroupSpecInitProviderStickiness
+ */
+export interface LbTargetGroupSpecInitProviderStickiness {
+  /**
+   * Only used when the type is lb_cookie. The time period, in seconds, during which requests from a client should be routed to the same target. After this time period expires, the load balancer-generated cookie is considered stale. The range is 1 second to 1 week (604800 seconds). The default value is 1 day (86400 seconds).
+   *
+   * @schema LbTargetGroupSpecInitProviderStickiness#cookieDuration
+   */
+  readonly cookieDuration?: number;
+
+  /**
+   * Name of the application based cookie. AWSALB, AWSALBAPP, and AWSALBTG prefixes are reserved and cannot be used. Only needed when type is app_cookie.
+   *
+   * @schema LbTargetGroupSpecInitProviderStickiness#cookieName
+   */
+  readonly cookieName?: string;
+
+  /**
+   * Whether health checks are enabled. Defaults to true.
+   *
+   * @default true.
+   * @schema LbTargetGroupSpecInitProviderStickiness#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The type of sticky sessions. The only current possible values are lb_cookie, app_cookie for ALBs, source_ip for NLBs, and source_ip_dest_ip, source_ip_dest_ip_proto for GWLBs.
+   *
+   * @schema LbTargetGroupSpecInitProviderStickiness#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbTargetGroupSpecInitProviderStickiness' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbTargetGroupSpecInitProviderStickiness(obj: LbTargetGroupSpecInitProviderStickiness | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cookieDuration': obj.cookieDuration,
+    'cookieName': obj.cookieName,
+    'enabled': obj.enabled,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LbTargetGroupSpecInitProviderTargetFailover
+ */
+export interface LbTargetGroupSpecInitProviderTargetFailover {
+  /**
+   * Indicates how the GWLB handles existing flows when a target is deregistered. Possible values are rebalance and no_rebalance. Must match the attribute value set for on_unhealthy. Default: no_rebalance.
+   *
+   * @schema LbTargetGroupSpecInitProviderTargetFailover#onDeregistration
+   */
+  readonly onDeregistration?: string;
+
+  /**
+   * Indicates how the GWLB handles existing flows when a target is unhealthy. Possible values are rebalance and no_rebalance. Must match the attribute value set for on_deregistration. Default: no_rebalance.
+   *
+   * @schema LbTargetGroupSpecInitProviderTargetFailover#onUnhealthy
+   */
+  readonly onUnhealthy?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbTargetGroupSpecInitProviderTargetFailover' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbTargetGroupSpecInitProviderTargetFailover(obj: LbTargetGroupSpecInitProviderTargetFailover | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'onDeregistration': obj.onDeregistration,
+    'onUnhealthy': obj.onUnhealthy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema LbTargetGroupSpecProviderConfigRefPolicy
@@ -7312,43 +9908,6 @@ export interface LbTargetGroupSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_LbTargetGroupSpecProviderConfigRefPolicy(obj: LbTargetGroupSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema LbTargetGroupSpecProviderRefPolicy
- */
-export interface LbTargetGroupSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema LbTargetGroupSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: LbTargetGroupSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema LbTargetGroupSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: LbTargetGroupSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'LbTargetGroupSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LbTargetGroupSpecProviderRefPolicy(obj: LbTargetGroupSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -7533,30 +10092,6 @@ export enum LbTargetGroupSpecProviderConfigRefPolicyResolution {
  * @schema LbTargetGroupSpecProviderConfigRefPolicyResolve
  */
 export enum LbTargetGroupSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema LbTargetGroupSpecProviderRefPolicyResolution
- */
-export enum LbTargetGroupSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema LbTargetGroupSpecProviderRefPolicyResolve
- */
-export enum LbTargetGroupSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -7769,7 +10304,7 @@ export function toJson_LbTargetGroupAttachmentProps(obj: LbTargetGroupAttachment
  */
 export interface LbTargetGroupAttachmentSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema LbTargetGroupAttachmentSpec#deletionPolicy
    */
@@ -7781,11 +10316,18 @@ export interface LbTargetGroupAttachmentSpec {
   readonly forProvider: LbTargetGroupAttachmentSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema LbTargetGroupAttachmentSpec#managementPolicy
+   * @schema LbTargetGroupAttachmentSpec#initProvider
    */
-  readonly managementPolicy?: LbTargetGroupAttachmentSpecManagementPolicy;
+  readonly initProvider?: LbTargetGroupAttachmentSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema LbTargetGroupAttachmentSpec#managementPolicies
+   */
+  readonly managementPolicies?: LbTargetGroupAttachmentSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7793,13 +10335,6 @@ export interface LbTargetGroupAttachmentSpec {
    * @schema LbTargetGroupAttachmentSpec#providerConfigRef
    */
   readonly providerConfigRef?: LbTargetGroupAttachmentSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema LbTargetGroupAttachmentSpec#providerRef
-   */
-  readonly providerRef?: LbTargetGroupAttachmentSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -7826,9 +10361,9 @@ export function toJson_LbTargetGroupAttachmentSpec(obj: LbTargetGroupAttachmentS
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_LbTargetGroupAttachmentSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_LbTargetGroupAttachmentSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_LbTargetGroupAttachmentSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_LbTargetGroupAttachmentSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_LbTargetGroupAttachmentSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_LbTargetGroupAttachmentSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -7838,7 +10373,7 @@ export function toJson_LbTargetGroupAttachmentSpec(obj: LbTargetGroupAttachmentS
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema LbTargetGroupAttachmentSpecDeletionPolicy
  */
@@ -7925,17 +10460,68 @@ export function toJson_LbTargetGroupAttachmentSpecForProvider(obj: LbTargetGroup
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema LbTargetGroupAttachmentSpecManagementPolicy
+ * @schema LbTargetGroupAttachmentSpecInitProvider
  */
-export enum LbTargetGroupAttachmentSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface LbTargetGroupAttachmentSpecInitProvider {
+  /**
+   * The Availability Zone where the IP address of the target is to be registered. If the private ip address is outside of the VPC scope, this value must be set to 'all'.
+   *
+   * @schema LbTargetGroupAttachmentSpecInitProvider#availabilityZone
+   */
+  readonly availabilityZone?: string;
+
+  /**
+   * The port on which targets receive traffic.
+   *
+   * @schema LbTargetGroupAttachmentSpecInitProvider#port
+   */
+  readonly port?: number;
+
+  /**
+   * The ID of the target. This is the Instance ID for an instance, or the container ID for an ECS container. If the target type is ip, specify an IP address. If the target type is lambda, specify the arn of lambda. If the target type is alb, specify the arn of alb.
+   *
+   * @schema LbTargetGroupAttachmentSpecInitProvider#targetId
+   */
+  readonly targetId?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbTargetGroupAttachmentSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbTargetGroupAttachmentSpecInitProvider(obj: LbTargetGroupAttachmentSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'availabilityZone': obj.availabilityZone,
+    'port': obj.port,
+    'targetId': obj.targetId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema LbTargetGroupAttachmentSpecManagementPolicies
+ */
+export enum LbTargetGroupAttachmentSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -7969,43 +10555,6 @@ export function toJson_LbTargetGroupAttachmentSpecProviderConfigRef(obj: LbTarge
   const result = {
     'name': obj.name,
     'policy': toJson_LbTargetGroupAttachmentSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema LbTargetGroupAttachmentSpecProviderRef
- */
-export interface LbTargetGroupAttachmentSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema LbTargetGroupAttachmentSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema LbTargetGroupAttachmentSpecProviderRef#policy
-   */
-  readonly policy?: LbTargetGroupAttachmentSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'LbTargetGroupAttachmentSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LbTargetGroupAttachmentSpecProviderRef(obj: LbTargetGroupAttachmentSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_LbTargetGroupAttachmentSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8214,43 +10763,6 @@ export function toJson_LbTargetGroupAttachmentSpecProviderConfigRefPolicy(obj: L
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema LbTargetGroupAttachmentSpecProviderRefPolicy
- */
-export interface LbTargetGroupAttachmentSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema LbTargetGroupAttachmentSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: LbTargetGroupAttachmentSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema LbTargetGroupAttachmentSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: LbTargetGroupAttachmentSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'LbTargetGroupAttachmentSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LbTargetGroupAttachmentSpecProviderRefPolicy(obj: LbTargetGroupAttachmentSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema LbTargetGroupAttachmentSpecPublishConnectionDetailsToConfigRef
@@ -8424,30 +10936,6 @@ export enum LbTargetGroupAttachmentSpecProviderConfigRefPolicyResolution {
  * @schema LbTargetGroupAttachmentSpecProviderConfigRefPolicyResolve
  */
 export enum LbTargetGroupAttachmentSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema LbTargetGroupAttachmentSpecProviderRefPolicyResolution
- */
-export enum LbTargetGroupAttachmentSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema LbTargetGroupAttachmentSpecProviderRefPolicyResolve
- */
-export enum LbTargetGroupAttachmentSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

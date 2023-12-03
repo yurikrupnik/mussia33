@@ -99,7 +99,7 @@ export function toJson_BotProps(obj: BotProps | undefined): Record<string, any> 
  */
 export interface BotSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BotSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface BotSpec {
   readonly forProvider: BotSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BotSpec#managementPolicy
+   * @schema BotSpec#initProvider
    */
-  readonly managementPolicy?: BotSpecManagementPolicy;
+  readonly initProvider?: BotSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BotSpec#managementPolicies
+   */
+  readonly managementPolicies?: BotSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface BotSpec {
    * @schema BotSpec#providerConfigRef
    */
   readonly providerConfigRef?: BotSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BotSpec#providerRef
-   */
-  readonly providerRef?: BotSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_BotSpec(obj: BotSpec | undefined): Record<string, any> | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BotSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BotSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BotSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BotSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BotSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BotSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_BotSpec(obj: BotSpec | undefined): Record<string, any> | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BotSpecDeletionPolicy
  */
@@ -315,17 +315,152 @@ export function toJson_BotSpecForProvider(obj: BotSpecForProvider | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BotSpecManagementPolicy
+ * @schema BotSpecInitProvider
  */
-export enum BotSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BotSpecInitProvider {
+  /**
+   * The message that Amazon Lex uses to abort a conversation. Attributes are documented under statement.
+   *
+   * @schema BotSpecInitProvider#abortStatement
+   */
+  readonly abortStatement?: BotSpecInitProviderAbortStatement[];
+
+  /**
+   * By specifying true, you confirm that your use of Amazon Lex is related to a website, program, or other application that is directed or targeted, in whole or in part, to children under age 13 and subject to COPPA. For more information see the Amazon Lex FAQ and the Amazon Lex PutBot API Docs.
+   *
+   * @schema BotSpecInitProvider#childDirected
+   */
+  readonly childDirected?: boolean;
+
+  /**
+   * The message that Amazon Lex uses when it doesn't understand the user's request. Attributes are documented under prompt.
+   *
+   * @schema BotSpecInitProvider#clarificationPrompt
+   */
+  readonly clarificationPrompt?: BotSpecInitProviderClarificationPrompt[];
+
+  /**
+   * Determines if a new bot version is created when the initial resource is created and on each update. Defaults to false.
+   *
+   * @default false.
+   * @schema BotSpecInitProvider#createVersion
+   */
+  readonly createVersion?: boolean;
+
+  /**
+   * A description of the bot. Must be less than or equal to 200 characters in length.
+   *
+   * @schema BotSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * When set to true user utterances are sent to Amazon Comprehend for sentiment analysis. If you don't specify detectSentiment, the default is false.
+   *
+   * @schema BotSpecInitProvider#detectSentiment
+   */
+  readonly detectSentiment?: boolean;
+
+  /**
+   * Set to true to enable access to natural language understanding improvements. When you set the enable_model_improvements parameter to true you can use the nlu_intent_confidence_threshold parameter to configure confidence scores. For more information, see Confidence Scores. You can only set the enable_model_improvements parameter in certain Regions. If you set the parameter to true, your bot has access to accuracy improvements. For more information see the Amazon Lex Bot PutBot API Docs.
+   *
+   * @schema BotSpecInitProvider#enableModelImprovements
+   */
+  readonly enableModelImprovements?: boolean;
+
+  /**
+   * The maximum time in seconds that Amazon Lex retains the data gathered in a conversation. Default is 300. Must be a number between 60 and 86400 (inclusive).
+   *
+   * @default 300. Must be a number between 60 and 86400 (inclusive).
+   * @schema BotSpecInitProvider#idleSessionTtlInSeconds
+   */
+  readonly idleSessionTtlInSeconds?: number;
+
+  /**
+   * A set of Intent objects. Each intent represents a command that a user can express. Attributes are documented under intent. Can have up to 250 Intent objects.
+   *
+   * @schema BotSpecInitProvider#intent
+   */
+  readonly intent?: BotSpecInitProviderIntent[];
+
+  /**
+   * Specifies the target locale for the bot. Any intent used in the bot must be compatible with the locale of the bot. For available locales, see Amazon Lex Bot PutBot API Docs. Default is en-US.
+   *
+   * @default en-US.
+   * @schema BotSpecInitProvider#locale
+   */
+  readonly locale?: string;
+
+  /**
+   * Determines the threshold where Amazon Lex will insert the AMAZON.FallbackIntent, AMAZON.KendraSearchIntent, or both when returning alternative intents in a PostContent or PostText response. AMAZON.FallbackIntent and AMAZON.KendraSearchIntent are only inserted if they are configured for the bot. For more information see Amazon Lex Bot PutBot API Docs This value requires enable_model_improvements to be set to true and the default is 0. Must be a float between 0 and 1.
+   *
+   * @schema BotSpecInitProvider#nluIntentConfidenceThreshold
+   */
+  readonly nluIntentConfidenceThreshold?: number;
+
+  /**
+   * If you set the process_behavior element to BUILD, Amazon Lex builds the bot so that it can be run. If you set the element to SAVE Amazon Lex saves the bot, but doesn't build it. Default is SAVE.
+   *
+   * @default SAVE.
+   * @schema BotSpecInitProvider#processBehavior
+   */
+  readonly processBehavior?: string;
+
+  /**
+   * The Amazon Polly voice ID that you want Amazon Lex to use for voice interactions with the user. The locale configured for the voice must match the locale of the bot. For more information, see Available Voices in the Amazon Polly Developer Guide.
+   *
+   * @schema BotSpecInitProvider#voiceId
+   */
+  readonly voiceId?: string;
+
+}
+
+/**
+ * Converts an object of type 'BotSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BotSpecInitProvider(obj: BotSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'abortStatement': obj.abortStatement?.map(y => toJson_BotSpecInitProviderAbortStatement(y)),
+    'childDirected': obj.childDirected,
+    'clarificationPrompt': obj.clarificationPrompt?.map(y => toJson_BotSpecInitProviderClarificationPrompt(y)),
+    'createVersion': obj.createVersion,
+    'description': obj.description,
+    'detectSentiment': obj.detectSentiment,
+    'enableModelImprovements': obj.enableModelImprovements,
+    'idleSessionTtlInSeconds': obj.idleSessionTtlInSeconds,
+    'intent': obj.intent?.map(y => toJson_BotSpecInitProviderIntent(y)),
+    'locale': obj.locale,
+    'nluIntentConfidenceThreshold': obj.nluIntentConfidenceThreshold,
+    'processBehavior': obj.processBehavior,
+    'voiceId': obj.voiceId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BotSpecManagementPolicies
+ */
+export enum BotSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -359,43 +494,6 @@ export function toJson_BotSpecProviderConfigRef(obj: BotSpecProviderConfigRef | 
   const result = {
     'name': obj.name,
     'policy': toJson_BotSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BotSpecProviderRef
- */
-export interface BotSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BotSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BotSpecProviderRef#policy
-   */
-  readonly policy?: BotSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BotSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BotSpecProviderRef(obj: BotSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BotSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -493,7 +591,7 @@ export interface BotSpecForProviderAbortStatement {
    *
    * @schema BotSpecForProviderAbortStatement#message
    */
-  readonly message: BotSpecForProviderAbortStatementMessage[];
+  readonly message?: BotSpecForProviderAbortStatementMessage[];
 
   /**
    * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card.
@@ -528,14 +626,14 @@ export interface BotSpecForProviderClarificationPrompt {
    *
    * @schema BotSpecForProviderClarificationPrompt#maxAttempts
    */
-  readonly maxAttempts: number;
+  readonly maxAttempts?: number;
 
   /**
    * A set of messages, each of which provides a message string and its type. You can specify the message string in plain text or in Speech Synthesis Markup Language (SSML). Attributes are documented under message.
    *
    * @schema BotSpecForProviderClarificationPrompt#message
    */
-  readonly message: BotSpecForProviderClarificationPromptMessage[];
+  readonly message?: BotSpecForProviderClarificationPromptMessage[];
 
   /**
    * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card.
@@ -571,14 +669,14 @@ export interface BotSpecForProviderIntent {
    *
    * @schema BotSpecForProviderIntent#intentName
    */
-  readonly intentName: string;
+  readonly intentName?: string;
 
   /**
    * The version of the intent. Must be less than or equal to 64 characters in length.
    *
    * @schema BotSpecForProviderIntent#intentVersion
    */
-  readonly intentVersion: string;
+  readonly intentVersion?: string;
 
 }
 
@@ -587,6 +685,119 @@ export interface BotSpecForProviderIntent {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BotSpecForProviderIntent(obj: BotSpecForProviderIntent | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'intentName': obj.intentName,
+    'intentVersion': obj.intentVersion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BotSpecInitProviderAbortStatement
+ */
+export interface BotSpecInitProviderAbortStatement {
+  /**
+   * A set of messages, each of which provides a message string and its type. You can specify the message string in plain text or in Speech Synthesis Markup Language (SSML). Attributes are documented under message.
+   *
+   * @schema BotSpecInitProviderAbortStatement#message
+   */
+  readonly message?: BotSpecInitProviderAbortStatementMessage[];
+
+  /**
+   * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card.
+   *
+   * @schema BotSpecInitProviderAbortStatement#responseCard
+   */
+  readonly responseCard?: string;
+
+}
+
+/**
+ * Converts an object of type 'BotSpecInitProviderAbortStatement' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BotSpecInitProviderAbortStatement(obj: BotSpecInitProviderAbortStatement | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'message': obj.message?.map(y => toJson_BotSpecInitProviderAbortStatementMessage(y)),
+    'responseCard': obj.responseCard,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BotSpecInitProviderClarificationPrompt
+ */
+export interface BotSpecInitProviderClarificationPrompt {
+  /**
+   * The number of times to prompt the user for information.
+   *
+   * @schema BotSpecInitProviderClarificationPrompt#maxAttempts
+   */
+  readonly maxAttempts?: number;
+
+  /**
+   * A set of messages, each of which provides a message string and its type. You can specify the message string in plain text or in Speech Synthesis Markup Language (SSML). Attributes are documented under message.
+   *
+   * @schema BotSpecInitProviderClarificationPrompt#message
+   */
+  readonly message?: BotSpecInitProviderClarificationPromptMessage[];
+
+  /**
+   * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card.
+   *
+   * @schema BotSpecInitProviderClarificationPrompt#responseCard
+   */
+  readonly responseCard?: string;
+
+}
+
+/**
+ * Converts an object of type 'BotSpecInitProviderClarificationPrompt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BotSpecInitProviderClarificationPrompt(obj: BotSpecInitProviderClarificationPrompt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxAttempts': obj.maxAttempts,
+    'message': obj.message?.map(y => toJson_BotSpecInitProviderClarificationPromptMessage(y)),
+    'responseCard': obj.responseCard,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BotSpecInitProviderIntent
+ */
+export interface BotSpecInitProviderIntent {
+  /**
+   * The name of the intent. Must be less than or equal to 100 characters in length.
+   *
+   * @schema BotSpecInitProviderIntent#intentName
+   */
+  readonly intentName?: string;
+
+  /**
+   * The version of the intent. Must be less than or equal to 64 characters in length.
+   *
+   * @schema BotSpecInitProviderIntent#intentVersion
+   */
+  readonly intentVersion?: string;
+
+}
+
+/**
+ * Converts an object of type 'BotSpecInitProviderIntent' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BotSpecInitProviderIntent(obj: BotSpecInitProviderIntent | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'intentName': obj.intentName,
@@ -624,43 +835,6 @@ export interface BotSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BotSpecProviderConfigRefPolicy(obj: BotSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BotSpecProviderRefPolicy
- */
-export interface BotSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BotSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BotSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BotSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BotSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BotSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BotSpecProviderRefPolicy(obj: BotSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -762,14 +936,14 @@ export interface BotSpecForProviderAbortStatementMessage {
    *
    * @schema BotSpecForProviderAbortStatementMessage#content
    */
-  readonly content: string;
+  readonly content?: string;
 
   /**
    * The content type of the message string.
    *
    * @schema BotSpecForProviderAbortStatementMessage#contentType
    */
-  readonly contentType: string;
+  readonly contentType?: string;
 
   /**
    * Identifies the message group that the message belongs to. When a group is assigned to a message, Amazon Lex returns one message from each group in the response.
@@ -805,14 +979,14 @@ export interface BotSpecForProviderClarificationPromptMessage {
    *
    * @schema BotSpecForProviderClarificationPromptMessage#content
    */
-  readonly content: string;
+  readonly content?: string;
 
   /**
    * The content type of the message string.
    *
    * @schema BotSpecForProviderClarificationPromptMessage#contentType
    */
-  readonly contentType: string;
+  readonly contentType?: string;
 
   /**
    * Identifies the message group that the message belongs to. When a group is assigned to a message, Amazon Lex returns one message from each group in the response.
@@ -828,6 +1002,92 @@ export interface BotSpecForProviderClarificationPromptMessage {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BotSpecForProviderClarificationPromptMessage(obj: BotSpecForProviderClarificationPromptMessage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'content': obj.content,
+    'contentType': obj.contentType,
+    'groupNumber': obj.groupNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BotSpecInitProviderAbortStatementMessage
+ */
+export interface BotSpecInitProviderAbortStatementMessage {
+  /**
+   * The text of the message.
+   *
+   * @schema BotSpecInitProviderAbortStatementMessage#content
+   */
+  readonly content?: string;
+
+  /**
+   * The content type of the message string.
+   *
+   * @schema BotSpecInitProviderAbortStatementMessage#contentType
+   */
+  readonly contentType?: string;
+
+  /**
+   * Identifies the message group that the message belongs to. When a group is assigned to a message, Amazon Lex returns one message from each group in the response.
+   *
+   * @schema BotSpecInitProviderAbortStatementMessage#groupNumber
+   */
+  readonly groupNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'BotSpecInitProviderAbortStatementMessage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BotSpecInitProviderAbortStatementMessage(obj: BotSpecInitProviderAbortStatementMessage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'content': obj.content,
+    'contentType': obj.contentType,
+    'groupNumber': obj.groupNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BotSpecInitProviderClarificationPromptMessage
+ */
+export interface BotSpecInitProviderClarificationPromptMessage {
+  /**
+   * The text of the message.
+   *
+   * @schema BotSpecInitProviderClarificationPromptMessage#content
+   */
+  readonly content?: string;
+
+  /**
+   * The content type of the message string.
+   *
+   * @schema BotSpecInitProviderClarificationPromptMessage#contentType
+   */
+  readonly contentType?: string;
+
+  /**
+   * Identifies the message group that the message belongs to. When a group is assigned to a message, Amazon Lex returns one message from each group in the response.
+   *
+   * @schema BotSpecInitProviderClarificationPromptMessage#groupNumber
+   */
+  readonly groupNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'BotSpecInitProviderClarificationPromptMessage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BotSpecInitProviderClarificationPromptMessage(obj: BotSpecInitProviderClarificationPromptMessage | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'content': obj.content,
@@ -857,30 +1117,6 @@ export enum BotSpecProviderConfigRefPolicyResolution {
  * @schema BotSpecProviderConfigRefPolicyResolve
  */
 export enum BotSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BotSpecProviderRefPolicyResolution
- */
-export enum BotSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BotSpecProviderRefPolicyResolve
- */
-export enum BotSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1045,7 +1281,7 @@ export function toJson_BotAliasProps(obj: BotAliasProps | undefined): Record<str
  */
 export interface BotAliasSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BotAliasSpec#deletionPolicy
    */
@@ -1057,11 +1293,18 @@ export interface BotAliasSpec {
   readonly forProvider: BotAliasSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BotAliasSpec#managementPolicy
+   * @schema BotAliasSpec#initProvider
    */
-  readonly managementPolicy?: BotAliasSpecManagementPolicy;
+  readonly initProvider?: BotAliasSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BotAliasSpec#managementPolicies
+   */
+  readonly managementPolicies?: BotAliasSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1069,13 +1312,6 @@ export interface BotAliasSpec {
    * @schema BotAliasSpec#providerConfigRef
    */
   readonly providerConfigRef?: BotAliasSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BotAliasSpec#providerRef
-   */
-  readonly providerRef?: BotAliasSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1102,9 +1338,9 @@ export function toJson_BotAliasSpec(obj: BotAliasSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BotAliasSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BotAliasSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BotAliasSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BotAliasSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BotAliasSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BotAliasSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1114,7 +1350,7 @@ export function toJson_BotAliasSpec(obj: BotAliasSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BotAliasSpecDeletionPolicy
  */
@@ -1185,17 +1421,76 @@ export function toJson_BotAliasSpecForProvider(obj: BotAliasSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BotAliasSpecManagementPolicy
+ * @schema BotAliasSpecInitProvider
  */
-export enum BotAliasSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BotAliasSpecInitProvider {
+  /**
+   * The name of the bot.
+   *
+   * @schema BotAliasSpecInitProvider#botName
+   */
+  readonly botName?: string;
+
+  /**
+   * The name of the bot.
+   *
+   * @schema BotAliasSpecInitProvider#botVersion
+   */
+  readonly botVersion?: string;
+
+  /**
+   * The settings that determine how Amazon Lex uses conversation logs for the alias. Attributes are documented under conversation_logs.
+   *
+   * @schema BotAliasSpecInitProvider#conversationLogs
+   */
+  readonly conversationLogs?: BotAliasSpecInitProviderConversationLogs[];
+
+  /**
+   * A description of the alias. Must be less than or equal to 200 characters in length.
+   *
+   * @schema BotAliasSpecInitProvider#description
+   */
+  readonly description?: string;
+
+}
+
+/**
+ * Converts an object of type 'BotAliasSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BotAliasSpecInitProvider(obj: BotAliasSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'botName': obj.botName,
+    'botVersion': obj.botVersion,
+    'conversationLogs': obj.conversationLogs?.map(y => toJson_BotAliasSpecInitProviderConversationLogs(y)),
+    'description': obj.description,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BotAliasSpecManagementPolicies
+ */
+export enum BotAliasSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1229,43 +1524,6 @@ export function toJson_BotAliasSpecProviderConfigRef(obj: BotAliasSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_BotAliasSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BotAliasSpecProviderRef
- */
-export interface BotAliasSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BotAliasSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BotAliasSpecProviderRef#policy
-   */
-  readonly policy?: BotAliasSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BotAliasSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BotAliasSpecProviderRef(obj: BotAliasSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BotAliasSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1363,7 +1621,7 @@ export interface BotAliasSpecForProviderConversationLogs {
    *
    * @schema BotAliasSpecForProviderConversationLogs#iamRoleArn
    */
-  readonly iamRoleArn: string;
+  readonly iamRoleArn?: string;
 
   /**
    * The settings for your conversation logs. You can log text, audio, or both. Attributes are documented under log_settings.
@@ -1383,6 +1641,41 @@ export function toJson_BotAliasSpecForProviderConversationLogs(obj: BotAliasSpec
   const result = {
     'iamRoleArn': obj.iamRoleArn,
     'logSettings': obj.logSettings?.map(y => toJson_BotAliasSpecForProviderConversationLogsLogSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BotAliasSpecInitProviderConversationLogs
+ */
+export interface BotAliasSpecInitProviderConversationLogs {
+  /**
+   * The Amazon Resource Name (ARN) of the IAM role used to write your logs to CloudWatch Logs or an S3 bucket. Must be between 20 and 2048 characters in length.
+   *
+   * @schema BotAliasSpecInitProviderConversationLogs#iamRoleArn
+   */
+  readonly iamRoleArn?: string;
+
+  /**
+   * The settings for your conversation logs. You can log text, audio, or both. Attributes are documented under log_settings.
+   *
+   * @schema BotAliasSpecInitProviderConversationLogs#logSettings
+   */
+  readonly logSettings?: BotAliasSpecInitProviderConversationLogsLogSettings[];
+
+}
+
+/**
+ * Converts an object of type 'BotAliasSpecInitProviderConversationLogs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BotAliasSpecInitProviderConversationLogs(obj: BotAliasSpecInitProviderConversationLogs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'iamRoleArn': obj.iamRoleArn,
+    'logSettings': obj.logSettings?.map(y => toJson_BotAliasSpecInitProviderConversationLogsLogSettings(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1416,43 +1709,6 @@ export interface BotAliasSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BotAliasSpecProviderConfigRefPolicy(obj: BotAliasSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BotAliasSpecProviderRefPolicy
- */
-export interface BotAliasSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BotAliasSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BotAliasSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BotAliasSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BotAliasSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BotAliasSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BotAliasSpecProviderRefPolicy(obj: BotAliasSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1554,7 +1810,7 @@ export interface BotAliasSpecForProviderConversationLogsLogSettings {
    *
    * @schema BotAliasSpecForProviderConversationLogsLogSettings#destination
    */
-  readonly destination: string;
+  readonly destination?: string;
 
   /**
    * The Amazon Resource Name (ARN) of the key used to encrypt audio logs in an S3 bucket. This can only be specified when destination is set to S3. Must be between 20 and 2048 characters in length.
@@ -1568,14 +1824,14 @@ export interface BotAliasSpecForProviderConversationLogsLogSettings {
    *
    * @schema BotAliasSpecForProviderConversationLogsLogSettings#logType
    */
-  readonly logType: string;
+  readonly logType?: string;
 
   /**
    * The Amazon Resource Name (ARN) of the CloudWatch Logs log group or S3 bucket where the logs are delivered. Must be less than or equal to 2048 characters in length.
    *
    * @schema BotAliasSpecForProviderConversationLogsLogSettings#resourceArn
    */
-  readonly resourceArn: string;
+  readonly resourceArn?: string;
 
 }
 
@@ -1584,6 +1840,57 @@ export interface BotAliasSpecForProviderConversationLogsLogSettings {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BotAliasSpecForProviderConversationLogsLogSettings(obj: BotAliasSpecForProviderConversationLogsLogSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destination': obj.destination,
+    'kmsKeyArn': obj.kmsKeyArn,
+    'logType': obj.logType,
+    'resourceArn': obj.resourceArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BotAliasSpecInitProviderConversationLogsLogSettings
+ */
+export interface BotAliasSpecInitProviderConversationLogsLogSettings {
+  /**
+   * The destination where logs are delivered. Options are CLOUDWATCH_LOGS or S3.
+   *
+   * @schema BotAliasSpecInitProviderConversationLogsLogSettings#destination
+   */
+  readonly destination?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the key used to encrypt audio logs in an S3 bucket. This can only be specified when destination is set to S3. Must be between 20 and 2048 characters in length.
+   *
+   * @schema BotAliasSpecInitProviderConversationLogsLogSettings#kmsKeyArn
+   */
+  readonly kmsKeyArn?: string;
+
+  /**
+   * The type of logging that is enabled. Options are AUDIO or TEXT.
+   *
+   * @schema BotAliasSpecInitProviderConversationLogsLogSettings#logType
+   */
+  readonly logType?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the CloudWatch Logs log group or S3 bucket where the logs are delivered. Must be less than or equal to 2048 characters in length.
+   *
+   * @schema BotAliasSpecInitProviderConversationLogsLogSettings#resourceArn
+   */
+  readonly resourceArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'BotAliasSpecInitProviderConversationLogsLogSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BotAliasSpecInitProviderConversationLogsLogSettings(obj: BotAliasSpecInitProviderConversationLogsLogSettings | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'destination': obj.destination,
@@ -1614,30 +1921,6 @@ export enum BotAliasSpecProviderConfigRefPolicyResolution {
  * @schema BotAliasSpecProviderConfigRefPolicyResolve
  */
 export enum BotAliasSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BotAliasSpecProviderRefPolicyResolution
- */
-export enum BotAliasSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BotAliasSpecProviderRefPolicyResolve
- */
-export enum BotAliasSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1802,7 +2085,7 @@ export function toJson_IntentProps(obj: IntentProps | undefined): Record<string,
  */
 export interface IntentSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema IntentSpec#deletionPolicy
    */
@@ -1814,11 +2097,18 @@ export interface IntentSpec {
   readonly forProvider: IntentSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema IntentSpec#managementPolicy
+   * @schema IntentSpec#initProvider
    */
-  readonly managementPolicy?: IntentSpecManagementPolicy;
+  readonly initProvider?: IntentSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema IntentSpec#managementPolicies
+   */
+  readonly managementPolicies?: IntentSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1826,13 +2116,6 @@ export interface IntentSpec {
    * @schema IntentSpec#providerConfigRef
    */
   readonly providerConfigRef?: IntentSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema IntentSpec#providerRef
-   */
-  readonly providerRef?: IntentSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1859,9 +2142,9 @@ export function toJson_IntentSpec(obj: IntentSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_IntentSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_IntentSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_IntentSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_IntentSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_IntentSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_IntentSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1871,7 +2154,7 @@ export function toJson_IntentSpec(obj: IntentSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema IntentSpecDeletionPolicy
  */
@@ -1999,17 +2282,133 @@ export function toJson_IntentSpecForProvider(obj: IntentSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema IntentSpecManagementPolicy
+ * @schema IntentSpecInitProvider
  */
-export enum IntentSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface IntentSpecInitProvider {
+  /**
+   * The statement that you want Amazon Lex to convey to the user after the intent is successfully fulfilled by the Lambda function. This element is relevant only if you provide a Lambda function in the fulfillment_activity. If you return the intent to the client application, you can't specify this element. The follow_up_prompt and conclusion_statement are mutually exclusive. You can specify only one. Attributes are documented under statement.
+   *
+   * @schema IntentSpecInitProvider#conclusionStatement
+   */
+  readonly conclusionStatement?: IntentSpecInitProviderConclusionStatement[];
+
+  /**
+   * Prompts the user to confirm the intent. This question should have a yes or no answer. You you must provide both the rejection_statement and confirmation_prompt, or neither. Attributes are documented under prompt.
+   *
+   * @schema IntentSpecInitProvider#confirmationPrompt
+   */
+  readonly confirmationPrompt?: IntentSpecInitProviderConfirmationPrompt[];
+
+  /**
+   * Determines if a new slot type version is created when the initial resource is created and on each update. Defaults to false.
+   *
+   * @default false.
+   * @schema IntentSpecInitProvider#createVersion
+   */
+  readonly createVersion?: boolean;
+
+  /**
+   * A description of the intent. Must be less than or equal to 200 characters in length.
+   *
+   * @schema IntentSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Specifies a Lambda function to invoke for each user input. You can invoke this Lambda function to personalize user interaction. Attributes are documented under code_hook.
+   *
+   * @schema IntentSpecInitProvider#dialogCodeHook
+   */
+  readonly dialogCodeHook?: IntentSpecInitProviderDialogCodeHook[];
+
+  /**
+   * Amazon Lex uses this prompt to solicit additional activity after fulfilling an intent. For example, after the OrderPizza intent is fulfilled, you might prompt the user to order a drink. The follow_up_prompt field and the conclusion_statement field are mutually exclusive. You can specify only one. Attributes are documented under follow_up_prompt.
+   *
+   * @schema IntentSpecInitProvider#followUpPrompt
+   */
+  readonly followUpPrompt?: IntentSpecInitProviderFollowUpPrompt[];
+
+  /**
+   * Describes how the intent is fulfilled. For example, after a user provides all of the information for a pizza order, fulfillment_activity defines how the bot places an order with a local pizza store. Attributes are documented under fulfillment_activity.
+   *
+   * @schema IntentSpecInitProvider#fulfillmentActivity
+   */
+  readonly fulfillmentActivity?: IntentSpecInitProviderFulfillmentActivity[];
+
+  /**
+   * A unique identifier for the built-in intent to base this intent on. To find the signature for an intent, see Standard Built-in Intents in the Alexa Skills Kit.
+   *
+   * @schema IntentSpecInitProvider#parentIntentSignature
+   */
+  readonly parentIntentSignature?: string;
+
+  /**
+   * When the user answers "no" to the question defined in confirmation_prompt, Amazon Lex responds with this statement to acknowledge that the intent was canceled. You must provide both the rejection_statement and the confirmation_prompt, or neither. Attributes are documented under statement.
+   *
+   * @schema IntentSpecInitProvider#rejectionStatement
+   */
+  readonly rejectionStatement?: IntentSpecInitProviderRejectionStatement[];
+
+  /**
+   * An array of utterances (strings) that a user might say to signal the intent. For example, "I want {PizzaSize} pizza", "Order {Quantity} {PizzaSize} pizzas". In each utterance, a slot name is enclosed in curly braces. Must have between 1 and 10 items in the list, and each item must be less than or equal to 200 characters in length.
+   *
+   * @schema IntentSpecInitProvider#sampleUtterances
+   */
+  readonly sampleUtterances?: string[];
+
+  /**
+   * An list of intent slots. At runtime, Amazon Lex elicits required slot values from the user using prompts defined in the slots. Attributes are documented under slot.
+   *
+   * @schema IntentSpecInitProvider#slot
+   */
+  readonly slot?: IntentSpecInitProviderSlot[];
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProvider(obj: IntentSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'conclusionStatement': obj.conclusionStatement?.map(y => toJson_IntentSpecInitProviderConclusionStatement(y)),
+    'confirmationPrompt': obj.confirmationPrompt?.map(y => toJson_IntentSpecInitProviderConfirmationPrompt(y)),
+    'createVersion': obj.createVersion,
+    'description': obj.description,
+    'dialogCodeHook': obj.dialogCodeHook?.map(y => toJson_IntentSpecInitProviderDialogCodeHook(y)),
+    'followUpPrompt': obj.followUpPrompt?.map(y => toJson_IntentSpecInitProviderFollowUpPrompt(y)),
+    'fulfillmentActivity': obj.fulfillmentActivity?.map(y => toJson_IntentSpecInitProviderFulfillmentActivity(y)),
+    'parentIntentSignature': obj.parentIntentSignature,
+    'rejectionStatement': obj.rejectionStatement?.map(y => toJson_IntentSpecInitProviderRejectionStatement(y)),
+    'sampleUtterances': obj.sampleUtterances?.map(y => y),
+    'slot': obj.slot?.map(y => toJson_IntentSpecInitProviderSlot(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema IntentSpecManagementPolicies
+ */
+export enum IntentSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2043,43 +2442,6 @@ export function toJson_IntentSpecProviderConfigRef(obj: IntentSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_IntentSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema IntentSpecProviderRef
- */
-export interface IntentSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema IntentSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema IntentSpecProviderRef#policy
-   */
-  readonly policy?: IntentSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'IntentSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_IntentSpecProviderRef(obj: IntentSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_IntentSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2177,7 +2539,7 @@ export interface IntentSpecForProviderConclusionStatement {
    *
    * @schema IntentSpecForProviderConclusionStatement#message
    */
-  readonly message: IntentSpecForProviderConclusionStatementMessage[];
+  readonly message?: IntentSpecForProviderConclusionStatementMessage[];
 
   /**
    * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card. Must be less than or equal to 50000 characters in length.
@@ -2212,14 +2574,14 @@ export interface IntentSpecForProviderConfirmationPrompt {
    *
    * @schema IntentSpecForProviderConfirmationPrompt#maxAttempts
    */
-  readonly maxAttempts: number;
+  readonly maxAttempts?: number;
 
   /**
    * A set of messages, each of which provides a message string and its type. You can specify the message string in plain text or in Speech Synthesis Markup Language (SSML). Attributes are documented under message. Must contain between 1 and 15 messages.
    *
    * @schema IntentSpecForProviderConfirmationPrompt#message
    */
-  readonly message: IntentSpecForProviderConfirmationPromptMessage[];
+  readonly message?: IntentSpecForProviderConfirmationPromptMessage[];
 
   /**
    * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card. Must be less than or equal to 50000 characters in length.
@@ -2255,14 +2617,14 @@ export interface IntentSpecForProviderDialogCodeHook {
    *
    * @schema IntentSpecForProviderDialogCodeHook#messageVersion
    */
-  readonly messageVersion: string;
+  readonly messageVersion?: string;
 
   /**
    * The Amazon Resource Name (ARN) of the Lambda function.
    *
    * @schema IntentSpecForProviderDialogCodeHook#uri
    */
-  readonly uri: string;
+  readonly uri?: string;
 
 }
 
@@ -2290,14 +2652,14 @@ export interface IntentSpecForProviderFollowUpPrompt {
    *
    * @schema IntentSpecForProviderFollowUpPrompt#prompt
    */
-  readonly prompt: IntentSpecForProviderFollowUpPromptPrompt[];
+  readonly prompt?: IntentSpecForProviderFollowUpPromptPrompt[];
 
   /**
    * If the user answers "no" to the question defined in the prompt field, Amazon Lex responds with this statement to acknowledge that the intent was canceled. Attributes are documented below under statement.
    *
    * @schema IntentSpecForProviderFollowUpPrompt#rejectionStatement
    */
-  readonly rejectionStatement: IntentSpecForProviderFollowUpPromptRejectionStatement[];
+  readonly rejectionStatement?: IntentSpecForProviderFollowUpPromptRejectionStatement[];
 
 }
 
@@ -2332,7 +2694,7 @@ export interface IntentSpecForProviderFulfillmentActivity {
    *
    * @schema IntentSpecForProviderFulfillmentActivity#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -2360,7 +2722,7 @@ export interface IntentSpecForProviderRejectionStatement {
    *
    * @schema IntentSpecForProviderRejectionStatement#message
    */
-  readonly message: IntentSpecForProviderRejectionStatementMessage[];
+  readonly message?: IntentSpecForProviderRejectionStatementMessage[];
 
   /**
    * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card. Must be less than or equal to 50000 characters in length.
@@ -2402,7 +2764,7 @@ export interface IntentSpecForProviderSlot {
    *
    * @schema IntentSpecForProviderSlot#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Directs Lex the order in which to elicit this slot value from the user. For example, if the intent has two slots with priorities 1 and 2, AWS Lex first elicits a value for the slot with priority 1. If multiple slots share the same priority, the order in which Lex elicits values is arbitrary. Must be between 1 and 100.
@@ -2430,14 +2792,14 @@ export interface IntentSpecForProviderSlot {
    *
    * @schema IntentSpecForProviderSlot#slotConstraint
    */
-  readonly slotConstraint: string;
+  readonly slotConstraint?: string;
 
   /**
    * The type of the slot, either a custom slot type that you defined or one of the built-in slot types. Must be less than or equal to 100 characters in length.
    *
    * @schema IntentSpecForProviderSlot#slotType
    */
-  readonly slotType: string;
+  readonly slotType?: string;
 
   /**
    * The version of the slot type. Must be less than or equal to 64 characters in length.
@@ -2478,6 +2840,315 @@ export function toJson_IntentSpecForProviderSlot(obj: IntentSpecForProviderSlot 
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema IntentSpecInitProviderConclusionStatement
+ */
+export interface IntentSpecInitProviderConclusionStatement {
+  /**
+   * A set of messages, each of which provides a message string and its type. You can specify the message string in plain text or in Speech Synthesis Markup Language (SSML). Attributes are documented under message. Must contain between 1 and 15 messages.
+   *
+   * @schema IntentSpecInitProviderConclusionStatement#message
+   */
+  readonly message?: IntentSpecInitProviderConclusionStatementMessage[];
+
+  /**
+   * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card. Must be less than or equal to 50000 characters in length.
+   *
+   * @schema IntentSpecInitProviderConclusionStatement#responseCard
+   */
+  readonly responseCard?: string;
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderConclusionStatement' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderConclusionStatement(obj: IntentSpecInitProviderConclusionStatement | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'message': obj.message?.map(y => toJson_IntentSpecInitProviderConclusionStatementMessage(y)),
+    'responseCard': obj.responseCard,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IntentSpecInitProviderConfirmationPrompt
+ */
+export interface IntentSpecInitProviderConfirmationPrompt {
+  /**
+   * The number of times to prompt the user for information. Must be a number between 1 and 5 (inclusive).
+   *
+   * @schema IntentSpecInitProviderConfirmationPrompt#maxAttempts
+   */
+  readonly maxAttempts?: number;
+
+  /**
+   * A set of messages, each of which provides a message string and its type. You can specify the message string in plain text or in Speech Synthesis Markup Language (SSML). Attributes are documented under message. Must contain between 1 and 15 messages.
+   *
+   * @schema IntentSpecInitProviderConfirmationPrompt#message
+   */
+  readonly message?: IntentSpecInitProviderConfirmationPromptMessage[];
+
+  /**
+   * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card. Must be less than or equal to 50000 characters in length.
+   *
+   * @schema IntentSpecInitProviderConfirmationPrompt#responseCard
+   */
+  readonly responseCard?: string;
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderConfirmationPrompt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderConfirmationPrompt(obj: IntentSpecInitProviderConfirmationPrompt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxAttempts': obj.maxAttempts,
+    'message': obj.message?.map(y => toJson_IntentSpecInitProviderConfirmationPromptMessage(y)),
+    'responseCard': obj.responseCard,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IntentSpecInitProviderDialogCodeHook
+ */
+export interface IntentSpecInitProviderDialogCodeHook {
+  /**
+   * The version of the request-response that you want Amazon Lex to use to invoke your Lambda function. For more information, see Using Lambda Functions. Must be less than or equal to 5 characters in length.
+   *
+   * @schema IntentSpecInitProviderDialogCodeHook#messageVersion
+   */
+  readonly messageVersion?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lambda function.
+   *
+   * @schema IntentSpecInitProviderDialogCodeHook#uri
+   */
+  readonly uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderDialogCodeHook' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderDialogCodeHook(obj: IntentSpecInitProviderDialogCodeHook | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'messageVersion': obj.messageVersion,
+    'uri': obj.uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IntentSpecInitProviderFollowUpPrompt
+ */
+export interface IntentSpecInitProviderFollowUpPrompt {
+  /**
+   * Prompts for information from the user. Attributes are documented under prompt.
+   *
+   * @schema IntentSpecInitProviderFollowUpPrompt#prompt
+   */
+  readonly prompt?: IntentSpecInitProviderFollowUpPromptPrompt[];
+
+  /**
+   * If the user answers "no" to the question defined in the prompt field, Amazon Lex responds with this statement to acknowledge that the intent was canceled. Attributes are documented below under statement.
+   *
+   * @schema IntentSpecInitProviderFollowUpPrompt#rejectionStatement
+   */
+  readonly rejectionStatement?: IntentSpecInitProviderFollowUpPromptRejectionStatement[];
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderFollowUpPrompt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderFollowUpPrompt(obj: IntentSpecInitProviderFollowUpPrompt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'prompt': obj.prompt?.map(y => toJson_IntentSpecInitProviderFollowUpPromptPrompt(y)),
+    'rejectionStatement': obj.rejectionStatement?.map(y => toJson_IntentSpecInitProviderFollowUpPromptRejectionStatement(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IntentSpecInitProviderFulfillmentActivity
+ */
+export interface IntentSpecInitProviderFulfillmentActivity {
+  /**
+   * A description of the Lambda function that is run to fulfill the intent. Required if type is CodeHook. Attributes are documented under code_hook.
+   *
+   * @schema IntentSpecInitProviderFulfillmentActivity#codeHook
+   */
+  readonly codeHook?: IntentSpecInitProviderFulfillmentActivityCodeHook[];
+
+  /**
+   * How the intent should be fulfilled, either by running a Lambda function or by returning the slot data to the client application. Type can be either ReturnIntent or CodeHook, as documented here.
+   *
+   * @schema IntentSpecInitProviderFulfillmentActivity#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderFulfillmentActivity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderFulfillmentActivity(obj: IntentSpecInitProviderFulfillmentActivity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'codeHook': obj.codeHook?.map(y => toJson_IntentSpecInitProviderFulfillmentActivityCodeHook(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IntentSpecInitProviderRejectionStatement
+ */
+export interface IntentSpecInitProviderRejectionStatement {
+  /**
+   * A set of messages, each of which provides a message string and its type. You can specify the message string in plain text or in Speech Synthesis Markup Language (SSML). Attributes are documented under message. Must contain between 1 and 15 messages.
+   *
+   * @schema IntentSpecInitProviderRejectionStatement#message
+   */
+  readonly message?: IntentSpecInitProviderRejectionStatementMessage[];
+
+  /**
+   * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card. Must be less than or equal to 50000 characters in length.
+   *
+   * @schema IntentSpecInitProviderRejectionStatement#responseCard
+   */
+  readonly responseCard?: string;
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderRejectionStatement' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderRejectionStatement(obj: IntentSpecInitProviderRejectionStatement | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'message': obj.message?.map(y => toJson_IntentSpecInitProviderRejectionStatementMessage(y)),
+    'responseCard': obj.responseCard,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IntentSpecInitProviderSlot
+ */
+export interface IntentSpecInitProviderSlot {
+  /**
+   * A description of the bot. Must be less than or equal to 200 characters in length.
+   *
+   * @schema IntentSpecInitProviderSlot#description
+   */
+  readonly description?: string;
+
+  /**
+   * The name of the intent slot that you want to create. The name is case sensitive. Must be less than or equal to 100 characters in length.
+   *
+   * @schema IntentSpecInitProviderSlot#name
+   */
+  readonly name?: string;
+
+  /**
+   * Directs Lex the order in which to elicit this slot value from the user. For example, if the intent has two slots with priorities 1 and 2, AWS Lex first elicits a value for the slot with priority 1. If multiple slots share the same priority, the order in which Lex elicits values is arbitrary. Must be between 1 and 100.
+   *
+   * @schema IntentSpecInitProviderSlot#priority
+   */
+  readonly priority?: number;
+
+  /**
+   * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card. Must be less than or equal to 50000 characters in length.
+   *
+   * @schema IntentSpecInitProviderSlot#responseCard
+   */
+  readonly responseCard?: string;
+
+  /**
+   * If you know a specific pattern with which users might respond to an Amazon Lex request for a slot value, you can provide those utterances to improve accuracy. This is optional. In most cases, Amazon Lex is capable of understanding user utterances. Must have between 1 and 10 items in the list, and each item must be less than or equal to 200 characters in length.
+   *
+   * @schema IntentSpecInitProviderSlot#sampleUtterances
+   */
+  readonly sampleUtterances?: string[];
+
+  /**
+   * Specifies whether the slot is required or optional.
+   *
+   * @schema IntentSpecInitProviderSlot#slotConstraint
+   */
+  readonly slotConstraint?: string;
+
+  /**
+   * The type of the slot, either a custom slot type that you defined or one of the built-in slot types. Must be less than or equal to 100 characters in length.
+   *
+   * @schema IntentSpecInitProviderSlot#slotType
+   */
+  readonly slotType?: string;
+
+  /**
+   * The version of the slot type. Must be less than or equal to 64 characters in length.
+   *
+   * @schema IntentSpecInitProviderSlot#slotTypeVersion
+   */
+  readonly slotTypeVersion?: string;
+
+  /**
+   * The prompt that Amazon Lex uses to elicit the slot value from the user. Attributes are documented under prompt.
+   *
+   * @schema IntentSpecInitProviderSlot#valueElicitationPrompt
+   */
+  readonly valueElicitationPrompt?: IntentSpecInitProviderSlotValueElicitationPrompt[];
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderSlot' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderSlot(obj: IntentSpecInitProviderSlot | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'name': obj.name,
+    'priority': obj.priority,
+    'responseCard': obj.responseCard,
+    'sampleUtterances': obj.sampleUtterances?.map(y => y),
+    'slotConstraint': obj.slotConstraint,
+    'slotType': obj.slotType,
+    'slotTypeVersion': obj.slotTypeVersion,
+    'valueElicitationPrompt': obj.valueElicitationPrompt?.map(y => toJson_IntentSpecInitProviderSlotValueElicitationPrompt(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema IntentSpecProviderConfigRefPolicy
@@ -2504,43 +3175,6 @@ export interface IntentSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_IntentSpecProviderConfigRefPolicy(obj: IntentSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema IntentSpecProviderRefPolicy
- */
-export interface IntentSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema IntentSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: IntentSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema IntentSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: IntentSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'IntentSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_IntentSpecProviderRefPolicy(obj: IntentSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2642,14 +3276,14 @@ export interface IntentSpecForProviderConclusionStatementMessage {
    *
    * @schema IntentSpecForProviderConclusionStatementMessage#content
    */
-  readonly content: string;
+  readonly content?: string;
 
   /**
    * The content type of the message string.
    *
    * @schema IntentSpecForProviderConclusionStatementMessage#contentType
    */
-  readonly contentType: string;
+  readonly contentType?: string;
 
   /**
    * Identifies the message group that the message belongs to. When a group is assigned to a message, Amazon Lex returns one message from each group in the response. Must be a number between 1 and 5 (inclusive).
@@ -2685,14 +3319,14 @@ export interface IntentSpecForProviderConfirmationPromptMessage {
    *
    * @schema IntentSpecForProviderConfirmationPromptMessage#content
    */
-  readonly content: string;
+  readonly content?: string;
 
   /**
    * The content type of the message string.
    *
    * @schema IntentSpecForProviderConfirmationPromptMessage#contentType
    */
-  readonly contentType: string;
+  readonly contentType?: string;
 
   /**
    * Identifies the message group that the message belongs to. When a group is assigned to a message, Amazon Lex returns one message from each group in the response. Must be a number between 1 and 5 (inclusive).
@@ -2728,14 +3362,14 @@ export interface IntentSpecForProviderFollowUpPromptPrompt {
    *
    * @schema IntentSpecForProviderFollowUpPromptPrompt#maxAttempts
    */
-  readonly maxAttempts: number;
+  readonly maxAttempts?: number;
 
   /**
    * A set of messages, each of which provides a message string and its type. You can specify the message string in plain text or in Speech Synthesis Markup Language (SSML). Attributes are documented under message. Must contain between 1 and 15 messages.
    *
    * @schema IntentSpecForProviderFollowUpPromptPrompt#message
    */
-  readonly message: IntentSpecForProviderFollowUpPromptPromptMessage[];
+  readonly message?: IntentSpecForProviderFollowUpPromptPromptMessage[];
 
   /**
    * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card. Must be less than or equal to 50000 characters in length.
@@ -2771,7 +3405,7 @@ export interface IntentSpecForProviderFollowUpPromptRejectionStatement {
    *
    * @schema IntentSpecForProviderFollowUpPromptRejectionStatement#message
    */
-  readonly message: IntentSpecForProviderFollowUpPromptRejectionStatementMessage[];
+  readonly message?: IntentSpecForProviderFollowUpPromptRejectionStatementMessage[];
 
   /**
    * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card. Must be less than or equal to 50000 characters in length.
@@ -2806,14 +3440,14 @@ export interface IntentSpecForProviderFulfillmentActivityCodeHook {
    *
    * @schema IntentSpecForProviderFulfillmentActivityCodeHook#messageVersion
    */
-  readonly messageVersion: string;
+  readonly messageVersion?: string;
 
   /**
    * The Amazon Resource Name (ARN) of the Lambda function.
    *
    * @schema IntentSpecForProviderFulfillmentActivityCodeHook#uri
    */
-  readonly uri: string;
+  readonly uri?: string;
 
 }
 
@@ -2841,14 +3475,14 @@ export interface IntentSpecForProviderRejectionStatementMessage {
    *
    * @schema IntentSpecForProviderRejectionStatementMessage#content
    */
-  readonly content: string;
+  readonly content?: string;
 
   /**
    * The content type of the message string.
    *
    * @schema IntentSpecForProviderRejectionStatementMessage#contentType
    */
-  readonly contentType: string;
+  readonly contentType?: string;
 
   /**
    * Identifies the message group that the message belongs to. When a group is assigned to a message, Amazon Lex returns one message from each group in the response. Must be a number between 1 and 5 (inclusive).
@@ -2884,14 +3518,14 @@ export interface IntentSpecForProviderSlotValueElicitationPrompt {
    *
    * @schema IntentSpecForProviderSlotValueElicitationPrompt#maxAttempts
    */
-  readonly maxAttempts: number;
+  readonly maxAttempts?: number;
 
   /**
    * A set of messages, each of which provides a message string and its type. You can specify the message string in plain text or in Speech Synthesis Markup Language (SSML). Attributes are documented under message. Must contain between 1 and 15 messages.
    *
    * @schema IntentSpecForProviderSlotValueElicitationPrompt#message
    */
-  readonly message: IntentSpecForProviderSlotValueElicitationPromptMessage[];
+  readonly message?: IntentSpecForProviderSlotValueElicitationPromptMessage[];
 
   /**
    * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card. Must be less than or equal to 50000 characters in length.
@@ -2919,6 +3553,291 @@ export function toJson_IntentSpecForProviderSlotValueElicitationPrompt(obj: Inte
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema IntentSpecInitProviderConclusionStatementMessage
+ */
+export interface IntentSpecInitProviderConclusionStatementMessage {
+  /**
+   * The text of the message. Must be less than or equal to 1000 characters in length.
+   *
+   * @schema IntentSpecInitProviderConclusionStatementMessage#content
+   */
+  readonly content?: string;
+
+  /**
+   * The content type of the message string.
+   *
+   * @schema IntentSpecInitProviderConclusionStatementMessage#contentType
+   */
+  readonly contentType?: string;
+
+  /**
+   * Identifies the message group that the message belongs to. When a group is assigned to a message, Amazon Lex returns one message from each group in the response. Must be a number between 1 and 5 (inclusive).
+   *
+   * @schema IntentSpecInitProviderConclusionStatementMessage#groupNumber
+   */
+  readonly groupNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderConclusionStatementMessage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderConclusionStatementMessage(obj: IntentSpecInitProviderConclusionStatementMessage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'content': obj.content,
+    'contentType': obj.contentType,
+    'groupNumber': obj.groupNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IntentSpecInitProviderConfirmationPromptMessage
+ */
+export interface IntentSpecInitProviderConfirmationPromptMessage {
+  /**
+   * The text of the message. Must be less than or equal to 1000 characters in length.
+   *
+   * @schema IntentSpecInitProviderConfirmationPromptMessage#content
+   */
+  readonly content?: string;
+
+  /**
+   * The content type of the message string.
+   *
+   * @schema IntentSpecInitProviderConfirmationPromptMessage#contentType
+   */
+  readonly contentType?: string;
+
+  /**
+   * Identifies the message group that the message belongs to. When a group is assigned to a message, Amazon Lex returns one message from each group in the response. Must be a number between 1 and 5 (inclusive).
+   *
+   * @schema IntentSpecInitProviderConfirmationPromptMessage#groupNumber
+   */
+  readonly groupNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderConfirmationPromptMessage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderConfirmationPromptMessage(obj: IntentSpecInitProviderConfirmationPromptMessage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'content': obj.content,
+    'contentType': obj.contentType,
+    'groupNumber': obj.groupNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IntentSpecInitProviderFollowUpPromptPrompt
+ */
+export interface IntentSpecInitProviderFollowUpPromptPrompt {
+  /**
+   * The number of times to prompt the user for information. Must be a number between 1 and 5 (inclusive).
+   *
+   * @schema IntentSpecInitProviderFollowUpPromptPrompt#maxAttempts
+   */
+  readonly maxAttempts?: number;
+
+  /**
+   * A set of messages, each of which provides a message string and its type. You can specify the message string in plain text or in Speech Synthesis Markup Language (SSML). Attributes are documented under message. Must contain between 1 and 15 messages.
+   *
+   * @schema IntentSpecInitProviderFollowUpPromptPrompt#message
+   */
+  readonly message?: IntentSpecInitProviderFollowUpPromptPromptMessage[];
+
+  /**
+   * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card. Must be less than or equal to 50000 characters in length.
+   *
+   * @schema IntentSpecInitProviderFollowUpPromptPrompt#responseCard
+   */
+  readonly responseCard?: string;
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderFollowUpPromptPrompt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderFollowUpPromptPrompt(obj: IntentSpecInitProviderFollowUpPromptPrompt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxAttempts': obj.maxAttempts,
+    'message': obj.message?.map(y => toJson_IntentSpecInitProviderFollowUpPromptPromptMessage(y)),
+    'responseCard': obj.responseCard,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IntentSpecInitProviderFollowUpPromptRejectionStatement
+ */
+export interface IntentSpecInitProviderFollowUpPromptRejectionStatement {
+  /**
+   * A set of messages, each of which provides a message string and its type. You can specify the message string in plain text or in Speech Synthesis Markup Language (SSML). Attributes are documented under message. Must contain between 1 and 15 messages.
+   *
+   * @schema IntentSpecInitProviderFollowUpPromptRejectionStatement#message
+   */
+  readonly message?: IntentSpecInitProviderFollowUpPromptRejectionStatementMessage[];
+
+  /**
+   * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card. Must be less than or equal to 50000 characters in length.
+   *
+   * @schema IntentSpecInitProviderFollowUpPromptRejectionStatement#responseCard
+   */
+  readonly responseCard?: string;
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderFollowUpPromptRejectionStatement' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderFollowUpPromptRejectionStatement(obj: IntentSpecInitProviderFollowUpPromptRejectionStatement | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'message': obj.message?.map(y => toJson_IntentSpecInitProviderFollowUpPromptRejectionStatementMessage(y)),
+    'responseCard': obj.responseCard,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IntentSpecInitProviderFulfillmentActivityCodeHook
+ */
+export interface IntentSpecInitProviderFulfillmentActivityCodeHook {
+  /**
+   * The version of the request-response that you want Amazon Lex to use to invoke your Lambda function. For more information, see Using Lambda Functions. Must be less than or equal to 5 characters in length.
+   *
+   * @schema IntentSpecInitProviderFulfillmentActivityCodeHook#messageVersion
+   */
+  readonly messageVersion?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lambda function.
+   *
+   * @schema IntentSpecInitProviderFulfillmentActivityCodeHook#uri
+   */
+  readonly uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderFulfillmentActivityCodeHook' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderFulfillmentActivityCodeHook(obj: IntentSpecInitProviderFulfillmentActivityCodeHook | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'messageVersion': obj.messageVersion,
+    'uri': obj.uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IntentSpecInitProviderRejectionStatementMessage
+ */
+export interface IntentSpecInitProviderRejectionStatementMessage {
+  /**
+   * The text of the message. Must be less than or equal to 1000 characters in length.
+   *
+   * @schema IntentSpecInitProviderRejectionStatementMessage#content
+   */
+  readonly content?: string;
+
+  /**
+   * The content type of the message string.
+   *
+   * @schema IntentSpecInitProviderRejectionStatementMessage#contentType
+   */
+  readonly contentType?: string;
+
+  /**
+   * Identifies the message group that the message belongs to. When a group is assigned to a message, Amazon Lex returns one message from each group in the response. Must be a number between 1 and 5 (inclusive).
+   *
+   * @schema IntentSpecInitProviderRejectionStatementMessage#groupNumber
+   */
+  readonly groupNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderRejectionStatementMessage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderRejectionStatementMessage(obj: IntentSpecInitProviderRejectionStatementMessage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'content': obj.content,
+    'contentType': obj.contentType,
+    'groupNumber': obj.groupNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IntentSpecInitProviderSlotValueElicitationPrompt
+ */
+export interface IntentSpecInitProviderSlotValueElicitationPrompt {
+  /**
+   * The number of times to prompt the user for information. Must be a number between 1 and 5 (inclusive).
+   *
+   * @schema IntentSpecInitProviderSlotValueElicitationPrompt#maxAttempts
+   */
+  readonly maxAttempts?: number;
+
+  /**
+   * A set of messages, each of which provides a message string and its type. You can specify the message string in plain text or in Speech Synthesis Markup Language (SSML). Attributes are documented under message. Must contain between 1 and 15 messages.
+   *
+   * @schema IntentSpecInitProviderSlotValueElicitationPrompt#message
+   */
+  readonly message?: IntentSpecInitProviderSlotValueElicitationPromptMessage[];
+
+  /**
+   * The response card. Amazon Lex will substitute session attributes and slot values into the response card. For more information, see Example: Using a Response Card. Must be less than or equal to 50000 characters in length.
+   *
+   * @schema IntentSpecInitProviderSlotValueElicitationPrompt#responseCard
+   */
+  readonly responseCard?: string;
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderSlotValueElicitationPrompt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderSlotValueElicitationPrompt(obj: IntentSpecInitProviderSlotValueElicitationPrompt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxAttempts': obj.maxAttempts,
+    'message': obj.message?.map(y => toJson_IntentSpecInitProviderSlotValueElicitationPromptMessage(y)),
+    'responseCard': obj.responseCard,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema IntentSpecProviderConfigRefPolicyResolution
@@ -2936,30 +3855,6 @@ export enum IntentSpecProviderConfigRefPolicyResolution {
  * @schema IntentSpecProviderConfigRefPolicyResolve
  */
 export enum IntentSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema IntentSpecProviderRefPolicyResolution
- */
-export enum IntentSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema IntentSpecProviderRefPolicyResolve
- */
-export enum IntentSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3012,14 +3907,14 @@ export interface IntentSpecForProviderFollowUpPromptPromptMessage {
    *
    * @schema IntentSpecForProviderFollowUpPromptPromptMessage#content
    */
-  readonly content: string;
+  readonly content?: string;
 
   /**
    * The content type of the message string.
    *
    * @schema IntentSpecForProviderFollowUpPromptPromptMessage#contentType
    */
-  readonly contentType: string;
+  readonly contentType?: string;
 
   /**
    * Identifies the message group that the message belongs to. When a group is assigned to a message, Amazon Lex returns one message from each group in the response. Must be a number between 1 and 5 (inclusive).
@@ -3055,14 +3950,14 @@ export interface IntentSpecForProviderFollowUpPromptRejectionStatementMessage {
    *
    * @schema IntentSpecForProviderFollowUpPromptRejectionStatementMessage#content
    */
-  readonly content: string;
+  readonly content?: string;
 
   /**
    * The content type of the message string.
    *
    * @schema IntentSpecForProviderFollowUpPromptRejectionStatementMessage#contentType
    */
-  readonly contentType: string;
+  readonly contentType?: string;
 
   /**
    * Identifies the message group that the message belongs to. When a group is assigned to a message, Amazon Lex returns one message from each group in the response. Must be a number between 1 and 5 (inclusive).
@@ -3098,14 +3993,14 @@ export interface IntentSpecForProviderSlotValueElicitationPromptMessage {
    *
    * @schema IntentSpecForProviderSlotValueElicitationPromptMessage#content
    */
-  readonly content: string;
+  readonly content?: string;
 
   /**
    * The content type of the message string.
    *
    * @schema IntentSpecForProviderSlotValueElicitationPromptMessage#contentType
    */
-  readonly contentType: string;
+  readonly contentType?: string;
 
   /**
    * Identifies the message group that the message belongs to. When a group is assigned to a message, Amazon Lex returns one message from each group in the response. Must be a number between 1 and 5 (inclusive).
@@ -3121,6 +4016,135 @@ export interface IntentSpecForProviderSlotValueElicitationPromptMessage {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_IntentSpecForProviderSlotValueElicitationPromptMessage(obj: IntentSpecForProviderSlotValueElicitationPromptMessage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'content': obj.content,
+    'contentType': obj.contentType,
+    'groupNumber': obj.groupNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IntentSpecInitProviderFollowUpPromptPromptMessage
+ */
+export interface IntentSpecInitProviderFollowUpPromptPromptMessage {
+  /**
+   * The text of the message. Must be less than or equal to 1000 characters in length.
+   *
+   * @schema IntentSpecInitProviderFollowUpPromptPromptMessage#content
+   */
+  readonly content?: string;
+
+  /**
+   * The content type of the message string.
+   *
+   * @schema IntentSpecInitProviderFollowUpPromptPromptMessage#contentType
+   */
+  readonly contentType?: string;
+
+  /**
+   * Identifies the message group that the message belongs to. When a group is assigned to a message, Amazon Lex returns one message from each group in the response. Must be a number between 1 and 5 (inclusive).
+   *
+   * @schema IntentSpecInitProviderFollowUpPromptPromptMessage#groupNumber
+   */
+  readonly groupNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderFollowUpPromptPromptMessage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderFollowUpPromptPromptMessage(obj: IntentSpecInitProviderFollowUpPromptPromptMessage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'content': obj.content,
+    'contentType': obj.contentType,
+    'groupNumber': obj.groupNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IntentSpecInitProviderFollowUpPromptRejectionStatementMessage
+ */
+export interface IntentSpecInitProviderFollowUpPromptRejectionStatementMessage {
+  /**
+   * The text of the message. Must be less than or equal to 1000 characters in length.
+   *
+   * @schema IntentSpecInitProviderFollowUpPromptRejectionStatementMessage#content
+   */
+  readonly content?: string;
+
+  /**
+   * The content type of the message string.
+   *
+   * @schema IntentSpecInitProviderFollowUpPromptRejectionStatementMessage#contentType
+   */
+  readonly contentType?: string;
+
+  /**
+   * Identifies the message group that the message belongs to. When a group is assigned to a message, Amazon Lex returns one message from each group in the response. Must be a number between 1 and 5 (inclusive).
+   *
+   * @schema IntentSpecInitProviderFollowUpPromptRejectionStatementMessage#groupNumber
+   */
+  readonly groupNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderFollowUpPromptRejectionStatementMessage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderFollowUpPromptRejectionStatementMessage(obj: IntentSpecInitProviderFollowUpPromptRejectionStatementMessage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'content': obj.content,
+    'contentType': obj.contentType,
+    'groupNumber': obj.groupNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IntentSpecInitProviderSlotValueElicitationPromptMessage
+ */
+export interface IntentSpecInitProviderSlotValueElicitationPromptMessage {
+  /**
+   * The text of the message. Must be less than or equal to 1000 characters in length.
+   *
+   * @schema IntentSpecInitProviderSlotValueElicitationPromptMessage#content
+   */
+  readonly content?: string;
+
+  /**
+   * The content type of the message string.
+   *
+   * @schema IntentSpecInitProviderSlotValueElicitationPromptMessage#contentType
+   */
+  readonly contentType?: string;
+
+  /**
+   * Identifies the message group that the message belongs to. When a group is assigned to a message, Amazon Lex returns one message from each group in the response. Must be a number between 1 and 5 (inclusive).
+   *
+   * @schema IntentSpecInitProviderSlotValueElicitationPromptMessage#groupNumber
+   */
+  readonly groupNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'IntentSpecInitProviderSlotValueElicitationPromptMessage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IntentSpecInitProviderSlotValueElicitationPromptMessage(obj: IntentSpecInitProviderSlotValueElicitationPromptMessage | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'content': obj.content,
@@ -3253,7 +4277,7 @@ export function toJson_SlotTypeProps(obj: SlotTypeProps | undefined): Record<str
  */
 export interface SlotTypeSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SlotTypeSpec#deletionPolicy
    */
@@ -3265,11 +4289,18 @@ export interface SlotTypeSpec {
   readonly forProvider: SlotTypeSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema SlotTypeSpec#managementPolicy
+   * @schema SlotTypeSpec#initProvider
    */
-  readonly managementPolicy?: SlotTypeSpecManagementPolicy;
+  readonly initProvider?: SlotTypeSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema SlotTypeSpec#managementPolicies
+   */
+  readonly managementPolicies?: SlotTypeSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3277,13 +4308,6 @@ export interface SlotTypeSpec {
    * @schema SlotTypeSpec#providerConfigRef
    */
   readonly providerConfigRef?: SlotTypeSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema SlotTypeSpec#providerRef
-   */
-  readonly providerRef?: SlotTypeSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3310,9 +4334,9 @@ export function toJson_SlotTypeSpec(obj: SlotTypeSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SlotTypeSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_SlotTypeSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_SlotTypeSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_SlotTypeSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SlotTypeSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_SlotTypeSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3322,7 +4346,7 @@ export function toJson_SlotTypeSpec(obj: SlotTypeSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SlotTypeSpecDeletionPolicy
  */
@@ -3395,17 +4419,78 @@ export function toJson_SlotTypeSpecForProvider(obj: SlotTypeSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema SlotTypeSpecManagementPolicy
+ * @schema SlotTypeSpecInitProvider
  */
-export enum SlotTypeSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface SlotTypeSpecInitProvider {
+  /**
+   * Determines if a new slot type version is created when the initial resource is created and on each update. Defaults to false.
+   *
+   * @default false.
+   * @schema SlotTypeSpecInitProvider#createVersion
+   */
+  readonly createVersion?: boolean;
+
+  /**
+   * A description of the slot type. Must be less than or equal to 200 characters in length.
+   *
+   * @schema SlotTypeSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * A list of EnumerationValue objects that defines the values that the slot type can take. Each value can have a list of synonyms, which are additional values that help train the machine learning model about the values that it resolves for a slot. Attributes are documented under enumeration_value.
+   *
+   * @schema SlotTypeSpecInitProvider#enumerationValue
+   */
+  readonly enumerationValue?: SlotTypeSpecInitProviderEnumerationValue[];
+
+  /**
+   * Determines the slot resolution strategy that Amazon Lex uses to return slot type values. ORIGINAL_VALUE returns the value entered by the user if the user value is similar to the slot value. TOP_RESOLUTION returns the first value in the resolution list if there is a resolution list for the slot, otherwise null is returned. Defaults to ORIGINAL_VALUE.
+   *
+   * @default ORIGINAL_VALUE.
+   * @schema SlotTypeSpecInitProvider#valueSelectionStrategy
+   */
+  readonly valueSelectionStrategy?: string;
+
+}
+
+/**
+ * Converts an object of type 'SlotTypeSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SlotTypeSpecInitProvider(obj: SlotTypeSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'createVersion': obj.createVersion,
+    'description': obj.description,
+    'enumerationValue': obj.enumerationValue?.map(y => toJson_SlotTypeSpecInitProviderEnumerationValue(y)),
+    'valueSelectionStrategy': obj.valueSelectionStrategy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema SlotTypeSpecManagementPolicies
+ */
+export enum SlotTypeSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3439,43 +4524,6 @@ export function toJson_SlotTypeSpecProviderConfigRef(obj: SlotTypeSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_SlotTypeSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema SlotTypeSpecProviderRef
- */
-export interface SlotTypeSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema SlotTypeSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema SlotTypeSpecProviderRef#policy
-   */
-  readonly policy?: SlotTypeSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'SlotTypeSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SlotTypeSpecProviderRef(obj: SlotTypeSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_SlotTypeSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3580,7 +4628,7 @@ export interface SlotTypeSpecForProviderEnumerationValue {
    *
    * @schema SlotTypeSpecForProviderEnumerationValue#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -3589,6 +4637,41 @@ export interface SlotTypeSpecForProviderEnumerationValue {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SlotTypeSpecForProviderEnumerationValue(obj: SlotTypeSpecForProviderEnumerationValue | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'synonyms': obj.synonyms?.map(y => y),
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SlotTypeSpecInitProviderEnumerationValue
+ */
+export interface SlotTypeSpecInitProviderEnumerationValue {
+  /**
+   * Additional values related to the slot type value. Each item must be less than or equal to 140 characters in length.
+   *
+   * @schema SlotTypeSpecInitProviderEnumerationValue#synonyms
+   */
+  readonly synonyms?: string[];
+
+  /**
+   * The value of the slot type. Must be less than or equal to 140 characters in length.
+   *
+   * @schema SlotTypeSpecInitProviderEnumerationValue#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'SlotTypeSpecInitProviderEnumerationValue' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SlotTypeSpecInitProviderEnumerationValue(obj: SlotTypeSpecInitProviderEnumerationValue | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'synonyms': obj.synonyms?.map(y => y),
@@ -3626,43 +4709,6 @@ export interface SlotTypeSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SlotTypeSpecProviderConfigRefPolicy(obj: SlotTypeSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema SlotTypeSpecProviderRefPolicy
- */
-export interface SlotTypeSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema SlotTypeSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: SlotTypeSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema SlotTypeSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: SlotTypeSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'SlotTypeSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SlotTypeSpecProviderRefPolicy(obj: SlotTypeSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3773,30 +4819,6 @@ export enum SlotTypeSpecProviderConfigRefPolicyResolution {
  * @schema SlotTypeSpecProviderConfigRefPolicyResolve
  */
 export enum SlotTypeSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema SlotTypeSpecProviderRefPolicyResolution
- */
-export enum SlotTypeSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema SlotTypeSpecProviderRefPolicyResolve
- */
-export enum SlotTypeSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

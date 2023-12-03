@@ -99,7 +99,7 @@ export function toJson_VoiceConnectorProps(obj: VoiceConnectorProps | undefined)
  */
 export interface VoiceConnectorSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VoiceConnectorSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface VoiceConnectorSpec {
   readonly forProvider: VoiceConnectorSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema VoiceConnectorSpec#managementPolicy
+   * @schema VoiceConnectorSpec#initProvider
    */
-  readonly managementPolicy?: VoiceConnectorSpecManagementPolicy;
+  readonly initProvider?: VoiceConnectorSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema VoiceConnectorSpec#managementPolicies
+   */
+  readonly managementPolicies?: VoiceConnectorSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface VoiceConnectorSpec {
    * @schema VoiceConnectorSpec#providerConfigRef
    */
   readonly providerConfigRef?: VoiceConnectorSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema VoiceConnectorSpec#providerRef
-   */
-  readonly providerRef?: VoiceConnectorSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_VoiceConnectorSpec(obj: VoiceConnectorSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VoiceConnectorSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_VoiceConnectorSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_VoiceConnectorSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_VoiceConnectorSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VoiceConnectorSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_VoiceConnectorSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_VoiceConnectorSpec(obj: VoiceConnectorSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VoiceConnectorSpecDeletionPolicy
  */
@@ -223,17 +223,60 @@ export function toJson_VoiceConnectorSpecForProvider(obj: VoiceConnectorSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema VoiceConnectorSpecManagementPolicy
+ * @schema VoiceConnectorSpecInitProvider
  */
-export enum VoiceConnectorSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface VoiceConnectorSpecInitProvider {
+  /**
+   * The AWS Region in which the Amazon Chime Voice Connector is created. Default value: us-east-1
+   *
+   * @schema VoiceConnectorSpecInitProvider#awsRegion
+   */
+  readonly awsRegion?: string;
+
+  /**
+   * When enabled, requires encryption for the Amazon Chime Voice Connector.
+   *
+   * @schema VoiceConnectorSpecInitProvider#requireEncryption
+   */
+  readonly requireEncryption?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'VoiceConnectorSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VoiceConnectorSpecInitProvider(obj: VoiceConnectorSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'awsRegion': obj.awsRegion,
+    'requireEncryption': obj.requireEncryption,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema VoiceConnectorSpecManagementPolicies
+ */
+export enum VoiceConnectorSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -267,43 +310,6 @@ export function toJson_VoiceConnectorSpecProviderConfigRef(obj: VoiceConnectorSp
   const result = {
     'name': obj.name,
     'policy': toJson_VoiceConnectorSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema VoiceConnectorSpecProviderRef
- */
-export interface VoiceConnectorSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema VoiceConnectorSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema VoiceConnectorSpecProviderRef#policy
-   */
-  readonly policy?: VoiceConnectorSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'VoiceConnectorSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VoiceConnectorSpecProviderRef(obj: VoiceConnectorSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_VoiceConnectorSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -430,43 +436,6 @@ export function toJson_VoiceConnectorSpecProviderConfigRefPolicy(obj: VoiceConne
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema VoiceConnectorSpecProviderRefPolicy
- */
-export interface VoiceConnectorSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema VoiceConnectorSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: VoiceConnectorSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema VoiceConnectorSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: VoiceConnectorSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'VoiceConnectorSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VoiceConnectorSpecProviderRefPolicy(obj: VoiceConnectorSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema VoiceConnectorSpecPublishConnectionDetailsToConfigRef
@@ -566,30 +535,6 @@ export enum VoiceConnectorSpecProviderConfigRefPolicyResolution {
  * @schema VoiceConnectorSpecProviderConfigRefPolicyResolve
  */
 export enum VoiceConnectorSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema VoiceConnectorSpecProviderRefPolicyResolution
- */
-export enum VoiceConnectorSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema VoiceConnectorSpecProviderRefPolicyResolve
- */
-export enum VoiceConnectorSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -754,7 +699,7 @@ export function toJson_VoiceConnectorGroupProps(obj: VoiceConnectorGroupProps | 
  */
 export interface VoiceConnectorGroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VoiceConnectorGroupSpec#deletionPolicy
    */
@@ -766,11 +711,18 @@ export interface VoiceConnectorGroupSpec {
   readonly forProvider: VoiceConnectorGroupSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema VoiceConnectorGroupSpec#managementPolicy
+   * @schema VoiceConnectorGroupSpec#initProvider
    */
-  readonly managementPolicy?: VoiceConnectorGroupSpecManagementPolicy;
+  readonly initProvider?: VoiceConnectorGroupSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema VoiceConnectorGroupSpec#managementPolicies
+   */
+  readonly managementPolicies?: VoiceConnectorGroupSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -778,13 +730,6 @@ export interface VoiceConnectorGroupSpec {
    * @schema VoiceConnectorGroupSpec#providerConfigRef
    */
   readonly providerConfigRef?: VoiceConnectorGroupSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema VoiceConnectorGroupSpec#providerRef
-   */
-  readonly providerRef?: VoiceConnectorGroupSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -811,9 +756,9 @@ export function toJson_VoiceConnectorGroupSpec(obj: VoiceConnectorGroupSpec | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VoiceConnectorGroupSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_VoiceConnectorGroupSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_VoiceConnectorGroupSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_VoiceConnectorGroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VoiceConnectorGroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_VoiceConnectorGroupSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -823,7 +768,7 @@ export function toJson_VoiceConnectorGroupSpec(obj: VoiceConnectorGroupSpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VoiceConnectorGroupSpecDeletionPolicy
  */
@@ -870,17 +815,52 @@ export function toJson_VoiceConnectorGroupSpecForProvider(obj: VoiceConnectorGro
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema VoiceConnectorGroupSpecManagementPolicy
+ * @schema VoiceConnectorGroupSpecInitProvider
  */
-export enum VoiceConnectorGroupSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface VoiceConnectorGroupSpecInitProvider {
+  /**
+   * The Amazon Chime Voice Connectors to route inbound calls to.
+   *
+   * @schema VoiceConnectorGroupSpecInitProvider#connector
+   */
+  readonly connector?: VoiceConnectorGroupSpecInitProviderConnector[];
+
+}
+
+/**
+ * Converts an object of type 'VoiceConnectorGroupSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VoiceConnectorGroupSpecInitProvider(obj: VoiceConnectorGroupSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'connector': obj.connector?.map(y => toJson_VoiceConnectorGroupSpecInitProviderConnector(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema VoiceConnectorGroupSpecManagementPolicies
+ */
+export enum VoiceConnectorGroupSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -914,43 +894,6 @@ export function toJson_VoiceConnectorGroupSpecProviderConfigRef(obj: VoiceConnec
   const result = {
     'name': obj.name,
     'policy': toJson_VoiceConnectorGroupSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema VoiceConnectorGroupSpecProviderRef
- */
-export interface VoiceConnectorGroupSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema VoiceConnectorGroupSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema VoiceConnectorGroupSpecProviderRef#policy
-   */
-  readonly policy?: VoiceConnectorGroupSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'VoiceConnectorGroupSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VoiceConnectorGroupSpecProviderRef(obj: VoiceConnectorGroupSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_VoiceConnectorGroupSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1048,7 +991,7 @@ export interface VoiceConnectorGroupSpecForProviderConnector {
    *
    * @schema VoiceConnectorGroupSpecForProviderConnector#priority
    */
-  readonly priority: number;
+  readonly priority?: number;
 
   /**
    * The Amazon Chime Voice Connector ID.
@@ -1091,6 +1034,33 @@ export function toJson_VoiceConnectorGroupSpecForProviderConnector(obj: VoiceCon
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema VoiceConnectorGroupSpecInitProviderConnector
+ */
+export interface VoiceConnectorGroupSpecInitProviderConnector {
+  /**
+   * The priority associated with the Amazon Chime Voice Connector, with 1 being the highest priority. Higher priority Amazon Chime Voice Connectors are attempted first.
+   *
+   * @schema VoiceConnectorGroupSpecInitProviderConnector#priority
+   */
+  readonly priority?: number;
+
+}
+
+/**
+ * Converts an object of type 'VoiceConnectorGroupSpecInitProviderConnector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VoiceConnectorGroupSpecInitProviderConnector(obj: VoiceConnectorGroupSpecInitProviderConnector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'priority': obj.priority,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema VoiceConnectorGroupSpecProviderConfigRefPolicy
@@ -1117,43 +1087,6 @@ export interface VoiceConnectorGroupSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_VoiceConnectorGroupSpecProviderConfigRefPolicy(obj: VoiceConnectorGroupSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema VoiceConnectorGroupSpecProviderRefPolicy
- */
-export interface VoiceConnectorGroupSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema VoiceConnectorGroupSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: VoiceConnectorGroupSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema VoiceConnectorGroupSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: VoiceConnectorGroupSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'VoiceConnectorGroupSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VoiceConnectorGroupSpecProviderRefPolicy(obj: VoiceConnectorGroupSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1346,30 +1279,6 @@ export enum VoiceConnectorGroupSpecProviderConfigRefPolicyResolution {
  * @schema VoiceConnectorGroupSpecProviderConfigRefPolicyResolve
  */
 export enum VoiceConnectorGroupSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema VoiceConnectorGroupSpecProviderRefPolicyResolution
- */
-export enum VoiceConnectorGroupSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema VoiceConnectorGroupSpecProviderRefPolicyResolve
- */
-export enum VoiceConnectorGroupSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1656,7 +1565,7 @@ export function toJson_VoiceConnectorLoggingProps(obj: VoiceConnectorLoggingProp
  */
 export interface VoiceConnectorLoggingSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VoiceConnectorLoggingSpec#deletionPolicy
    */
@@ -1668,11 +1577,18 @@ export interface VoiceConnectorLoggingSpec {
   readonly forProvider: VoiceConnectorLoggingSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema VoiceConnectorLoggingSpec#managementPolicy
+   * @schema VoiceConnectorLoggingSpec#initProvider
    */
-  readonly managementPolicy?: VoiceConnectorLoggingSpecManagementPolicy;
+  readonly initProvider?: VoiceConnectorLoggingSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema VoiceConnectorLoggingSpec#managementPolicies
+   */
+  readonly managementPolicies?: VoiceConnectorLoggingSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1680,13 +1596,6 @@ export interface VoiceConnectorLoggingSpec {
    * @schema VoiceConnectorLoggingSpec#providerConfigRef
    */
   readonly providerConfigRef?: VoiceConnectorLoggingSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema VoiceConnectorLoggingSpec#providerRef
-   */
-  readonly providerRef?: VoiceConnectorLoggingSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1713,9 +1622,9 @@ export function toJson_VoiceConnectorLoggingSpec(obj: VoiceConnectorLoggingSpec 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VoiceConnectorLoggingSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_VoiceConnectorLoggingSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_VoiceConnectorLoggingSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_VoiceConnectorLoggingSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VoiceConnectorLoggingSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_VoiceConnectorLoggingSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1725,7 +1634,7 @@ export function toJson_VoiceConnectorLoggingSpec(obj: VoiceConnectorLoggingSpec 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VoiceConnectorLoggingSpecDeletionPolicy
  */
@@ -1804,17 +1713,60 @@ export function toJson_VoiceConnectorLoggingSpecForProvider(obj: VoiceConnectorL
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema VoiceConnectorLoggingSpecManagementPolicy
+ * @schema VoiceConnectorLoggingSpecInitProvider
  */
-export enum VoiceConnectorLoggingSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface VoiceConnectorLoggingSpecInitProvider {
+  /**
+   * When true, enables logging of detailed media metrics for Voice Connectors to Amazon CloudWatch logs.
+   *
+   * @schema VoiceConnectorLoggingSpecInitProvider#enableMediaMetricLogs
+   */
+  readonly enableMediaMetricLogs?: boolean;
+
+  /**
+   * When true, enables SIP message logs for sending to Amazon CloudWatch Logs.
+   *
+   * @schema VoiceConnectorLoggingSpecInitProvider#enableSipLogs
+   */
+  readonly enableSipLogs?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'VoiceConnectorLoggingSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VoiceConnectorLoggingSpecInitProvider(obj: VoiceConnectorLoggingSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableMediaMetricLogs': obj.enableMediaMetricLogs,
+    'enableSipLogs': obj.enableSipLogs,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema VoiceConnectorLoggingSpecManagementPolicies
+ */
+export enum VoiceConnectorLoggingSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1848,43 +1800,6 @@ export function toJson_VoiceConnectorLoggingSpecProviderConfigRef(obj: VoiceConn
   const result = {
     'name': obj.name,
     'policy': toJson_VoiceConnectorLoggingSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema VoiceConnectorLoggingSpecProviderRef
- */
-export interface VoiceConnectorLoggingSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema VoiceConnectorLoggingSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema VoiceConnectorLoggingSpecProviderRef#policy
-   */
-  readonly policy?: VoiceConnectorLoggingSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'VoiceConnectorLoggingSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VoiceConnectorLoggingSpecProviderRef(obj: VoiceConnectorLoggingSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_VoiceConnectorLoggingSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2093,43 +2008,6 @@ export function toJson_VoiceConnectorLoggingSpecProviderConfigRefPolicy(obj: Voi
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema VoiceConnectorLoggingSpecProviderRefPolicy
- */
-export interface VoiceConnectorLoggingSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema VoiceConnectorLoggingSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: VoiceConnectorLoggingSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema VoiceConnectorLoggingSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: VoiceConnectorLoggingSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'VoiceConnectorLoggingSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VoiceConnectorLoggingSpecProviderRefPolicy(obj: VoiceConnectorLoggingSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema VoiceConnectorLoggingSpecPublishConnectionDetailsToConfigRef
@@ -2303,30 +2181,6 @@ export enum VoiceConnectorLoggingSpecProviderConfigRefPolicyResolution {
  * @schema VoiceConnectorLoggingSpecProviderConfigRefPolicyResolve
  */
 export enum VoiceConnectorLoggingSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema VoiceConnectorLoggingSpecProviderRefPolicyResolution
- */
-export enum VoiceConnectorLoggingSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema VoiceConnectorLoggingSpecProviderRefPolicyResolve
- */
-export enum VoiceConnectorLoggingSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2539,7 +2393,7 @@ export function toJson_VoiceConnectorOriginationProps(obj: VoiceConnectorOrigina
  */
 export interface VoiceConnectorOriginationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VoiceConnectorOriginationSpec#deletionPolicy
    */
@@ -2551,11 +2405,18 @@ export interface VoiceConnectorOriginationSpec {
   readonly forProvider: VoiceConnectorOriginationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema VoiceConnectorOriginationSpec#managementPolicy
+   * @schema VoiceConnectorOriginationSpec#initProvider
    */
-  readonly managementPolicy?: VoiceConnectorOriginationSpecManagementPolicy;
+  readonly initProvider?: VoiceConnectorOriginationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema VoiceConnectorOriginationSpec#managementPolicies
+   */
+  readonly managementPolicies?: VoiceConnectorOriginationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2563,13 +2424,6 @@ export interface VoiceConnectorOriginationSpec {
    * @schema VoiceConnectorOriginationSpec#providerConfigRef
    */
   readonly providerConfigRef?: VoiceConnectorOriginationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema VoiceConnectorOriginationSpec#providerRef
-   */
-  readonly providerRef?: VoiceConnectorOriginationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2596,9 +2450,9 @@ export function toJson_VoiceConnectorOriginationSpec(obj: VoiceConnectorOriginat
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VoiceConnectorOriginationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_VoiceConnectorOriginationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_VoiceConnectorOriginationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_VoiceConnectorOriginationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VoiceConnectorOriginationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_VoiceConnectorOriginationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2608,7 +2462,7 @@ export function toJson_VoiceConnectorOriginationSpec(obj: VoiceConnectorOriginat
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VoiceConnectorOriginationSpecDeletionPolicy
  */
@@ -2687,17 +2541,60 @@ export function toJson_VoiceConnectorOriginationSpecForProvider(obj: VoiceConnec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema VoiceConnectorOriginationSpecManagementPolicy
+ * @schema VoiceConnectorOriginationSpecInitProvider
  */
-export enum VoiceConnectorOriginationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface VoiceConnectorOriginationSpecInitProvider {
+  /**
+   * When origination settings are disabled, inbound calls are not enabled for your Amazon Chime Voice Connector.
+   *
+   * @schema VoiceConnectorOriginationSpecInitProvider#disabled
+   */
+  readonly disabled?: boolean;
+
+  /**
+   * Set of call distribution properties defined for your SIP hosts. See route below for more details. Minimum of 1. Maximum of 20.
+   *
+   * @schema VoiceConnectorOriginationSpecInitProvider#route
+   */
+  readonly route?: VoiceConnectorOriginationSpecInitProviderRoute[];
+
+}
+
+/**
+ * Converts an object of type 'VoiceConnectorOriginationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VoiceConnectorOriginationSpecInitProvider(obj: VoiceConnectorOriginationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'disabled': obj.disabled,
+    'route': obj.route?.map(y => toJson_VoiceConnectorOriginationSpecInitProviderRoute(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema VoiceConnectorOriginationSpecManagementPolicies
+ */
+export enum VoiceConnectorOriginationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2731,43 +2628,6 @@ export function toJson_VoiceConnectorOriginationSpecProviderConfigRef(obj: Voice
   const result = {
     'name': obj.name,
     'policy': toJson_VoiceConnectorOriginationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema VoiceConnectorOriginationSpecProviderRef
- */
-export interface VoiceConnectorOriginationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema VoiceConnectorOriginationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema VoiceConnectorOriginationSpecProviderRef#policy
-   */
-  readonly policy?: VoiceConnectorOriginationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'VoiceConnectorOriginationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VoiceConnectorOriginationSpecProviderRef(obj: VoiceConnectorOriginationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_VoiceConnectorOriginationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2865,7 +2725,7 @@ export interface VoiceConnectorOriginationSpecForProviderRoute {
    *
    * @schema VoiceConnectorOriginationSpecForProviderRoute#host
    */
-  readonly host: string;
+  readonly host?: string;
 
   /**
    * The designated origination route port. Defaults to 5060.
@@ -2880,21 +2740,21 @@ export interface VoiceConnectorOriginationSpecForProviderRoute {
    *
    * @schema VoiceConnectorOriginationSpecForProviderRoute#priority
    */
-  readonly priority: number;
+  readonly priority?: number;
 
   /**
    * The protocol to use for the origination route. Encryption-enabled Amazon Chime Voice Connectors use TCP protocol by default.
    *
    * @schema VoiceConnectorOriginationSpecForProviderRoute#protocol
    */
-  readonly protocol: string;
+  readonly protocol?: string;
 
   /**
    * The weight associated with the host. If hosts are equal in priority, calls are redistributed among them based on their relative weight.
    *
    * @schema VoiceConnectorOriginationSpecForProviderRoute#weight
    */
-  readonly weight: number;
+  readonly weight?: number;
 
 }
 
@@ -2999,6 +2859,66 @@ export function toJson_VoiceConnectorOriginationSpecForProviderVoiceConnectorIdS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema VoiceConnectorOriginationSpecInitProviderRoute
+ */
+export interface VoiceConnectorOriginationSpecInitProviderRoute {
+  /**
+   * The FQDN or IP address to contact for origination traffic.
+   *
+   * @schema VoiceConnectorOriginationSpecInitProviderRoute#host
+   */
+  readonly host?: string;
+
+  /**
+   * The designated origination route port. Defaults to 5060.
+   *
+   * @default 5060.
+   * @schema VoiceConnectorOriginationSpecInitProviderRoute#port
+   */
+  readonly port?: number;
+
+  /**
+   * The priority associated with the host, with 1 being the highest priority. Higher priority hosts are attempted first.
+   *
+   * @schema VoiceConnectorOriginationSpecInitProviderRoute#priority
+   */
+  readonly priority?: number;
+
+  /**
+   * The protocol to use for the origination route. Encryption-enabled Amazon Chime Voice Connectors use TCP protocol by default.
+   *
+   * @schema VoiceConnectorOriginationSpecInitProviderRoute#protocol
+   */
+  readonly protocol?: string;
+
+  /**
+   * The weight associated with the host. If hosts are equal in priority, calls are redistributed among them based on their relative weight.
+   *
+   * @schema VoiceConnectorOriginationSpecInitProviderRoute#weight
+   */
+  readonly weight?: number;
+
+}
+
+/**
+ * Converts an object of type 'VoiceConnectorOriginationSpecInitProviderRoute' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VoiceConnectorOriginationSpecInitProviderRoute(obj: VoiceConnectorOriginationSpecInitProviderRoute | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'host': obj.host,
+    'port': obj.port,
+    'priority': obj.priority,
+    'protocol': obj.protocol,
+    'weight': obj.weight,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema VoiceConnectorOriginationSpecProviderConfigRefPolicy
@@ -3025,43 +2945,6 @@ export interface VoiceConnectorOriginationSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_VoiceConnectorOriginationSpecProviderConfigRefPolicy(obj: VoiceConnectorOriginationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema VoiceConnectorOriginationSpecProviderRefPolicy
- */
-export interface VoiceConnectorOriginationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema VoiceConnectorOriginationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: VoiceConnectorOriginationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema VoiceConnectorOriginationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: VoiceConnectorOriginationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'VoiceConnectorOriginationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VoiceConnectorOriginationSpecProviderRefPolicy(obj: VoiceConnectorOriginationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3246,30 +3129,6 @@ export enum VoiceConnectorOriginationSpecProviderConfigRefPolicyResolution {
  * @schema VoiceConnectorOriginationSpecProviderConfigRefPolicyResolve
  */
 export enum VoiceConnectorOriginationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema VoiceConnectorOriginationSpecProviderRefPolicyResolution
- */
-export enum VoiceConnectorOriginationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema VoiceConnectorOriginationSpecProviderRefPolicyResolve
- */
-export enum VoiceConnectorOriginationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3482,7 +3341,7 @@ export function toJson_VoiceConnectorStreamingProps(obj: VoiceConnectorStreaming
  */
 export interface VoiceConnectorStreamingSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VoiceConnectorStreamingSpec#deletionPolicy
    */
@@ -3494,11 +3353,18 @@ export interface VoiceConnectorStreamingSpec {
   readonly forProvider: VoiceConnectorStreamingSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema VoiceConnectorStreamingSpec#managementPolicy
+   * @schema VoiceConnectorStreamingSpec#initProvider
    */
-  readonly managementPolicy?: VoiceConnectorStreamingSpecManagementPolicy;
+  readonly initProvider?: VoiceConnectorStreamingSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema VoiceConnectorStreamingSpec#managementPolicies
+   */
+  readonly managementPolicies?: VoiceConnectorStreamingSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3506,13 +3372,6 @@ export interface VoiceConnectorStreamingSpec {
    * @schema VoiceConnectorStreamingSpec#providerConfigRef
    */
   readonly providerConfigRef?: VoiceConnectorStreamingSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema VoiceConnectorStreamingSpec#providerRef
-   */
-  readonly providerRef?: VoiceConnectorStreamingSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3539,9 +3398,9 @@ export function toJson_VoiceConnectorStreamingSpec(obj: VoiceConnectorStreamingS
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VoiceConnectorStreamingSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_VoiceConnectorStreamingSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_VoiceConnectorStreamingSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_VoiceConnectorStreamingSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VoiceConnectorStreamingSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_VoiceConnectorStreamingSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3551,7 +3410,7 @@ export function toJson_VoiceConnectorStreamingSpec(obj: VoiceConnectorStreamingS
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VoiceConnectorStreamingSpecDeletionPolicy
  */
@@ -3646,17 +3505,76 @@ export function toJson_VoiceConnectorStreamingSpecForProvider(obj: VoiceConnecto
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema VoiceConnectorStreamingSpecManagementPolicy
+ * @schema VoiceConnectorStreamingSpecInitProvider
  */
-export enum VoiceConnectorStreamingSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface VoiceConnectorStreamingSpecInitProvider {
+  /**
+   * The retention period, in hours, for the Amazon Kinesis data.
+   *
+   * @schema VoiceConnectorStreamingSpecInitProvider#dataRetention
+   */
+  readonly dataRetention?: number;
+
+  /**
+   * When true, media streaming to Amazon Kinesis is turned off. Default: false
+   *
+   * @schema VoiceConnectorStreamingSpecInitProvider#disabled
+   */
+  readonly disabled?: boolean;
+
+  /**
+   * The media insights configuration. See media_insights_configuration.
+   *
+   * @schema VoiceConnectorStreamingSpecInitProvider#mediaInsightsConfiguration
+   */
+  readonly mediaInsightsConfiguration?: VoiceConnectorStreamingSpecInitProviderMediaInsightsConfiguration[];
+
+  /**
+   * The streaming notification targets. Valid Values: EventBridge | SNS | SQS
+   *
+   * @schema VoiceConnectorStreamingSpecInitProvider#streamingNotificationTargets
+   */
+  readonly streamingNotificationTargets?: string[];
+
+}
+
+/**
+ * Converts an object of type 'VoiceConnectorStreamingSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VoiceConnectorStreamingSpecInitProvider(obj: VoiceConnectorStreamingSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dataRetention': obj.dataRetention,
+    'disabled': obj.disabled,
+    'mediaInsightsConfiguration': obj.mediaInsightsConfiguration?.map(y => toJson_VoiceConnectorStreamingSpecInitProviderMediaInsightsConfiguration(y)),
+    'streamingNotificationTargets': obj.streamingNotificationTargets?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema VoiceConnectorStreamingSpecManagementPolicies
+ */
+export enum VoiceConnectorStreamingSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3690,43 +3608,6 @@ export function toJson_VoiceConnectorStreamingSpecProviderConfigRef(obj: VoiceCo
   const result = {
     'name': obj.name,
     'policy': toJson_VoiceConnectorStreamingSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema VoiceConnectorStreamingSpecProviderRef
- */
-export interface VoiceConnectorStreamingSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema VoiceConnectorStreamingSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema VoiceConnectorStreamingSpecProviderRef#policy
-   */
-  readonly policy?: VoiceConnectorStreamingSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'VoiceConnectorStreamingSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VoiceConnectorStreamingSpecProviderRef(obj: VoiceConnectorStreamingSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_VoiceConnectorStreamingSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3934,6 +3815,42 @@ export function toJson_VoiceConnectorStreamingSpecForProviderVoiceConnectorIdSel
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema VoiceConnectorStreamingSpecInitProviderMediaInsightsConfiguration
+ */
+export interface VoiceConnectorStreamingSpecInitProviderMediaInsightsConfiguration {
+  /**
+   * The media insights configuration that will be invoked by the Voice Connector.
+   *
+   * @schema VoiceConnectorStreamingSpecInitProviderMediaInsightsConfiguration#configurationArn
+   */
+  readonly configurationArn?: string;
+
+  /**
+   * When true, the media insights configuration is not enabled. Defaults to false.
+   *
+   * @default false.
+   * @schema VoiceConnectorStreamingSpecInitProviderMediaInsightsConfiguration#disabled
+   */
+  readonly disabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'VoiceConnectorStreamingSpecInitProviderMediaInsightsConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VoiceConnectorStreamingSpecInitProviderMediaInsightsConfiguration(obj: VoiceConnectorStreamingSpecInitProviderMediaInsightsConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configurationArn': obj.configurationArn,
+    'disabled': obj.disabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema VoiceConnectorStreamingSpecProviderConfigRefPolicy
@@ -3960,43 +3877,6 @@ export interface VoiceConnectorStreamingSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_VoiceConnectorStreamingSpecProviderConfigRefPolicy(obj: VoiceConnectorStreamingSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema VoiceConnectorStreamingSpecProviderRefPolicy
- */
-export interface VoiceConnectorStreamingSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema VoiceConnectorStreamingSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: VoiceConnectorStreamingSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema VoiceConnectorStreamingSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: VoiceConnectorStreamingSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'VoiceConnectorStreamingSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VoiceConnectorStreamingSpecProviderRefPolicy(obj: VoiceConnectorStreamingSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -4181,30 +4061,6 @@ export enum VoiceConnectorStreamingSpecProviderConfigRefPolicyResolution {
  * @schema VoiceConnectorStreamingSpecProviderConfigRefPolicyResolve
  */
 export enum VoiceConnectorStreamingSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema VoiceConnectorStreamingSpecProviderRefPolicyResolution
- */
-export enum VoiceConnectorStreamingSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema VoiceConnectorStreamingSpecProviderRefPolicyResolve
- */
-export enum VoiceConnectorStreamingSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -4417,7 +4273,7 @@ export function toJson_VoiceConnectorTerminationProps(obj: VoiceConnectorTermina
  */
 export interface VoiceConnectorTerminationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VoiceConnectorTerminationSpec#deletionPolicy
    */
@@ -4429,11 +4285,18 @@ export interface VoiceConnectorTerminationSpec {
   readonly forProvider: VoiceConnectorTerminationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema VoiceConnectorTerminationSpec#managementPolicy
+   * @schema VoiceConnectorTerminationSpec#initProvider
    */
-  readonly managementPolicy?: VoiceConnectorTerminationSpecManagementPolicy;
+  readonly initProvider?: VoiceConnectorTerminationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema VoiceConnectorTerminationSpec#managementPolicies
+   */
+  readonly managementPolicies?: VoiceConnectorTerminationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4441,13 +4304,6 @@ export interface VoiceConnectorTerminationSpec {
    * @schema VoiceConnectorTerminationSpec#providerConfigRef
    */
   readonly providerConfigRef?: VoiceConnectorTerminationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema VoiceConnectorTerminationSpec#providerRef
-   */
-  readonly providerRef?: VoiceConnectorTerminationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -4474,9 +4330,9 @@ export function toJson_VoiceConnectorTerminationSpec(obj: VoiceConnectorTerminat
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VoiceConnectorTerminationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_VoiceConnectorTerminationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_VoiceConnectorTerminationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_VoiceConnectorTerminationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VoiceConnectorTerminationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_VoiceConnectorTerminationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -4486,7 +4342,7 @@ export function toJson_VoiceConnectorTerminationSpec(obj: VoiceConnectorTerminat
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VoiceConnectorTerminationSpecDeletionPolicy
  */
@@ -4589,17 +4445,84 @@ export function toJson_VoiceConnectorTerminationSpecForProvider(obj: VoiceConnec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema VoiceConnectorTerminationSpecManagementPolicy
+ * @schema VoiceConnectorTerminationSpecInitProvider
  */
-export enum VoiceConnectorTerminationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface VoiceConnectorTerminationSpecInitProvider {
+  /**
+   * The countries to which calls are allowed, in ISO 3166-1 alpha-2 format.
+   *
+   * @schema VoiceConnectorTerminationSpecInitProvider#callingRegions
+   */
+  readonly callingRegions?: string[];
+
+  /**
+   * The IP addresses allowed to make calls, in CIDR format.
+   *
+   * @schema VoiceConnectorTerminationSpecInitProvider#cidrAllowList
+   */
+  readonly cidrAllowList?: string[];
+
+  /**
+   * The limit on calls per second. Max value based on account service quota. Default value of 1.
+   *
+   * @schema VoiceConnectorTerminationSpecInitProvider#cpsLimit
+   */
+  readonly cpsLimit?: number;
+
+  /**
+   * The default caller ID phone number.
+   *
+   * @schema VoiceConnectorTerminationSpecInitProvider#defaultPhoneNumber
+   */
+  readonly defaultPhoneNumber?: string;
+
+  /**
+   * When termination settings are disabled, outbound calls can not be made.
+   *
+   * @schema VoiceConnectorTerminationSpecInitProvider#disabled
+   */
+  readonly disabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'VoiceConnectorTerminationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VoiceConnectorTerminationSpecInitProvider(obj: VoiceConnectorTerminationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'callingRegions': obj.callingRegions?.map(y => y),
+    'cidrAllowList': obj.cidrAllowList?.map(y => y),
+    'cpsLimit': obj.cpsLimit,
+    'defaultPhoneNumber': obj.defaultPhoneNumber,
+    'disabled': obj.disabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema VoiceConnectorTerminationSpecManagementPolicies
+ */
+export enum VoiceConnectorTerminationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4633,43 +4556,6 @@ export function toJson_VoiceConnectorTerminationSpecProviderConfigRef(obj: Voice
   const result = {
     'name': obj.name,
     'policy': toJson_VoiceConnectorTerminationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema VoiceConnectorTerminationSpecProviderRef
- */
-export interface VoiceConnectorTerminationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema VoiceConnectorTerminationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema VoiceConnectorTerminationSpecProviderRef#policy
-   */
-  readonly policy?: VoiceConnectorTerminationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'VoiceConnectorTerminationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VoiceConnectorTerminationSpecProviderRef(obj: VoiceConnectorTerminationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_VoiceConnectorTerminationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4878,43 +4764,6 @@ export function toJson_VoiceConnectorTerminationSpecProviderConfigRefPolicy(obj:
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema VoiceConnectorTerminationSpecProviderRefPolicy
- */
-export interface VoiceConnectorTerminationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema VoiceConnectorTerminationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: VoiceConnectorTerminationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema VoiceConnectorTerminationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: VoiceConnectorTerminationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'VoiceConnectorTerminationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VoiceConnectorTerminationSpecProviderRefPolicy(obj: VoiceConnectorTerminationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema VoiceConnectorTerminationSpecPublishConnectionDetailsToConfigRef
@@ -5088,30 +4937,6 @@ export enum VoiceConnectorTerminationSpecProviderConfigRefPolicyResolution {
  * @schema VoiceConnectorTerminationSpecProviderConfigRefPolicyResolve
  */
 export enum VoiceConnectorTerminationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema VoiceConnectorTerminationSpecProviderRefPolicyResolution
- */
-export enum VoiceConnectorTerminationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema VoiceConnectorTerminationSpecProviderRefPolicyResolve
- */
-export enum VoiceConnectorTerminationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -5324,7 +5149,7 @@ export function toJson_VoiceConnectorTerminationCredentialsProps(obj: VoiceConne
  */
 export interface VoiceConnectorTerminationCredentialsSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VoiceConnectorTerminationCredentialsSpec#deletionPolicy
    */
@@ -5336,11 +5161,18 @@ export interface VoiceConnectorTerminationCredentialsSpec {
   readonly forProvider: VoiceConnectorTerminationCredentialsSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema VoiceConnectorTerminationCredentialsSpec#managementPolicy
+   * @schema VoiceConnectorTerminationCredentialsSpec#initProvider
    */
-  readonly managementPolicy?: VoiceConnectorTerminationCredentialsSpecManagementPolicy;
+  readonly initProvider?: VoiceConnectorTerminationCredentialsSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema VoiceConnectorTerminationCredentialsSpec#managementPolicies
+   */
+  readonly managementPolicies?: VoiceConnectorTerminationCredentialsSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5348,13 +5180,6 @@ export interface VoiceConnectorTerminationCredentialsSpec {
    * @schema VoiceConnectorTerminationCredentialsSpec#providerConfigRef
    */
   readonly providerConfigRef?: VoiceConnectorTerminationCredentialsSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema VoiceConnectorTerminationCredentialsSpec#providerRef
-   */
-  readonly providerRef?: VoiceConnectorTerminationCredentialsSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -5381,9 +5206,9 @@ export function toJson_VoiceConnectorTerminationCredentialsSpec(obj: VoiceConnec
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VoiceConnectorTerminationCredentialsSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_VoiceConnectorTerminationCredentialsSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_VoiceConnectorTerminationCredentialsSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_VoiceConnectorTerminationCredentialsSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VoiceConnectorTerminationCredentialsSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_VoiceConnectorTerminationCredentialsSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -5393,7 +5218,7 @@ export function toJson_VoiceConnectorTerminationCredentialsSpec(obj: VoiceConnec
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VoiceConnectorTerminationCredentialsSpecDeletionPolicy
  */
@@ -5464,17 +5289,52 @@ export function toJson_VoiceConnectorTerminationCredentialsSpecForProvider(obj: 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema VoiceConnectorTerminationCredentialsSpecManagementPolicy
+ * @schema VoiceConnectorTerminationCredentialsSpecInitProvider
  */
-export enum VoiceConnectorTerminationCredentialsSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface VoiceConnectorTerminationCredentialsSpecInitProvider {
+  /**
+   * List of termination SIP credentials.
+   *
+   * @schema VoiceConnectorTerminationCredentialsSpecInitProvider#credentials
+   */
+  readonly credentials?: VoiceConnectorTerminationCredentialsSpecInitProviderCredentials[];
+
+}
+
+/**
+ * Converts an object of type 'VoiceConnectorTerminationCredentialsSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VoiceConnectorTerminationCredentialsSpecInitProvider(obj: VoiceConnectorTerminationCredentialsSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'credentials': obj.credentials?.map(y => toJson_VoiceConnectorTerminationCredentialsSpecInitProviderCredentials(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema VoiceConnectorTerminationCredentialsSpecManagementPolicies
+ */
+export enum VoiceConnectorTerminationCredentialsSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -5508,43 +5368,6 @@ export function toJson_VoiceConnectorTerminationCredentialsSpecProviderConfigRef
   const result = {
     'name': obj.name,
     'policy': toJson_VoiceConnectorTerminationCredentialsSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema VoiceConnectorTerminationCredentialsSpecProviderRef
- */
-export interface VoiceConnectorTerminationCredentialsSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema VoiceConnectorTerminationCredentialsSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema VoiceConnectorTerminationCredentialsSpecProviderRef#policy
-   */
-  readonly policy?: VoiceConnectorTerminationCredentialsSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'VoiceConnectorTerminationCredentialsSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VoiceConnectorTerminationCredentialsSpecProviderRef(obj: VoiceConnectorTerminationCredentialsSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_VoiceConnectorTerminationCredentialsSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5649,7 +5472,7 @@ export interface VoiceConnectorTerminationCredentialsSpecForProviderCredentials 
    *
    * @schema VoiceConnectorTerminationCredentialsSpecForProviderCredentials#username
    */
-  readonly username: string;
+  readonly username?: string;
 
 }
 
@@ -5751,6 +5574,33 @@ export function toJson_VoiceConnectorTerminationCredentialsSpecForProviderVoiceC
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema VoiceConnectorTerminationCredentialsSpecInitProviderCredentials
+ */
+export interface VoiceConnectorTerminationCredentialsSpecInitProviderCredentials {
+  /**
+   * RFC2617 compliant username associated with the SIP credentials.
+   *
+   * @schema VoiceConnectorTerminationCredentialsSpecInitProviderCredentials#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'VoiceConnectorTerminationCredentialsSpecInitProviderCredentials' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VoiceConnectorTerminationCredentialsSpecInitProviderCredentials(obj: VoiceConnectorTerminationCredentialsSpecInitProviderCredentials | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema VoiceConnectorTerminationCredentialsSpecProviderConfigRefPolicy
@@ -5777,43 +5627,6 @@ export interface VoiceConnectorTerminationCredentialsSpecProviderConfigRefPolicy
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_VoiceConnectorTerminationCredentialsSpecProviderConfigRefPolicy(obj: VoiceConnectorTerminationCredentialsSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema VoiceConnectorTerminationCredentialsSpecProviderRefPolicy
- */
-export interface VoiceConnectorTerminationCredentialsSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema VoiceConnectorTerminationCredentialsSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: VoiceConnectorTerminationCredentialsSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema VoiceConnectorTerminationCredentialsSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: VoiceConnectorTerminationCredentialsSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'VoiceConnectorTerminationCredentialsSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VoiceConnectorTerminationCredentialsSpecProviderRefPolicy(obj: VoiceConnectorTerminationCredentialsSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -6043,30 +5856,6 @@ export enum VoiceConnectorTerminationCredentialsSpecProviderConfigRefPolicyResol
  * @schema VoiceConnectorTerminationCredentialsSpecProviderConfigRefPolicyResolve
  */
 export enum VoiceConnectorTerminationCredentialsSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema VoiceConnectorTerminationCredentialsSpecProviderRefPolicyResolution
- */
-export enum VoiceConnectorTerminationCredentialsSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema VoiceConnectorTerminationCredentialsSpecProviderRefPolicyResolve
- */
-export enum VoiceConnectorTerminationCredentialsSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

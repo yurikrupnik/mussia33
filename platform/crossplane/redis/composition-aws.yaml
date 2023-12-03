@@ -1,0 +1,41 @@
+# TODO!
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: aws.compositeredises.multicloud.platformref.yurikrupnik.com
+  labels:
+    provider: AWS
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+    kind: CompositeRedis
+  resources:
+    - base:
+        apiVersion: elasticache.aws.upbound.io/v1beta1
+        kind: Cluster
+        metadata:
+          annotations:
+            meta.upbound.io/example-id: elasticache/v1beta1/cluster
+            uptest.upbound.io/timeout: "3600"
+          labels:
+            testing.upbound.io/example-name: example
+          name: sample-cluster
+        spec:
+          forProvider:
+            engine: memcached
+            nodeType: cache.t2.micro
+            numCacheNodes: 1
+            parameterGroupName: default.memcached1.6
+            port: 11211
+            region: us-west-1
+            securityGroupIdSelector:
+              matchLabels:
+                testing.upbound.io/example-name: example
+            subnetGroupNameSelector:
+              matchLabels:
+                testing.upbound.io/example-name: example
+#      patches:
+#        - fromFieldPath: spec.location
+#          toFieldPath: spec.forProvider.region
+

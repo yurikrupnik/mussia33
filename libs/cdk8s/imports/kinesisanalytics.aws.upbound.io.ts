@@ -99,7 +99,7 @@ export function toJson_ApplicationProps(obj: ApplicationProps | undefined): Reco
  */
 export interface ApplicationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ApplicationSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface ApplicationSpec {
   readonly forProvider: ApplicationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ApplicationSpec#managementPolicy
+   * @schema ApplicationSpec#initProvider
    */
-  readonly managementPolicy?: ApplicationSpecManagementPolicy;
+  readonly initProvider?: ApplicationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ApplicationSpec#managementPolicies
+   */
+  readonly managementPolicies?: ApplicationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface ApplicationSpec {
    * @schema ApplicationSpec#providerConfigRef
    */
   readonly providerConfigRef?: ApplicationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ApplicationSpec#providerRef
-   */
-  readonly providerRef?: ApplicationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_ApplicationSpec(obj: ApplicationSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ApplicationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ApplicationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ApplicationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ApplicationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ApplicationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ApplicationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_ApplicationSpec(obj: ApplicationSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ApplicationSpecDeletionPolicy
  */
@@ -271,17 +271,108 @@ export function toJson_ApplicationSpecForProvider(obj: ApplicationSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ApplicationSpecManagementPolicy
+ * @schema ApplicationSpecInitProvider
  */
-export enum ApplicationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ApplicationSpecInitProvider {
+  /**
+   * The CloudWatch log stream options to monitor application errors. See CloudWatch Logging Options below for more details.
+   *
+   * @schema ApplicationSpecInitProvider#cloudwatchLoggingOptions
+   */
+  readonly cloudwatchLoggingOptions?: any[];
+
+  /**
+   * SQL Code to transform input data, and generate output.
+   *
+   * @schema ApplicationSpecInitProvider#code
+   */
+  readonly code?: string;
+
+  /**
+   * Description of the application.
+   *
+   * @schema ApplicationSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Input configuration of the application. See Inputs below for more details.
+   *
+   * @schema ApplicationSpecInitProvider#inputs
+   */
+  readonly inputs?: ApplicationSpecInitProviderInputs[];
+
+  /**
+   * Output destination configuration of the application. See Outputs below for more details.
+   *
+   * @schema ApplicationSpecInitProvider#outputs
+   */
+  readonly outputs?: ApplicationSpecInitProviderOutputs[];
+
+  /**
+   * An S3 Reference Data Source for the application. See Reference Data Sources below for more details.
+   *
+   * @schema ApplicationSpecInitProvider#referenceDataSources
+   */
+  readonly referenceDataSources?: ApplicationSpecInitProviderReferenceDataSources[];
+
+  /**
+   * Whether to start or stop the Kinesis Analytics Application. To start an application, an input with a defined starting_position must be configured. To modify an application's starting position, first stop the application by setting start_application = false, then update starting_position and set start_application = true.
+   *
+   * @schema ApplicationSpecInitProvider#startApplication
+   */
+  readonly startApplication?: boolean;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ApplicationSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProvider(obj: ApplicationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cloudwatchLoggingOptions': obj.cloudwatchLoggingOptions?.map(y => y),
+    'code': obj.code,
+    'description': obj.description,
+    'inputs': obj.inputs?.map(y => toJson_ApplicationSpecInitProviderInputs(y)),
+    'outputs': obj.outputs?.map(y => toJson_ApplicationSpecInitProviderOutputs(y)),
+    'referenceDataSources': obj.referenceDataSources?.map(y => toJson_ApplicationSpecInitProviderReferenceDataSources(y)),
+    'startApplication': obj.startApplication,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ApplicationSpecManagementPolicies
+ */
+export enum ApplicationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -315,43 +406,6 @@ export function toJson_ApplicationSpecProviderConfigRef(obj: ApplicationSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_ApplicationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ApplicationSpecProviderRef
- */
-export interface ApplicationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ApplicationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ApplicationSpecProviderRef#policy
-   */
-  readonly policy?: ApplicationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ApplicationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ApplicationSpecProviderRef(obj: ApplicationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ApplicationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -530,7 +584,7 @@ export interface ApplicationSpecForProviderInputs {
    *
    * @schema ApplicationSpecForProviderInputs#namePrefix
    */
-  readonly namePrefix: string;
+  readonly namePrefix?: string;
 
   /**
    * The number of Parallel in-application streams to create. See Parallelism below for more details.
@@ -551,7 +605,7 @@ export interface ApplicationSpecForProviderInputs {
    *
    * @schema ApplicationSpecForProviderInputs#schema
    */
-  readonly schema: ApplicationSpecForProviderInputsSchema[];
+  readonly schema?: ApplicationSpecForProviderInputsSchema[];
 
   /**
    * The point at which the application starts processing records from the streaming source. See Starting Position Configuration below for more details.
@@ -612,14 +666,14 @@ export interface ApplicationSpecForProviderOutputs {
    *
    * @schema ApplicationSpecForProviderOutputs#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The Schema format of the data written to the destination. See Destination Schema below for more details.
    *
    * @schema ApplicationSpecForProviderOutputs#schema
    */
-  readonly schema: ApplicationSpecForProviderOutputsSchema[];
+  readonly schema?: ApplicationSpecForProviderOutputsSchema[];
 
 }
 
@@ -650,21 +704,21 @@ export interface ApplicationSpecForProviderReferenceDataSources {
    *
    * @schema ApplicationSpecForProviderReferenceDataSources#s3
    */
-  readonly s3: ApplicationSpecForProviderReferenceDataSourcesS3[];
+  readonly s3?: ApplicationSpecForProviderReferenceDataSourcesS3[];
 
   /**
    * The Schema format of the data in the streaming source. See Source Schema below for more details.
    *
    * @schema ApplicationSpecForProviderReferenceDataSources#schema
    */
-  readonly schema: ApplicationSpecForProviderReferenceDataSourcesSchema[];
+  readonly schema?: ApplicationSpecForProviderReferenceDataSourcesSchema[];
 
   /**
    * The in-application Table Name.
    *
    * @schema ApplicationSpecForProviderReferenceDataSources#tableName
    */
-  readonly tableName: string;
+  readonly tableName?: string;
 
 }
 
@@ -677,6 +731,183 @@ export function toJson_ApplicationSpecForProviderReferenceDataSources(obj: Appli
   const result = {
     's3': obj.s3?.map(y => toJson_ApplicationSpecForProviderReferenceDataSourcesS3(y)),
     'schema': obj.schema?.map(y => toJson_ApplicationSpecForProviderReferenceDataSourcesSchema(y)),
+    'tableName': obj.tableName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderInputs
+ */
+export interface ApplicationSpecInitProviderInputs {
+  /**
+   * The Kinesis Firehose configuration for the streaming source. Conflicts with kinesis_stream. See Kinesis Firehose below for more details.
+   *
+   * @schema ApplicationSpecInitProviderInputs#kinesisFirehose
+   */
+  readonly kinesisFirehose?: ApplicationSpecInitProviderInputsKinesisFirehose[];
+
+  /**
+   * The Kinesis Stream configuration for the streaming source. Conflicts with kinesis_firehose. See Kinesis Stream below for more details.
+   *
+   * @schema ApplicationSpecInitProviderInputs#kinesisStream
+   */
+  readonly kinesisStream?: any[];
+
+  /**
+   * The Name Prefix to use when creating an in-application stream.
+   *
+   * @schema ApplicationSpecInitProviderInputs#namePrefix
+   */
+  readonly namePrefix?: string;
+
+  /**
+   * The number of Parallel in-application streams to create. See Parallelism below for more details.
+   *
+   * @schema ApplicationSpecInitProviderInputs#parallelism
+   */
+  readonly parallelism?: ApplicationSpecInitProviderInputsParallelism[];
+
+  /**
+   * The Processing Configuration to transform records as they are received from the stream. See Processing Configuration below for more details.
+   *
+   * @schema ApplicationSpecInitProviderInputs#processingConfiguration
+   */
+  readonly processingConfiguration?: ApplicationSpecInitProviderInputsProcessingConfiguration[];
+
+  /**
+   * The Schema format of the data in the streaming source. See Source Schema below for more details.
+   *
+   * @schema ApplicationSpecInitProviderInputs#schema
+   */
+  readonly schema?: ApplicationSpecInitProviderInputsSchema[];
+
+  /**
+   * The point at which the application starts processing records from the streaming source. See Starting Position Configuration below for more details.
+   *
+   * @schema ApplicationSpecInitProviderInputs#startingPositionConfiguration
+   */
+  readonly startingPositionConfiguration?: ApplicationSpecInitProviderInputsStartingPositionConfiguration[];
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderInputs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderInputs(obj: ApplicationSpecInitProviderInputs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kinesisFirehose': obj.kinesisFirehose?.map(y => toJson_ApplicationSpecInitProviderInputsKinesisFirehose(y)),
+    'kinesisStream': obj.kinesisStream?.map(y => y),
+    'namePrefix': obj.namePrefix,
+    'parallelism': obj.parallelism?.map(y => toJson_ApplicationSpecInitProviderInputsParallelism(y)),
+    'processingConfiguration': obj.processingConfiguration?.map(y => toJson_ApplicationSpecInitProviderInputsProcessingConfiguration(y)),
+    'schema': obj.schema?.map(y => toJson_ApplicationSpecInitProviderInputsSchema(y)),
+    'startingPositionConfiguration': obj.startingPositionConfiguration?.map(y => toJson_ApplicationSpecInitProviderInputsStartingPositionConfiguration(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderOutputs
+ */
+export interface ApplicationSpecInitProviderOutputs {
+  /**
+   * The Kinesis Firehose configuration for the destination stream. Conflicts with kinesis_stream. See Kinesis Firehose below for more details.
+   *
+   * @schema ApplicationSpecInitProviderOutputs#kinesisFirehose
+   */
+  readonly kinesisFirehose?: any[];
+
+  /**
+   * The Kinesis Stream configuration for the destination stream. Conflicts with kinesis_firehose. See Kinesis Stream below for more details.
+   *
+   * @schema ApplicationSpecInitProviderOutputs#kinesisStream
+   */
+  readonly kinesisStream?: ApplicationSpecInitProviderOutputsKinesisStream[];
+
+  /**
+   * The Lambda function destination. See Lambda below for more details.
+   *
+   * @schema ApplicationSpecInitProviderOutputs#lambda
+   */
+  readonly lambda?: ApplicationSpecInitProviderOutputsLambda[];
+
+  /**
+   * The Name of the in-application stream.
+   *
+   * @schema ApplicationSpecInitProviderOutputs#name
+   */
+  readonly name?: string;
+
+  /**
+   * The Schema format of the data written to the destination. See Destination Schema below for more details.
+   *
+   * @schema ApplicationSpecInitProviderOutputs#schema
+   */
+  readonly schema?: ApplicationSpecInitProviderOutputsSchema[];
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderOutputs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderOutputs(obj: ApplicationSpecInitProviderOutputs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kinesisFirehose': obj.kinesisFirehose?.map(y => y),
+    'kinesisStream': obj.kinesisStream?.map(y => toJson_ApplicationSpecInitProviderOutputsKinesisStream(y)),
+    'lambda': obj.lambda?.map(y => toJson_ApplicationSpecInitProviderOutputsLambda(y)),
+    'name': obj.name,
+    'schema': obj.schema?.map(y => toJson_ApplicationSpecInitProviderOutputsSchema(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderReferenceDataSources
+ */
+export interface ApplicationSpecInitProviderReferenceDataSources {
+  /**
+   * The S3 configuration for the reference data source. See S3 Reference below for more details.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSources#s3
+   */
+  readonly s3?: ApplicationSpecInitProviderReferenceDataSourcesS3[];
+
+  /**
+   * The Schema format of the data in the streaming source. See Source Schema below for more details.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSources#schema
+   */
+  readonly schema?: ApplicationSpecInitProviderReferenceDataSourcesSchema[];
+
+  /**
+   * The in-application Table Name.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSources#tableName
+   */
+  readonly tableName?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderReferenceDataSources' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderReferenceDataSources(obj: ApplicationSpecInitProviderReferenceDataSources | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    's3': obj.s3?.map(y => toJson_ApplicationSpecInitProviderReferenceDataSourcesS3(y)),
+    'schema': obj.schema?.map(y => toJson_ApplicationSpecInitProviderReferenceDataSourcesSchema(y)),
     'tableName': obj.tableName,
   };
   // filter undefined values
@@ -711,43 +942,6 @@ export interface ApplicationSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ApplicationSpecProviderConfigRefPolicy(obj: ApplicationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ApplicationSpecProviderRefPolicy
- */
-export interface ApplicationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ApplicationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ApplicationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ApplicationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ApplicationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ApplicationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ApplicationSpecProviderRefPolicy(obj: ApplicationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1013,14 +1207,14 @@ export interface ApplicationSpecForProviderInputsKinesisFirehose {
    *
    * @schema ApplicationSpecForProviderInputsKinesisFirehose#resourceArn
    */
-  readonly resourceArn: string;
+  readonly resourceArn?: string;
 
   /**
    * The IAM Role ARN to read the data.
    *
    * @schema ApplicationSpecForProviderInputsKinesisFirehose#roleArn
    */
-  readonly roleArn: string;
+  readonly roleArn?: string;
 
 }
 
@@ -1142,7 +1336,7 @@ export interface ApplicationSpecForProviderInputsProcessingConfiguration {
    *
    * @schema ApplicationSpecForProviderInputsProcessingConfiguration#lambda
    */
-  readonly lambda: ApplicationSpecForProviderInputsProcessingConfigurationLambda[];
+  readonly lambda?: ApplicationSpecForProviderInputsProcessingConfigurationLambda[];
 
 }
 
@@ -1169,7 +1363,7 @@ export interface ApplicationSpecForProviderInputsSchema {
    *
    * @schema ApplicationSpecForProviderInputsSchema#recordColumns
    */
-  readonly recordColumns: ApplicationSpecForProviderInputsSchemaRecordColumns[];
+  readonly recordColumns?: ApplicationSpecForProviderInputsSchemaRecordColumns[];
 
   /**
    * The Encoding of the record in the streaming source.
@@ -1183,7 +1377,7 @@ export interface ApplicationSpecForProviderInputsSchema {
    *
    * @schema ApplicationSpecForProviderInputsSchema#recordFormat
    */
-  readonly recordFormat: ApplicationSpecForProviderInputsSchemaRecordFormat[];
+  readonly recordFormat?: ApplicationSpecForProviderInputsSchemaRecordFormat[];
 
 }
 
@@ -1306,14 +1500,14 @@ export interface ApplicationSpecForProviderOutputsKinesisStream {
    *
    * @schema ApplicationSpecForProviderOutputsKinesisStream#resourceArn
    */
-  readonly resourceArn: string;
+  readonly resourceArn?: string;
 
   /**
    * The IAM Role ARN to read the data.
    *
    * @schema ApplicationSpecForProviderOutputsKinesisStream#roleArn
    */
-  readonly roleArn: string;
+  readonly roleArn?: string;
 
 }
 
@@ -1341,14 +1535,14 @@ export interface ApplicationSpecForProviderOutputsLambda {
    *
    * @schema ApplicationSpecForProviderOutputsLambda#resourceArn
    */
-  readonly resourceArn: string;
+  readonly resourceArn?: string;
 
   /**
    * The IAM Role ARN to read the data.
    *
    * @schema ApplicationSpecForProviderOutputsLambda#roleArn
    */
-  readonly roleArn: string;
+  readonly roleArn?: string;
 
 }
 
@@ -1376,7 +1570,7 @@ export interface ApplicationSpecForProviderOutputsSchema {
    *
    * @schema ApplicationSpecForProviderOutputsSchema#recordFormatType
    */
-  readonly recordFormatType: string;
+  readonly recordFormatType?: string;
 
 }
 
@@ -1403,21 +1597,21 @@ export interface ApplicationSpecForProviderReferenceDataSourcesS3 {
    *
    * @schema ApplicationSpecForProviderReferenceDataSourcesS3#bucketArn
    */
-  readonly bucketArn: string;
+  readonly bucketArn?: string;
 
   /**
    * The File Key name containing reference data.
    *
    * @schema ApplicationSpecForProviderReferenceDataSourcesS3#fileKey
    */
-  readonly fileKey: string;
+  readonly fileKey?: string;
 
   /**
    * The IAM Role ARN to read the data.
    *
    * @schema ApplicationSpecForProviderReferenceDataSourcesS3#roleArn
    */
-  readonly roleArn: string;
+  readonly roleArn?: string;
 
 }
 
@@ -1446,7 +1640,7 @@ export interface ApplicationSpecForProviderReferenceDataSourcesSchema {
    *
    * @schema ApplicationSpecForProviderReferenceDataSourcesSchema#recordColumns
    */
-  readonly recordColumns: ApplicationSpecForProviderReferenceDataSourcesSchemaRecordColumns[];
+  readonly recordColumns?: ApplicationSpecForProviderReferenceDataSourcesSchemaRecordColumns[];
 
   /**
    * The Encoding of the record in the streaming source.
@@ -1460,7 +1654,7 @@ export interface ApplicationSpecForProviderReferenceDataSourcesSchema {
    *
    * @schema ApplicationSpecForProviderReferenceDataSourcesSchema#recordFormat
    */
-  readonly recordFormat: ApplicationSpecForProviderReferenceDataSourcesSchemaRecordFormat[];
+  readonly recordFormat?: ApplicationSpecForProviderReferenceDataSourcesSchemaRecordFormat[];
 
 }
 
@@ -1474,6 +1668,348 @@ export function toJson_ApplicationSpecForProviderReferenceDataSourcesSchema(obj:
     'recordColumns': obj.recordColumns?.map(y => toJson_ApplicationSpecForProviderReferenceDataSourcesSchemaRecordColumns(y)),
     'recordEncoding': obj.recordEncoding,
     'recordFormat': obj.recordFormat?.map(y => toJson_ApplicationSpecForProviderReferenceDataSourcesSchemaRecordFormat(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderInputsKinesisFirehose
+ */
+export interface ApplicationSpecInitProviderInputsKinesisFirehose {
+  /**
+   * The ARN of the Lambda function.
+   *
+   * @schema ApplicationSpecInitProviderInputsKinesisFirehose#resourceArn
+   */
+  readonly resourceArn?: string;
+
+  /**
+   * The IAM Role ARN to read the data.
+   *
+   * @schema ApplicationSpecInitProviderInputsKinesisFirehose#roleArn
+   */
+  readonly roleArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderInputsKinesisFirehose' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderInputsKinesisFirehose(obj: ApplicationSpecInitProviderInputsKinesisFirehose | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resourceArn': obj.resourceArn,
+    'roleArn': obj.roleArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderInputsParallelism
+ */
+export interface ApplicationSpecInitProviderInputsParallelism {
+  /**
+   * The Count of streams.
+   *
+   * @schema ApplicationSpecInitProviderInputsParallelism#count
+   */
+  readonly count?: number;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderInputsParallelism' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderInputsParallelism(obj: ApplicationSpecInitProviderInputsParallelism | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderInputsProcessingConfiguration
+ */
+export interface ApplicationSpecInitProviderInputsProcessingConfiguration {
+  /**
+   * The Lambda function configuration. See Lambda below for more details.
+   *
+   * @schema ApplicationSpecInitProviderInputsProcessingConfiguration#lambda
+   */
+  readonly lambda?: ApplicationSpecInitProviderInputsProcessingConfigurationLambda[];
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderInputsProcessingConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderInputsProcessingConfiguration(obj: ApplicationSpecInitProviderInputsProcessingConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'lambda': obj.lambda?.map(y => toJson_ApplicationSpecInitProviderInputsProcessingConfigurationLambda(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderInputsSchema
+ */
+export interface ApplicationSpecInitProviderInputsSchema {
+  /**
+   * The Record Column mapping for the streaming source data element. See Record Columns below for more details.
+   *
+   * @schema ApplicationSpecInitProviderInputsSchema#recordColumns
+   */
+  readonly recordColumns?: ApplicationSpecInitProviderInputsSchemaRecordColumns[];
+
+  /**
+   * The Encoding of the record in the streaming source.
+   *
+   * @schema ApplicationSpecInitProviderInputsSchema#recordEncoding
+   */
+  readonly recordEncoding?: string;
+
+  /**
+   * The Record Format and mapping information to schematize a record. See Record Format below for more details.
+   *
+   * @schema ApplicationSpecInitProviderInputsSchema#recordFormat
+   */
+  readonly recordFormat?: ApplicationSpecInitProviderInputsSchemaRecordFormat[];
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderInputsSchema' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderInputsSchema(obj: ApplicationSpecInitProviderInputsSchema | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'recordColumns': obj.recordColumns?.map(y => toJson_ApplicationSpecInitProviderInputsSchemaRecordColumns(y)),
+    'recordEncoding': obj.recordEncoding,
+    'recordFormat': obj.recordFormat?.map(y => toJson_ApplicationSpecInitProviderInputsSchemaRecordFormat(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderInputsStartingPositionConfiguration
+ */
+export interface ApplicationSpecInitProviderInputsStartingPositionConfiguration {
+  /**
+   * The starting position on the stream. Valid values: LAST_STOPPED_POINT, NOW, TRIM_HORIZON.
+   *
+   * @schema ApplicationSpecInitProviderInputsStartingPositionConfiguration#startingPosition
+   */
+  readonly startingPosition?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderInputsStartingPositionConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderInputsStartingPositionConfiguration(obj: ApplicationSpecInitProviderInputsStartingPositionConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'startingPosition': obj.startingPosition,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderOutputsKinesisStream
+ */
+export interface ApplicationSpecInitProviderOutputsKinesisStream {
+  /**
+   * The ARN of the Lambda function.
+   *
+   * @schema ApplicationSpecInitProviderOutputsKinesisStream#resourceArn
+   */
+  readonly resourceArn?: string;
+
+  /**
+   * The IAM Role ARN to read the data.
+   *
+   * @schema ApplicationSpecInitProviderOutputsKinesisStream#roleArn
+   */
+  readonly roleArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderOutputsKinesisStream' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderOutputsKinesisStream(obj: ApplicationSpecInitProviderOutputsKinesisStream | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resourceArn': obj.resourceArn,
+    'roleArn': obj.roleArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderOutputsLambda
+ */
+export interface ApplicationSpecInitProviderOutputsLambda {
+  /**
+   * The ARN of the Lambda function.
+   *
+   * @schema ApplicationSpecInitProviderOutputsLambda#resourceArn
+   */
+  readonly resourceArn?: string;
+
+  /**
+   * The IAM Role ARN to read the data.
+   *
+   * @schema ApplicationSpecInitProviderOutputsLambda#roleArn
+   */
+  readonly roleArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderOutputsLambda' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderOutputsLambda(obj: ApplicationSpecInitProviderOutputsLambda | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resourceArn': obj.resourceArn,
+    'roleArn': obj.roleArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderOutputsSchema
+ */
+export interface ApplicationSpecInitProviderOutputsSchema {
+  /**
+   * The Format Type of the records on the output stream. Can be CSV or JSON.
+   *
+   * @schema ApplicationSpecInitProviderOutputsSchema#recordFormatType
+   */
+  readonly recordFormatType?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderOutputsSchema' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderOutputsSchema(obj: ApplicationSpecInitProviderOutputsSchema | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'recordFormatType': obj.recordFormatType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderReferenceDataSourcesS3
+ */
+export interface ApplicationSpecInitProviderReferenceDataSourcesS3 {
+  /**
+   * The S3 Bucket ARN.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSourcesS3#bucketArn
+   */
+  readonly bucketArn?: string;
+
+  /**
+   * The File Key name containing reference data.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSourcesS3#fileKey
+   */
+  readonly fileKey?: string;
+
+  /**
+   * The IAM Role ARN to read the data.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSourcesS3#roleArn
+   */
+  readonly roleArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderReferenceDataSourcesS3' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderReferenceDataSourcesS3(obj: ApplicationSpecInitProviderReferenceDataSourcesS3 | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketArn': obj.bucketArn,
+    'fileKey': obj.fileKey,
+    'roleArn': obj.roleArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderReferenceDataSourcesSchema
+ */
+export interface ApplicationSpecInitProviderReferenceDataSourcesSchema {
+  /**
+   * The Record Column mapping for the streaming source data element. See Record Columns below for more details.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSourcesSchema#recordColumns
+   */
+  readonly recordColumns?: ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordColumns[];
+
+  /**
+   * The Encoding of the record in the streaming source.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSourcesSchema#recordEncoding
+   */
+  readonly recordEncoding?: string;
+
+  /**
+   * The Record Format and mapping information to schematize a record. See Record Format below for more details.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSourcesSchema#recordFormat
+   */
+  readonly recordFormat?: ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormat[];
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderReferenceDataSourcesSchema' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderReferenceDataSourcesSchema(obj: ApplicationSpecInitProviderReferenceDataSourcesSchema | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'recordColumns': obj.recordColumns?.map(y => toJson_ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordColumns(y)),
+    'recordEncoding': obj.recordEncoding,
+    'recordFormat': obj.recordFormat?.map(y => toJson_ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormat(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1498,30 +2034,6 @@ export enum ApplicationSpecProviderConfigRefPolicyResolution {
  * @schema ApplicationSpecProviderConfigRefPolicyResolve
  */
 export enum ApplicationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ApplicationSpecProviderRefPolicyResolution
- */
-export enum ApplicationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ApplicationSpecProviderRefPolicyResolve
- */
-export enum ApplicationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1886,14 +2398,14 @@ export interface ApplicationSpecForProviderInputsProcessingConfigurationLambda {
    *
    * @schema ApplicationSpecForProviderInputsProcessingConfigurationLambda#resourceArn
    */
-  readonly resourceArn: string;
+  readonly resourceArn?: string;
 
   /**
    * The IAM Role ARN to read the data.
    *
    * @schema ApplicationSpecForProviderInputsProcessingConfigurationLambda#roleArn
    */
-  readonly roleArn: string;
+  readonly roleArn?: string;
 
 }
 
@@ -1928,14 +2440,14 @@ export interface ApplicationSpecForProviderInputsSchemaRecordColumns {
    *
    * @schema ApplicationSpecForProviderInputsSchemaRecordColumns#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The SQL Type of the column.
    *
    * @schema ApplicationSpecForProviderInputsSchemaRecordColumns#sqlType
    */
-  readonly sqlType: string;
+  readonly sqlType?: string;
 
 }
 
@@ -2162,14 +2674,14 @@ export interface ApplicationSpecForProviderReferenceDataSourcesSchemaRecordColum
    *
    * @schema ApplicationSpecForProviderReferenceDataSourcesSchemaRecordColumns#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The SQL Type of the column.
    *
    * @schema ApplicationSpecForProviderReferenceDataSourcesSchemaRecordColumns#sqlType
    */
-  readonly sqlType: string;
+  readonly sqlType?: string;
 
 }
 
@@ -2210,6 +2722,181 @@ export function toJson_ApplicationSpecForProviderReferenceDataSourcesSchemaRecor
   if (obj === undefined) { return undefined; }
   const result = {
     'mappingParameters': obj.mappingParameters?.map(y => toJson_ApplicationSpecForProviderReferenceDataSourcesSchemaRecordFormatMappingParameters(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderInputsProcessingConfigurationLambda
+ */
+export interface ApplicationSpecInitProviderInputsProcessingConfigurationLambda {
+  /**
+   * The ARN of the Lambda function.
+   *
+   * @schema ApplicationSpecInitProviderInputsProcessingConfigurationLambda#resourceArn
+   */
+  readonly resourceArn?: string;
+
+  /**
+   * The IAM Role ARN to read the data.
+   *
+   * @schema ApplicationSpecInitProviderInputsProcessingConfigurationLambda#roleArn
+   */
+  readonly roleArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderInputsProcessingConfigurationLambda' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderInputsProcessingConfigurationLambda(obj: ApplicationSpecInitProviderInputsProcessingConfigurationLambda | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resourceArn': obj.resourceArn,
+    'roleArn': obj.roleArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderInputsSchemaRecordColumns
+ */
+export interface ApplicationSpecInitProviderInputsSchemaRecordColumns {
+  /**
+   * The Mapping reference to the data element.
+   *
+   * @schema ApplicationSpecInitProviderInputsSchemaRecordColumns#mapping
+   */
+  readonly mapping?: string;
+
+  /**
+   * Name of the column.
+   *
+   * @schema ApplicationSpecInitProviderInputsSchemaRecordColumns#name
+   */
+  readonly name?: string;
+
+  /**
+   * The SQL Type of the column.
+   *
+   * @schema ApplicationSpecInitProviderInputsSchemaRecordColumns#sqlType
+   */
+  readonly sqlType?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderInputsSchemaRecordColumns' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderInputsSchemaRecordColumns(obj: ApplicationSpecInitProviderInputsSchemaRecordColumns | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mapping': obj.mapping,
+    'name': obj.name,
+    'sqlType': obj.sqlType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderInputsSchemaRecordFormat
+ */
+export interface ApplicationSpecInitProviderInputsSchemaRecordFormat {
+  /**
+   * The Mapping Information for the record format. See Mapping Parameters below for more details.
+   *
+   * @schema ApplicationSpecInitProviderInputsSchemaRecordFormat#mappingParameters
+   */
+  readonly mappingParameters?: ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParameters[];
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderInputsSchemaRecordFormat' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderInputsSchemaRecordFormat(obj: ApplicationSpecInitProviderInputsSchemaRecordFormat | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mappingParameters': obj.mappingParameters?.map(y => toJson_ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParameters(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordColumns
+ */
+export interface ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordColumns {
+  /**
+   * The Mapping reference to the data element.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordColumns#mapping
+   */
+  readonly mapping?: string;
+
+  /**
+   * Name of the column.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordColumns#name
+   */
+  readonly name?: string;
+
+  /**
+   * The SQL Type of the column.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordColumns#sqlType
+   */
+  readonly sqlType?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordColumns' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordColumns(obj: ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordColumns | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mapping': obj.mapping,
+    'name': obj.name,
+    'sqlType': obj.sqlType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormat
+ */
+export interface ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormat {
+  /**
+   * The Mapping Information for the record format. See Mapping Parameters below for more details.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormat#mappingParameters
+   */
+  readonly mappingParameters?: ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParameters[];
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormat' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormat(obj: ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormat | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mappingParameters': obj.mappingParameters?.map(y => toJson_ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParameters(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2703,6 +3390,76 @@ export function toJson_ApplicationSpecForProviderReferenceDataSourcesSchemaRecor
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParameters
+ */
+export interface ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParameters {
+  /**
+   * Mapping information when the record format uses delimiters. See CSV Mapping Parameters below for more details.
+   *
+   * @schema ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParameters#csv
+   */
+  readonly csv?: ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersCsv[];
+
+  /**
+   * Mapping information when JSON is the record format on the streaming source. See JSON Mapping Parameters below for more details.
+   *
+   * @schema ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParameters#json
+   */
+  readonly json?: ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersJson[];
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParameters(obj: ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'csv': obj.csv?.map(y => toJson_ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersCsv(y)),
+    'json': obj.json?.map(y => toJson_ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersJson(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParameters
+ */
+export interface ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParameters {
+  /**
+   * Mapping information when the record format uses delimiters. See CSV Mapping Parameters below for more details.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParameters#csv
+   */
+  readonly csv?: ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersCsv[];
+
+  /**
+   * Mapping information when JSON is the record format on the streaming source. See JSON Mapping Parameters below for more details.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParameters#json
+   */
+  readonly json?: ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersJson[];
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParameters(obj: ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'csv': obj.csv?.map(y => toJson_ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersCsv(y)),
+    'json': obj.json?.map(y => toJson_ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersJson(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema ApplicationSpecForProviderInputsKinesisStreamResourceArnRefPolicyResolution
@@ -2807,14 +3564,14 @@ export interface ApplicationSpecForProviderInputsSchemaRecordFormatMappingParame
    *
    * @schema ApplicationSpecForProviderInputsSchemaRecordFormatMappingParametersCsv#recordColumnDelimiter
    */
-  readonly recordColumnDelimiter: string;
+  readonly recordColumnDelimiter?: string;
 
   /**
    * The Row Delimiter.
    *
    * @schema ApplicationSpecForProviderInputsSchemaRecordFormatMappingParametersCsv#recordRowDelimiter
    */
-  readonly recordRowDelimiter: string;
+  readonly recordRowDelimiter?: string;
 
 }
 
@@ -2842,7 +3599,7 @@ export interface ApplicationSpecForProviderInputsSchemaRecordFormatMappingParame
    *
    * @schema ApplicationSpecForProviderInputsSchemaRecordFormatMappingParametersJson#recordRowPath
    */
-  readonly recordRowPath: string;
+  readonly recordRowPath?: string;
 
 }
 
@@ -2965,14 +3722,14 @@ export interface ApplicationSpecForProviderReferenceDataSourcesSchemaRecordForma
    *
    * @schema ApplicationSpecForProviderReferenceDataSourcesSchemaRecordFormatMappingParametersCsv#recordColumnDelimiter
    */
-  readonly recordColumnDelimiter: string;
+  readonly recordColumnDelimiter?: string;
 
   /**
    * The Row Delimiter.
    *
    * @schema ApplicationSpecForProviderReferenceDataSourcesSchemaRecordFormatMappingParametersCsv#recordRowDelimiter
    */
-  readonly recordRowDelimiter: string;
+  readonly recordRowDelimiter?: string;
 
 }
 
@@ -3000,7 +3757,7 @@ export interface ApplicationSpecForProviderReferenceDataSourcesSchemaRecordForma
    *
    * @schema ApplicationSpecForProviderReferenceDataSourcesSchemaRecordFormatMappingParametersJson#recordRowPath
    */
-  readonly recordRowPath: string;
+  readonly recordRowPath?: string;
 
 }
 
@@ -3009,6 +3766,130 @@ export interface ApplicationSpecForProviderReferenceDataSourcesSchemaRecordForma
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ApplicationSpecForProviderReferenceDataSourcesSchemaRecordFormatMappingParametersJson(obj: ApplicationSpecForProviderReferenceDataSourcesSchemaRecordFormatMappingParametersJson | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'recordRowPath': obj.recordRowPath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersCsv
+ */
+export interface ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersCsv {
+  /**
+   * The Column Delimiter.
+   *
+   * @schema ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersCsv#recordColumnDelimiter
+   */
+  readonly recordColumnDelimiter?: string;
+
+  /**
+   * The Row Delimiter.
+   *
+   * @schema ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersCsv#recordRowDelimiter
+   */
+  readonly recordRowDelimiter?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersCsv' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersCsv(obj: ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersCsv | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'recordColumnDelimiter': obj.recordColumnDelimiter,
+    'recordRowDelimiter': obj.recordRowDelimiter,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersJson
+ */
+export interface ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersJson {
+  /**
+   * Path to the top-level parent that contains the records.
+   *
+   * @schema ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersJson#recordRowPath
+   */
+  readonly recordRowPath?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersJson' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersJson(obj: ApplicationSpecInitProviderInputsSchemaRecordFormatMappingParametersJson | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'recordRowPath': obj.recordRowPath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersCsv
+ */
+export interface ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersCsv {
+  /**
+   * The Column Delimiter.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersCsv#recordColumnDelimiter
+   */
+  readonly recordColumnDelimiter?: string;
+
+  /**
+   * The Row Delimiter.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersCsv#recordRowDelimiter
+   */
+  readonly recordRowDelimiter?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersCsv' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersCsv(obj: ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersCsv | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'recordColumnDelimiter': obj.recordColumnDelimiter,
+    'recordRowDelimiter': obj.recordRowDelimiter,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersJson
+ */
+export interface ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersJson {
+  /**
+   * Path to the top-level parent that contains the records.
+   *
+   * @schema ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersJson#recordRowPath
+   */
+  readonly recordRowPath?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersJson' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersJson(obj: ApplicationSpecInitProviderReferenceDataSourcesSchemaRecordFormatMappingParametersJson | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'recordRowPath': obj.recordRowPath,

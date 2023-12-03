@@ -99,7 +99,7 @@ export function toJson_FunctionProps(obj: FunctionProps | undefined): Record<str
  */
 export interface FunctionSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema FunctionSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface FunctionSpec {
   readonly forProvider: FunctionSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema FunctionSpec#managementPolicy
+   * @schema FunctionSpec#initProvider
    */
-  readonly managementPolicy?: FunctionSpecManagementPolicy;
+  readonly initProvider?: FunctionSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema FunctionSpec#managementPolicies
+   */
+  readonly managementPolicies?: FunctionSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface FunctionSpec {
    * @schema FunctionSpec#providerConfigRef
    */
   readonly providerConfigRef?: FunctionSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema FunctionSpec#providerRef
-   */
-  readonly providerRef?: FunctionSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_FunctionSpec(obj: FunctionSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_FunctionSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_FunctionSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_FunctionSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_FunctionSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_FunctionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_FunctionSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_FunctionSpec(obj: FunctionSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema FunctionSpecDeletionPolicy
  */
@@ -462,17 +462,251 @@ export function toJson_FunctionSpecForProvider(obj: FunctionSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema FunctionSpecManagementPolicy
+ * @schema FunctionSpecInitProvider
  */
-export enum FunctionSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface FunctionSpecInitProvider {
+  /**
+   * Memory (in MB), available to the function. Default value is 256. Possible values include 128, 256, 512, 1024, etc.
+   *
+   * @schema FunctionSpecInitProvider#availableMemoryMb
+   */
+  readonly availableMemoryMb?: number;
+
+  /**
+   * A set of key/value environment variable pairs available during build time.
+   *
+   * @schema FunctionSpecInitProvider#buildEnvironmentVariables
+   */
+  readonly buildEnvironmentVariables?: { [key: string]: string };
+
+  /**
+   * @schema FunctionSpecInitProvider#buildWorkerPool
+   */
+  readonly buildWorkerPool?: string;
+
+  /**
+   * Description of the function.
+   *
+   * @schema FunctionSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Docker Registry to use for storing the function's Docker images. Allowed values are CONTAINER_REGISTRY (default) and ARTIFACT_REGISTRY.
+   *
+   * @schema FunctionSpecInitProvider#dockerRegistry
+   */
+  readonly dockerRegistry?: string;
+
+  /**
+   * User managed repository created in Artifact Registry optionally with a customer managed encryption key. If specified, deployments will use Artifact Registry. This is the repository to which the function docker image will be pushed after it is built by Cloud Build. If unspecified, Container Registry will be used by default, unless specified otherwise by other means.
+   *
+   * @schema FunctionSpecInitProvider#dockerRepository
+   */
+  readonly dockerRepository?: string;
+
+  /**
+   * Name of the function that will be executed when the Google Cloud Function is triggered.
+   *
+   * @schema FunctionSpecInitProvider#entryPoint
+   */
+  readonly entryPoint?: string;
+
+  /**
+   * A set of key/value environment variable pairs to assign to the function.
+   *
+   * @schema FunctionSpecInitProvider#environmentVariables
+   */
+  readonly environmentVariables?: { [key: string]: string };
+
+  /**
+   * A source that fires events in response to a condition in another service. Structure is documented below. Cannot be used with trigger_http.
+   *
+   * @schema FunctionSpecInitProvider#eventTrigger
+   */
+  readonly eventTrigger?: FunctionSpecInitProviderEventTrigger[];
+
+  /**
+   * The security level for the function. The following options are available:
+   *
+   * @schema FunctionSpecInitProvider#httpsTriggerSecurityLevel
+   */
+  readonly httpsTriggerSecurityLevel?: string;
+
+  /**
+   * URL which triggers function execution. Returned only if trigger_http is used.
+   *
+   * @schema FunctionSpecInitProvider#httpsTriggerUrl
+   */
+  readonly httpsTriggerUrl?: string;
+
+  /**
+   * String value that controls what traffic can reach the function. Allowed values are ALLOW_ALL, ALLOW_INTERNAL_AND_GCLB and ALLOW_INTERNAL_ONLY. Check ingress documentation to see the impact of each settings value. Changes to this field will recreate the cloud function.
+   *
+   * @schema FunctionSpecInitProvider#ingressSettings
+   */
+  readonly ingressSettings?: string;
+
+  /**
+   * Resource name of a KMS crypto key (managed by the user) used to encrypt/decrypt function resources. It must match the pattern projects/{project}/locations/{location}/keyRings/{key_ring}/cryptoKeys/{crypto_key}. If specified, you must also provide an artifact registry repository using the docker_repository field that was created with the same KMS crypto key. Before deploying, please complete all pre-requisites described in https://cloud.google.com/functions/docs/securing/cmek#granting_service_accounts_access_to_the_key
+   *
+   * @schema FunctionSpecInitProvider#kmsKeyName
+   */
+  readonly kmsKeyName?: string;
+
+  /**
+   * A set of key/value label pairs to assign to the function. Label keys must follow the requirements at https://cloud.google.com/resource-manager/docs/creating-managing-labels#requirements.
+   *
+   * @schema FunctionSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The limit on the maximum number of function instances that may coexist at a given time.
+   *
+   * @schema FunctionSpecInitProvider#maxInstances
+   */
+  readonly maxInstances?: number;
+
+  /**
+   * The limit on the minimum number of function instances that may coexist at a given time.
+   *
+   * @schema FunctionSpecInitProvider#minInstances
+   */
+  readonly minInstances?: number;
+
+  /**
+   * Project of the function. If it is not provided, the provider project is used.
+   *
+   * @schema FunctionSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The runtime in which the function is going to run. Eg. "nodejs16", "python39", "dotnet3", "go116", "java11", "ruby30", "php74", etc. Check the official doc for the up-to-date list.
+   *
+   * @schema FunctionSpecInitProvider#runtime
+   */
+  readonly runtime?: string;
+
+  /**
+   * Secret environment variables configuration. Structure is documented below.
+   *
+   * @schema FunctionSpecInitProvider#secretEnvironmentVariables
+   */
+  readonly secretEnvironmentVariables?: FunctionSpecInitProviderSecretEnvironmentVariables[];
+
+  /**
+   * Secret volumes configuration. Structure is documented below.
+   *
+   * @schema FunctionSpecInitProvider#secretVolumes
+   */
+  readonly secretVolumes?: FunctionSpecInitProviderSecretVolumes[];
+
+  /**
+   * If provided, the self-provided service account to run the function with.
+   *
+   * @schema FunctionSpecInitProvider#serviceAccountEmail
+   */
+  readonly serviceAccountEmail?: string;
+
+  /**
+   * Represents parameters related to source repository where a function is hosted. Cannot be set alongside source_archive_bucket or source_archive_object. Structure is documented below. It must match the pattern projects/{project}/locations/{location}/repositories/{repository}.*
+   *
+   * @schema FunctionSpecInitProvider#sourceRepository
+   */
+  readonly sourceRepository?: FunctionSpecInitProviderSourceRepository[];
+
+  /**
+   * Timeout (in seconds) for the function. Default value is 60 seconds. Cannot be more than 540 seconds.
+   *
+   * @schema FunctionSpecInitProvider#timeout
+   */
+  readonly timeout?: number;
+
+  /**
+   * Boolean variable. Any HTTP request (of a supported type) to the endpoint will trigger function execution. Supported HTTP request types are: POST, PUT, GET, DELETE, and OPTIONS. Endpoint is returned as https_trigger_url. Cannot be used with event_trigger.
+   *
+   * @schema FunctionSpecInitProvider#triggerHttp
+   */
+  readonly triggerHttp?: boolean;
+
+  /**
+   * The VPC Network Connector that this cloud function can connect to. It should be set up as fully-qualified URI. The format of this field is projects/_/locations/_/connectors/*.
+   *
+   * @schema FunctionSpecInitProvider#vpcConnector
+   */
+  readonly vpcConnector?: string;
+
+  /**
+   * The egress settings for the connector, controlling what traffic is diverted through it. Allowed values are ALL_TRAFFIC and PRIVATE_RANGES_ONLY. Defaults to PRIVATE_RANGES_ONLY. If unset, this field preserves the previously set value.
+   *
+   * @default PRIVATE_RANGES_ONLY. If unset, this field preserves the previously set value.
+   * @schema FunctionSpecInitProvider#vpcConnectorEgressSettings
+   */
+  readonly vpcConnectorEgressSettings?: string;
+
+}
+
+/**
+ * Converts an object of type 'FunctionSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FunctionSpecInitProvider(obj: FunctionSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'availableMemoryMb': obj.availableMemoryMb,
+    'buildEnvironmentVariables': ((obj.buildEnvironmentVariables) === undefined) ? undefined : (Object.entries(obj.buildEnvironmentVariables).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'buildWorkerPool': obj.buildWorkerPool,
+    'description': obj.description,
+    'dockerRegistry': obj.dockerRegistry,
+    'dockerRepository': obj.dockerRepository,
+    'entryPoint': obj.entryPoint,
+    'environmentVariables': ((obj.environmentVariables) === undefined) ? undefined : (Object.entries(obj.environmentVariables).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'eventTrigger': obj.eventTrigger?.map(y => toJson_FunctionSpecInitProviderEventTrigger(y)),
+    'httpsTriggerSecurityLevel': obj.httpsTriggerSecurityLevel,
+    'httpsTriggerUrl': obj.httpsTriggerUrl,
+    'ingressSettings': obj.ingressSettings,
+    'kmsKeyName': obj.kmsKeyName,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'maxInstances': obj.maxInstances,
+    'minInstances': obj.minInstances,
+    'project': obj.project,
+    'runtime': obj.runtime,
+    'secretEnvironmentVariables': obj.secretEnvironmentVariables?.map(y => toJson_FunctionSpecInitProviderSecretEnvironmentVariables(y)),
+    'secretVolumes': obj.secretVolumes?.map(y => toJson_FunctionSpecInitProviderSecretVolumes(y)),
+    'serviceAccountEmail': obj.serviceAccountEmail,
+    'sourceRepository': obj.sourceRepository?.map(y => toJson_FunctionSpecInitProviderSourceRepository(y)),
+    'timeout': obj.timeout,
+    'triggerHttp': obj.triggerHttp,
+    'vpcConnector': obj.vpcConnector,
+    'vpcConnectorEgressSettings': obj.vpcConnectorEgressSettings,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema FunctionSpecManagementPolicies
+ */
+export enum FunctionSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -506,43 +740,6 @@ export function toJson_FunctionSpecProviderConfigRef(obj: FunctionSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_FunctionSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema FunctionSpecProviderRef
- */
-export interface FunctionSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema FunctionSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema FunctionSpecProviderRef#policy
-   */
-  readonly policy?: FunctionSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'FunctionSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FunctionSpecProviderRef(obj: FunctionSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_FunctionSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -640,7 +837,7 @@ export interface FunctionSpecForProviderEventTrigger {
    *
    * @schema FunctionSpecForProviderEventTrigger#eventType
    */
-  readonly eventType: string;
+  readonly eventType?: string;
 
   /**
    * Specifies policy for failed executions. Structure is documented below.
@@ -654,7 +851,7 @@ export interface FunctionSpecForProviderEventTrigger {
    *
    * @schema FunctionSpecForProviderEventTrigger#resource
    */
-  readonly resource: string;
+  readonly resource?: string;
 
 }
 
@@ -683,7 +880,7 @@ export interface FunctionSpecForProviderSecretEnvironmentVariables {
    *
    * @schema FunctionSpecForProviderSecretEnvironmentVariables#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * Project identifier (due to a known limitation, only project number is supported by this field) of the project that contains the secret. If not set, it will be populated with the function's project, assuming that the secret exists in the same project as of the function.
@@ -697,14 +894,14 @@ export interface FunctionSpecForProviderSecretEnvironmentVariables {
    *
    * @schema FunctionSpecForProviderSecretEnvironmentVariables#secret
    */
-  readonly secret: string;
+  readonly secret?: string;
 
   /**
    * Version of the secret (version number or the string "latest"). It is recommended to use a numeric version for secret environment variables as any updates to the secret value is not reflected until new clones start.
    *
    * @schema FunctionSpecForProviderSecretEnvironmentVariables#version
    */
-  readonly version: string;
+  readonly version?: string;
 
 }
 
@@ -734,7 +931,7 @@ export interface FunctionSpecForProviderSecretVolumes {
    *
    * @schema FunctionSpecForProviderSecretVolumes#mountPath
    */
-  readonly mountPath: string;
+  readonly mountPath?: string;
 
   /**
    * Project identifier (due to a known limitation, only project number is supported by this field) of the project that contains the secret. If not set, it will be populated with the function's project, assuming that the secret exists in the same project as of the function.
@@ -748,7 +945,7 @@ export interface FunctionSpecForProviderSecretVolumes {
    *
    * @schema FunctionSpecForProviderSecretVolumes#secret
    */
-  readonly secret: string;
+  readonly secret?: string;
 
   /**
    * List of secret versions to mount for this secret. If empty, the "latest" version of the secret will be made available in a file named after the secret under the mount point. Structure is documented below.
@@ -949,7 +1146,7 @@ export interface FunctionSpecForProviderSourceRepository {
    *
    * @schema FunctionSpecForProviderSourceRepository#url
    */
-  readonly url: string;
+  readonly url?: string;
 
 }
 
@@ -958,6 +1155,178 @@ export interface FunctionSpecForProviderSourceRepository {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_FunctionSpecForProviderSourceRepository(obj: FunctionSpecForProviderSourceRepository | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'url': obj.url,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FunctionSpecInitProviderEventTrigger
+ */
+export interface FunctionSpecInitProviderEventTrigger {
+  /**
+   * The type of event to observe. For example: "google.storage.object.finalize". See the documentation on calling Cloud Functions for a full reference of accepted triggers.
+   *
+   * @schema FunctionSpecInitProviderEventTrigger#eventType
+   */
+  readonly eventType?: string;
+
+  /**
+   * Specifies policy for failed executions. Structure is documented below.
+   *
+   * @schema FunctionSpecInitProviderEventTrigger#failurePolicy
+   */
+  readonly failurePolicy?: FunctionSpecInitProviderEventTriggerFailurePolicy[];
+
+  /**
+   * Required. The name or partial URI of the resource from which to observe events. For example, "myBucket" or "projects/my-project/topics/my-topic"
+   *
+   * @schema FunctionSpecInitProviderEventTrigger#resource
+   */
+  readonly resource?: string;
+
+}
+
+/**
+ * Converts an object of type 'FunctionSpecInitProviderEventTrigger' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FunctionSpecInitProviderEventTrigger(obj: FunctionSpecInitProviderEventTrigger | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eventType': obj.eventType,
+    'failurePolicy': obj.failurePolicy?.map(y => toJson_FunctionSpecInitProviderEventTriggerFailurePolicy(y)),
+    'resource': obj.resource,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FunctionSpecInitProviderSecretEnvironmentVariables
+ */
+export interface FunctionSpecInitProviderSecretEnvironmentVariables {
+  /**
+   * Name of the environment variable.
+   *
+   * @schema FunctionSpecInitProviderSecretEnvironmentVariables#key
+   */
+  readonly key?: string;
+
+  /**
+   * Project identifier (due to a known limitation, only project number is supported by this field) of the project that contains the secret. If not set, it will be populated with the function's project, assuming that the secret exists in the same project as of the function.
+   *
+   * @schema FunctionSpecInitProviderSecretEnvironmentVariables#projectId
+   */
+  readonly projectId?: string;
+
+  /**
+   * ID of the secret in secret manager (not the full resource name).
+   *
+   * @schema FunctionSpecInitProviderSecretEnvironmentVariables#secret
+   */
+  readonly secret?: string;
+
+  /**
+   * Version of the secret (version number or the string "latest"). It is recommended to use a numeric version for secret environment variables as any updates to the secret value is not reflected until new clones start.
+   *
+   * @schema FunctionSpecInitProviderSecretEnvironmentVariables#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'FunctionSpecInitProviderSecretEnvironmentVariables' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FunctionSpecInitProviderSecretEnvironmentVariables(obj: FunctionSpecInitProviderSecretEnvironmentVariables | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'projectId': obj.projectId,
+    'secret': obj.secret,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FunctionSpecInitProviderSecretVolumes
+ */
+export interface FunctionSpecInitProviderSecretVolumes {
+  /**
+   * The path within the container to mount the secret volume. For example, setting the mount_path as "/etc/secrets" would mount the secret value files under the "/etc/secrets" directory. This directory will also be completely shadowed and unavailable to mount any other secrets. Recommended mount paths: "/etc/secrets" Restricted mount paths: "/cloudsql", "/dev/log", "/pod", "/proc", "/var/log".
+   *
+   * @schema FunctionSpecInitProviderSecretVolumes#mountPath
+   */
+  readonly mountPath?: string;
+
+  /**
+   * Project identifier (due to a known limitation, only project number is supported by this field) of the project that contains the secret. If not set, it will be populated with the function's project, assuming that the secret exists in the same project as of the function.
+   *
+   * @schema FunctionSpecInitProviderSecretVolumes#projectId
+   */
+  readonly projectId?: string;
+
+  /**
+   * ID of the secret in secret manager (not the full resource name).
+   *
+   * @schema FunctionSpecInitProviderSecretVolumes#secret
+   */
+  readonly secret?: string;
+
+  /**
+   * List of secret versions to mount for this secret. If empty, the "latest" version of the secret will be made available in a file named after the secret under the mount point. Structure is documented below.
+   *
+   * @schema FunctionSpecInitProviderSecretVolumes#versions
+   */
+  readonly versions?: FunctionSpecInitProviderSecretVolumesVersions[];
+
+}
+
+/**
+ * Converts an object of type 'FunctionSpecInitProviderSecretVolumes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FunctionSpecInitProviderSecretVolumes(obj: FunctionSpecInitProviderSecretVolumes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mountPath': obj.mountPath,
+    'projectId': obj.projectId,
+    'secret': obj.secret,
+    'versions': obj.versions?.map(y => toJson_FunctionSpecInitProviderSecretVolumesVersions(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FunctionSpecInitProviderSourceRepository
+ */
+export interface FunctionSpecInitProviderSourceRepository {
+  /**
+   * The URL pointing to the hosted repository where the function is defined. There are supported Cloud Source Repository URLs in the following formats:
+   *
+   * @schema FunctionSpecInitProviderSourceRepository#url
+   */
+  readonly url?: string;
+
+}
+
+/**
+ * Converts an object of type 'FunctionSpecInitProviderSourceRepository' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FunctionSpecInitProviderSourceRepository(obj: FunctionSpecInitProviderSourceRepository | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'url': obj.url,
@@ -994,43 +1363,6 @@ export interface FunctionSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_FunctionSpecProviderConfigRefPolicy(obj: FunctionSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema FunctionSpecProviderRefPolicy
- */
-export interface FunctionSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema FunctionSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: FunctionSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema FunctionSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: FunctionSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'FunctionSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FunctionSpecProviderRefPolicy(obj: FunctionSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1133,7 +1465,7 @@ export interface FunctionSpecForProviderEventTriggerFailurePolicy {
    * @default false.
    * @schema FunctionSpecForProviderEventTriggerFailurePolicy#retry
    */
-  readonly retry: boolean;
+  readonly retry?: boolean;
 
 }
 
@@ -1160,14 +1492,14 @@ export interface FunctionSpecForProviderSecretVolumesVersions {
    *
    * @schema FunctionSpecForProviderSecretVolumesVersions#path
    */
-  readonly path: string;
+  readonly path?: string;
 
   /**
    * Version of the secret (version number or the string "latest"). It is preferable to use "latest" version with secret volumes as secret value changes are reflected immediately.
    *
    * @schema FunctionSpecForProviderSecretVolumesVersions#version
    */
-  readonly version: string;
+  readonly version?: string;
 
 }
 
@@ -1335,6 +1667,69 @@ export function toJson_FunctionSpecForProviderSourceArchiveObjectSelectorPolicy(
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema FunctionSpecInitProviderEventTriggerFailurePolicy
+ */
+export interface FunctionSpecInitProviderEventTriggerFailurePolicy {
+  /**
+   * Whether the function should be retried on failure. Defaults to false.
+   *
+   * @default false.
+   * @schema FunctionSpecInitProviderEventTriggerFailurePolicy#retry
+   */
+  readonly retry?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'FunctionSpecInitProviderEventTriggerFailurePolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FunctionSpecInitProviderEventTriggerFailurePolicy(obj: FunctionSpecInitProviderEventTriggerFailurePolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'retry': obj.retry,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FunctionSpecInitProviderSecretVolumesVersions
+ */
+export interface FunctionSpecInitProviderSecretVolumesVersions {
+  /**
+   * Relative path of the file under the mount path where the secret value for this version will be fetched and made available. For example, setting the mount_path as "/etc/secrets" and path as "/secret_foo" would mount the secret value file at "/etc/secrets/secret_foo".
+   *
+   * @schema FunctionSpecInitProviderSecretVolumesVersions#path
+   */
+  readonly path?: string;
+
+  /**
+   * Version of the secret (version number or the string "latest"). It is preferable to use "latest" version with secret volumes as secret value changes are reflected immediately.
+   *
+   * @schema FunctionSpecInitProviderSecretVolumesVersions#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'FunctionSpecInitProviderSecretVolumesVersions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FunctionSpecInitProviderSecretVolumesVersions(obj: FunctionSpecInitProviderSecretVolumesVersions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'path': obj.path,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema FunctionSpecProviderConfigRefPolicyResolution
@@ -1352,30 +1747,6 @@ export enum FunctionSpecProviderConfigRefPolicyResolution {
  * @schema FunctionSpecProviderConfigRefPolicyResolve
  */
 export enum FunctionSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema FunctionSpecProviderRefPolicyResolution
- */
-export enum FunctionSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema FunctionSpecProviderRefPolicyResolve
- */
-export enum FunctionSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1636,7 +2007,7 @@ export function toJson_FunctionIamMemberProps(obj: FunctionIamMemberProps | unde
  */
 export interface FunctionIamMemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema FunctionIamMemberSpec#deletionPolicy
    */
@@ -1648,11 +2019,18 @@ export interface FunctionIamMemberSpec {
   readonly forProvider: FunctionIamMemberSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema FunctionIamMemberSpec#managementPolicy
+   * @schema FunctionIamMemberSpec#initProvider
    */
-  readonly managementPolicy?: FunctionIamMemberSpecManagementPolicy;
+  readonly initProvider?: FunctionIamMemberSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema FunctionIamMemberSpec#managementPolicies
+   */
+  readonly managementPolicies?: FunctionIamMemberSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1660,13 +2038,6 @@ export interface FunctionIamMemberSpec {
    * @schema FunctionIamMemberSpec#providerConfigRef
    */
   readonly providerConfigRef?: FunctionIamMemberSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema FunctionIamMemberSpec#providerRef
-   */
-  readonly providerRef?: FunctionIamMemberSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1693,9 +2064,9 @@ export function toJson_FunctionIamMemberSpec(obj: FunctionIamMemberSpec | undefi
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_FunctionIamMemberSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_FunctionIamMemberSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_FunctionIamMemberSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_FunctionIamMemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_FunctionIamMemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_FunctionIamMemberSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1705,7 +2076,7 @@ export function toJson_FunctionIamMemberSpec(obj: FunctionIamMemberSpec | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema FunctionIamMemberSpecDeletionPolicy
  */
@@ -1788,17 +2159,74 @@ export function toJson_FunctionIamMemberSpecForProvider(obj: FunctionIamMemberSp
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema FunctionIamMemberSpecManagementPolicy
+ * @schema FunctionIamMemberSpecInitProvider
  */
-export enum FunctionIamMemberSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface FunctionIamMemberSpecInitProvider {
+  /**
+   * @schema FunctionIamMemberSpecInitProvider#condition
+   */
+  readonly condition?: FunctionIamMemberSpecInitProviderCondition[];
+
+  /**
+   * @schema FunctionIamMemberSpecInitProvider#member
+   */
+  readonly member?: string;
+
+  /**
+   * @schema FunctionIamMemberSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * @schema FunctionIamMemberSpecInitProvider#region
+   */
+  readonly region?: string;
+
+  /**
+   * @schema FunctionIamMemberSpecInitProvider#role
+   */
+  readonly role?: string;
+
+}
+
+/**
+ * Converts an object of type 'FunctionIamMemberSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FunctionIamMemberSpecInitProvider(obj: FunctionIamMemberSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'condition': obj.condition?.map(y => toJson_FunctionIamMemberSpecInitProviderCondition(y)),
+    'member': obj.member,
+    'project': obj.project,
+    'region': obj.region,
+    'role': obj.role,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema FunctionIamMemberSpecManagementPolicies
+ */
+export enum FunctionIamMemberSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1832,43 +2260,6 @@ export function toJson_FunctionIamMemberSpecProviderConfigRef(obj: FunctionIamMe
   const result = {
     'name': obj.name,
     'policy': toJson_FunctionIamMemberSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema FunctionIamMemberSpecProviderRef
- */
-export interface FunctionIamMemberSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema FunctionIamMemberSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema FunctionIamMemberSpecProviderRef#policy
-   */
-  readonly policy?: FunctionIamMemberSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'FunctionIamMemberSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FunctionIamMemberSpecProviderRef(obj: FunctionIamMemberSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_FunctionIamMemberSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2051,12 +2442,12 @@ export interface FunctionIamMemberSpecForProviderCondition {
   /**
    * @schema FunctionIamMemberSpecForProviderCondition#expression
    */
-  readonly expression: string;
+  readonly expression?: string;
 
   /**
    * @schema FunctionIamMemberSpecForProviderCondition#title
    */
-  readonly title: string;
+  readonly title?: string;
 
 }
 
@@ -2065,6 +2456,43 @@ export interface FunctionIamMemberSpecForProviderCondition {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_FunctionIamMemberSpecForProviderCondition(obj: FunctionIamMemberSpecForProviderCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'expression': obj.expression,
+    'title': obj.title,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FunctionIamMemberSpecInitProviderCondition
+ */
+export interface FunctionIamMemberSpecInitProviderCondition {
+  /**
+   * @schema FunctionIamMemberSpecInitProviderCondition#description
+   */
+  readonly description?: string;
+
+  /**
+   * @schema FunctionIamMemberSpecInitProviderCondition#expression
+   */
+  readonly expression?: string;
+
+  /**
+   * @schema FunctionIamMemberSpecInitProviderCondition#title
+   */
+  readonly title?: string;
+
+}
+
+/**
+ * Converts an object of type 'FunctionIamMemberSpecInitProviderCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FunctionIamMemberSpecInitProviderCondition(obj: FunctionIamMemberSpecInitProviderCondition | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'description': obj.description,
@@ -2103,43 +2531,6 @@ export interface FunctionIamMemberSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_FunctionIamMemberSpecProviderConfigRefPolicy(obj: FunctionIamMemberSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema FunctionIamMemberSpecProviderRefPolicy
- */
-export interface FunctionIamMemberSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema FunctionIamMemberSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: FunctionIamMemberSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema FunctionIamMemberSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: FunctionIamMemberSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'FunctionIamMemberSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FunctionIamMemberSpecProviderRefPolicy(obj: FunctionIamMemberSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2324,30 +2715,6 @@ export enum FunctionIamMemberSpecProviderConfigRefPolicyResolution {
  * @schema FunctionIamMemberSpecProviderConfigRefPolicyResolve
  */
 export enum FunctionIamMemberSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema FunctionIamMemberSpecProviderRefPolicyResolution
- */
-export enum FunctionIamMemberSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema FunctionIamMemberSpecProviderRefPolicyResolve
- */
-export enum FunctionIamMemberSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

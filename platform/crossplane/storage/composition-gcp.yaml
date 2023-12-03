@@ -10,22 +10,51 @@ spec:
     apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
     kind: CompositeStorage
   resources:
+#    - base:
+#        apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#        kind: Registry
+##        metadata:
+##          name: storage-registry
+##          namespace: crossplane-system
+#        spec:
+#          id: storage-registry
+#          location: us-west1
+#          compositionSelector:
+#            matchLabels:
+#              provider: GCP
+#      name: Registry
+#      patches:
+#        - fromFieldPath: spec.id
+#          toFieldPath: spec.id
+#        - fromFieldPath: metadata.name
+#          toFieldPath: metadata.name
+#        - fromFieldPath: metadata.namespace
+#          toFieldPath: metadata.namespace
+#        - fromFieldPath: spec.id
+#          toFieldPath: metadata.annotations[crossplane.io/external-name]
+#        - fromFieldPath: spec.id
+#          toFieldPath: metadata.labels[storages.multicloud.platformref.yurikrupnik.com/storage-id]
+#        - fromFieldPath: spec.location
+#          toFieldPath: spec.forProvider.location
     - base:
         apiVersion: storage.gcp.upbound.io/v1beta1
         kind: Bucket
-        metadata:
-          name: yuriks-bucket-via-crossplane
+#        metadata:
+#          name: yuriks-bucket-via-crossplane-gcp
         spec:
 #           todo test it!
 #          writeConnectionSecretToRef:
 #            namespace: upbound-system
 #           todo test it! and compare with writeConnectionSecretToRef
-          publishConnectionDetailsTo:
-            name: "yuriks-sercret-via-crossplane"
+#          publishConnectionDetailsTo:
+#            name: "yuriks-sercret-via-crossplane"
           forProvider:
             location: US
             uniformBucketLevelAccess: true
             storageClass: STANDARD
+          reclaimPolicy: Delete
+          providerConfigRef:
+            name: default
 #            tags:
 #              - key: key1
 #                value: value1
@@ -36,7 +65,14 @@ spec:
 #                value: value1
 #              - key: label2
 #                value: value2
+      name: Bucket
       patches:
+        - fromFieldPath: spec.providerConfigRef
+          toFieldPath: spec.providerConfigRef
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.annotations[crossplane.io/external-name]
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[storages.multicloud.platformref.yurikrupnik.com/storage-id]
         - fromFieldPath: spec.location
           toFieldPath: spec.forProvider.location
         - fromFieldPath: spec.storageClass

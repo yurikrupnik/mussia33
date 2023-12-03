@@ -1,7 +1,7 @@
 apiVersion: gcp.upbound.io/v1beta1
 kind: ProviderConfig
 metadata:
-  name: default
+  name: shared
 spec:
   projectID: shared-404221
   credentials:
@@ -9,6 +9,19 @@ spec:
     secretRef:
       namespace: crossplane-system
       name: gcp-secret
+      key: creds
+---
+apiVersion: gcp.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: default
+spec:
+  projectID: shared-v1
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: gcp-secret1
       key: creds
 ---
 apiVersion: aws.upbound.io/v1beta1

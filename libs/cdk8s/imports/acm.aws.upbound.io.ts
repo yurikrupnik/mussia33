@@ -99,7 +99,7 @@ export function toJson_CertificateProps(obj: CertificateProps | undefined): Reco
  */
 export interface CertificateSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CertificateSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface CertificateSpec {
   readonly forProvider: CertificateSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema CertificateSpec#managementPolicy
+   * @schema CertificateSpec#initProvider
    */
-  readonly managementPolicy?: CertificateSpecManagementPolicy;
+  readonly initProvider?: CertificateSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema CertificateSpec#managementPolicies
+   */
+  readonly managementPolicies?: CertificateSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface CertificateSpec {
    * @schema CertificateSpec#providerConfigRef
    */
   readonly providerConfigRef?: CertificateSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema CertificateSpec#providerRef
-   */
-  readonly providerRef?: CertificateSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_CertificateSpec(obj: CertificateSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CertificateSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_CertificateSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_CertificateSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_CertificateSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CertificateSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_CertificateSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_CertificateSpec(obj: CertificateSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CertificateSpecDeletionPolicy
  */
@@ -303,17 +303,132 @@ export function toJson_CertificateSpecForProvider(obj: CertificateSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema CertificateSpecManagementPolicy
+ * @schema CertificateSpecInitProvider
  */
-export enum CertificateSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface CertificateSpecInitProvider {
+  /**
+   * ARN of an ACM PCA
+   *
+   * @schema CertificateSpecInitProvider#certificateAuthorityArn
+   */
+  readonly certificateAuthorityArn?: string;
+
+  /**
+   * Certificate's PEM-formatted public key
+   *
+   * @schema CertificateSpecInitProvider#certificateBody
+   */
+  readonly certificateBody?: string;
+
+  /**
+   * Certificate's PEM-formatted chain
+   *
+   * @schema CertificateSpecInitProvider#certificateChain
+   */
+  readonly certificateChain?: string;
+
+  /**
+   * Domain name for which the certificate should be issued
+   *
+   * @schema CertificateSpecInitProvider#domainName
+   */
+  readonly domainName?: string;
+
+  /**
+   * Amount of time to start automatic renewal process before expiration. Has no effect if less than 60 days. Represented by either a subset of RFC 3339 duration supporting years, months, and days (e.g., P90D), or a string such as 2160h.
+   *
+   * @schema CertificateSpecInitProvider#earlyRenewalDuration
+   */
+  readonly earlyRenewalDuration?: string;
+
+  /**
+   * Specifies the algorithm of the public and private key pair that your Amazon issued certificate uses to encrypt data. See ACM Certificate characteristics for more details.
+   *
+   * @schema CertificateSpecInitProvider#keyAlgorithm
+   */
+  readonly keyAlgorithm?: string;
+
+  /**
+   * Configuration block used to set certificate options. Detailed below.
+   *
+   * @schema CertificateSpecInitProvider#options
+   */
+  readonly options?: CertificateSpecInitProviderOptions[];
+
+  /**
+   * Set of domains that should be SANs in the issued certificate.
+   *
+   * @schema CertificateSpecInitProvider#subjectAlternativeNames
+   */
+  readonly subjectAlternativeNames?: string[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema CertificateSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Which method to use for validation.
+   *
+   * @schema CertificateSpecInitProvider#validationMethod
+   */
+  readonly validationMethod?: string;
+
+  /**
+   * Configuration block used to specify information about the initial validation of each domain name. Detailed below.
+   *
+   * @schema CertificateSpecInitProvider#validationOption
+   */
+  readonly validationOption?: CertificateSpecInitProviderValidationOption[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProvider(obj: CertificateSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateAuthorityArn': obj.certificateAuthorityArn,
+    'certificateBody': obj.certificateBody,
+    'certificateChain': obj.certificateChain,
+    'domainName': obj.domainName,
+    'earlyRenewalDuration': obj.earlyRenewalDuration,
+    'keyAlgorithm': obj.keyAlgorithm,
+    'options': obj.options?.map(y => toJson_CertificateSpecInitProviderOptions(y)),
+    'subjectAlternativeNames': obj.subjectAlternativeNames?.map(y => y),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'validationMethod': obj.validationMethod,
+    'validationOption': obj.validationOption?.map(y => toJson_CertificateSpecInitProviderValidationOption(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema CertificateSpecManagementPolicies
+ */
+export enum CertificateSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -347,43 +462,6 @@ export function toJson_CertificateSpecProviderConfigRef(obj: CertificateSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_CertificateSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema CertificateSpecProviderRef
- */
-export interface CertificateSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema CertificateSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema CertificateSpecProviderRef#policy
-   */
-  readonly policy?: CertificateSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'CertificateSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CertificateSpecProviderRef(obj: CertificateSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_CertificateSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -553,14 +631,14 @@ export interface CertificateSpecForProviderValidationOption {
    *
    * @schema CertificateSpecForProviderValidationOption#domainName
    */
-  readonly domainName: string;
+  readonly domainName?: string;
 
   /**
    * Domain name that you want ACM to use to send you validation emails. This domain name is the suffix of the email addresses that you want ACM to use. This must be the same as the domain_name value or a superdomain of the domain_name value. For example, if you request a certificate for "testing.example.com", you can specify "example.com" for this value.
    *
    * @schema CertificateSpecForProviderValidationOption#validationDomain
    */
-  readonly validationDomain: string;
+  readonly validationDomain?: string;
 
 }
 
@@ -569,6 +647,68 @@ export interface CertificateSpecForProviderValidationOption {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CertificateSpecForProviderValidationOption(obj: CertificateSpecForProviderValidationOption | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'domainName': obj.domainName,
+    'validationDomain': obj.validationDomain,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateSpecInitProviderOptions
+ */
+export interface CertificateSpecInitProviderOptions {
+  /**
+   * Whether certificate details should be added to a certificate transparency log. Valid values are ENABLED or DISABLED. See https://docs.aws.amazon.com/acm/latest/userguide/acm-concepts.html#concept-transparency for more details.
+   *
+   * @schema CertificateSpecInitProviderOptions#certificateTransparencyLoggingPreference
+   */
+  readonly certificateTransparencyLoggingPreference?: string;
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderOptions(obj: CertificateSpecInitProviderOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateTransparencyLoggingPreference': obj.certificateTransparencyLoggingPreference,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateSpecInitProviderValidationOption
+ */
+export interface CertificateSpecInitProviderValidationOption {
+  /**
+   * Fully qualified domain name (FQDN) in the certificate.
+   *
+   * @schema CertificateSpecInitProviderValidationOption#domainName
+   */
+  readonly domainName?: string;
+
+  /**
+   * Domain name that you want ACM to use to send you validation emails. This domain name is the suffix of the email addresses that you want ACM to use. This must be the same as the domain_name value or a superdomain of the domain_name value. For example, if you request a certificate for "testing.example.com", you can specify "example.com" for this value.
+   *
+   * @schema CertificateSpecInitProviderValidationOption#validationDomain
+   */
+  readonly validationDomain?: string;
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderValidationOption' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderValidationOption(obj: CertificateSpecInitProviderValidationOption | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'domainName': obj.domainName,
@@ -606,43 +746,6 @@ export interface CertificateSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CertificateSpecProviderConfigRefPolicy(obj: CertificateSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema CertificateSpecProviderRefPolicy
- */
-export interface CertificateSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema CertificateSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: CertificateSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema CertificateSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: CertificateSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'CertificateSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CertificateSpecProviderRefPolicy(obj: CertificateSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -753,30 +856,6 @@ export enum CertificateSpecProviderConfigRefPolicyResolution {
  * @schema CertificateSpecProviderConfigRefPolicyResolve
  */
 export enum CertificateSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema CertificateSpecProviderRefPolicyResolution
- */
-export enum CertificateSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema CertificateSpecProviderRefPolicyResolve
- */
-export enum CertificateSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -941,7 +1020,7 @@ export function toJson_CertificateValidationProps(obj: CertificateValidationProp
  */
 export interface CertificateValidationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CertificateValidationSpec#deletionPolicy
    */
@@ -953,11 +1032,18 @@ export interface CertificateValidationSpec {
   readonly forProvider: CertificateValidationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema CertificateValidationSpec#managementPolicy
+   * @schema CertificateValidationSpec#initProvider
    */
-  readonly managementPolicy?: CertificateValidationSpecManagementPolicy;
+  readonly initProvider?: CertificateValidationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema CertificateValidationSpec#managementPolicies
+   */
+  readonly managementPolicies?: CertificateValidationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -965,13 +1051,6 @@ export interface CertificateValidationSpec {
    * @schema CertificateValidationSpec#providerConfigRef
    */
   readonly providerConfigRef?: CertificateValidationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema CertificateValidationSpec#providerRef
-   */
-  readonly providerRef?: CertificateValidationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -998,9 +1077,9 @@ export function toJson_CertificateValidationSpec(obj: CertificateValidationSpec 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CertificateValidationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_CertificateValidationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_CertificateValidationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_CertificateValidationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CertificateValidationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_CertificateValidationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1010,7 +1089,7 @@ export function toJson_CertificateValidationSpec(obj: CertificateValidationSpec 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CertificateValidationSpecDeletionPolicy
  */
@@ -1081,17 +1160,52 @@ export function toJson_CertificateValidationSpecForProvider(obj: CertificateVali
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema CertificateValidationSpecManagementPolicy
+ * @schema CertificateValidationSpecInitProvider
  */
-export enum CertificateValidationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface CertificateValidationSpecInitProvider {
+  /**
+   * List of FQDNs that implement the validation. Only valid for DNS validation method ACM certificates. If this is set, the resource can implement additional sanity checks and has an explicit dependency on the resource that is implementing the validation
+   *
+   * @schema CertificateValidationSpecInitProvider#validationRecordFqdns
+   */
+  readonly validationRecordFqdns?: string[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateValidationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateValidationSpecInitProvider(obj: CertificateValidationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'validationRecordFqdns': obj.validationRecordFqdns?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema CertificateValidationSpecManagementPolicies
+ */
+export enum CertificateValidationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1125,43 +1239,6 @@ export function toJson_CertificateValidationSpecProviderConfigRef(obj: Certifica
   const result = {
     'name': obj.name,
     'policy': toJson_CertificateValidationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema CertificateValidationSpecProviderRef
- */
-export interface CertificateValidationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema CertificateValidationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema CertificateValidationSpecProviderRef#policy
-   */
-  readonly policy?: CertificateValidationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'CertificateValidationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CertificateValidationSpecProviderRef(obj: CertificateValidationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_CertificateValidationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1370,43 +1447,6 @@ export function toJson_CertificateValidationSpecProviderConfigRefPolicy(obj: Cer
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema CertificateValidationSpecProviderRefPolicy
- */
-export interface CertificateValidationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema CertificateValidationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: CertificateValidationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema CertificateValidationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: CertificateValidationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'CertificateValidationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CertificateValidationSpecProviderRefPolicy(obj: CertificateValidationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema CertificateValidationSpecPublishConnectionDetailsToConfigRef
@@ -1580,30 +1620,6 @@ export enum CertificateValidationSpecProviderConfigRefPolicyResolution {
  * @schema CertificateValidationSpecProviderConfigRefPolicyResolve
  */
 export enum CertificateValidationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema CertificateValidationSpecProviderRefPolicyResolution
- */
-export enum CertificateValidationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema CertificateValidationSpecProviderRefPolicyResolve
- */
-export enum CertificateValidationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

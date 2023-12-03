@@ -99,7 +99,7 @@ export function toJson_AppProps(obj: AppProps | undefined): Record<string, any> 
  */
 export interface AppSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AppSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface AppSpec {
   readonly forProvider: AppSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema AppSpec#managementPolicy
+   * @schema AppSpec#initProvider
    */
-  readonly managementPolicy?: AppSpecManagementPolicy;
+  readonly initProvider?: AppSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema AppSpec#managementPolicies
+   */
+  readonly managementPolicies?: AppSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface AppSpec {
    * @schema AppSpec#providerConfigRef
    */
   readonly providerConfigRef?: AppSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema AppSpec#providerRef
-   */
-  readonly providerRef?: AppSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_AppSpec(obj: AppSpec | undefined): Record<string, any> | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AppSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_AppSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_AppSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_AppSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AppSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_AppSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_AppSpec(obj: AppSpec | undefined): Record<string, any> | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AppSpecDeletionPolicy
  */
@@ -224,17 +224,61 @@ export function toJson_AppSpecForProvider(obj: AppSpecForProvider | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema AppSpecManagementPolicy
+ * @schema AppSpecInitProvider
  */
-export enum AppSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface AppSpecInitProvider {
+  /**
+   * The compute platform can either be ECS, Lambda, or Server. Default is Server.
+   *
+   * @default Server.
+   * @schema AppSpecInitProvider#computePlatform
+   */
+  readonly computePlatform?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema AppSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'AppSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AppSpecInitProvider(obj: AppSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'computePlatform': obj.computePlatform,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema AppSpecManagementPolicies
+ */
+export enum AppSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -268,43 +312,6 @@ export function toJson_AppSpecProviderConfigRef(obj: AppSpecProviderConfigRef | 
   const result = {
     'name': obj.name,
     'policy': toJson_AppSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema AppSpecProviderRef
- */
-export interface AppSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema AppSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema AppSpecProviderRef#policy
-   */
-  readonly policy?: AppSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'AppSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AppSpecProviderRef(obj: AppSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_AppSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -431,43 +438,6 @@ export function toJson_AppSpecProviderConfigRefPolicy(obj: AppSpecProviderConfig
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema AppSpecProviderRefPolicy
- */
-export interface AppSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema AppSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: AppSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema AppSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: AppSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'AppSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AppSpecProviderRefPolicy(obj: AppSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema AppSpecPublishConnectionDetailsToConfigRef
@@ -567,30 +537,6 @@ export enum AppSpecProviderConfigRefPolicyResolution {
  * @schema AppSpecProviderConfigRefPolicyResolve
  */
 export enum AppSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema AppSpecProviderRefPolicyResolution
- */
-export enum AppSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema AppSpecProviderRefPolicyResolve
- */
-export enum AppSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -755,7 +701,7 @@ export function toJson_DeploymentConfigProps(obj: DeploymentConfigProps | undefi
  */
 export interface DeploymentConfigSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DeploymentConfigSpec#deletionPolicy
    */
@@ -767,11 +713,18 @@ export interface DeploymentConfigSpec {
   readonly forProvider: DeploymentConfigSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DeploymentConfigSpec#managementPolicy
+   * @schema DeploymentConfigSpec#initProvider
    */
-  readonly managementPolicy?: DeploymentConfigSpecManagementPolicy;
+  readonly initProvider?: DeploymentConfigSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DeploymentConfigSpec#managementPolicies
+   */
+  readonly managementPolicies?: DeploymentConfigSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -779,13 +732,6 @@ export interface DeploymentConfigSpec {
    * @schema DeploymentConfigSpec#providerConfigRef
    */
   readonly providerConfigRef?: DeploymentConfigSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DeploymentConfigSpec#providerRef
-   */
-  readonly providerRef?: DeploymentConfigSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -812,9 +758,9 @@ export function toJson_DeploymentConfigSpec(obj: DeploymentConfigSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DeploymentConfigSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DeploymentConfigSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DeploymentConfigSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DeploymentConfigSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DeploymentConfigSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DeploymentConfigSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -824,7 +770,7 @@ export function toJson_DeploymentConfigSpec(obj: DeploymentConfigSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DeploymentConfigSpecDeletionPolicy
  */
@@ -888,17 +834,69 @@ export function toJson_DeploymentConfigSpecForProvider(obj: DeploymentConfigSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DeploymentConfigSpecManagementPolicy
+ * @schema DeploymentConfigSpecInitProvider
  */
-export enum DeploymentConfigSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DeploymentConfigSpecInitProvider {
+  /**
+   * The compute platform can be Server, Lambda, or ECS. Default is Server.
+   *
+   * @default Server.
+   * @schema DeploymentConfigSpecInitProvider#computePlatform
+   */
+  readonly computePlatform?: string;
+
+  /**
+   * A minimum_healthy_hosts block. Required for Server compute platform. Minimum Healthy Hosts are documented below.
+   *
+   * @schema DeploymentConfigSpecInitProvider#minimumHealthyHosts
+   */
+  readonly minimumHealthyHosts?: DeploymentConfigSpecInitProviderMinimumHealthyHosts[];
+
+  /**
+   * A traffic_routing_config block. Traffic Routing Config is documented below.
+   *
+   * @schema DeploymentConfigSpecInitProvider#trafficRoutingConfig
+   */
+  readonly trafficRoutingConfig?: DeploymentConfigSpecInitProviderTrafficRoutingConfig[];
+
+}
+
+/**
+ * Converts an object of type 'DeploymentConfigSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentConfigSpecInitProvider(obj: DeploymentConfigSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'computePlatform': obj.computePlatform,
+    'minimumHealthyHosts': obj.minimumHealthyHosts?.map(y => toJson_DeploymentConfigSpecInitProviderMinimumHealthyHosts(y)),
+    'trafficRoutingConfig': obj.trafficRoutingConfig?.map(y => toJson_DeploymentConfigSpecInitProviderTrafficRoutingConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DeploymentConfigSpecManagementPolicies
+ */
+export enum DeploymentConfigSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -932,43 +930,6 @@ export function toJson_DeploymentConfigSpecProviderConfigRef(obj: DeploymentConf
   const result = {
     'name': obj.name,
     'policy': toJson_DeploymentConfigSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DeploymentConfigSpecProviderRef
- */
-export interface DeploymentConfigSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DeploymentConfigSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DeploymentConfigSpecProviderRef#policy
-   */
-  readonly policy?: DeploymentConfigSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DeploymentConfigSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DeploymentConfigSpecProviderRef(obj: DeploymentConfigSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DeploymentConfigSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1136,6 +1097,84 @@ export function toJson_DeploymentConfigSpecForProviderTrafficRoutingConfig(obj: 
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DeploymentConfigSpecInitProviderMinimumHealthyHosts
+ */
+export interface DeploymentConfigSpecInitProviderMinimumHealthyHosts {
+  /**
+   * The type can either be FLEET_PERCENT or HOST_COUNT.
+   *
+   * @schema DeploymentConfigSpecInitProviderMinimumHealthyHosts#type
+   */
+  readonly type?: string;
+
+  /**
+   * The value when the type is FLEET_PERCENT represents the minimum number of healthy instances as a percentage of the total number of instances in the deployment. If you specify FLEET_PERCENT, at the start of the deployment, AWS CodeDeploy converts the percentage to the equivalent number of instance and rounds up fractional instances. When the type is HOST_COUNT, the value represents the minimum number of healthy instances as an absolute value.
+   *
+   * @schema DeploymentConfigSpecInitProviderMinimumHealthyHosts#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'DeploymentConfigSpecInitProviderMinimumHealthyHosts' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentConfigSpecInitProviderMinimumHealthyHosts(obj: DeploymentConfigSpecInitProviderMinimumHealthyHosts | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'type': obj.type,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentConfigSpecInitProviderTrafficRoutingConfig
+ */
+export interface DeploymentConfigSpecInitProviderTrafficRoutingConfig {
+  /**
+   * The time based canary configuration information. If type is TimeBasedLinear, use time_based_linear instead.
+   *
+   * @schema DeploymentConfigSpecInitProviderTrafficRoutingConfig#timeBasedCanary
+   */
+  readonly timeBasedCanary?: DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedCanary[];
+
+  /**
+   * The time based linear configuration information. If type is TimeBasedCanary, use time_based_canary instead.
+   *
+   * @schema DeploymentConfigSpecInitProviderTrafficRoutingConfig#timeBasedLinear
+   */
+  readonly timeBasedLinear?: DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedLinear[];
+
+  /**
+   * Type of traffic routing config. One of TimeBasedCanary, TimeBasedLinear, AllAtOnce.
+   *
+   * @schema DeploymentConfigSpecInitProviderTrafficRoutingConfig#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeploymentConfigSpecInitProviderTrafficRoutingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentConfigSpecInitProviderTrafficRoutingConfig(obj: DeploymentConfigSpecInitProviderTrafficRoutingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'timeBasedCanary': obj.timeBasedCanary?.map(y => toJson_DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedCanary(y)),
+    'timeBasedLinear': obj.timeBasedLinear?.map(y => toJson_DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedLinear(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema DeploymentConfigSpecProviderConfigRefPolicy
@@ -1162,43 +1201,6 @@ export interface DeploymentConfigSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DeploymentConfigSpecProviderConfigRefPolicy(obj: DeploymentConfigSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema DeploymentConfigSpecProviderRefPolicy
- */
-export interface DeploymentConfigSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DeploymentConfigSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DeploymentConfigSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DeploymentConfigSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DeploymentConfigSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DeploymentConfigSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DeploymentConfigSpecProviderRefPolicy(obj: DeploymentConfigSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1362,6 +1364,76 @@ export function toJson_DeploymentConfigSpecForProviderTrafficRoutingConfigTimeBa
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedCanary
+ */
+export interface DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedCanary {
+  /**
+   * The number of minutes between the first and second traffic shifts of a TimeBasedCanary deployment.
+   *
+   * @schema DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedCanary#interval
+   */
+  readonly interval?: number;
+
+  /**
+   * The percentage of traffic to shift in the first increment of a TimeBasedCanary deployment.
+   *
+   * @schema DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedCanary#percentage
+   */
+  readonly percentage?: number;
+
+}
+
+/**
+ * Converts an object of type 'DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedCanary' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedCanary(obj: DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedCanary | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'interval': obj.interval,
+    'percentage': obj.percentage,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedLinear
+ */
+export interface DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedLinear {
+  /**
+   * The number of minutes between the first and second traffic shifts of a TimeBasedCanary deployment.
+   *
+   * @schema DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedLinear#interval
+   */
+  readonly interval?: number;
+
+  /**
+   * The percentage of traffic to shift in the first increment of a TimeBasedCanary deployment.
+   *
+   * @schema DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedLinear#percentage
+   */
+  readonly percentage?: number;
+
+}
+
+/**
+ * Converts an object of type 'DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedLinear' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedLinear(obj: DeploymentConfigSpecInitProviderTrafficRoutingConfigTimeBasedLinear | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'interval': obj.interval,
+    'percentage': obj.percentage,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema DeploymentConfigSpecProviderConfigRefPolicyResolution
@@ -1379,30 +1451,6 @@ export enum DeploymentConfigSpecProviderConfigRefPolicyResolution {
  * @schema DeploymentConfigSpecProviderConfigRefPolicyResolve
  */
 export enum DeploymentConfigSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DeploymentConfigSpecProviderRefPolicyResolution
- */
-export enum DeploymentConfigSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DeploymentConfigSpecProviderRefPolicyResolve
- */
-export enum DeploymentConfigSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1567,7 +1615,7 @@ export function toJson_DeploymentGroupProps(obj: DeploymentGroupProps | undefine
  */
 export interface DeploymentGroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DeploymentGroupSpec#deletionPolicy
    */
@@ -1579,11 +1627,18 @@ export interface DeploymentGroupSpec {
   readonly forProvider: DeploymentGroupSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DeploymentGroupSpec#managementPolicy
+   * @schema DeploymentGroupSpec#initProvider
    */
-  readonly managementPolicy?: DeploymentGroupSpecManagementPolicy;
+  readonly initProvider?: DeploymentGroupSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DeploymentGroupSpec#managementPolicies
+   */
+  readonly managementPolicies?: DeploymentGroupSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1591,13 +1646,6 @@ export interface DeploymentGroupSpec {
    * @schema DeploymentGroupSpec#providerConfigRef
    */
   readonly providerConfigRef?: DeploymentGroupSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DeploymentGroupSpec#providerRef
-   */
-  readonly providerRef?: DeploymentGroupSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1624,9 +1672,9 @@ export function toJson_DeploymentGroupSpec(obj: DeploymentGroupSpec | undefined)
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DeploymentGroupSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DeploymentGroupSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DeploymentGroupSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DeploymentGroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DeploymentGroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DeploymentGroupSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1636,7 +1684,7 @@ export function toJson_DeploymentGroupSpec(obj: DeploymentGroupSpec | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DeploymentGroupSpecDeletionPolicy
  */
@@ -1827,17 +1875,148 @@ export function toJson_DeploymentGroupSpecForProvider(obj: DeploymentGroupSpecFo
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DeploymentGroupSpecManagementPolicy
+ * @schema DeploymentGroupSpecInitProvider
  */
-export enum DeploymentGroupSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DeploymentGroupSpecInitProvider {
+  /**
+   * Configuration block of alarms associated with the deployment group (documented below).
+   *
+   * @schema DeploymentGroupSpecInitProvider#alarmConfiguration
+   */
+  readonly alarmConfiguration?: DeploymentGroupSpecInitProviderAlarmConfiguration[];
+
+  /**
+   * Configuration block of the automatic rollback configuration associated with the deployment group (documented below).
+   *
+   * @schema DeploymentGroupSpecInitProvider#autoRollbackConfiguration
+   */
+  readonly autoRollbackConfiguration?: DeploymentGroupSpecInitProviderAutoRollbackConfiguration[];
+
+  /**
+   * Autoscaling groups associated with the deployment group.
+   *
+   * @schema DeploymentGroupSpecInitProvider#autoscalingGroups
+   */
+  readonly autoscalingGroups?: string[];
+
+  /**
+   * Configuration block of the blue/green deployment options for a deployment group (documented below).
+   *
+   * @schema DeploymentGroupSpecInitProvider#blueGreenDeploymentConfig
+   */
+  readonly blueGreenDeploymentConfig?: DeploymentGroupSpecInitProviderBlueGreenDeploymentConfig[];
+
+  /**
+   * The name of the group's deployment config. The default is "CodeDeployDefault.OneAtATime".
+   *
+   * @schema DeploymentGroupSpecInitProvider#deploymentConfigName
+   */
+  readonly deploymentConfigName?: string;
+
+  /**
+   * Configuration block of the type of deployment, either in-place or blue/green, you want to run and whether to route deployment traffic behind a load balancer (documented below).
+   *
+   * @schema DeploymentGroupSpecInitProvider#deploymentStyle
+   */
+  readonly deploymentStyle?: DeploymentGroupSpecInitProviderDeploymentStyle[];
+
+  /**
+   * Tag filters associated with the deployment group. See the AWS docs for details.
+   *
+   * @schema DeploymentGroupSpecInitProvider#ec2TagFilter
+   */
+  readonly ec2TagFilter?: DeploymentGroupSpecInitProviderEc2TagFilter[];
+
+  /**
+   * Configuration block(s) of Tag filters associated with the deployment group, which are also referred to as tag groups (documented below). See the AWS docs for details.
+   *
+   * @schema DeploymentGroupSpecInitProvider#ec2TagSet
+   */
+  readonly ec2TagSet?: DeploymentGroupSpecInitProviderEc2TagSet[];
+
+  /**
+   * Configuration block(s) of the ECS services for a deployment group (documented below).
+   *
+   * @schema DeploymentGroupSpecInitProvider#ecsService
+   */
+  readonly ecsService?: any[];
+
+  /**
+   * Single configuration block of the load balancer to use in a blue/green deployment (documented below).
+   *
+   * @schema DeploymentGroupSpecInitProvider#loadBalancerInfo
+   */
+  readonly loadBalancerInfo?: DeploymentGroupSpecInitProviderLoadBalancerInfo[];
+
+  /**
+   * On premise tag filters associated with the group. See the AWS docs for details.
+   *
+   * @schema DeploymentGroupSpecInitProvider#onPremisesInstanceTagFilter
+   */
+  readonly onPremisesInstanceTagFilter?: DeploymentGroupSpecInitProviderOnPremisesInstanceTagFilter[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema DeploymentGroupSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Configuration block(s) of the triggers for the deployment group (documented below).
+   *
+   * @schema DeploymentGroupSpecInitProvider#triggerConfiguration
+   */
+  readonly triggerConfiguration?: DeploymentGroupSpecInitProviderTriggerConfiguration[];
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProvider(obj: DeploymentGroupSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarmConfiguration': obj.alarmConfiguration?.map(y => toJson_DeploymentGroupSpecInitProviderAlarmConfiguration(y)),
+    'autoRollbackConfiguration': obj.autoRollbackConfiguration?.map(y => toJson_DeploymentGroupSpecInitProviderAutoRollbackConfiguration(y)),
+    'autoscalingGroups': obj.autoscalingGroups?.map(y => y),
+    'blueGreenDeploymentConfig': obj.blueGreenDeploymentConfig?.map(y => toJson_DeploymentGroupSpecInitProviderBlueGreenDeploymentConfig(y)),
+    'deploymentConfigName': obj.deploymentConfigName,
+    'deploymentStyle': obj.deploymentStyle?.map(y => toJson_DeploymentGroupSpecInitProviderDeploymentStyle(y)),
+    'ec2TagFilter': obj.ec2TagFilter?.map(y => toJson_DeploymentGroupSpecInitProviderEc2TagFilter(y)),
+    'ec2TagSet': obj.ec2TagSet?.map(y => toJson_DeploymentGroupSpecInitProviderEc2TagSet(y)),
+    'ecsService': obj.ecsService?.map(y => y),
+    'loadBalancerInfo': obj.loadBalancerInfo?.map(y => toJson_DeploymentGroupSpecInitProviderLoadBalancerInfo(y)),
+    'onPremisesInstanceTagFilter': obj.onPremisesInstanceTagFilter?.map(y => toJson_DeploymentGroupSpecInitProviderOnPremisesInstanceTagFilter(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'triggerConfiguration': obj.triggerConfiguration?.map(y => toJson_DeploymentGroupSpecInitProviderTriggerConfiguration(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DeploymentGroupSpecManagementPolicies
+ */
+export enum DeploymentGroupSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1871,43 +2050,6 @@ export function toJson_DeploymentGroupSpecProviderConfigRef(obj: DeploymentGroup
   const result = {
     'name': obj.name,
     'policy': toJson_DeploymentGroupSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DeploymentGroupSpecProviderRef
- */
-export interface DeploymentGroupSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DeploymentGroupSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DeploymentGroupSpecProviderRef#policy
-   */
-  readonly policy?: DeploymentGroupSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DeploymentGroupSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DeploymentGroupSpecProviderRef(obj: DeploymentGroupSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DeploymentGroupSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2550,14 +2692,14 @@ export interface DeploymentGroupSpecForProviderTriggerConfiguration {
    *
    * @schema DeploymentGroupSpecForProviderTriggerConfiguration#triggerEvents
    */
-  readonly triggerEvents: string[];
+  readonly triggerEvents?: string[];
 
   /**
    * The name of the notification trigger.
    *
    * @schema DeploymentGroupSpecForProviderTriggerConfiguration#triggerName
    */
-  readonly triggerName: string;
+  readonly triggerName?: string;
 
   /**
    * The ARN of the SNS topic through which notifications are sent.
@@ -2601,6 +2743,355 @@ export function toJson_DeploymentGroupSpecForProviderTriggerConfiguration(obj: D
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DeploymentGroupSpecInitProviderAlarmConfiguration
+ */
+export interface DeploymentGroupSpecInitProviderAlarmConfiguration {
+  /**
+   * A list of alarms configured for the deployment group. A maximum of 10 alarms can be added to a deployment group.
+   *
+   * @schema DeploymentGroupSpecInitProviderAlarmConfiguration#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * Indicates whether the alarm configuration is enabled. This option is useful when you want to temporarily deactivate alarm monitoring for a deployment group without having to add the same alarms again later.
+   *
+   * @schema DeploymentGroupSpecInitProviderAlarmConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Indicates whether a deployment should continue if information about the current state of alarms cannot be retrieved from CloudWatch. The default value is false.
+   *
+   * @schema DeploymentGroupSpecInitProviderAlarmConfiguration#ignorePollAlarmFailure
+   */
+  readonly ignorePollAlarmFailure?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderAlarmConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderAlarmConfiguration(obj: DeploymentGroupSpecInitProviderAlarmConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'enabled': obj.enabled,
+    'ignorePollAlarmFailure': obj.ignorePollAlarmFailure,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentGroupSpecInitProviderAutoRollbackConfiguration
+ */
+export interface DeploymentGroupSpecInitProviderAutoRollbackConfiguration {
+  /**
+   * Indicates whether the alarm configuration is enabled. This option is useful when you want to temporarily deactivate alarm monitoring for a deployment group without having to add the same alarms again later.
+   *
+   * @schema DeploymentGroupSpecInitProviderAutoRollbackConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The event type or types that trigger a rollback. Supported types are DEPLOYMENT_FAILURE and DEPLOYMENT_STOP_ON_ALARM.
+   *
+   * @schema DeploymentGroupSpecInitProviderAutoRollbackConfiguration#events
+   */
+  readonly events?: string[];
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderAutoRollbackConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderAutoRollbackConfiguration(obj: DeploymentGroupSpecInitProviderAutoRollbackConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'events': obj.events?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentGroupSpecInitProviderBlueGreenDeploymentConfig
+ */
+export interface DeploymentGroupSpecInitProviderBlueGreenDeploymentConfig {
+  /**
+   * Information about the action to take when newly provisioned instances are ready to receive traffic in a blue/green deployment (documented below).
+   *
+   * @schema DeploymentGroupSpecInitProviderBlueGreenDeploymentConfig#deploymentReadyOption
+   */
+  readonly deploymentReadyOption?: DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigDeploymentReadyOption[];
+
+  /**
+   * Information about how instances are provisioned for a replacement environment in a blue/green deployment (documented below).
+   *
+   * @schema DeploymentGroupSpecInitProviderBlueGreenDeploymentConfig#greenFleetProvisioningOption
+   */
+  readonly greenFleetProvisioningOption?: DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigGreenFleetProvisioningOption[];
+
+  /**
+   * Information about whether to terminate instances in the original fleet during a blue/green deployment (documented below).
+   *
+   * @schema DeploymentGroupSpecInitProviderBlueGreenDeploymentConfig#terminateBlueInstancesOnDeploymentSuccess
+   */
+  readonly terminateBlueInstancesOnDeploymentSuccess?: DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigTerminateBlueInstancesOnDeploymentSuccess[];
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderBlueGreenDeploymentConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderBlueGreenDeploymentConfig(obj: DeploymentGroupSpecInitProviderBlueGreenDeploymentConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deploymentReadyOption': obj.deploymentReadyOption?.map(y => toJson_DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigDeploymentReadyOption(y)),
+    'greenFleetProvisioningOption': obj.greenFleetProvisioningOption?.map(y => toJson_DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigGreenFleetProvisioningOption(y)),
+    'terminateBlueInstancesOnDeploymentSuccess': obj.terminateBlueInstancesOnDeploymentSuccess?.map(y => toJson_DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigTerminateBlueInstancesOnDeploymentSuccess(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentGroupSpecInitProviderDeploymentStyle
+ */
+export interface DeploymentGroupSpecInitProviderDeploymentStyle {
+  /**
+   * Indicates whether to route deployment traffic behind a load balancer. Valid Values are WITH_TRAFFIC_CONTROL or WITHOUT_TRAFFIC_CONTROL. Default is WITHOUT_TRAFFIC_CONTROL.
+   *
+   * @default WITHOUT_TRAFFIC_CONTROL.
+   * @schema DeploymentGroupSpecInitProviderDeploymentStyle#deploymentOption
+   */
+  readonly deploymentOption?: string;
+
+  /**
+   * Indicates whether to run an in-place deployment or a blue/green deployment. Valid Values are IN_PLACE or BLUE_GREEN. Default is IN_PLACE.
+   *
+   * @default IN_PLACE.
+   * @schema DeploymentGroupSpecInitProviderDeploymentStyle#deploymentType
+   */
+  readonly deploymentType?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderDeploymentStyle' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderDeploymentStyle(obj: DeploymentGroupSpecInitProviderDeploymentStyle | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deploymentOption': obj.deploymentOption,
+    'deploymentType': obj.deploymentType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentGroupSpecInitProviderEc2TagFilter
+ */
+export interface DeploymentGroupSpecInitProviderEc2TagFilter {
+  /**
+   * The key of the tag filter.
+   *
+   * @schema DeploymentGroupSpecInitProviderEc2TagFilter#key
+   */
+  readonly key?: string;
+
+  /**
+   * The type of the tag filter, either KEY_ONLY, VALUE_ONLY, or KEY_AND_VALUE.
+   *
+   * @schema DeploymentGroupSpecInitProviderEc2TagFilter#type
+   */
+  readonly type?: string;
+
+  /**
+   * The value of the tag filter.
+   *
+   * @schema DeploymentGroupSpecInitProviderEc2TagFilter#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderEc2TagFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderEc2TagFilter(obj: DeploymentGroupSpecInitProviderEc2TagFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'type': obj.type,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentGroupSpecInitProviderEc2TagSet
+ */
+export interface DeploymentGroupSpecInitProviderEc2TagSet {
+  /**
+   * Tag filters associated with the deployment group. See the AWS docs for details.
+   *
+   * @schema DeploymentGroupSpecInitProviderEc2TagSet#ec2TagFilter
+   */
+  readonly ec2TagFilter?: DeploymentGroupSpecInitProviderEc2TagSetEc2TagFilter[];
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderEc2TagSet' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderEc2TagSet(obj: DeploymentGroupSpecInitProviderEc2TagSet | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ec2TagFilter': obj.ec2TagFilter?.map(y => toJson_DeploymentGroupSpecInitProviderEc2TagSetEc2TagFilter(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentGroupSpecInitProviderLoadBalancerInfo
+ */
+export interface DeploymentGroupSpecInitProviderLoadBalancerInfo {
+  /**
+   * The Classic Elastic Load Balancer to use in a deployment. Conflicts with target_group_info and target_group_pair_info.
+   *
+   * @schema DeploymentGroupSpecInitProviderLoadBalancerInfo#elbInfo
+   */
+  readonly elbInfo?: any[];
+
+  /**
+   * The (Application/Network Load Balancer) target group to use in a deployment. Conflicts with elb_info and target_group_pair_info.
+   *
+   * @schema DeploymentGroupSpecInitProviderLoadBalancerInfo#targetGroupInfo
+   */
+  readonly targetGroupInfo?: DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupInfo[];
+
+  /**
+   * The (Application/Network Load Balancer) target group pair to use in a deployment. Conflicts with elb_info and target_group_info.
+   *
+   * @schema DeploymentGroupSpecInitProviderLoadBalancerInfo#targetGroupPairInfo
+   */
+  readonly targetGroupPairInfo?: DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfo[];
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderLoadBalancerInfo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderLoadBalancerInfo(obj: DeploymentGroupSpecInitProviderLoadBalancerInfo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'elbInfo': obj.elbInfo?.map(y => y),
+    'targetGroupInfo': obj.targetGroupInfo?.map(y => toJson_DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupInfo(y)),
+    'targetGroupPairInfo': obj.targetGroupPairInfo?.map(y => toJson_DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfo(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentGroupSpecInitProviderOnPremisesInstanceTagFilter
+ */
+export interface DeploymentGroupSpecInitProviderOnPremisesInstanceTagFilter {
+  /**
+   * The key of the tag filter.
+   *
+   * @schema DeploymentGroupSpecInitProviderOnPremisesInstanceTagFilter#key
+   */
+  readonly key?: string;
+
+  /**
+   * The type of the tag filter, either KEY_ONLY, VALUE_ONLY, or KEY_AND_VALUE.
+   *
+   * @schema DeploymentGroupSpecInitProviderOnPremisesInstanceTagFilter#type
+   */
+  readonly type?: string;
+
+  /**
+   * The value of the tag filter.
+   *
+   * @schema DeploymentGroupSpecInitProviderOnPremisesInstanceTagFilter#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderOnPremisesInstanceTagFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderOnPremisesInstanceTagFilter(obj: DeploymentGroupSpecInitProviderOnPremisesInstanceTagFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'type': obj.type,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentGroupSpecInitProviderTriggerConfiguration
+ */
+export interface DeploymentGroupSpecInitProviderTriggerConfiguration {
+  /**
+   * The event type or types for which notifications are triggered. Some values that are supported: DeploymentStart, DeploymentSuccess, DeploymentFailure, DeploymentStop, DeploymentRollback, InstanceStart, InstanceSuccess, InstanceFailure.  See the CodeDeploy documentation for all possible values.
+   *
+   * @schema DeploymentGroupSpecInitProviderTriggerConfiguration#triggerEvents
+   */
+  readonly triggerEvents?: string[];
+
+  /**
+   * The name of the notification trigger.
+   *
+   * @schema DeploymentGroupSpecInitProviderTriggerConfiguration#triggerName
+   */
+  readonly triggerName?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderTriggerConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderTriggerConfiguration(obj: DeploymentGroupSpecInitProviderTriggerConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'triggerEvents': obj.triggerEvents?.map(y => y),
+    'triggerName': obj.triggerName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema DeploymentGroupSpecProviderConfigRefPolicy
@@ -2627,43 +3118,6 @@ export interface DeploymentGroupSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DeploymentGroupSpecProviderConfigRefPolicy(obj: DeploymentGroupSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema DeploymentGroupSpecProviderRefPolicy
- */
-export interface DeploymentGroupSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DeploymentGroupSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DeploymentGroupSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DeploymentGroupSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DeploymentGroupSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DeploymentGroupSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DeploymentGroupSpecProviderRefPolicy(obj: DeploymentGroupSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3213,14 +3667,14 @@ export interface DeploymentGroupSpecForProviderLoadBalancerInfoTargetGroupPairIn
    *
    * @schema DeploymentGroupSpecForProviderLoadBalancerInfoTargetGroupPairInfo#prodTrafficRoute
    */
-  readonly prodTrafficRoute: DeploymentGroupSpecForProviderLoadBalancerInfoTargetGroupPairInfoProdTrafficRoute[];
+  readonly prodTrafficRoute?: DeploymentGroupSpecForProviderLoadBalancerInfoTargetGroupPairInfoProdTrafficRoute[];
 
   /**
    * Configuration blocks for a target group within a target group pair (documented below).
    *
    * @schema DeploymentGroupSpecForProviderLoadBalancerInfoTargetGroupPairInfo#targetGroup
    */
-  readonly targetGroup: DeploymentGroupSpecForProviderLoadBalancerInfoTargetGroupPairInfoTargetGroup[];
+  readonly targetGroup?: DeploymentGroupSpecForProviderLoadBalancerInfoTargetGroupPairInfoTargetGroup[];
 
   /**
    * Configuration block for the test traffic route (documented below).
@@ -3404,6 +3858,216 @@ export function toJson_DeploymentGroupSpecForProviderTriggerConfigurationTrigger
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigDeploymentReadyOption
+ */
+export interface DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigDeploymentReadyOption {
+  /**
+   * When to reroute traffic from an original environment to a replacement environment in a blue/green deployment.
+   *
+   * @schema DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigDeploymentReadyOption#actionOnTimeout
+   */
+  readonly actionOnTimeout?: string;
+
+  /**
+   * The number of minutes to wait before the status of a blue/green deployment changed to Stopped if rerouting is not started manually. Applies only to the STOP_DEPLOYMENT option for action_on_timeout.
+   *
+   * @schema DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigDeploymentReadyOption#waitTimeInMinutes
+   */
+  readonly waitTimeInMinutes?: number;
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigDeploymentReadyOption' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigDeploymentReadyOption(obj: DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigDeploymentReadyOption | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'actionOnTimeout': obj.actionOnTimeout,
+    'waitTimeInMinutes': obj.waitTimeInMinutes,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigGreenFleetProvisioningOption
+ */
+export interface DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigGreenFleetProvisioningOption {
+  /**
+   * The method used to add instances to a replacement environment.
+   *
+   * @schema DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigGreenFleetProvisioningOption#action
+   */
+  readonly action?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigGreenFleetProvisioningOption' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigGreenFleetProvisioningOption(obj: DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigGreenFleetProvisioningOption | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigTerminateBlueInstancesOnDeploymentSuccess
+ */
+export interface DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigTerminateBlueInstancesOnDeploymentSuccess {
+  /**
+   * The method used to add instances to a replacement environment.
+   *
+   * @schema DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigTerminateBlueInstancesOnDeploymentSuccess#action
+   */
+  readonly action?: string;
+
+  /**
+   * The number of minutes to wait after a successful blue/green deployment before terminating instances from the original environment.
+   *
+   * @schema DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigTerminateBlueInstancesOnDeploymentSuccess#terminationWaitTimeInMinutes
+   */
+  readonly terminationWaitTimeInMinutes?: number;
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigTerminateBlueInstancesOnDeploymentSuccess' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigTerminateBlueInstancesOnDeploymentSuccess(obj: DeploymentGroupSpecInitProviderBlueGreenDeploymentConfigTerminateBlueInstancesOnDeploymentSuccess | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action,
+    'terminationWaitTimeInMinutes': obj.terminationWaitTimeInMinutes,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentGroupSpecInitProviderEc2TagSetEc2TagFilter
+ */
+export interface DeploymentGroupSpecInitProviderEc2TagSetEc2TagFilter {
+  /**
+   * The key of the tag filter.
+   *
+   * @schema DeploymentGroupSpecInitProviderEc2TagSetEc2TagFilter#key
+   */
+  readonly key?: string;
+
+  /**
+   * The type of the tag filter, either KEY_ONLY, VALUE_ONLY, or KEY_AND_VALUE.
+   *
+   * @schema DeploymentGroupSpecInitProviderEc2TagSetEc2TagFilter#type
+   */
+  readonly type?: string;
+
+  /**
+   * The value of the tag filter.
+   *
+   * @schema DeploymentGroupSpecInitProviderEc2TagSetEc2TagFilter#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderEc2TagSetEc2TagFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderEc2TagSetEc2TagFilter(obj: DeploymentGroupSpecInitProviderEc2TagSetEc2TagFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'type': obj.type,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupInfo
+ */
+export interface DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupInfo {
+  /**
+   * The name of the target group that instances in the original environment are deregistered from, and instances in the replacement environment registered with. For in-place deployments, the name of the target group that instances are deregistered from, so they are not serving traffic during a deployment, and then re-registered with after the deployment completes.
+   *
+   * @schema DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupInfo#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupInfo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupInfo(obj: DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupInfo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfo
+ */
+export interface DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfo {
+  /**
+   * Configuration block for the production traffic route (documented below).
+   *
+   * @schema DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfo#prodTrafficRoute
+   */
+  readonly prodTrafficRoute?: DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfoProdTrafficRoute[];
+
+  /**
+   * Configuration blocks for a target group within a target group pair (documented below).
+   *
+   * @schema DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfo#targetGroup
+   */
+  readonly targetGroup?: any[];
+
+  /**
+   * Configuration block for the test traffic route (documented below).
+   *
+   * @schema DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfo#testTrafficRoute
+   */
+  readonly testTrafficRoute?: DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfoTestTrafficRoute[];
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfo(obj: DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'prodTrafficRoute': obj.prodTrafficRoute?.map(y => toJson_DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfoProdTrafficRoute(y)),
+    'targetGroup': obj.targetGroup?.map(y => y),
+    'testTrafficRoute': obj.testTrafficRoute?.map(y => toJson_DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfoTestTrafficRoute(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema DeploymentGroupSpecProviderConfigRefPolicyResolution
@@ -3421,30 +4085,6 @@ export enum DeploymentGroupSpecProviderConfigRefPolicyResolution {
  * @schema DeploymentGroupSpecProviderConfigRefPolicyResolve
  */
 export enum DeploymentGroupSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DeploymentGroupSpecProviderRefPolicyResolution
- */
-export enum DeploymentGroupSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DeploymentGroupSpecProviderRefPolicyResolve
- */
-export enum DeploymentGroupSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3775,7 +4415,7 @@ export interface DeploymentGroupSpecForProviderLoadBalancerInfoTargetGroupPairIn
    *
    * @schema DeploymentGroupSpecForProviderLoadBalancerInfoTargetGroupPairInfoProdTrafficRoute#listenerArns
    */
-  readonly listenerArns: string[];
+  readonly listenerArns?: string[];
 
 }
 
@@ -3845,7 +4485,7 @@ export interface DeploymentGroupSpecForProviderLoadBalancerInfoTargetGroupPairIn
    *
    * @schema DeploymentGroupSpecForProviderLoadBalancerInfoTargetGroupPairInfoTestTrafficRoute#listenerArns
    */
-  readonly listenerArns: string[];
+  readonly listenerArns?: string[];
 
 }
 
@@ -3979,6 +4619,60 @@ export function toJson_DeploymentGroupSpecForProviderTriggerConfigurationTrigger
   const result = {
     'resolution': obj.resolution,
     'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfoProdTrafficRoute
+ */
+export interface DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfoProdTrafficRoute {
+  /**
+   * List of Amazon Resource Names (ARNs) of the load balancer listeners.
+   *
+   * @schema DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfoProdTrafficRoute#listenerArns
+   */
+  readonly listenerArns?: string[];
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfoProdTrafficRoute' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfoProdTrafficRoute(obj: DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfoProdTrafficRoute | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'listenerArns': obj.listenerArns?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfoTestTrafficRoute
+ */
+export interface DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfoTestTrafficRoute {
+  /**
+   * List of Amazon Resource Names (ARNs) of the load balancer listeners.
+   *
+   * @schema DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfoTestTrafficRoute#listenerArns
+   */
+  readonly listenerArns?: string[];
+
+}
+
+/**
+ * Converts an object of type 'DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfoTestTrafficRoute' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfoTestTrafficRoute(obj: DeploymentGroupSpecInitProviderLoadBalancerInfoTargetGroupPairInfoTestTrafficRoute | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'listenerArns': obj.listenerArns?.map(y => y),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});

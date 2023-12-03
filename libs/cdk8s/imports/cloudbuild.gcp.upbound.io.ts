@@ -99,7 +99,7 @@ export function toJson_TriggerProps(obj: TriggerProps | undefined): Record<strin
  */
 export interface TriggerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema TriggerSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface TriggerSpec {
   readonly forProvider: TriggerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema TriggerSpec#managementPolicy
+   * @schema TriggerSpec#initProvider
    */
-  readonly managementPolicy?: TriggerSpecManagementPolicy;
+  readonly initProvider?: TriggerSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema TriggerSpec#managementPolicies
+   */
+  readonly managementPolicies?: TriggerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface TriggerSpec {
    * @schema TriggerSpec#providerConfigRef
    */
   readonly providerConfigRef?: TriggerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema TriggerSpec#providerRef
-   */
-  readonly providerRef?: TriggerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_TriggerSpec(obj: TriggerSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_TriggerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_TriggerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_TriggerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_TriggerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_TriggerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_TriggerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_TriggerSpec(obj: TriggerSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema TriggerSpecDeletionPolicy
  */
@@ -296,6 +296,13 @@ export interface TriggerSpecForProvider {
   readonly pubsubConfig?: TriggerSpecForProviderPubsubConfig[];
 
   /**
+   * The configuration of a trigger that creates a build whenever an event from Repo API is received. Structure is documented below.
+   *
+   * @schema TriggerSpecForProvider#repositoryEventConfig
+   */
+  readonly repositoryEventConfig?: TriggerSpecForProviderRepositoryEventConfig[];
+
+  /**
    * The service account used for all user-controlled operations including triggers.patch, triggers.run, builds.create, and builds.cancel. If no service account is set, then the standard Cloud Build service account ([PROJECT_NUM]@system.gserviceaccount.com) will be used instead. Format: projects/{PROJECT_ID}/serviceAccounts/{ACCOUNT_ID_OR_EMAIL}
    *
    * @schema TriggerSpecForProvider#serviceAccount
@@ -376,6 +383,7 @@ export function toJson_TriggerSpecForProvider(obj: TriggerSpecForProvider | unde
     'name': obj.name,
     'project': obj.project,
     'pubsubConfig': obj.pubsubConfig?.map(y => toJson_TriggerSpecForProviderPubsubConfig(y)),
+    'repositoryEventConfig': obj.repositoryEventConfig?.map(y => toJson_TriggerSpecForProviderRepositoryEventConfig(y)),
     'serviceAccount': obj.serviceAccount,
     'serviceAccountRef': toJson_TriggerSpecForProviderServiceAccountRef(obj.serviceAccountRef),
     'serviceAccountSelector': toJson_TriggerSpecForProviderServiceAccountSelector(obj.serviceAccountSelector),
@@ -391,17 +399,220 @@ export function toJson_TriggerSpecForProvider(obj: TriggerSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema TriggerSpecManagementPolicy
+ * @schema TriggerSpecInitProvider
  */
-export enum TriggerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface TriggerSpecInitProvider {
+  /**
+   * Configuration for manual approval to start a build invocation of this BuildTrigger. Builds created by this trigger will require approval before they execute. Any user with a Cloud Build Approver role for the project can approve a build. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProvider#approvalConfig
+   */
+  readonly approvalConfig?: TriggerSpecInitProviderApprovalConfig[];
+
+  /**
+   * BitbucketServerTriggerConfig describes the configuration of a trigger that creates a build whenever a Bitbucket Server event is received. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProvider#bitbucketServerTriggerConfig
+   */
+  readonly bitbucketServerTriggerConfig?: TriggerSpecInitProviderBitbucketServerTriggerConfig[];
+
+  /**
+   * Contents of the build template. Either a filename or build template must be provided. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProvider#build
+   */
+  readonly build?: TriggerSpecInitProviderBuild[];
+
+  /**
+   * Human-readable description of the trigger.
+   *
+   * @schema TriggerSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Whether the trigger is disabled or not. If true, the trigger will never result in a build.
+   *
+   * @schema TriggerSpecInitProvider#disabled
+   */
+  readonly disabled?: boolean;
+
+  /**
+   * Path, from the source root, to a file whose contents is used for the template. Either a filename or build template must be provided. Set this only when using trigger_template or github. When using Pub/Sub, Webhook or Manual set the file name using git_file_source instead.
+   *
+   * @schema TriggerSpecInitProvider#filename
+   */
+  readonly filename?: string;
+
+  /**
+   * A Common Expression Language string. Used only with Pub/Sub and Webhook.
+   *
+   * @schema TriggerSpecInitProvider#filter
+   */
+  readonly filter?: string;
+
+  /**
+   * The file source describing the local or remote Build template. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProvider#gitFileSource
+   */
+  readonly gitFileSource?: TriggerSpecInitProviderGitFileSource[];
+
+  /**
+   * Describes the configuration of a trigger that creates a build whenever a GitHub event is received. One of trigger_template, github, pubsub_config or webhook_config must be provided. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProvider#github
+   */
+  readonly github?: TriggerSpecInitProviderGithub[];
+
+  /**
+   * ignoredFiles and includedFiles are file glob matches using https://golang.org/pkg/path/filepath/#Match extended with support for **. If ignoredFiles and changed files are both empty, then they are not used to determine whether or not to trigger a build. If ignoredFiles is not empty, then we ignore any files that match any of the ignored_file globs. If the change has no files that are outside of the ignoredFiles globs, then we do not trigger a build.
+   *
+   * @schema TriggerSpecInitProvider#ignoredFiles
+   */
+  readonly ignoredFiles?: string[];
+
+  /**
+   * Build logs will be sent back to GitHub as part of the checkrun result.  Values can be INCLUDE_BUILD_LOGS_UNSPECIFIED or INCLUDE_BUILD_LOGS_WITH_STATUS Possible values are: INCLUDE_BUILD_LOGS_UNSPECIFIED, INCLUDE_BUILD_LOGS_WITH_STATUS.
+   *
+   * @schema TriggerSpecInitProvider#includeBuildLogs
+   */
+  readonly includeBuildLogs?: string;
+
+  /**
+   * ignoredFiles and includedFiles are file glob matches using https://golang.org/pkg/path/filepath/#Match extended with support for **. If any of the files altered in the commit pass the ignoredFiles filter and includedFiles is empty, then as far as this filter is concerned, we should trigger the build. If any of the files altered in the commit pass the ignoredFiles filter and includedFiles is not empty, then we make sure that at least one of those files matches a includedFiles glob. If not, then we do not trigger a build.
+   *
+   * @schema TriggerSpecInitProvider#includedFiles
+   */
+  readonly includedFiles?: string[];
+
+  /**
+   * The Cloud Build location for the trigger. If not specified, "global" is used.
+   *
+   * @schema TriggerSpecInitProvider#location
+   */
+  readonly location?: string;
+
+  /**
+   * Name of the trigger. Must be unique within the project.
+   *
+   * @schema TriggerSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema TriggerSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * PubsubConfig describes the configuration of a trigger that creates a build whenever a Pub/Sub message is published. One of trigger_template, github, pubsub_config webhook_config or source_to_build must be provided. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProvider#pubsubConfig
+   */
+  readonly pubsubConfig?: TriggerSpecInitProviderPubsubConfig[];
+
+  /**
+   * The configuration of a trigger that creates a build whenever an event from Repo API is received. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProvider#repositoryEventConfig
+   */
+  readonly repositoryEventConfig?: TriggerSpecInitProviderRepositoryEventConfig[];
+
+  /**
+   * The repo and ref of the repository from which to build. This field is used only for those triggers that do not respond to SCM events. Triggers that respond to such events build source at whatever commit caused the event. This field is currently only used by Webhook, Pub/Sub, Manual, and Cron triggers. One of trigger_template, github, pubsub_config webhook_config or source_to_build must be provided. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProvider#sourceToBuild
+   */
+  readonly sourceToBuild?: TriggerSpecInitProviderSourceToBuild[];
+
+  /**
+   * Substitutions data for Build resource.
+   *
+   * @schema TriggerSpecInitProvider#substitutions
+   */
+  readonly substitutions?: { [key: string]: string };
+
+  /**
+   * Tags for annotation of a BuildTrigger
+   *
+   * @schema TriggerSpecInitProvider#tags
+   */
+  readonly tags?: string[];
+
+  /**
+   * Template describing the types of source changes to trigger a build. Branch and tag names in trigger templates are interpreted as regular expressions. Any branch or tag change that matches that regular expression will trigger a build. One of trigger_template, github, pubsub_config, webhook_config or source_to_build must be provided. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProvider#triggerTemplate
+   */
+  readonly triggerTemplate?: TriggerSpecInitProviderTriggerTemplate[];
+
+  /**
+   * WebhookConfig describes the configuration of a trigger that creates a build whenever a webhook is sent to a trigger's webhook URL. One of trigger_template, github, pubsub_config webhook_config or source_to_build must be provided. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProvider#webhookConfig
+   */
+  readonly webhookConfig?: any[];
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProvider(obj: TriggerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'approvalConfig': obj.approvalConfig?.map(y => toJson_TriggerSpecInitProviderApprovalConfig(y)),
+    'bitbucketServerTriggerConfig': obj.bitbucketServerTriggerConfig?.map(y => toJson_TriggerSpecInitProviderBitbucketServerTriggerConfig(y)),
+    'build': obj.build?.map(y => toJson_TriggerSpecInitProviderBuild(y)),
+    'description': obj.description,
+    'disabled': obj.disabled,
+    'filename': obj.filename,
+    'filter': obj.filter,
+    'gitFileSource': obj.gitFileSource?.map(y => toJson_TriggerSpecInitProviderGitFileSource(y)),
+    'github': obj.github?.map(y => toJson_TriggerSpecInitProviderGithub(y)),
+    'ignoredFiles': obj.ignoredFiles?.map(y => y),
+    'includeBuildLogs': obj.includeBuildLogs,
+    'includedFiles': obj.includedFiles?.map(y => y),
+    'location': obj.location,
+    'name': obj.name,
+    'project': obj.project,
+    'pubsubConfig': obj.pubsubConfig?.map(y => toJson_TriggerSpecInitProviderPubsubConfig(y)),
+    'repositoryEventConfig': obj.repositoryEventConfig?.map(y => toJson_TriggerSpecInitProviderRepositoryEventConfig(y)),
+    'sourceToBuild': obj.sourceToBuild?.map(y => toJson_TriggerSpecInitProviderSourceToBuild(y)),
+    'substitutions': ((obj.substitutions) === undefined) ? undefined : (Object.entries(obj.substitutions).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'tags': obj.tags?.map(y => y),
+    'triggerTemplate': obj.triggerTemplate?.map(y => toJson_TriggerSpecInitProviderTriggerTemplate(y)),
+    'webhookConfig': obj.webhookConfig?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema TriggerSpecManagementPolicies
+ */
+export enum TriggerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -435,43 +646,6 @@ export function toJson_TriggerSpecProviderConfigRef(obj: TriggerSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_TriggerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema TriggerSpecProviderRef
- */
-export interface TriggerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema TriggerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema TriggerSpecProviderRef#policy
-   */
-  readonly policy?: TriggerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'TriggerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_TriggerSpecProviderRef(obj: TriggerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_TriggerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -596,14 +770,14 @@ export interface TriggerSpecForProviderBitbucketServerTriggerConfig {
    *
    * @schema TriggerSpecForProviderBitbucketServerTriggerConfig#bitbucketServerConfigResource
    */
-  readonly bitbucketServerConfigResource: string;
+  readonly bitbucketServerConfigResource?: string;
 
   /**
    * Key of the project that the repo is in. For example: The key for https://mybitbucket.server/projects/TEST/repos/test-repo is "TEST".
    *
    * @schema TriggerSpecForProviderBitbucketServerTriggerConfig#projectKey
    */
-  readonly projectKey: string;
+  readonly projectKey?: string;
 
   /**
    * Filter to match changes in pull requests. Structure is documented below.
@@ -624,7 +798,7 @@ export interface TriggerSpecForProviderBitbucketServerTriggerConfig {
    *
    * @schema TriggerSpecForProviderBitbucketServerTriggerConfig#repoSlug
    */
-  readonly repoSlug: string;
+  readonly repoSlug?: string;
 
 }
 
@@ -711,7 +885,7 @@ export interface TriggerSpecForProviderBuild {
    *
    * @schema TriggerSpecForProviderBuild#step
    */
-  readonly step: TriggerSpecForProviderBuildStep[];
+  readonly step?: TriggerSpecForProviderBuildStep[];
 
   /**
    * Substitutions data for Build resource.
@@ -777,14 +951,21 @@ export interface TriggerSpecForProviderGitFileSource {
    *
    * @schema TriggerSpecForProviderGitFileSource#path
    */
-  readonly path: string;
+  readonly path?: string;
 
   /**
    * The type of the repo, since it may not be explicit from the repo field (e.g from a URL). Values can be UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET_SERVER Possible values are: UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET_SERVER.
    *
    * @schema TriggerSpecForProviderGitFileSource#repoType
    */
-  readonly repoType: string;
+  readonly repoType?: string;
+
+  /**
+   * The fully qualified resource name of the Repo API repository. The fully qualified resource name of the Repo API repository. If unspecified, the repo from which the trigger invocation originated is assumed to be the repo from which to read the specified path.
+   *
+   * @schema TriggerSpecForProviderGitFileSource#repository
+   */
+  readonly repository?: string;
 
   /**
    * The branch, tag, arbitrary ref, or SHA version of the repo to use when resolving the filename . This field respects the same syntax/resolution as described here: https://git-scm.com/docs/gitrevisions If unspecified, the revision from which the trigger invocation originated is assumed to be the revision from which to read the specified path.
@@ -812,6 +993,7 @@ export function toJson_TriggerSpecForProviderGitFileSource(obj: TriggerSpecForPr
     'githubEnterpriseConfig': obj.githubEnterpriseConfig,
     'path': obj.path,
     'repoType': obj.repoType,
+    'repository': obj.repository,
     'revision': obj.revision,
     'uri': obj.uri,
   };
@@ -931,6 +1113,49 @@ export function toJson_TriggerSpecForProviderPubsubConfig(obj: TriggerSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema TriggerSpecForProviderRepositoryEventConfig
+ */
+export interface TriggerSpecForProviderRepositoryEventConfig {
+  /**
+   * Contains filter properties for matching Pull Requests. Structure is documented below.
+   *
+   * @schema TriggerSpecForProviderRepositoryEventConfig#pullRequest
+   */
+  readonly pullRequest?: TriggerSpecForProviderRepositoryEventConfigPullRequest[];
+
+  /**
+   * Contains filter properties for matching git pushes. Structure is documented below.
+   *
+   * @schema TriggerSpecForProviderRepositoryEventConfig#push
+   */
+  readonly push?: TriggerSpecForProviderRepositoryEventConfigPush[];
+
+  /**
+   * The resource name of the Repo API resource.
+   *
+   * @schema TriggerSpecForProviderRepositoryEventConfig#repository
+   */
+  readonly repository?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecForProviderRepositoryEventConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecForProviderRepositoryEventConfig(obj: TriggerSpecForProviderRepositoryEventConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'pullRequest': obj.pullRequest?.map(y => toJson_TriggerSpecForProviderRepositoryEventConfigPullRequest(y)),
+    'push': obj.push?.map(y => toJson_TriggerSpecForProviderRepositoryEventConfigPush(y)),
+    'repository': obj.repository,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Reference to a ServiceAccount in cloudplatform to populate serviceAccount.
  *
  * @schema TriggerSpecForProviderServiceAccountRef
@@ -1028,14 +1253,21 @@ export interface TriggerSpecForProviderSourceToBuild {
    *
    * @schema TriggerSpecForProviderSourceToBuild#ref
    */
-  readonly ref: string;
+  readonly ref?: string;
 
   /**
    * The type of the repo, since it may not be explicit from the repo field (e.g from a URL). Values can be UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET_SERVER Possible values are: UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET_SERVER.
    *
    * @schema TriggerSpecForProviderSourceToBuild#repoType
    */
-  readonly repoType: string;
+  readonly repoType?: string;
+
+  /**
+   * The qualified resource name of the Repo API repository. Either uri or repository can be specified and is required.
+   *
+   * @schema TriggerSpecForProviderSourceToBuild#repository
+   */
+  readonly repository?: string;
 
   /**
    * The URI of the repo.
@@ -1056,6 +1288,7 @@ export function toJson_TriggerSpecForProviderSourceToBuild(obj: TriggerSpecForPr
     'githubEnterpriseConfig': obj.githubEnterpriseConfig,
     'ref': obj.ref,
     'repoType': obj.repoType,
+    'repository': obj.repository,
     'uri': obj.uri,
   };
   // filter undefined values
@@ -1182,6 +1415,537 @@ export function toJson_TriggerSpecForProviderWebhookConfig(obj: TriggerSpecForPr
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema TriggerSpecInitProviderApprovalConfig
+ */
+export interface TriggerSpecInitProviderApprovalConfig {
+  /**
+   * Whether or not approval is needed. If this is set on a build, it will become pending when run, and will need to be explicitly approved to start.
+   *
+   * @schema TriggerSpecInitProviderApprovalConfig#approvalRequired
+   */
+  readonly approvalRequired?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderApprovalConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderApprovalConfig(obj: TriggerSpecInitProviderApprovalConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'approvalRequired': obj.approvalRequired,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderBitbucketServerTriggerConfig
+ */
+export interface TriggerSpecInitProviderBitbucketServerTriggerConfig {
+  /**
+   * The Bitbucket server config resource that this trigger config maps to.
+   *
+   * @schema TriggerSpecInitProviderBitbucketServerTriggerConfig#bitbucketServerConfigResource
+   */
+  readonly bitbucketServerConfigResource?: string;
+
+  /**
+   * Key of the project that the repo is in. For example: The key for https://mybitbucket.server/projects/TEST/repos/test-repo is "TEST".
+   *
+   * @schema TriggerSpecInitProviderBitbucketServerTriggerConfig#projectKey
+   */
+  readonly projectKey?: string;
+
+  /**
+   * Filter to match changes in pull requests. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderBitbucketServerTriggerConfig#pullRequest
+   */
+  readonly pullRequest?: TriggerSpecInitProviderBitbucketServerTriggerConfigPullRequest[];
+
+  /**
+   * Filter to match changes in refs like branches, tags. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderBitbucketServerTriggerConfig#push
+   */
+  readonly push?: TriggerSpecInitProviderBitbucketServerTriggerConfigPush[];
+
+  /**
+   * Slug of the repository. A repository slug is a URL-friendly version of a repository name, automatically generated by Bitbucket for use in the URL. For example, if the repository name is 'test repo', in the URL it would become 'test-repo' as in https://mybitbucket.server/projects/TEST/repos/test-repo.
+   *
+   * @schema TriggerSpecInitProviderBitbucketServerTriggerConfig#repoSlug
+   */
+  readonly repoSlug?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderBitbucketServerTriggerConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderBitbucketServerTriggerConfig(obj: TriggerSpecInitProviderBitbucketServerTriggerConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bitbucketServerConfigResource': obj.bitbucketServerConfigResource,
+    'projectKey': obj.projectKey,
+    'pullRequest': obj.pullRequest?.map(y => toJson_TriggerSpecInitProviderBitbucketServerTriggerConfigPullRequest(y)),
+    'push': obj.push?.map(y => toJson_TriggerSpecInitProviderBitbucketServerTriggerConfigPush(y)),
+    'repoSlug': obj.repoSlug,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderBuild
+ */
+export interface TriggerSpecInitProviderBuild {
+  /**
+   * Artifacts produced by the build that should be uploaded upon successful completion of all build steps. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderBuild#artifacts
+   */
+  readonly artifacts?: TriggerSpecInitProviderBuildArtifacts[];
+
+  /**
+   * Secrets and secret environment variables. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderBuild#availableSecrets
+   */
+  readonly availableSecrets?: TriggerSpecInitProviderBuildAvailableSecrets[];
+
+  /**
+   * A list of images to be pushed upon the successful completion of all build steps. The images are pushed using the builder service account's credentials. The digests of the pushed images will be stored in the Build resource's results field. If any of the images fail to be pushed, the build status is marked FAILURE.
+   *
+   * @schema TriggerSpecInitProviderBuild#images
+   */
+  readonly images?: string[];
+
+  /**
+   * Google Cloud Storage bucket where logs should be written. Logs file names will be of the format ${logsBucket}/log-${build_id}.txt.
+   *
+   * @schema TriggerSpecInitProviderBuild#logsBucket
+   */
+  readonly logsBucket?: string;
+
+  /**
+   * Special options for this build. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderBuild#options
+   */
+  readonly options?: TriggerSpecInitProviderBuildOptions[];
+
+  /**
+   * TTL in queue for this build. If provided and the build is enqueued longer than this value, the build will expire and the build status will be EXPIRED. The TTL starts ticking from createTime. A duration in seconds with up to nine fractional digits, terminated by 's'. Example: "3.5s".
+   *
+   * @schema TriggerSpecInitProviderBuild#queueTtl
+   */
+  readonly queueTtl?: string;
+
+  /**
+   * Secrets to decrypt using Cloud Key Management Service. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderBuild#secret
+   */
+  readonly secret?: TriggerSpecInitProviderBuildSecret[];
+
+  /**
+   * The location of the source files to build. One of storageSource or repoSource must be provided. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderBuild#source
+   */
+  readonly source?: TriggerSpecInitProviderBuildSource[];
+
+  /**
+   * The operations to be performed on the workspace. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderBuild#step
+   */
+  readonly step?: TriggerSpecInitProviderBuildStep[];
+
+  /**
+   * Substitutions data for Build resource.
+   *
+   * @schema TriggerSpecInitProviderBuild#substitutions
+   */
+  readonly substitutions?: { [key: string]: string };
+
+  /**
+   * Tags for annotation of a Build. These are not docker tags.
+   *
+   * @schema TriggerSpecInitProviderBuild#tags
+   */
+  readonly tags?: string[];
+
+  /**
+   * Amount of time that this build should be allowed to run, to second granularity. If this amount of time elapses, work on the build will cease and the build status will be TIMEOUT. This timeout must be equal to or greater than the sum of the timeouts for build steps within the build. The expected format is the number of seconds followed by s. Default time is ten minutes (600s).
+   *
+   * @schema TriggerSpecInitProviderBuild#timeout
+   */
+  readonly timeout?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderBuild' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderBuild(obj: TriggerSpecInitProviderBuild | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'artifacts': obj.artifacts?.map(y => toJson_TriggerSpecInitProviderBuildArtifacts(y)),
+    'availableSecrets': obj.availableSecrets?.map(y => toJson_TriggerSpecInitProviderBuildAvailableSecrets(y)),
+    'images': obj.images?.map(y => y),
+    'logsBucket': obj.logsBucket,
+    'options': obj.options?.map(y => toJson_TriggerSpecInitProviderBuildOptions(y)),
+    'queueTtl': obj.queueTtl,
+    'secret': obj.secret?.map(y => toJson_TriggerSpecInitProviderBuildSecret(y)),
+    'source': obj.source?.map(y => toJson_TriggerSpecInitProviderBuildSource(y)),
+    'step': obj.step?.map(y => toJson_TriggerSpecInitProviderBuildStep(y)),
+    'substitutions': ((obj.substitutions) === undefined) ? undefined : (Object.entries(obj.substitutions).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'tags': obj.tags?.map(y => y),
+    'timeout': obj.timeout,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderGitFileSource
+ */
+export interface TriggerSpecInitProviderGitFileSource {
+  /**
+   * The full resource name of the github enterprise config. Format: projects/{project}/locations/{location}/githubEnterpriseConfigs/{id}. projects/{project}/githubEnterpriseConfigs/{id}.
+   *
+   * @schema TriggerSpecInitProviderGitFileSource#githubEnterpriseConfig
+   */
+  readonly githubEnterpriseConfig?: string;
+
+  /**
+   * The path of the file, with the repo root as the root of the path.
+   *
+   * @schema TriggerSpecInitProviderGitFileSource#path
+   */
+  readonly path?: string;
+
+  /**
+   * The type of the repo, since it may not be explicit from the repo field (e.g from a URL). Values can be UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET_SERVER Possible values are: UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET_SERVER.
+   *
+   * @schema TriggerSpecInitProviderGitFileSource#repoType
+   */
+  readonly repoType?: string;
+
+  /**
+   * The fully qualified resource name of the Repo API repository. The fully qualified resource name of the Repo API repository. If unspecified, the repo from which the trigger invocation originated is assumed to be the repo from which to read the specified path.
+   *
+   * @schema TriggerSpecInitProviderGitFileSource#repository
+   */
+  readonly repository?: string;
+
+  /**
+   * The branch, tag, arbitrary ref, or SHA version of the repo to use when resolving the filename . This field respects the same syntax/resolution as described here: https://git-scm.com/docs/gitrevisions If unspecified, the revision from which the trigger invocation originated is assumed to be the revision from which to read the specified path.
+   *
+   * @schema TriggerSpecInitProviderGitFileSource#revision
+   */
+  readonly revision?: string;
+
+  /**
+   * The URI of the repo . If unspecified, the repo from which the trigger invocation originated is assumed to be the repo from which to read the specified path.
+   *
+   * @schema TriggerSpecInitProviderGitFileSource#uri
+   */
+  readonly uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderGitFileSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderGitFileSource(obj: TriggerSpecInitProviderGitFileSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'githubEnterpriseConfig': obj.githubEnterpriseConfig,
+    'path': obj.path,
+    'repoType': obj.repoType,
+    'repository': obj.repository,
+    'revision': obj.revision,
+    'uri': obj.uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderGithub
+ */
+export interface TriggerSpecInitProviderGithub {
+  /**
+   * The resource name of the github enterprise config that should be applied to this installation. For example: "projects/{$projectId}/locations/{$locationId}/githubEnterpriseConfigs/{$configId}"
+   *
+   * @schema TriggerSpecInitProviderGithub#enterpriseConfigResourceName
+   */
+  readonly enterpriseConfigResourceName?: string;
+
+  /**
+   * Name of the repository. For example: The name for https://github.com/googlecloudplatform/cloud-builders is "cloud-builders".
+   *
+   * @schema TriggerSpecInitProviderGithub#name
+   */
+  readonly name?: string;
+
+  /**
+   * Owner of the repository. For example: The owner for https://github.com/googlecloudplatform/cloud-builders is "googlecloudplatform".
+   *
+   * @schema TriggerSpecInitProviderGithub#owner
+   */
+  readonly owner?: string;
+
+  /**
+   * filter to match changes in pull requests. Specify only one of pull_request or push. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderGithub#pullRequest
+   */
+  readonly pullRequest?: TriggerSpecInitProviderGithubPullRequest[];
+
+  /**
+   * filter to match changes in refs, like branches or tags. Specify only one of pull_request or push. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderGithub#push
+   */
+  readonly push?: TriggerSpecInitProviderGithubPush[];
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderGithub' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderGithub(obj: TriggerSpecInitProviderGithub | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enterpriseConfigResourceName': obj.enterpriseConfigResourceName,
+    'name': obj.name,
+    'owner': obj.owner,
+    'pullRequest': obj.pullRequest?.map(y => toJson_TriggerSpecInitProviderGithubPullRequest(y)),
+    'push': obj.push?.map(y => toJson_TriggerSpecInitProviderGithubPush(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderPubsubConfig
+ */
+export interface TriggerSpecInitProviderPubsubConfig {
+  /**
+   * Service account that will make the push request.
+   *
+   * @schema TriggerSpecInitProviderPubsubConfig#serviceAccountEmail
+   */
+  readonly serviceAccountEmail?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderPubsubConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderPubsubConfig(obj: TriggerSpecInitProviderPubsubConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'serviceAccountEmail': obj.serviceAccountEmail,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderRepositoryEventConfig
+ */
+export interface TriggerSpecInitProviderRepositoryEventConfig {
+  /**
+   * Contains filter properties for matching Pull Requests. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderRepositoryEventConfig#pullRequest
+   */
+  readonly pullRequest?: TriggerSpecInitProviderRepositoryEventConfigPullRequest[];
+
+  /**
+   * Contains filter properties for matching git pushes. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderRepositoryEventConfig#push
+   */
+  readonly push?: TriggerSpecInitProviderRepositoryEventConfigPush[];
+
+  /**
+   * The resource name of the Repo API resource.
+   *
+   * @schema TriggerSpecInitProviderRepositoryEventConfig#repository
+   */
+  readonly repository?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderRepositoryEventConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderRepositoryEventConfig(obj: TriggerSpecInitProviderRepositoryEventConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'pullRequest': obj.pullRequest?.map(y => toJson_TriggerSpecInitProviderRepositoryEventConfigPullRequest(y)),
+    'push': obj.push?.map(y => toJson_TriggerSpecInitProviderRepositoryEventConfigPush(y)),
+    'repository': obj.repository,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderSourceToBuild
+ */
+export interface TriggerSpecInitProviderSourceToBuild {
+  /**
+   * The full resource name of the github enterprise config. Format: projects/{project}/locations/{location}/githubEnterpriseConfigs/{id}. projects/{project}/githubEnterpriseConfigs/{id}.
+   *
+   * @schema TriggerSpecInitProviderSourceToBuild#githubEnterpriseConfig
+   */
+  readonly githubEnterpriseConfig?: string;
+
+  /**
+   * The branch or tag to use. Must start with "refs/" .
+   *
+   * @schema TriggerSpecInitProviderSourceToBuild#ref
+   */
+  readonly ref?: string;
+
+  /**
+   * The type of the repo, since it may not be explicit from the repo field (e.g from a URL). Values can be UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET_SERVER Possible values are: UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET_SERVER.
+   *
+   * @schema TriggerSpecInitProviderSourceToBuild#repoType
+   */
+  readonly repoType?: string;
+
+  /**
+   * The qualified resource name of the Repo API repository. Either uri or repository can be specified and is required.
+   *
+   * @schema TriggerSpecInitProviderSourceToBuild#repository
+   */
+  readonly repository?: string;
+
+  /**
+   * The URI of the repo.
+   *
+   * @schema TriggerSpecInitProviderSourceToBuild#uri
+   */
+  readonly uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderSourceToBuild' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderSourceToBuild(obj: TriggerSpecInitProviderSourceToBuild | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'githubEnterpriseConfig': obj.githubEnterpriseConfig,
+    'ref': obj.ref,
+    'repoType': obj.repoType,
+    'repository': obj.repository,
+    'uri': obj.uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderTriggerTemplate
+ */
+export interface TriggerSpecInitProviderTriggerTemplate {
+  /**
+   * Name of the branch to build. Exactly one a of branch name, tag, or commit SHA must be provided. This field is a regular expression.
+   *
+   * @schema TriggerSpecInitProviderTriggerTemplate#branchName
+   */
+  readonly branchName?: string;
+
+  /**
+   * Explicit commit SHA to build. Exactly one of a branch name, tag, or commit SHA must be provided.
+   *
+   * @schema TriggerSpecInitProviderTriggerTemplate#commitSha
+   */
+  readonly commitSha?: string;
+
+  /**
+   * Directory, relative to the source root, in which to run the build. This must be a relative path. If a step's dir is specified and is an absolute path, this value is ignored for that step's execution.
+   *
+   * @schema TriggerSpecInitProviderTriggerTemplate#dir
+   */
+  readonly dir?: string;
+
+  /**
+   * Only trigger a build if the revision regex does NOT match the revision regex.
+   *
+   * @schema TriggerSpecInitProviderTriggerTemplate#invertRegex
+   */
+  readonly invertRegex?: boolean;
+
+  /**
+   * ID of the project that owns the Cloud Source Repository. If omitted, the project ID requesting the build is assumed.
+   *
+   * @schema TriggerSpecInitProviderTriggerTemplate#projectId
+   */
+  readonly projectId?: string;
+
+  /**
+   * Name of the Cloud Source Repository. If omitted, the name "default" is assumed.
+   *
+   * @schema TriggerSpecInitProviderTriggerTemplate#repoName
+   */
+  readonly repoName?: string;
+
+  /**
+   * Name of the tag to build. Exactly one of a branch name, tag, or commit SHA must be provided. This field is a regular expression.
+   *
+   * @schema TriggerSpecInitProviderTriggerTemplate#tagName
+   */
+  readonly tagName?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderTriggerTemplate' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderTriggerTemplate(obj: TriggerSpecInitProviderTriggerTemplate | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'branchName': obj.branchName,
+    'commitSha': obj.commitSha,
+    'dir': obj.dir,
+    'invertRegex': obj.invertRegex,
+    'projectId': obj.projectId,
+    'repoName': obj.repoName,
+    'tagName': obj.tagName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema TriggerSpecProviderConfigRefPolicy
@@ -1208,43 +1972,6 @@ export interface TriggerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_TriggerSpecProviderConfigRefPolicy(obj: TriggerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema TriggerSpecProviderRefPolicy
- */
-export interface TriggerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema TriggerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: TriggerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema TriggerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: TriggerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'TriggerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_TriggerSpecProviderRefPolicy(obj: TriggerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1346,7 +2073,7 @@ export interface TriggerSpecForProviderBitbucketServerTriggerConfigPullRequest {
    *
    * @schema TriggerSpecForProviderBitbucketServerTriggerConfigPullRequest#branch
    */
-  readonly branch: string;
+  readonly branch?: string;
 
   /**
    * Configure builds to run whether a repository owner or collaborator need to comment /gcbrun. Possible values are: COMMENTS_DISABLED, COMMENTS_ENABLED, COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY.
@@ -1467,7 +2194,7 @@ export interface TriggerSpecForProviderBuildAvailableSecrets {
    *
    * @schema TriggerSpecForProviderBuildAvailableSecrets#secretManager
    */
-  readonly secretManager: TriggerSpecForProviderBuildAvailableSecretsSecretManager[];
+  readonly secretManager?: TriggerSpecForProviderBuildAvailableSecretsSecretManager[];
 
 }
 
@@ -1525,7 +2252,7 @@ export interface TriggerSpecForProviderBuildOptions {
   readonly logging?: string;
 
   /**
-   * Compute Engine machine type on which to run the build. Possible values are: UNSPECIFIED, N1_HIGHCPU_8, N1_HIGHCPU_32, E2_HIGHCPU_8, E2_HIGHCPU_32.
+   * Compute Engine machine type on which to run the build.
    *
    * @schema TriggerSpecForProviderBuildOptions#machineType
    */
@@ -1609,7 +2336,7 @@ export interface TriggerSpecForProviderBuildSecret {
    *
    * @schema TriggerSpecForProviderBuildSecret#kmsKeyName
    */
-  readonly kmsKeyName: string;
+  readonly kmsKeyName?: string;
 
   /**
    * A list of environment variables which are encrypted using a Cloud Key Management Service crypto key. These values must be specified in the build's Secret.
@@ -1728,7 +2455,7 @@ export interface TriggerSpecForProviderBuildStep {
    *
    * @schema TriggerSpecForProviderBuildStep#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * A shell script to be executed in the step. When script is provided, the user cannot specify the entrypoint or args.
@@ -1810,7 +2537,7 @@ export interface TriggerSpecForProviderGithubPullRequest {
    *
    * @schema TriggerSpecForProviderGithubPullRequest#branch
    */
-  readonly branch: string;
+  readonly branch?: string;
 
   /**
    * Configure builds to run whether a repository owner or collaborator need to comment /gcbrun. Possible values are: COMMENTS_DISABLED, COMMENTS_ENABLED, COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY.
@@ -1963,6 +2690,92 @@ export function toJson_TriggerSpecForProviderPubsubConfigTopicSelector(obj: Trig
     'matchControllerRef': obj.matchControllerRef,
     'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'policy': toJson_TriggerSpecForProviderPubsubConfigTopicSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecForProviderRepositoryEventConfigPullRequest
+ */
+export interface TriggerSpecForProviderRepositoryEventConfigPullRequest {
+  /**
+   * Regex of branches to match. The syntax of the regular expressions accepted is the syntax accepted by RE2 and described at https://github.com/google/re2/wiki/Syntax
+   *
+   * @schema TriggerSpecForProviderRepositoryEventConfigPullRequest#branch
+   */
+  readonly branch?: string;
+
+  /**
+   * Configure builds to run whether a repository owner or collaborator need to comment /gcbrun. Possible values are: COMMENTS_DISABLED, COMMENTS_ENABLED, COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY.
+   *
+   * @schema TriggerSpecForProviderRepositoryEventConfigPullRequest#commentControl
+   */
+  readonly commentControl?: string;
+
+  /**
+   * Only trigger a build if the revision regex does NOT match the revision regex.
+   *
+   * @schema TriggerSpecForProviderRepositoryEventConfigPullRequest#invertRegex
+   */
+  readonly invertRegex?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecForProviderRepositoryEventConfigPullRequest' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecForProviderRepositoryEventConfigPullRequest(obj: TriggerSpecForProviderRepositoryEventConfigPullRequest | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'branch': obj.branch,
+    'commentControl': obj.commentControl,
+    'invertRegex': obj.invertRegex,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecForProviderRepositoryEventConfigPush
+ */
+export interface TriggerSpecForProviderRepositoryEventConfigPush {
+  /**
+   * Regex of branches to match. The syntax of the regular expressions accepted is the syntax accepted by RE2 and described at https://github.com/google/re2/wiki/Syntax
+   *
+   * @schema TriggerSpecForProviderRepositoryEventConfigPush#branch
+   */
+  readonly branch?: string;
+
+  /**
+   * Only trigger a build if the revision regex does NOT match the revision regex.
+   *
+   * @schema TriggerSpecForProviderRepositoryEventConfigPush#invertRegex
+   */
+  readonly invertRegex?: boolean;
+
+  /**
+   * Regex of tags to match. The syntax of the regular expressions accepted is the syntax accepted by RE2 and described at https://github.com/google/re2/wiki/Syntax
+   *
+   * @schema TriggerSpecForProviderRepositoryEventConfigPush#tag
+   */
+  readonly tag?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecForProviderRepositoryEventConfigPush' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecForProviderRepositoryEventConfigPush(obj: TriggerSpecForProviderRepositoryEventConfigPush | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'branch': obj.branch,
+    'invertRegex': obj.invertRegex,
+    'tag': obj.tag,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2126,6 +2939,642 @@ export function toJson_TriggerSpecForProviderWebhookConfigSecretSelector(obj: Tr
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema TriggerSpecInitProviderBitbucketServerTriggerConfigPullRequest
+ */
+export interface TriggerSpecInitProviderBitbucketServerTriggerConfigPullRequest {
+  /**
+   * Regex of branches to match. The syntax of the regular expressions accepted is the syntax accepted by RE2 and described at https://github.com/google/re2/wiki/Syntax
+   *
+   * @schema TriggerSpecInitProviderBitbucketServerTriggerConfigPullRequest#branch
+   */
+  readonly branch?: string;
+
+  /**
+   * Configure builds to run whether a repository owner or collaborator need to comment /gcbrun. Possible values are: COMMENTS_DISABLED, COMMENTS_ENABLED, COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY.
+   *
+   * @schema TriggerSpecInitProviderBitbucketServerTriggerConfigPullRequest#commentControl
+   */
+  readonly commentControl?: string;
+
+  /**
+   * Only trigger a build if the revision regex does NOT match the revision regex.
+   *
+   * @schema TriggerSpecInitProviderBitbucketServerTriggerConfigPullRequest#invertRegex
+   */
+  readonly invertRegex?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderBitbucketServerTriggerConfigPullRequest' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderBitbucketServerTriggerConfigPullRequest(obj: TriggerSpecInitProviderBitbucketServerTriggerConfigPullRequest | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'branch': obj.branch,
+    'commentControl': obj.commentControl,
+    'invertRegex': obj.invertRegex,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderBitbucketServerTriggerConfigPush
+ */
+export interface TriggerSpecInitProviderBitbucketServerTriggerConfigPush {
+  /**
+   * Regex of branches to match. The syntax of the regular expressions accepted is the syntax accepted by RE2 and described at https://github.com/google/re2/wiki/Syntax
+   *
+   * @schema TriggerSpecInitProviderBitbucketServerTriggerConfigPush#branch
+   */
+  readonly branch?: string;
+
+  /**
+   * Only trigger a build if the revision regex does NOT match the revision regex.
+   *
+   * @schema TriggerSpecInitProviderBitbucketServerTriggerConfigPush#invertRegex
+   */
+  readonly invertRegex?: boolean;
+
+  /**
+   * Regex of tags to match. The syntax of the regular expressions accepted is the syntax accepted by RE2 and described at https://github.com/google/re2/wiki/Syntax
+   *
+   * @schema TriggerSpecInitProviderBitbucketServerTriggerConfigPush#tag
+   */
+  readonly tag?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderBitbucketServerTriggerConfigPush' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderBitbucketServerTriggerConfigPush(obj: TriggerSpecInitProviderBitbucketServerTriggerConfigPush | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'branch': obj.branch,
+    'invertRegex': obj.invertRegex,
+    'tag': obj.tag,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderBuildArtifacts
+ */
+export interface TriggerSpecInitProviderBuildArtifacts {
+  /**
+   * A list of images to be pushed upon the successful completion of all build steps. The images are pushed using the builder service account's credentials. The digests of the pushed images will be stored in the Build resource's results field. If any of the images fail to be pushed, the build status is marked FAILURE.
+   *
+   * @schema TriggerSpecInitProviderBuildArtifacts#images
+   */
+  readonly images?: string[];
+
+  /**
+   * A list of objects to be uploaded to Cloud Storage upon successful completion of all build steps. Files in the workspace matching specified paths globs will be uploaded to the Cloud Storage location using the builder service account's credentials. The location and generation of the uploaded objects will be stored in the Build resource's results field. If any objects fail to be pushed, the build is marked FAILURE. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderBuildArtifacts#objects
+   */
+  readonly objects?: TriggerSpecInitProviderBuildArtifactsObjects[];
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderBuildArtifacts' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderBuildArtifacts(obj: TriggerSpecInitProviderBuildArtifacts | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'images': obj.images?.map(y => y),
+    'objects': obj.objects?.map(y => toJson_TriggerSpecInitProviderBuildArtifactsObjects(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderBuildAvailableSecrets
+ */
+export interface TriggerSpecInitProviderBuildAvailableSecrets {
+  /**
+   * Pairs a secret environment variable with a SecretVersion in Secret Manager. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderBuildAvailableSecrets#secretManager
+   */
+  readonly secretManager?: TriggerSpecInitProviderBuildAvailableSecretsSecretManager[];
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderBuildAvailableSecrets' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderBuildAvailableSecrets(obj: TriggerSpecInitProviderBuildAvailableSecrets | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretManager': obj.secretManager?.map(y => toJson_TriggerSpecInitProviderBuildAvailableSecretsSecretManager(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderBuildOptions
+ */
+export interface TriggerSpecInitProviderBuildOptions {
+  /**
+   * Requested disk size for the VM that runs the build. Note that this is NOT "disk free"; some of the space will be used by the operating system and build utilities. Also note that this is the minimum disk size that will be allocated for the build -- the build may run with a larger disk than requested. At present, the maximum disk size is 1000GB; builds that request more than the maximum are rejected with an error.
+   *
+   * @schema TriggerSpecInitProviderBuildOptions#diskSizeGb
+   */
+  readonly diskSizeGb?: number;
+
+  /**
+   * Option to specify whether or not to apply bash style string operations to the substitutions. NOTE this is always enabled for triggered builds and cannot be overridden in the build configuration file.
+   *
+   * @schema TriggerSpecInitProviderBuildOptions#dynamicSubstitutions
+   */
+  readonly dynamicSubstitutions?: boolean;
+
+  /**
+   * A list of environment variable definitions to be used when running a step. The elements are of the form "KEY=VALUE" for the environment variable "KEY" being given the value "VALUE".
+   *
+   * @schema TriggerSpecInitProviderBuildOptions#env
+   */
+  readonly env?: string[];
+
+  /**
+   * Option to define build log streaming behavior to Google Cloud Storage. Possible values are: STREAM_DEFAULT, STREAM_ON, STREAM_OFF.
+   *
+   * @schema TriggerSpecInitProviderBuildOptions#logStreamingOption
+   */
+  readonly logStreamingOption?: string;
+
+  /**
+   * Option to specify the logging mode, which determines if and where build logs are stored. Possible values are: LOGGING_UNSPECIFIED, LEGACY, GCS_ONLY, STACKDRIVER_ONLY, CLOUD_LOGGING_ONLY, NONE.
+   *
+   * @schema TriggerSpecInitProviderBuildOptions#logging
+   */
+  readonly logging?: string;
+
+  /**
+   * Compute Engine machine type on which to run the build.
+   *
+   * @schema TriggerSpecInitProviderBuildOptions#machineType
+   */
+  readonly machineType?: string;
+
+  /**
+   * Requested verifiability options. Possible values are: NOT_VERIFIED, VERIFIED.
+   *
+   * @schema TriggerSpecInitProviderBuildOptions#requestedVerifyOption
+   */
+  readonly requestedVerifyOption?: string;
+
+  /**
+   * A list of environment variables which are encrypted using a Cloud Key Management Service crypto key. These values must be specified in the build's Secret.
+   *
+   * @schema TriggerSpecInitProviderBuildOptions#secretEnv
+   */
+  readonly secretEnv?: string[];
+
+  /**
+   * Requested hash for SourceProvenance. Each value may be one of: NONE, SHA256, MD5.
+   *
+   * @schema TriggerSpecInitProviderBuildOptions#sourceProvenanceHash
+   */
+  readonly sourceProvenanceHash?: string[];
+
+  /**
+   * Option to specify behavior when there is an error in the substitution checks. NOTE this is always set to ALLOW_LOOSE for triggered builds and cannot be overridden in the build configuration file. Possible values are: MUST_MATCH, ALLOW_LOOSE.
+   *
+   * @schema TriggerSpecInitProviderBuildOptions#substitutionOption
+   */
+  readonly substitutionOption?: string;
+
+  /**
+   * List of volumes to mount into the build step. Each volume is created as an empty volume prior to execution of the build step. Upon completion of the build, volumes and their contents are discarded. Using a named volume in only one step is not valid as it is indicative of a build request with an incorrect configuration. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderBuildOptions#volumes
+   */
+  readonly volumes?: TriggerSpecInitProviderBuildOptionsVolumes[];
+
+  /**
+   * Option to specify a WorkerPool for the build. Format projects/{project}/workerPools/{workerPool} This field is experimental.
+   *
+   * @schema TriggerSpecInitProviderBuildOptions#workerPool
+   */
+  readonly workerPool?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderBuildOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderBuildOptions(obj: TriggerSpecInitProviderBuildOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'diskSizeGb': obj.diskSizeGb,
+    'dynamicSubstitutions': obj.dynamicSubstitutions,
+    'env': obj.env?.map(y => y),
+    'logStreamingOption': obj.logStreamingOption,
+    'logging': obj.logging,
+    'machineType': obj.machineType,
+    'requestedVerifyOption': obj.requestedVerifyOption,
+    'secretEnv': obj.secretEnv?.map(y => y),
+    'sourceProvenanceHash': obj.sourceProvenanceHash?.map(y => y),
+    'substitutionOption': obj.substitutionOption,
+    'volumes': obj.volumes?.map(y => toJson_TriggerSpecInitProviderBuildOptionsVolumes(y)),
+    'workerPool': obj.workerPool,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderBuildSecret
+ */
+export interface TriggerSpecInitProviderBuildSecret {
+  /**
+   * Cloud KMS key name to use to decrypt these envs.
+   *
+   * @schema TriggerSpecInitProviderBuildSecret#kmsKeyName
+   */
+  readonly kmsKeyName?: string;
+
+  /**
+   * A list of environment variables which are encrypted using a Cloud Key Management Service crypto key. These values must be specified in the build's Secret.
+   *
+   * @schema TriggerSpecInitProviderBuildSecret#secretEnv
+   */
+  readonly secretEnv?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderBuildSecret' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderBuildSecret(obj: TriggerSpecInitProviderBuildSecret | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kmsKeyName': obj.kmsKeyName,
+    'secretEnv': ((obj.secretEnv) === undefined) ? undefined : (Object.entries(obj.secretEnv).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderBuildSource
+ */
+export interface TriggerSpecInitProviderBuildSource {
+  /**
+   * Location of the source in a Google Cloud Source Repository. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderBuildSource#repoSource
+   */
+  readonly repoSource?: TriggerSpecInitProviderBuildSourceRepoSource[];
+
+  /**
+   * Location of the source in an archive file in Google Cloud Storage. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderBuildSource#storageSource
+   */
+  readonly storageSource?: TriggerSpecInitProviderBuildSourceStorageSource[];
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderBuildSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderBuildSource(obj: TriggerSpecInitProviderBuildSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'repoSource': obj.repoSource?.map(y => toJson_TriggerSpecInitProviderBuildSourceRepoSource(y)),
+    'storageSource': obj.storageSource?.map(y => toJson_TriggerSpecInitProviderBuildSourceStorageSource(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderBuildStep
+ */
+export interface TriggerSpecInitProviderBuildStep {
+  /**
+   * Allow this build step to fail without failing the entire build if and only if the exit code is one of the specified codes. If allowFailure is also specified, this field will take precedence.
+   *
+   * @schema TriggerSpecInitProviderBuildStep#allowExitCodes
+   */
+  readonly allowExitCodes?: number[];
+
+  /**
+   * Allow this build step to fail without failing the entire build. If false, the entire build will fail if this step fails. Otherwise, the build will succeed, but this step will still have a failure status. Error information will be reported in the failureDetail field. allowExitCodes takes precedence over this field.
+   *
+   * @schema TriggerSpecInitProviderBuildStep#allowFailure
+   */
+  readonly allowFailure?: boolean;
+
+  /**
+   * A list of arguments that will be presented to the step when it is started. If the image used to run the step's container has an entrypoint, the args are used as arguments to that entrypoint. If the image does not define an entrypoint, the first element in args is used as the entrypoint, and the remainder will be used as arguments.
+   *
+   * @schema TriggerSpecInitProviderBuildStep#args
+   */
+  readonly args?: string[];
+
+  /**
+   * Directory, relative to the source root, in which to run the build. This must be a relative path. If a step's dir is specified and is an absolute path, this value is ignored for that step's execution.
+   *
+   * @schema TriggerSpecInitProviderBuildStep#dir
+   */
+  readonly dir?: string;
+
+  /**
+   * Entrypoint to be used instead of the build step image's default entrypoint. If unset, the image's default entrypoint is used
+   *
+   * @schema TriggerSpecInitProviderBuildStep#entrypoint
+   */
+  readonly entrypoint?: string;
+
+  /**
+   * A list of environment variable definitions to be used when running a step. The elements are of the form "KEY=VALUE" for the environment variable "KEY" being given the value "VALUE".
+   *
+   * @schema TriggerSpecInitProviderBuildStep#env
+   */
+  readonly env?: string[];
+
+  /**
+   * Unique identifier for this build step, used in wait_for to reference this build step as a dependency.
+   *
+   * @schema TriggerSpecInitProviderBuildStep#id
+   */
+  readonly id?: string;
+
+  /**
+   * Name of the volume to mount. Volume names must be unique per build step and must be valid names for Docker volumes. Each named volume must be used by at least two build steps.
+   *
+   * @schema TriggerSpecInitProviderBuildStep#name
+   */
+  readonly name?: string;
+
+  /**
+   * A shell script to be executed in the step. When script is provided, the user cannot specify the entrypoint or args.
+   *
+   * @schema TriggerSpecInitProviderBuildStep#script
+   */
+  readonly script?: string;
+
+  /**
+   * A list of environment variables which are encrypted using a Cloud Key Management Service crypto key. These values must be specified in the build's Secret.
+   *
+   * @schema TriggerSpecInitProviderBuildStep#secretEnv
+   */
+  readonly secretEnv?: string[];
+
+  /**
+   * Time limit for executing this build step. If not defined, the step has no time limit and will be allowed to continue to run until either it completes or the build itself times out.
+   *
+   * @schema TriggerSpecInitProviderBuildStep#timeout
+   */
+  readonly timeout?: string;
+
+  /**
+   * Output only. Stores timing information for executing this build step.
+   *
+   * @schema TriggerSpecInitProviderBuildStep#timing
+   */
+  readonly timing?: string;
+
+  /**
+   * List of volumes to mount into the build step. Each volume is created as an empty volume prior to execution of the build step. Upon completion of the build, volumes and their contents are discarded. Using a named volume in only one step is not valid as it is indicative of a build request with an incorrect configuration. Structure is documented below.
+   *
+   * @schema TriggerSpecInitProviderBuildStep#volumes
+   */
+  readonly volumes?: TriggerSpecInitProviderBuildStepVolumes[];
+
+  /**
+   * The ID(s) of the step(s) that this build step depends on. This build step will not start until all the build steps in wait_for have completed successfully. If wait_for is empty, this build step will start when all previous build steps in the Build.Steps list have completed successfully.
+   *
+   * @schema TriggerSpecInitProviderBuildStep#waitFor
+   */
+  readonly waitFor?: string[];
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderBuildStep' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderBuildStep(obj: TriggerSpecInitProviderBuildStep | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowExitCodes': obj.allowExitCodes?.map(y => y),
+    'allowFailure': obj.allowFailure,
+    'args': obj.args?.map(y => y),
+    'dir': obj.dir,
+    'entrypoint': obj.entrypoint,
+    'env': obj.env?.map(y => y),
+    'id': obj.id,
+    'name': obj.name,
+    'script': obj.script,
+    'secretEnv': obj.secretEnv?.map(y => y),
+    'timeout': obj.timeout,
+    'timing': obj.timing,
+    'volumes': obj.volumes?.map(y => toJson_TriggerSpecInitProviderBuildStepVolumes(y)),
+    'waitFor': obj.waitFor?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderGithubPullRequest
+ */
+export interface TriggerSpecInitProviderGithubPullRequest {
+  /**
+   * Regex of branches to match. The syntax of the regular expressions accepted is the syntax accepted by RE2 and described at https://github.com/google/re2/wiki/Syntax
+   *
+   * @schema TriggerSpecInitProviderGithubPullRequest#branch
+   */
+  readonly branch?: string;
+
+  /**
+   * Configure builds to run whether a repository owner or collaborator need to comment /gcbrun. Possible values are: COMMENTS_DISABLED, COMMENTS_ENABLED, COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY.
+   *
+   * @schema TriggerSpecInitProviderGithubPullRequest#commentControl
+   */
+  readonly commentControl?: string;
+
+  /**
+   * Only trigger a build if the revision regex does NOT match the revision regex.
+   *
+   * @schema TriggerSpecInitProviderGithubPullRequest#invertRegex
+   */
+  readonly invertRegex?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderGithubPullRequest' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderGithubPullRequest(obj: TriggerSpecInitProviderGithubPullRequest | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'branch': obj.branch,
+    'commentControl': obj.commentControl,
+    'invertRegex': obj.invertRegex,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderGithubPush
+ */
+export interface TriggerSpecInitProviderGithubPush {
+  /**
+   * Regex of branches to match. The syntax of the regular expressions accepted is the syntax accepted by RE2 and described at https://github.com/google/re2/wiki/Syntax
+   *
+   * @schema TriggerSpecInitProviderGithubPush#branch
+   */
+  readonly branch?: string;
+
+  /**
+   * Only trigger a build if the revision regex does NOT match the revision regex.
+   *
+   * @schema TriggerSpecInitProviderGithubPush#invertRegex
+   */
+  readonly invertRegex?: boolean;
+
+  /**
+   * Regex of tags to match. The syntax of the regular expressions accepted is the syntax accepted by RE2 and described at https://github.com/google/re2/wiki/Syntax
+   *
+   * @schema TriggerSpecInitProviderGithubPush#tag
+   */
+  readonly tag?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderGithubPush' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderGithubPush(obj: TriggerSpecInitProviderGithubPush | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'branch': obj.branch,
+    'invertRegex': obj.invertRegex,
+    'tag': obj.tag,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderRepositoryEventConfigPullRequest
+ */
+export interface TriggerSpecInitProviderRepositoryEventConfigPullRequest {
+  /**
+   * Regex of branches to match. The syntax of the regular expressions accepted is the syntax accepted by RE2 and described at https://github.com/google/re2/wiki/Syntax
+   *
+   * @schema TriggerSpecInitProviderRepositoryEventConfigPullRequest#branch
+   */
+  readonly branch?: string;
+
+  /**
+   * Configure builds to run whether a repository owner or collaborator need to comment /gcbrun. Possible values are: COMMENTS_DISABLED, COMMENTS_ENABLED, COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY.
+   *
+   * @schema TriggerSpecInitProviderRepositoryEventConfigPullRequest#commentControl
+   */
+  readonly commentControl?: string;
+
+  /**
+   * Only trigger a build if the revision regex does NOT match the revision regex.
+   *
+   * @schema TriggerSpecInitProviderRepositoryEventConfigPullRequest#invertRegex
+   */
+  readonly invertRegex?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderRepositoryEventConfigPullRequest' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderRepositoryEventConfigPullRequest(obj: TriggerSpecInitProviderRepositoryEventConfigPullRequest | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'branch': obj.branch,
+    'commentControl': obj.commentControl,
+    'invertRegex': obj.invertRegex,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderRepositoryEventConfigPush
+ */
+export interface TriggerSpecInitProviderRepositoryEventConfigPush {
+  /**
+   * Regex of branches to match. The syntax of the regular expressions accepted is the syntax accepted by RE2 and described at https://github.com/google/re2/wiki/Syntax
+   *
+   * @schema TriggerSpecInitProviderRepositoryEventConfigPush#branch
+   */
+  readonly branch?: string;
+
+  /**
+   * Only trigger a build if the revision regex does NOT match the revision regex.
+   *
+   * @schema TriggerSpecInitProviderRepositoryEventConfigPush#invertRegex
+   */
+  readonly invertRegex?: boolean;
+
+  /**
+   * Regex of tags to match. The syntax of the regular expressions accepted is the syntax accepted by RE2 and described at https://github.com/google/re2/wiki/Syntax
+   *
+   * @schema TriggerSpecInitProviderRepositoryEventConfigPush#tag
+   */
+  readonly tag?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderRepositoryEventConfigPush' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderRepositoryEventConfigPush(obj: TriggerSpecInitProviderRepositoryEventConfigPush | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'branch': obj.branch,
+    'invertRegex': obj.invertRegex,
+    'tag': obj.tag,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema TriggerSpecProviderConfigRefPolicyResolution
@@ -2143,30 +3592,6 @@ export enum TriggerSpecProviderConfigRefPolicyResolution {
  * @schema TriggerSpecProviderConfigRefPolicyResolve
  */
 export enum TriggerSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema TriggerSpecProviderRefPolicyResolution
- */
-export enum TriggerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema TriggerSpecProviderRefPolicyResolve
- */
-export enum TriggerSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2254,14 +3679,14 @@ export interface TriggerSpecForProviderBuildAvailableSecretsSecretManager {
    *
    * @schema TriggerSpecForProviderBuildAvailableSecretsSecretManager#env
    */
-  readonly env: string;
+  readonly env?: string;
 
   /**
    * Resource name of the SecretVersion. In format: projects//secrets//versions/*
    *
    * @schema TriggerSpecForProviderBuildAvailableSecretsSecretManager#versionName
    */
-  readonly versionName: string;
+  readonly versionName?: string;
 
 }
 
@@ -2359,7 +3784,7 @@ export interface TriggerSpecForProviderBuildSourceRepoSource {
    *
    * @schema TriggerSpecForProviderBuildSourceRepoSource#repoName
    */
-  readonly repoName: string;
+  readonly repoName?: string;
 
   /**
    * Substitutions data for Build resource.
@@ -2407,7 +3832,7 @@ export interface TriggerSpecForProviderBuildSourceStorageSource {
    *
    * @schema TriggerSpecForProviderBuildSourceStorageSource#bucket
    */
-  readonly bucket: string;
+  readonly bucket?: string;
 
   /**
    * Google Cloud Storage generation for the object. If the generation is omitted, the latest generation will be used
@@ -2421,7 +3846,7 @@ export interface TriggerSpecForProviderBuildSourceStorageSource {
    *
    * @schema TriggerSpecForProviderBuildSourceStorageSource#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2450,14 +3875,14 @@ export interface TriggerSpecForProviderBuildStepVolumes {
    *
    * @schema TriggerSpecForProviderBuildStepVolumes#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Path at which to mount the volume. Paths must be absolute and cannot conflict with other volume paths on the same build step or with certain reserved volume paths.
    *
    * @schema TriggerSpecForProviderBuildStepVolumes#path
    */
-  readonly path: string;
+  readonly path?: string;
 
 }
 
@@ -2666,6 +4091,272 @@ export function toJson_TriggerSpecForProviderWebhookConfigSecretSelectorPolicy(o
   const result = {
     'resolution': obj.resolution,
     'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderBuildArtifactsObjects
+ */
+export interface TriggerSpecInitProviderBuildArtifactsObjects {
+  /**
+   * Cloud Storage bucket and optional object path, in the form "gs://bucket/path/to/somewhere/". Files in the workspace matching any path pattern will be uploaded to Cloud Storage with this location as a prefix.
+   *
+   * @schema TriggerSpecInitProviderBuildArtifactsObjects#location
+   */
+  readonly location?: string;
+
+  /**
+   * Path globs used to match files in the build's workspace.
+   *
+   * @schema TriggerSpecInitProviderBuildArtifactsObjects#paths
+   */
+  readonly paths?: string[];
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderBuildArtifactsObjects' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderBuildArtifactsObjects(obj: TriggerSpecInitProviderBuildArtifactsObjects | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'location': obj.location,
+    'paths': obj.paths?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderBuildAvailableSecretsSecretManager
+ */
+export interface TriggerSpecInitProviderBuildAvailableSecretsSecretManager {
+  /**
+   * A list of environment variable definitions to be used when running a step. The elements are of the form "KEY=VALUE" for the environment variable "KEY" being given the value "VALUE".
+   *
+   * @schema TriggerSpecInitProviderBuildAvailableSecretsSecretManager#env
+   */
+  readonly env?: string;
+
+  /**
+   * Resource name of the SecretVersion. In format: projects//secrets//versions/*
+   *
+   * @schema TriggerSpecInitProviderBuildAvailableSecretsSecretManager#versionName
+   */
+  readonly versionName?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderBuildAvailableSecretsSecretManager' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderBuildAvailableSecretsSecretManager(obj: TriggerSpecInitProviderBuildAvailableSecretsSecretManager | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'env': obj.env,
+    'versionName': obj.versionName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderBuildOptionsVolumes
+ */
+export interface TriggerSpecInitProviderBuildOptionsVolumes {
+  /**
+   * Name of the volume to mount. Volume names must be unique per build step and must be valid names for Docker volumes. Each named volume must be used by at least two build steps.
+   *
+   * @schema TriggerSpecInitProviderBuildOptionsVolumes#name
+   */
+  readonly name?: string;
+
+  /**
+   * Path at which to mount the volume. Paths must be absolute and cannot conflict with other volume paths on the same build step or with certain reserved volume paths.
+   *
+   * @schema TriggerSpecInitProviderBuildOptionsVolumes#path
+   */
+  readonly path?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderBuildOptionsVolumes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderBuildOptionsVolumes(obj: TriggerSpecInitProviderBuildOptionsVolumes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderBuildSourceRepoSource
+ */
+export interface TriggerSpecInitProviderBuildSourceRepoSource {
+  /**
+   * Name of the branch to build. Exactly one a of branch name, tag, or commit SHA must be provided. This field is a regular expression.
+   *
+   * @schema TriggerSpecInitProviderBuildSourceRepoSource#branchName
+   */
+  readonly branchName?: string;
+
+  /**
+   * Explicit commit SHA to build. Exactly one of a branch name, tag, or commit SHA must be provided.
+   *
+   * @schema TriggerSpecInitProviderBuildSourceRepoSource#commitSha
+   */
+  readonly commitSha?: string;
+
+  /**
+   * Directory, relative to the source root, in which to run the build. This must be a relative path. If a step's dir is specified and is an absolute path, this value is ignored for that step's execution.
+   *
+   * @schema TriggerSpecInitProviderBuildSourceRepoSource#dir
+   */
+  readonly dir?: string;
+
+  /**
+   * Only trigger a build if the revision regex does NOT match the revision regex.
+   *
+   * @schema TriggerSpecInitProviderBuildSourceRepoSource#invertRegex
+   */
+  readonly invertRegex?: boolean;
+
+  /**
+   * ID of the project that owns the Cloud Source Repository. If omitted, the project ID requesting the build is assumed.
+   *
+   * @schema TriggerSpecInitProviderBuildSourceRepoSource#projectId
+   */
+  readonly projectId?: string;
+
+  /**
+   * Name of the Cloud Source Repository. If omitted, the name "default" is assumed.
+   *
+   * @schema TriggerSpecInitProviderBuildSourceRepoSource#repoName
+   */
+  readonly repoName?: string;
+
+  /**
+   * Substitutions data for Build resource.
+   *
+   * @schema TriggerSpecInitProviderBuildSourceRepoSource#substitutions
+   */
+  readonly substitutions?: { [key: string]: string };
+
+  /**
+   * Name of the tag to build. Exactly one of a branch name, tag, or commit SHA must be provided. This field is a regular expression.
+   *
+   * @schema TriggerSpecInitProviderBuildSourceRepoSource#tagName
+   */
+  readonly tagName?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderBuildSourceRepoSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderBuildSourceRepoSource(obj: TriggerSpecInitProviderBuildSourceRepoSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'branchName': obj.branchName,
+    'commitSha': obj.commitSha,
+    'dir': obj.dir,
+    'invertRegex': obj.invertRegex,
+    'projectId': obj.projectId,
+    'repoName': obj.repoName,
+    'substitutions': ((obj.substitutions) === undefined) ? undefined : (Object.entries(obj.substitutions).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'tagName': obj.tagName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderBuildSourceStorageSource
+ */
+export interface TriggerSpecInitProviderBuildSourceStorageSource {
+  /**
+   * Google Cloud Storage bucket containing the source.
+   *
+   * @schema TriggerSpecInitProviderBuildSourceStorageSource#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * Google Cloud Storage generation for the object. If the generation is omitted, the latest generation will be used
+   *
+   * @schema TriggerSpecInitProviderBuildSourceStorageSource#generation
+   */
+  readonly generation?: string;
+
+  /**
+   * Google Cloud Storage object containing the source. This object must be a gzipped archive file (.tar.gz) containing source to build.
+   *
+   * @schema TriggerSpecInitProviderBuildSourceStorageSource#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderBuildSourceStorageSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderBuildSourceStorageSource(obj: TriggerSpecInitProviderBuildSourceStorageSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'generation': obj.generation,
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderBuildStepVolumes
+ */
+export interface TriggerSpecInitProviderBuildStepVolumes {
+  /**
+   * Name of the volume to mount. Volume names must be unique per build step and must be valid names for Docker volumes. Each named volume must be used by at least two build steps.
+   *
+   * @schema TriggerSpecInitProviderBuildStepVolumes#name
+   */
+  readonly name?: string;
+
+  /**
+   * Path at which to mount the volume. Paths must be absolute and cannot conflict with other volume paths on the same build step or with certain reserved volume paths.
+   *
+   * @schema TriggerSpecInitProviderBuildStepVolumes#path
+   */
+  readonly path?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderBuildStepVolumes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderBuildStepVolumes(obj: TriggerSpecInitProviderBuildStepVolumes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'path': obj.path,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2889,7 +4580,7 @@ export function toJson_WorkerPoolProps(obj: WorkerPoolProps | undefined): Record
  */
 export interface WorkerPoolSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema WorkerPoolSpec#deletionPolicy
    */
@@ -2901,11 +4592,18 @@ export interface WorkerPoolSpec {
   readonly forProvider: WorkerPoolSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema WorkerPoolSpec#managementPolicy
+   * @schema WorkerPoolSpec#initProvider
    */
-  readonly managementPolicy?: WorkerPoolSpecManagementPolicy;
+  readonly initProvider?: WorkerPoolSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema WorkerPoolSpec#managementPolicies
+   */
+  readonly managementPolicies?: WorkerPoolSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2913,13 +4611,6 @@ export interface WorkerPoolSpec {
    * @schema WorkerPoolSpec#providerConfigRef
    */
   readonly providerConfigRef?: WorkerPoolSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema WorkerPoolSpec#providerRef
-   */
-  readonly providerRef?: WorkerPoolSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2946,9 +4637,9 @@ export function toJson_WorkerPoolSpec(obj: WorkerPoolSpec | undefined): Record<s
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_WorkerPoolSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_WorkerPoolSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_WorkerPoolSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_WorkerPoolSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_WorkerPoolSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_WorkerPoolSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2958,7 +4649,7 @@ export function toJson_WorkerPoolSpec(obj: WorkerPoolSpec | undefined): Record<s
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema WorkerPoolSpecDeletionPolicy
  */
@@ -3035,17 +4726,82 @@ export function toJson_WorkerPoolSpecForProvider(obj: WorkerPoolSpecForProvider 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema WorkerPoolSpecManagementPolicy
+ * @schema WorkerPoolSpecInitProvider
  */
-export enum WorkerPoolSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface WorkerPoolSpecInitProvider {
+  /**
+   * @schema WorkerPoolSpecInitProvider#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * User-defined name of the WorkerPool.
+   *
+   * @schema WorkerPoolSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * Network configuration for the WorkerPool. Structure is documented below.
+   *
+   * @schema WorkerPoolSpecInitProvider#networkConfig
+   */
+  readonly networkConfig?: WorkerPoolSpecInitProviderNetworkConfig[];
+
+  /**
+   * The project for the resource
+   *
+   * @schema WorkerPoolSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * Configuration to be used for a creating workers in the WorkerPool. Structure is documented below.
+   *
+   * @schema WorkerPoolSpecInitProvider#workerConfig
+   */
+  readonly workerConfig?: WorkerPoolSpecInitProviderWorkerConfig[];
+
+}
+
+/**
+ * Converts an object of type 'WorkerPoolSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkerPoolSpecInitProvider(obj: WorkerPoolSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'displayName': obj.displayName,
+    'networkConfig': obj.networkConfig?.map(y => toJson_WorkerPoolSpecInitProviderNetworkConfig(y)),
+    'project': obj.project,
+    'workerConfig': obj.workerConfig?.map(y => toJson_WorkerPoolSpecInitProviderWorkerConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema WorkerPoolSpecManagementPolicies
+ */
+export enum WorkerPoolSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3079,43 +4835,6 @@ export function toJson_WorkerPoolSpecProviderConfigRef(obj: WorkerPoolSpecProvid
   const result = {
     'name': obj.name,
     'policy': toJson_WorkerPoolSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema WorkerPoolSpecProviderRef
- */
-export interface WorkerPoolSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema WorkerPoolSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema WorkerPoolSpecProviderRef#policy
-   */
-  readonly policy?: WorkerPoolSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'WorkerPoolSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_WorkerPoolSpecProviderRef(obj: WorkerPoolSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_WorkerPoolSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3299,6 +5018,76 @@ export function toJson_WorkerPoolSpecForProviderWorkerConfig(obj: WorkerPoolSpec
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema WorkerPoolSpecInitProviderNetworkConfig
+ */
+export interface WorkerPoolSpecInitProviderNetworkConfig {
+  /**
+   * Immutable. Subnet IP range within the peered network. This is specified in CIDR notation with a slash and the subnet prefix size. You can optionally specify an IP address before the subnet prefix value. e.g. 192.168.0.0/29 would specify an IP range starting at 192.168.0.0 with a prefix size of 29 bits. /16 would specify a prefix size of 16 bits, with an automatically determined IP within the peered VPC. If unspecified, a value of /24 will be used.
+   *
+   * @schema WorkerPoolSpecInitProviderNetworkConfig#peeredNetworkIpRange
+   */
+  readonly peeredNetworkIpRange?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkerPoolSpecInitProviderNetworkConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkerPoolSpecInitProviderNetworkConfig(obj: WorkerPoolSpecInitProviderNetworkConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'peeredNetworkIpRange': obj.peeredNetworkIpRange,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkerPoolSpecInitProviderWorkerConfig
+ */
+export interface WorkerPoolSpecInitProviderWorkerConfig {
+  /**
+   * Size of the disk attached to the worker, in GB. See (https://cloud.google.com/cloud-build/docs/custom-workers/worker-pool-config-file). Specify a value of up to 1000. If 0 is specified, Cloud Build will use a standard disk size.
+   *
+   * @schema WorkerPoolSpecInitProviderWorkerConfig#diskSizeGb
+   */
+  readonly diskSizeGb?: number;
+
+  /**
+   * Machine type of a worker, such as n1-standard-1. See (https://cloud.google.com/cloud-build/docs/custom-workers/worker-pool-config-file). If left blank, Cloud Build will use n1-standard-1.
+   *
+   * @schema WorkerPoolSpecInitProviderWorkerConfig#machineType
+   */
+  readonly machineType?: string;
+
+  /**
+   * If true, workers are created without any public address, which prevents network egress to public IPs.
+   *
+   * @schema WorkerPoolSpecInitProviderWorkerConfig#noExternalIp
+   */
+  readonly noExternalIp?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'WorkerPoolSpecInitProviderWorkerConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkerPoolSpecInitProviderWorkerConfig(obj: WorkerPoolSpecInitProviderWorkerConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'diskSizeGb': obj.diskSizeGb,
+    'machineType': obj.machineType,
+    'noExternalIp': obj.noExternalIp,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema WorkerPoolSpecProviderConfigRefPolicy
@@ -3325,43 +5114,6 @@ export interface WorkerPoolSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_WorkerPoolSpecProviderConfigRefPolicy(obj: WorkerPoolSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema WorkerPoolSpecProviderRefPolicy
- */
-export interface WorkerPoolSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema WorkerPoolSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: WorkerPoolSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema WorkerPoolSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: WorkerPoolSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'WorkerPoolSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_WorkerPoolSpecProviderRefPolicy(obj: WorkerPoolSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3554,30 +5306,6 @@ export enum WorkerPoolSpecProviderConfigRefPolicyResolution {
  * @schema WorkerPoolSpecProviderConfigRefPolicyResolve
  */
 export enum WorkerPoolSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema WorkerPoolSpecProviderRefPolicyResolution
- */
-export enum WorkerPoolSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema WorkerPoolSpecProviderRefPolicyResolve
- */
-export enum WorkerPoolSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

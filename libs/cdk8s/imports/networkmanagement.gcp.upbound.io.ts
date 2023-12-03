@@ -99,7 +99,7 @@ export function toJson_ConnectivityTestProps(obj: ConnectivityTestProps | undefi
  */
 export interface ConnectivityTestSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ConnectivityTestSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface ConnectivityTestSpec {
   readonly forProvider: ConnectivityTestSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ConnectivityTestSpec#managementPolicy
+   * @schema ConnectivityTestSpec#initProvider
    */
-  readonly managementPolicy?: ConnectivityTestSpecManagementPolicy;
+  readonly initProvider?: ConnectivityTestSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ConnectivityTestSpec#managementPolicies
+   */
+  readonly managementPolicies?: ConnectivityTestSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface ConnectivityTestSpec {
    * @schema ConnectivityTestSpec#providerConfigRef
    */
   readonly providerConfigRef?: ConnectivityTestSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ConnectivityTestSpec#providerRef
-   */
-  readonly providerRef?: ConnectivityTestSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_ConnectivityTestSpec(obj: ConnectivityTestSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ConnectivityTestSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ConnectivityTestSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ConnectivityTestSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ConnectivityTestSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ConnectivityTestSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ConnectivityTestSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_ConnectivityTestSpec(obj: ConnectivityTestSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ConnectivityTestSpecDeletionPolicy
  */
@@ -263,17 +263,108 @@ export function toJson_ConnectivityTestSpecForProvider(obj: ConnectivityTestSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ConnectivityTestSpecManagementPolicy
+ * @schema ConnectivityTestSpecInitProvider
  */
-export enum ConnectivityTestSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ConnectivityTestSpecInitProvider {
+  /**
+   * The user-supplied description of the Connectivity Test. Maximum of 512 characters.
+   *
+   * @schema ConnectivityTestSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Required. Destination specification of the Connectivity Test. You can use a combination of destination IP address, Compute Engine VM instance, or VPC network to uniquely identify the destination location. Even if the destination IP address is not unique, the source IP location is unique. Usually, the analysis can infer the destination endpoint from route information. If the destination you specify is a VM instance and the instance has multiple network interfaces, then you must also specify either a destination IP address or VPC network to identify the destination interface. A reachability analysis proceeds even if the destination location is ambiguous. However, the result can include endpoints that you don't intend to test. Structure is documented below.
+   *
+   * @schema ConnectivityTestSpecInitProvider#destination
+   */
+  readonly destination?: ConnectivityTestSpecInitProviderDestination[];
+
+  /**
+   * Resource labels to represent user-provided metadata.
+   *
+   * @schema ConnectivityTestSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Unique name for the connectivity test.
+   *
+   * @schema ConnectivityTestSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema ConnectivityTestSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * IP Protocol of the test. When not provided, "TCP" is assumed.
+   *
+   * @schema ConnectivityTestSpecInitProvider#protocol
+   */
+  readonly protocol?: string;
+
+  /**
+   * Other projects that may be relevant for reachability analysis. This is applicable to scenarios where a test can cross project boundaries.
+   *
+   * @schema ConnectivityTestSpecInitProvider#relatedProjects
+   */
+  readonly relatedProjects?: string[];
+
+  /**
+   * Required. Source specification of the Connectivity Test. You can use a combination of source IP address, virtual machine (VM) instance, or Compute Engine network to uniquely identify the source location. Examples: If the source IP address is an internal IP address within a Google Cloud Virtual Private Cloud (VPC) network, then you must also specify the VPC network. Otherwise, specify the VM instance, which already contains its internal IP address and VPC network information. If the source of the test is within an on-premises network, then you must provide the destination VPC network. If the source endpoint is a Compute Engine VM instance with multiple network interfaces, the instance itself is not sufficient to identify the endpoint. So, you must also specify the source IP address or VPC network. A reachability analysis proceeds even if the source location is ambiguous. However, the test result may include endpoints that you don't intend to test. Structure is documented below.
+   *
+   * @schema ConnectivityTestSpecInitProvider#source
+   */
+  readonly source?: ConnectivityTestSpecInitProviderSource[];
+
+}
+
+/**
+ * Converts an object of type 'ConnectivityTestSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ConnectivityTestSpecInitProvider(obj: ConnectivityTestSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'destination': obj.destination?.map(y => toJson_ConnectivityTestSpecInitProviderDestination(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'name': obj.name,
+    'project': obj.project,
+    'protocol': obj.protocol,
+    'relatedProjects': obj.relatedProjects?.map(y => y),
+    'source': obj.source?.map(y => toJson_ConnectivityTestSpecInitProviderSource(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ConnectivityTestSpecManagementPolicies
+ */
+export enum ConnectivityTestSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -307,43 +398,6 @@ export function toJson_ConnectivityTestSpecProviderConfigRef(obj: ConnectivityTe
   const result = {
     'name': obj.name,
     'policy': toJson_ConnectivityTestSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ConnectivityTestSpecProviderRef
- */
-export interface ConnectivityTestSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ConnectivityTestSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ConnectivityTestSpecProviderRef#policy
-   */
-  readonly policy?: ConnectivityTestSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ConnectivityTestSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ConnectivityTestSpecProviderRef(obj: ConnectivityTestSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ConnectivityTestSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -687,6 +741,68 @@ export function toJson_ConnectivityTestSpecForProviderSource(obj: ConnectivityTe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ConnectivityTestSpecInitProviderDestination
+ */
+export interface ConnectivityTestSpecInitProviderDestination {
+  /**
+   * The IP protocol port of the endpoint. Only applicable when protocol is TCP or UDP.
+   *
+   * @schema ConnectivityTestSpecInitProviderDestination#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'ConnectivityTestSpecInitProviderDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ConnectivityTestSpecInitProviderDestination(obj: ConnectivityTestSpecInitProviderDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ConnectivityTestSpecInitProviderSource
+ */
+export interface ConnectivityTestSpecInitProviderSource {
+  /**
+   * Type of the network where the endpoint is located. Possible values are: GCP_NETWORK, NON_GCP_NETWORK.
+   *
+   * @schema ConnectivityTestSpecInitProviderSource#networkType
+   */
+  readonly networkType?: string;
+
+  /**
+   * The IP protocol port of the endpoint. Only applicable when protocol is TCP or UDP.
+   *
+   * @schema ConnectivityTestSpecInitProviderSource#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'ConnectivityTestSpecInitProviderSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ConnectivityTestSpecInitProviderSource(obj: ConnectivityTestSpecInitProviderSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'networkType': obj.networkType,
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ConnectivityTestSpecProviderConfigRefPolicy
@@ -713,43 +829,6 @@ export interface ConnectivityTestSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ConnectivityTestSpecProviderConfigRefPolicy(obj: ConnectivityTestSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ConnectivityTestSpecProviderRefPolicy
- */
-export interface ConnectivityTestSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ConnectivityTestSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ConnectivityTestSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ConnectivityTestSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ConnectivityTestSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ConnectivityTestSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ConnectivityTestSpecProviderRefPolicy(obj: ConnectivityTestSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1516,30 +1595,6 @@ export enum ConnectivityTestSpecProviderConfigRefPolicyResolution {
  * @schema ConnectivityTestSpecProviderConfigRefPolicyResolve
  */
 export enum ConnectivityTestSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ConnectivityTestSpecProviderRefPolicyResolution
- */
-export enum ConnectivityTestSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ConnectivityTestSpecProviderRefPolicyResolve
- */
-export enum ConnectivityTestSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

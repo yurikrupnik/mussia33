@@ -99,7 +99,7 @@ export function toJson_SecretProps(obj: SecretProps | undefined): Record<string,
  */
 export interface SecretSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SecretSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface SecretSpec {
   readonly forProvider: SecretSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema SecretSpec#managementPolicy
+   * @schema SecretSpec#initProvider
    */
-  readonly managementPolicy?: SecretSpecManagementPolicy;
+  readonly initProvider?: SecretSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema SecretSpec#managementPolicies
+   */
+  readonly managementPolicies?: SecretSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface SecretSpec {
    * @schema SecretSpec#providerConfigRef
    */
   readonly providerConfigRef?: SecretSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema SecretSpec#providerRef
-   */
-  readonly providerRef?: SecretSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_SecretSpec(obj: SecretSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SecretSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_SecretSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_SecretSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_SecretSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SecretSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_SecretSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_SecretSpec(obj: SecretSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SecretSpecDeletionPolicy
  */
@@ -255,17 +255,100 @@ export function toJson_SecretSpecForProvider(obj: SecretSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema SecretSpecManagementPolicy
+ * @schema SecretSpecInitProvider
  */
-export enum SecretSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface SecretSpecInitProvider {
+  /**
+   * Timestamp in UTC when the Secret is scheduled to expire. This is always provided on output, regardless of what was sent on input. A timestamp in RFC3339 UTC "Zulu" format, with nanosecond resolution and up to nine fractional digits. Examples: "2014-10-02T15:01:23Z" and "2014-10-02T15:01:23.045123456Z".
+   *
+   * @schema SecretSpecInitProvider#expireTime
+   */
+  readonly expireTime?: string;
+
+  /**
+   * The labels assigned to this Secret. Label keys must be between 1 and 63 characters long, have a UTF-8 encoding of maximum 128 bytes, and must conform to the following PCRE regular expression: [\p{Ll}\p{Lo}][\p{Ll}\p{Lo}\p{N}-]{0,62} Label values must be between 0 and 63 characters long, have a UTF-8 encoding of maximum 128 bytes, and must conform to the following PCRE regular expression: [\p{Ll}\p{Lo}\p{N}-]{0,63} No more than 64 labels can be assigned to a given resource. An object containing a list of "key": value pairs. Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
+   *
+   * @schema SecretSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema SecretSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The replication policy of the secret data attached to the Secret. It cannot be changed after the Secret has been created. Structure is documented below.
+   *
+   * @schema SecretSpecInitProvider#replication
+   */
+  readonly replication?: SecretSpecInitProviderReplication[];
+
+  /**
+   * The rotation time and period for a Secret. At next_rotation_time, Secret Manager will send a Pub/Sub notification to the topics configured on the Secret. topics must be set to configure rotation. Structure is documented below.
+   *
+   * @schema SecretSpecInitProvider#rotation
+   */
+  readonly rotation?: SecretSpecInitProviderRotation[];
+
+  /**
+   * A list of up to 10 Pub/Sub topics to which messages are published when control plane operations are called on the secret or its versions. Structure is documented below.
+   *
+   * @schema SecretSpecInitProvider#topics
+   */
+  readonly topics?: SecretSpecInitProviderTopics[];
+
+  /**
+   * The TTL for the Secret. A duration in seconds with up to nine fractional digits, terminated by 's'. Example: "3.5s".
+   *
+   * @schema SecretSpecInitProvider#ttl
+   */
+  readonly ttl?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretSpecInitProvider(obj: SecretSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'expireTime': obj.expireTime,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'project': obj.project,
+    'replication': obj.replication?.map(y => toJson_SecretSpecInitProviderReplication(y)),
+    'rotation': obj.rotation?.map(y => toJson_SecretSpecInitProviderRotation(y)),
+    'topics': obj.topics?.map(y => toJson_SecretSpecInitProviderTopics(y)),
+    'ttl': obj.ttl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema SecretSpecManagementPolicies
+ */
+export enum SecretSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -299,43 +382,6 @@ export function toJson_SecretSpecProviderConfigRef(obj: SecretSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_SecretSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema SecretSpecProviderRef
- */
-export interface SecretSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema SecretSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema SecretSpecProviderRef#policy
-   */
-  readonly policy?: SecretSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'SecretSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SecretSpecProviderRef(obj: SecretSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_SecretSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -436,7 +482,7 @@ export interface SecretSpecForProviderReplication {
   readonly automatic?: boolean;
 
   /**
-   * The Secret will automatically be replicated without any restrictions. Structure is documented below.
+   * The Secret will be replicated to the regions specified by the user. Structure is documented below.
    *
    * @schema SecretSpecForProviderReplication#userManaged
    */
@@ -503,7 +549,7 @@ export interface SecretSpecForProviderTopics {
    *
    * @schema SecretSpecForProviderTopics#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -512,6 +558,103 @@ export interface SecretSpecForProviderTopics {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SecretSpecForProviderTopics(obj: SecretSpecForProviderTopics | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SecretSpecInitProviderReplication
+ */
+export interface SecretSpecInitProviderReplication {
+  /**
+   * The Secret will automatically be replicated without any restrictions.
+   *
+   * @schema SecretSpecInitProviderReplication#automatic
+   */
+  readonly automatic?: boolean;
+
+  /**
+   * The Secret will be replicated to the regions specified by the user. Structure is documented below.
+   *
+   * @schema SecretSpecInitProviderReplication#userManaged
+   */
+  readonly userManaged?: SecretSpecInitProviderReplicationUserManaged[];
+
+}
+
+/**
+ * Converts an object of type 'SecretSpecInitProviderReplication' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretSpecInitProviderReplication(obj: SecretSpecInitProviderReplication | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'automatic': obj.automatic,
+    'userManaged': obj.userManaged?.map(y => toJson_SecretSpecInitProviderReplicationUserManaged(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SecretSpecInitProviderRotation
+ */
+export interface SecretSpecInitProviderRotation {
+  /**
+   * Timestamp in UTC at which the Secret is scheduled to rotate. A timestamp in RFC3339 UTC "Zulu" format, with nanosecond resolution and up to nine fractional digits. Examples: "2014-10-02T15:01:23Z" and "2014-10-02T15:01:23.045123456Z".
+   *
+   * @schema SecretSpecInitProviderRotation#nextRotationTime
+   */
+  readonly nextRotationTime?: string;
+
+  /**
+   * The Duration between rotation notifications. Must be in seconds and at least 3600s (1h) and at most 3153600000s (100 years). If rotationPeriod is set, next_rotation_time must be set. next_rotation_time will be advanced by this period when the service automatically sends rotation notifications.
+   *
+   * @schema SecretSpecInitProviderRotation#rotationPeriod
+   */
+  readonly rotationPeriod?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretSpecInitProviderRotation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretSpecInitProviderRotation(obj: SecretSpecInitProviderRotation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'nextRotationTime': obj.nextRotationTime,
+    'rotationPeriod': obj.rotationPeriod,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SecretSpecInitProviderTopics
+ */
+export interface SecretSpecInitProviderTopics {
+  /**
+   * The resource name of the Pub/Sub topic that will be published to, in the following format: projects//topics/. For publication to succeed, the Secret Manager Service Agent service account must have pubsub.publisher permissions on the topic.
+   *
+   * @schema SecretSpecInitProviderTopics#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretSpecInitProviderTopics' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretSpecInitProviderTopics(obj: SecretSpecInitProviderTopics | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'name': obj.name,
@@ -548,43 +691,6 @@ export interface SecretSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SecretSpecProviderConfigRefPolicy(obj: SecretSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema SecretSpecProviderRefPolicy
- */
-export interface SecretSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema SecretSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: SecretSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema SecretSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: SecretSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'SecretSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SecretSpecProviderRefPolicy(obj: SecretSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -686,7 +792,7 @@ export interface SecretSpecForProviderReplicationUserManaged {
    *
    * @schema SecretSpecForProviderReplicationUserManaged#replicas
    */
-  readonly replicas: SecretSpecForProviderReplicationUserManagedReplicas[];
+  readonly replicas?: SecretSpecForProviderReplicationUserManagedReplicas[];
 
 }
 
@@ -698,6 +804,33 @@ export function toJson_SecretSpecForProviderReplicationUserManaged(obj: SecretSp
   if (obj === undefined) { return undefined; }
   const result = {
     'replicas': obj.replicas?.map(y => toJson_SecretSpecForProviderReplicationUserManagedReplicas(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SecretSpecInitProviderReplicationUserManaged
+ */
+export interface SecretSpecInitProviderReplicationUserManaged {
+  /**
+   * The list of Replicas for this Secret. Cannot be empty. Structure is documented below.
+   *
+   * @schema SecretSpecInitProviderReplicationUserManaged#replicas
+   */
+  readonly replicas?: SecretSpecInitProviderReplicationUserManagedReplicas[];
+
+}
+
+/**
+ * Converts an object of type 'SecretSpecInitProviderReplicationUserManaged' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretSpecInitProviderReplicationUserManaged(obj: SecretSpecInitProviderReplicationUserManaged | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'replicas': obj.replicas?.map(y => toJson_SecretSpecInitProviderReplicationUserManagedReplicas(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -722,30 +855,6 @@ export enum SecretSpecProviderConfigRefPolicyResolution {
  * @schema SecretSpecProviderConfigRefPolicyResolve
  */
 export enum SecretSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema SecretSpecProviderRefPolicyResolution
- */
-export enum SecretSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema SecretSpecProviderRefPolicyResolve
- */
-export enum SecretSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -805,7 +914,7 @@ export interface SecretSpecForProviderReplicationUserManagedReplicas {
    *
    * @schema SecretSpecForProviderReplicationUserManagedReplicas#location
    */
-  readonly location: string;
+  readonly location?: string;
 
 }
 
@@ -817,6 +926,41 @@ export function toJson_SecretSpecForProviderReplicationUserManagedReplicas(obj: 
   if (obj === undefined) { return undefined; }
   const result = {
     'customerManagedEncryption': obj.customerManagedEncryption?.map(y => toJson_SecretSpecForProviderReplicationUserManagedReplicasCustomerManagedEncryption(y)),
+    'location': obj.location,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SecretSpecInitProviderReplicationUserManagedReplicas
+ */
+export interface SecretSpecInitProviderReplicationUserManagedReplicas {
+  /**
+   * Customer Managed Encryption for the secret. Structure is documented below.
+   *
+   * @schema SecretSpecInitProviderReplicationUserManagedReplicas#customerManagedEncryption
+   */
+  readonly customerManagedEncryption?: SecretSpecInitProviderReplicationUserManagedReplicasCustomerManagedEncryption[];
+
+  /**
+   * The canonical IDs of the location to replicate data. For example: "us-east1".
+   *
+   * @schema SecretSpecInitProviderReplicationUserManagedReplicas#location
+   */
+  readonly location?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretSpecInitProviderReplicationUserManagedReplicas' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretSpecInitProviderReplicationUserManagedReplicas(obj: SecretSpecInitProviderReplicationUserManagedReplicas | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customerManagedEncryption': obj.customerManagedEncryption?.map(y => toJson_SecretSpecInitProviderReplicationUserManagedReplicasCustomerManagedEncryption(y)),
     'location': obj.location,
   };
   // filter undefined values
@@ -857,7 +1001,7 @@ export interface SecretSpecForProviderReplicationUserManagedReplicasCustomerMana
    *
    * @schema SecretSpecForProviderReplicationUserManagedReplicasCustomerManagedEncryption#kmsKeyName
    */
-  readonly kmsKeyName: string;
+  readonly kmsKeyName?: string;
 
 }
 
@@ -866,6 +1010,33 @@ export interface SecretSpecForProviderReplicationUserManagedReplicasCustomerMana
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SecretSpecForProviderReplicationUserManagedReplicasCustomerManagedEncryption(obj: SecretSpecForProviderReplicationUserManagedReplicasCustomerManagedEncryption | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kmsKeyName': obj.kmsKeyName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SecretSpecInitProviderReplicationUserManagedReplicasCustomerManagedEncryption
+ */
+export interface SecretSpecInitProviderReplicationUserManagedReplicasCustomerManagedEncryption {
+  /**
+   * Describes the Cloud KMS encryption key that will be used to protect destination secret.
+   *
+   * @schema SecretSpecInitProviderReplicationUserManagedReplicasCustomerManagedEncryption#kmsKeyName
+   */
+  readonly kmsKeyName?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretSpecInitProviderReplicationUserManagedReplicasCustomerManagedEncryption' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretSpecInitProviderReplicationUserManagedReplicasCustomerManagedEncryption(obj: SecretSpecInitProviderReplicationUserManagedReplicasCustomerManagedEncryption | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'kmsKeyName': obj.kmsKeyName,
@@ -972,7 +1143,7 @@ export function toJson_SecretIamMemberProps(obj: SecretIamMemberProps | undefine
  */
 export interface SecretIamMemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SecretIamMemberSpec#deletionPolicy
    */
@@ -984,11 +1155,18 @@ export interface SecretIamMemberSpec {
   readonly forProvider: SecretIamMemberSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema SecretIamMemberSpec#managementPolicy
+   * @schema SecretIamMemberSpec#initProvider
    */
-  readonly managementPolicy?: SecretIamMemberSpecManagementPolicy;
+  readonly initProvider?: SecretIamMemberSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema SecretIamMemberSpec#managementPolicies
+   */
+  readonly managementPolicies?: SecretIamMemberSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -996,13 +1174,6 @@ export interface SecretIamMemberSpec {
    * @schema SecretIamMemberSpec#providerConfigRef
    */
   readonly providerConfigRef?: SecretIamMemberSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema SecretIamMemberSpec#providerRef
-   */
-  readonly providerRef?: SecretIamMemberSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1029,9 +1200,9 @@ export function toJson_SecretIamMemberSpec(obj: SecretIamMemberSpec | undefined)
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SecretIamMemberSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_SecretIamMemberSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_SecretIamMemberSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_SecretIamMemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SecretIamMemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_SecretIamMemberSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1041,7 +1212,7 @@ export function toJson_SecretIamMemberSpec(obj: SecretIamMemberSpec | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SecretIamMemberSpecDeletionPolicy
  */
@@ -1118,17 +1289,68 @@ export function toJson_SecretIamMemberSpecForProvider(obj: SecretIamMemberSpecFo
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema SecretIamMemberSpecManagementPolicy
+ * @schema SecretIamMemberSpecInitProvider
  */
-export enum SecretIamMemberSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface SecretIamMemberSpecInitProvider {
+  /**
+   * @schema SecretIamMemberSpecInitProvider#condition
+   */
+  readonly condition?: SecretIamMemberSpecInitProviderCondition[];
+
+  /**
+   * @schema SecretIamMemberSpecInitProvider#member
+   */
+  readonly member?: string;
+
+  /**
+   * @schema SecretIamMemberSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * @schema SecretIamMemberSpecInitProvider#role
+   */
+  readonly role?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretIamMemberSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretIamMemberSpecInitProvider(obj: SecretIamMemberSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'condition': obj.condition?.map(y => toJson_SecretIamMemberSpecInitProviderCondition(y)),
+    'member': obj.member,
+    'project': obj.project,
+    'role': obj.role,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema SecretIamMemberSpecManagementPolicies
+ */
+export enum SecretIamMemberSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1162,43 +1384,6 @@ export function toJson_SecretIamMemberSpecProviderConfigRef(obj: SecretIamMember
   const result = {
     'name': obj.name,
     'policy': toJson_SecretIamMemberSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema SecretIamMemberSpecProviderRef
- */
-export interface SecretIamMemberSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema SecretIamMemberSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema SecretIamMemberSpecProviderRef#policy
-   */
-  readonly policy?: SecretIamMemberSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'SecretIamMemberSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SecretIamMemberSpecProviderRef(obj: SecretIamMemberSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_SecretIamMemberSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1299,12 +1484,12 @@ export interface SecretIamMemberSpecForProviderCondition {
   /**
    * @schema SecretIamMemberSpecForProviderCondition#expression
    */
-  readonly expression: string;
+  readonly expression?: string;
 
   /**
    * @schema SecretIamMemberSpecForProviderCondition#title
    */
-  readonly title: string;
+  readonly title?: string;
 
 }
 
@@ -1407,6 +1592,43 @@ export function toJson_SecretIamMemberSpecForProviderSecretIdSelector(obj: Secre
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema SecretIamMemberSpecInitProviderCondition
+ */
+export interface SecretIamMemberSpecInitProviderCondition {
+  /**
+   * @schema SecretIamMemberSpecInitProviderCondition#description
+   */
+  readonly description?: string;
+
+  /**
+   * @schema SecretIamMemberSpecInitProviderCondition#expression
+   */
+  readonly expression?: string;
+
+  /**
+   * @schema SecretIamMemberSpecInitProviderCondition#title
+   */
+  readonly title?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretIamMemberSpecInitProviderCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretIamMemberSpecInitProviderCondition(obj: SecretIamMemberSpecInitProviderCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'expression': obj.expression,
+    'title': obj.title,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema SecretIamMemberSpecProviderConfigRefPolicy
@@ -1433,43 +1655,6 @@ export interface SecretIamMemberSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SecretIamMemberSpecProviderConfigRefPolicy(obj: SecretIamMemberSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema SecretIamMemberSpecProviderRefPolicy
- */
-export interface SecretIamMemberSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema SecretIamMemberSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: SecretIamMemberSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema SecretIamMemberSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: SecretIamMemberSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'SecretIamMemberSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SecretIamMemberSpecProviderRefPolicy(obj: SecretIamMemberSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1654,30 +1839,6 @@ export enum SecretIamMemberSpecProviderConfigRefPolicyResolution {
  * @schema SecretIamMemberSpecProviderConfigRefPolicyResolve
  */
 export enum SecretIamMemberSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema SecretIamMemberSpecProviderRefPolicyResolution
- */
-export enum SecretIamMemberSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema SecretIamMemberSpecProviderRefPolicyResolve
- */
-export enum SecretIamMemberSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1890,7 +2051,7 @@ export function toJson_SecretVersionProps(obj: SecretVersionProps | undefined): 
  */
 export interface SecretVersionSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SecretVersionSpec#deletionPolicy
    */
@@ -1902,11 +2063,18 @@ export interface SecretVersionSpec {
   readonly forProvider: SecretVersionSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema SecretVersionSpec#managementPolicy
+   * @schema SecretVersionSpec#initProvider
    */
-  readonly managementPolicy?: SecretVersionSpecManagementPolicy;
+  readonly initProvider?: SecretVersionSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema SecretVersionSpec#managementPolicies
+   */
+  readonly managementPolicies?: SecretVersionSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1914,13 +2082,6 @@ export interface SecretVersionSpec {
    * @schema SecretVersionSpec#providerConfigRef
    */
   readonly providerConfigRef?: SecretVersionSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema SecretVersionSpec#providerRef
-   */
-  readonly providerRef?: SecretVersionSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1947,9 +2108,9 @@ export function toJson_SecretVersionSpec(obj: SecretVersionSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SecretVersionSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_SecretVersionSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_SecretVersionSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_SecretVersionSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SecretVersionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_SecretVersionSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1959,7 +2120,7 @@ export function toJson_SecretVersionSpec(obj: SecretVersionSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SecretVersionSpecDeletionPolicy
  */
@@ -2030,17 +2191,52 @@ export function toJson_SecretVersionSpecForProvider(obj: SecretVersionSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema SecretVersionSpecManagementPolicy
+ * @schema SecretVersionSpecInitProvider
  */
-export enum SecretVersionSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface SecretVersionSpecInitProvider {
+  /**
+   * The current state of the SecretVersion.
+   *
+   * @schema SecretVersionSpecInitProvider#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'SecretVersionSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretVersionSpecInitProvider(obj: SecretVersionSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema SecretVersionSpecManagementPolicies
+ */
+export enum SecretVersionSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2074,43 +2270,6 @@ export function toJson_SecretVersionSpecProviderConfigRef(obj: SecretVersionSpec
   const result = {
     'name': obj.name,
     'policy': toJson_SecretVersionSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema SecretVersionSpecProviderRef
- */
-export interface SecretVersionSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema SecretVersionSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema SecretVersionSpecProviderRef#policy
-   */
-  readonly policy?: SecretVersionSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'SecretVersionSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SecretVersionSpecProviderRef(obj: SecretVersionSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_SecretVersionSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2364,43 +2523,6 @@ export function toJson_SecretVersionSpecProviderConfigRefPolicy(obj: SecretVersi
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema SecretVersionSpecProviderRefPolicy
- */
-export interface SecretVersionSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema SecretVersionSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: SecretVersionSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema SecretVersionSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: SecretVersionSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'SecretVersionSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SecretVersionSpecProviderRefPolicy(obj: SecretVersionSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema SecretVersionSpecPublishConnectionDetailsToConfigRef
@@ -2574,30 +2696,6 @@ export enum SecretVersionSpecProviderConfigRefPolicyResolution {
  * @schema SecretVersionSpecProviderConfigRefPolicyResolve
  */
 export enum SecretVersionSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema SecretVersionSpecProviderRefPolicyResolution
- */
-export enum SecretVersionSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema SecretVersionSpecProviderRefPolicyResolve
- */
-export enum SecretVersionSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

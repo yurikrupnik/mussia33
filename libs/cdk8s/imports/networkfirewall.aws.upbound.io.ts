@@ -99,7 +99,7 @@ export function toJson_FirewallProps(obj: FirewallProps | undefined): Record<str
  */
 export interface FirewallSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema FirewallSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface FirewallSpec {
   readonly forProvider: FirewallSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema FirewallSpec#managementPolicy
+   * @schema FirewallSpec#initProvider
    */
-  readonly managementPolicy?: FirewallSpecManagementPolicy;
+  readonly initProvider?: FirewallSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema FirewallSpec#managementPolicies
+   */
+  readonly managementPolicies?: FirewallSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface FirewallSpec {
    * @schema FirewallSpec#providerConfigRef
    */
   readonly providerConfigRef?: FirewallSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema FirewallSpec#providerRef
-   */
-  readonly providerRef?: FirewallSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_FirewallSpec(obj: FirewallSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_FirewallSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_FirewallSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_FirewallSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_FirewallSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_FirewallSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_FirewallSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_FirewallSpec(obj: FirewallSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema FirewallSpecDeletionPolicy
  */
@@ -322,17 +322,111 @@ export function toJson_FirewallSpecForProvider(obj: FirewallSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema FirewallSpecManagementPolicy
+ * @schema FirewallSpecInitProvider
  */
-export enum FirewallSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface FirewallSpecInitProvider {
+  /**
+   * A boolean flag indicating whether it is possible to delete the firewall. Defaults to false.
+   *
+   * @default false.
+   * @schema FirewallSpecInitProvider#deleteProtection
+   */
+  readonly deleteProtection?: boolean;
+
+  /**
+   * A friendly description of the firewall.
+   *
+   * @schema FirewallSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * KMS encryption configuration settings. See Encryption Configuration below for details.
+   *
+   * @schema FirewallSpecInitProvider#encryptionConfiguration
+   */
+  readonly encryptionConfiguration?: FirewallSpecInitProviderEncryptionConfiguration[];
+
+  /**
+   * (Option) A boolean flag indicating whether it is possible to change the associated firewall policy. Defaults to false.
+   *
+   * @default false.
+   * @schema FirewallSpecInitProvider#firewallPolicyChangeProtection
+   */
+  readonly firewallPolicyChangeProtection?: boolean;
+
+  /**
+   * A friendly name of the firewall.
+   *
+   * @schema FirewallSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * A boolean flag indicating whether it is possible to change the associated subnet(s). Defaults to false.
+   *
+   * @default false.
+   * @schema FirewallSpecInitProvider#subnetChangeProtection
+   */
+  readonly subnetChangeProtection?: boolean;
+
+  /**
+   * Set of configuration blocks describing the public subnets. Each subnet must belong to a different Availability Zone in the VPC. AWS Network Firewall creates a firewall endpoint in each subnet. See Subnet Mapping below for details.
+   *
+   * @schema FirewallSpecInitProvider#subnetMapping
+   */
+  readonly subnetMapping?: FirewallSpecInitProviderSubnetMapping[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema FirewallSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'FirewallSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallSpecInitProvider(obj: FirewallSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deleteProtection': obj.deleteProtection,
+    'description': obj.description,
+    'encryptionConfiguration': obj.encryptionConfiguration?.map(y => toJson_FirewallSpecInitProviderEncryptionConfiguration(y)),
+    'firewallPolicyChangeProtection': obj.firewallPolicyChangeProtection,
+    'name': obj.name,
+    'subnetChangeProtection': obj.subnetChangeProtection,
+    'subnetMapping': obj.subnetMapping?.map(y => toJson_FirewallSpecInitProviderSubnetMapping(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema FirewallSpecManagementPolicies
+ */
+export enum FirewallSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -366,43 +460,6 @@ export function toJson_FirewallSpecProviderConfigRef(obj: FirewallSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_FirewallSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema FirewallSpecProviderRef
- */
-export interface FirewallSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema FirewallSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema FirewallSpecProviderRef#policy
-   */
-  readonly policy?: FirewallSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'FirewallSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FirewallSpecProviderRef(obj: FirewallSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_FirewallSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -507,7 +564,7 @@ export interface FirewallSpecForProviderEncryptionConfiguration {
    *
    * @schema FirewallSpecForProviderEncryptionConfiguration#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -742,6 +799,68 @@ export function toJson_FirewallSpecForProviderVpcIdSelector(obj: FirewallSpecFor
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema FirewallSpecInitProviderEncryptionConfiguration
+ */
+export interface FirewallSpecInitProviderEncryptionConfiguration {
+  /**
+   * The ID of the customer managed key. You can use any of the key identifiers that KMS supports, unless you're using a key that's managed by another account. If you're using a key managed by another account, then specify the key ARN.
+   *
+   * @schema FirewallSpecInitProviderEncryptionConfiguration#keyId
+   */
+  readonly keyId?: string;
+
+  /**
+   * The type of AWS KMS key to use for encryption of your Network Firewall resources. Valid values are CUSTOMER_KMS and AWS_OWNED_KMS_KEY.
+   *
+   * @schema FirewallSpecInitProviderEncryptionConfiguration#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'FirewallSpecInitProviderEncryptionConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallSpecInitProviderEncryptionConfiguration(obj: FirewallSpecInitProviderEncryptionConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'keyId': obj.keyId,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FirewallSpecInitProviderSubnetMapping
+ */
+export interface FirewallSpecInitProviderSubnetMapping {
+  /**
+   * The subnet's IP address type. Valida values: "DUALSTACK", "IPV4".
+   *
+   * @schema FirewallSpecInitProviderSubnetMapping#ipAddressType
+   */
+  readonly ipAddressType?: string;
+
+}
+
+/**
+ * Converts an object of type 'FirewallSpecInitProviderSubnetMapping' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallSpecInitProviderSubnetMapping(obj: FirewallSpecInitProviderSubnetMapping | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ipAddressType': obj.ipAddressType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema FirewallSpecProviderConfigRefPolicy
@@ -768,43 +887,6 @@ export interface FirewallSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_FirewallSpecProviderConfigRefPolicy(obj: FirewallSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema FirewallSpecProviderRefPolicy
- */
-export interface FirewallSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema FirewallSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: FirewallSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema FirewallSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: FirewallSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'FirewallSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FirewallSpecProviderRefPolicy(obj: FirewallSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1145,30 +1227,6 @@ export enum FirewallSpecProviderConfigRefPolicyResolution {
  * @schema FirewallSpecProviderConfigRefPolicyResolve
  */
 export enum FirewallSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema FirewallSpecProviderRefPolicyResolution
- */
-export enum FirewallSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema FirewallSpecProviderRefPolicyResolve
- */
-export enum FirewallSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1551,7 +1609,7 @@ export function toJson_FirewallPolicyProps(obj: FirewallPolicyProps | undefined)
  */
 export interface FirewallPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema FirewallPolicySpec#deletionPolicy
    */
@@ -1563,11 +1621,18 @@ export interface FirewallPolicySpec {
   readonly forProvider: FirewallPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema FirewallPolicySpec#managementPolicy
+   * @schema FirewallPolicySpec#initProvider
    */
-  readonly managementPolicy?: FirewallPolicySpecManagementPolicy;
+  readonly initProvider?: FirewallPolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema FirewallPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: FirewallPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1575,13 +1640,6 @@ export interface FirewallPolicySpec {
    * @schema FirewallPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: FirewallPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema FirewallPolicySpec#providerRef
-   */
-  readonly providerRef?: FirewallPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1608,9 +1666,9 @@ export function toJson_FirewallPolicySpec(obj: FirewallPolicySpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_FirewallPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_FirewallPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_FirewallPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_FirewallPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_FirewallPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_FirewallPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1620,7 +1678,7 @@ export function toJson_FirewallPolicySpec(obj: FirewallPolicySpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema FirewallPolicySpecDeletionPolicy
  */
@@ -1691,17 +1749,76 @@ export function toJson_FirewallPolicySpecForProvider(obj: FirewallPolicySpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema FirewallPolicySpecManagementPolicy
+ * @schema FirewallPolicySpecInitProvider
  */
-export enum FirewallPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface FirewallPolicySpecInitProvider {
+  /**
+   * A friendly description of the firewall policy.
+   *
+   * @schema FirewallPolicySpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * KMS encryption configuration settings. See Encryption Configuration below for details.
+   *
+   * @schema FirewallPolicySpecInitProvider#encryptionConfiguration
+   */
+  readonly encryptionConfiguration?: FirewallPolicySpecInitProviderEncryptionConfiguration[];
+
+  /**
+   * A configuration block describing the rule groups and policy actions to use in the firewall policy. See Firewall Policy below for details.
+   *
+   * @schema FirewallPolicySpecInitProvider#firewallPolicy
+   */
+  readonly firewallPolicy?: FirewallPolicySpecInitProviderFirewallPolicy[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema FirewallPolicySpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'FirewallPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallPolicySpecInitProvider(obj: FirewallPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'encryptionConfiguration': obj.encryptionConfiguration?.map(y => toJson_FirewallPolicySpecInitProviderEncryptionConfiguration(y)),
+    'firewallPolicy': obj.firewallPolicy?.map(y => toJson_FirewallPolicySpecInitProviderFirewallPolicy(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema FirewallPolicySpecManagementPolicies
+ */
+export enum FirewallPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1735,43 +1852,6 @@ export function toJson_FirewallPolicySpecProviderConfigRef(obj: FirewallPolicySp
   const result = {
     'name': obj.name,
     'policy': toJson_FirewallPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema FirewallPolicySpecProviderRef
- */
-export interface FirewallPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema FirewallPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema FirewallPolicySpecProviderRef#policy
-   */
-  readonly policy?: FirewallPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'FirewallPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FirewallPolicySpecProviderRef(obj: FirewallPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_FirewallPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1876,7 +1956,7 @@ export interface FirewallPolicySpecForProviderEncryptionConfiguration {
    *
    * @schema FirewallPolicySpecForProviderEncryptionConfiguration#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -1932,14 +2012,14 @@ export interface FirewallPolicySpecForProviderFirewallPolicy {
    *
    * @schema FirewallPolicySpecForProviderFirewallPolicy#statelessDefaultActions
    */
-  readonly statelessDefaultActions: string[];
+  readonly statelessDefaultActions?: string[];
 
   /**
    * Set of actions to take on a fragmented packet if it does not match any of the stateless rules in the policy. You must specify one of the standard actions including: aws:drop, aws:pass, or aws:forward_to_sfe. In addition, you can specify custom actions that are compatible with your standard action choice. If you want non-matching packets to be forwarded for stateful inspection, specify aws:forward_to_sfe.
    *
    * @schema FirewallPolicySpecForProviderFirewallPolicy#statelessFragmentDefaultActions
    */
-  readonly statelessFragmentDefaultActions: string[];
+  readonly statelessFragmentDefaultActions?: string[];
 
   /**
    * Set of configuration blocks containing references to the stateless rule groups that are used in the policy. See Stateless Rule Group Reference below for details.
@@ -1964,6 +2044,116 @@ export function toJson_FirewallPolicySpecForProviderFirewallPolicy(obj: Firewall
     'statelessDefaultActions': obj.statelessDefaultActions?.map(y => y),
     'statelessFragmentDefaultActions': obj.statelessFragmentDefaultActions?.map(y => y),
     'statelessRuleGroupReference': obj.statelessRuleGroupReference?.map(y => toJson_FirewallPolicySpecForProviderFirewallPolicyStatelessRuleGroupReference(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FirewallPolicySpecInitProviderEncryptionConfiguration
+ */
+export interface FirewallPolicySpecInitProviderEncryptionConfiguration {
+  /**
+   * The ID of the customer managed key. You can use any of the key identifiers that KMS supports, unless you're using a key that's managed by another account. If you're using a key managed by another account, then specify the key ARN.
+   *
+   * @schema FirewallPolicySpecInitProviderEncryptionConfiguration#keyId
+   */
+  readonly keyId?: string;
+
+  /**
+   * The type of AWS KMS key to use for encryption of your Network Firewall resources. Valid values are CUSTOMER_KMS and AWS_OWNED_KMS_KEY.
+   *
+   * @schema FirewallPolicySpecInitProviderEncryptionConfiguration#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'FirewallPolicySpecInitProviderEncryptionConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallPolicySpecInitProviderEncryptionConfiguration(obj: FirewallPolicySpecInitProviderEncryptionConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'keyId': obj.keyId,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FirewallPolicySpecInitProviderFirewallPolicy
+ */
+export interface FirewallPolicySpecInitProviderFirewallPolicy {
+  /**
+   * Set of actions to take on a packet if it does not match any stateful rules in the policy. This can only be specified if the policy has a stateful_engine_options block with a rule_order value of STRICT_ORDER. You can specify one of either or neither values of aws:drop_strict or aws:drop_established, as well as any combination of aws:alert_strict and aws:alert_established.
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicy#statefulDefaultActions
+   */
+  readonly statefulDefaultActions?: string[];
+
+  /**
+   * A configuration block that defines options on how the policy handles stateful rules. See Stateful Engine Options below for details.
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicy#statefulEngineOptions
+   */
+  readonly statefulEngineOptions?: FirewallPolicySpecInitProviderFirewallPolicyStatefulEngineOptions[];
+
+  /**
+   * Set of configuration blocks containing references to the stateful rule groups that are used in the policy. See Stateful Rule Group Reference below for details.
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicy#statefulRuleGroupReference
+   */
+  readonly statefulRuleGroupReference?: FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReference[];
+
+  /**
+   * Set of configuration blocks describing the custom action definitions that are available for use in the firewall policy's stateless_default_actions. See Stateless Custom Action below for details.
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicy#statelessCustomAction
+   */
+  readonly statelessCustomAction?: FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomAction[];
+
+  /**
+   * Set of actions to take on a packet if it does not match any of the stateless rules in the policy. You must specify one of the standard actions including: aws:drop, aws:pass, or aws:forward_to_sfe. In addition, you can specify custom actions that are compatible with your standard action choice. If you want non-matching packets to be forwarded for stateful inspection, specify aws:forward_to_sfe.
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicy#statelessDefaultActions
+   */
+  readonly statelessDefaultActions?: string[];
+
+  /**
+   * Set of actions to take on a fragmented packet if it does not match any of the stateless rules in the policy. You must specify one of the standard actions including: aws:drop, aws:pass, or aws:forward_to_sfe. In addition, you can specify custom actions that are compatible with your standard action choice. If you want non-matching packets to be forwarded for stateful inspection, specify aws:forward_to_sfe.
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicy#statelessFragmentDefaultActions
+   */
+  readonly statelessFragmentDefaultActions?: string[];
+
+  /**
+   * Set of configuration blocks containing references to the stateless rule groups that are used in the policy. See Stateless Rule Group Reference below for details.
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicy#statelessRuleGroupReference
+   */
+  readonly statelessRuleGroupReference?: FirewallPolicySpecInitProviderFirewallPolicyStatelessRuleGroupReference[];
+
+}
+
+/**
+ * Converts an object of type 'FirewallPolicySpecInitProviderFirewallPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallPolicySpecInitProviderFirewallPolicy(obj: FirewallPolicySpecInitProviderFirewallPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'statefulDefaultActions': obj.statefulDefaultActions?.map(y => y),
+    'statefulEngineOptions': obj.statefulEngineOptions?.map(y => toJson_FirewallPolicySpecInitProviderFirewallPolicyStatefulEngineOptions(y)),
+    'statefulRuleGroupReference': obj.statefulRuleGroupReference?.map(y => toJson_FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReference(y)),
+    'statelessCustomAction': obj.statelessCustomAction?.map(y => toJson_FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomAction(y)),
+    'statelessDefaultActions': obj.statelessDefaultActions?.map(y => y),
+    'statelessFragmentDefaultActions': obj.statelessFragmentDefaultActions?.map(y => y),
+    'statelessRuleGroupReference': obj.statelessRuleGroupReference?.map(y => toJson_FirewallPolicySpecInitProviderFirewallPolicyStatelessRuleGroupReference(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1997,43 +2187,6 @@ export interface FirewallPolicySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_FirewallPolicySpecProviderConfigRefPolicy(obj: FirewallPolicySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema FirewallPolicySpecProviderRefPolicy
- */
-export interface FirewallPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema FirewallPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: FirewallPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema FirewallPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: FirewallPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'FirewallPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FirewallPolicySpecProviderRefPolicy(obj: FirewallPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2135,7 +2288,7 @@ export interface FirewallPolicySpecForProviderFirewallPolicyStatefulEngineOption
    *
    * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulEngineOptions#ruleOrder
    */
-  readonly ruleOrder: string;
+  readonly ruleOrder?: string;
 
 }
 
@@ -2221,14 +2374,14 @@ export interface FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActio
    *
    * @schema FirewallPolicySpecForProviderFirewallPolicyStatelessCustomAction#actionDefinition
    */
-  readonly actionDefinition: FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActionActionDefinition[];
+  readonly actionDefinition?: FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActionActionDefinition[];
 
   /**
    * A friendly name of the custom action.
    *
    * @schema FirewallPolicySpecForProviderFirewallPolicyStatelessCustomAction#actionName
    */
-  readonly actionName: string;
+  readonly actionName?: string;
 
 }
 
@@ -2256,7 +2409,7 @@ export interface FirewallPolicySpecForProviderFirewallPolicyStatelessRuleGroupRe
    *
    * @schema FirewallPolicySpecForProviderFirewallPolicyStatelessRuleGroupReference#priority
    */
-  readonly priority: number;
+  readonly priority?: number;
 
   /**
    * The Amazon Resource Name (ARN) of the stateless rule group.
@@ -2299,6 +2452,130 @@ export function toJson_FirewallPolicySpecForProviderFirewallPolicyStatelessRuleG
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema FirewallPolicySpecInitProviderFirewallPolicyStatefulEngineOptions
+ */
+export interface FirewallPolicySpecInitProviderFirewallPolicyStatefulEngineOptions {
+  /**
+   * Indicates how to manage the order of stateful rule evaluation for the policy. Default value: DEFAULT_ACTION_ORDER. Valid values: DEFAULT_ACTION_ORDER, STRICT_ORDER.
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicyStatefulEngineOptions#ruleOrder
+   */
+  readonly ruleOrder?: string;
+
+}
+
+/**
+ * Converts an object of type 'FirewallPolicySpecInitProviderFirewallPolicyStatefulEngineOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallPolicySpecInitProviderFirewallPolicyStatefulEngineOptions(obj: FirewallPolicySpecInitProviderFirewallPolicyStatefulEngineOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ruleOrder': obj.ruleOrder,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReference
+ */
+export interface FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReference {
+  /**
+   * Configuration block for override values
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReference#override
+   */
+  readonly override?: FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReferenceOverride[];
+
+  /**
+   * An integer setting that indicates the order in which to run the stateless rule groups in a single policy. AWS Network Firewall applies each stateless rule group to a packet starting with the group that has the lowest priority setting.
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReference#priority
+   */
+  readonly priority?: number;
+
+}
+
+/**
+ * Converts an object of type 'FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReference' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReference(obj: FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReference | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'override': obj.override?.map(y => toJson_FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReferenceOverride(y)),
+    'priority': obj.priority,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomAction
+ */
+export interface FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomAction {
+  /**
+   * A configuration block describing the custom action associated with the action_name. See Action Definition below for details.
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomAction#actionDefinition
+   */
+  readonly actionDefinition?: FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinition[];
+
+  /**
+   * A friendly name of the custom action.
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomAction#actionName
+   */
+  readonly actionName?: string;
+
+}
+
+/**
+ * Converts an object of type 'FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomAction(obj: FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'actionDefinition': obj.actionDefinition?.map(y => toJson_FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinition(y)),
+    'actionName': obj.actionName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FirewallPolicySpecInitProviderFirewallPolicyStatelessRuleGroupReference
+ */
+export interface FirewallPolicySpecInitProviderFirewallPolicyStatelessRuleGroupReference {
+  /**
+   * An integer setting that indicates the order in which to run the stateless rule groups in a single policy. AWS Network Firewall applies each stateless rule group to a packet starting with the group that has the lowest priority setting.
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicyStatelessRuleGroupReference#priority
+   */
+  readonly priority?: number;
+
+}
+
+/**
+ * Converts an object of type 'FirewallPolicySpecInitProviderFirewallPolicyStatelessRuleGroupReference' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallPolicySpecInitProviderFirewallPolicyStatelessRuleGroupReference(obj: FirewallPolicySpecInitProviderFirewallPolicyStatelessRuleGroupReference | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'priority': obj.priority,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema FirewallPolicySpecProviderConfigRefPolicyResolution
@@ -2316,30 +2593,6 @@ export enum FirewallPolicySpecProviderConfigRefPolicyResolution {
  * @schema FirewallPolicySpecProviderConfigRefPolicyResolve
  */
 export enum FirewallPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema FirewallPolicySpecProviderRefPolicyResolution
- */
-export enum FirewallPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema FirewallPolicySpecProviderRefPolicyResolve
- */
-export enum FirewallPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2501,7 +2754,7 @@ export interface FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActio
    *
    * @schema FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActionActionDefinition#publishMetricAction
    */
-  readonly publishMetricAction: FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricAction[];
+  readonly publishMetricAction?: FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricAction[];
 
 }
 
@@ -2595,6 +2848,60 @@ export function toJson_FirewallPolicySpecForProviderFirewallPolicyStatelessRuleG
     'matchControllerRef': obj.matchControllerRef,
     'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'policy': toJson_FirewallPolicySpecForProviderFirewallPolicyStatelessRuleGroupReferenceResourceArnSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReferenceOverride
+ */
+export interface FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReferenceOverride {
+  /**
+   * The action that changes the rule group from DROP to ALERT . This only applies to managed rule groups.
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReferenceOverride#action
+   */
+  readonly action?: string;
+
+}
+
+/**
+ * Converts an object of type 'FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReferenceOverride' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReferenceOverride(obj: FirewallPolicySpecInitProviderFirewallPolicyStatefulRuleGroupReferenceOverride | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinition
+ */
+export interface FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinition {
+  /**
+   * A configuration block describing the stateless inspection criteria that publishes the specified metrics to Amazon CloudWatch for the matching packet. You can pair this custom action with any of the standard stateless rule actions. See Publish Metric Action below for details.
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinition#publishMetricAction
+   */
+  readonly publishMetricAction?: FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricAction[];
+
+}
+
+/**
+ * Converts an object of type 'FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinition(obj: FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'publishMetricAction': obj.publishMetricAction?.map(y => toJson_FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricAction(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2708,7 +3015,7 @@ export interface FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActio
    *
    * @schema FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricAction#dimension
    */
-  readonly dimension: FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricActionDimension[];
+  readonly dimension?: FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricActionDimension[];
 
 }
 
@@ -2801,6 +3108,33 @@ export function toJson_FirewallPolicySpecForProviderFirewallPolicyStatelessRuleG
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricAction
+ */
+export interface FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricAction {
+  /**
+   * Set of configuration blocks describing dimension settings to use for Amazon CloudWatch custom metrics. See Dimension below for more details.
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricAction#dimension
+   */
+  readonly dimension?: FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricActionDimension[];
+
+}
+
+/**
+ * Converts an object of type 'FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricAction(obj: FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dimension': obj.dimension?.map(y => toJson_FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricActionDimension(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema FirewallPolicySpecForProviderFirewallPolicyStatefulRuleGroupReferenceResourceArnRefPolicyResolution
@@ -2857,7 +3191,7 @@ export interface FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActio
    *
    * @schema FirewallPolicySpecForProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricActionDimension#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -2922,6 +3256,33 @@ export enum FirewallPolicySpecForProviderFirewallPolicyStatelessRuleGroupReferen
   /** IfNotPresent */
   IF_NOT_PRESENT = "IfNotPresent",
 }
+
+/**
+ * @schema FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricActionDimension
+ */
+export interface FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricActionDimension {
+  /**
+   * The string value to use in the custom metric dimension.
+   *
+   * @schema FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricActionDimension#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricActionDimension' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricActionDimension(obj: FirewallPolicySpecInitProviderFirewallPolicyStatelessCustomActionActionDefinitionPublishMetricActionDimension | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 
 /**
@@ -3020,7 +3381,7 @@ export function toJson_LoggingConfigurationProps(obj: LoggingConfigurationProps 
  */
 export interface LoggingConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema LoggingConfigurationSpec#deletionPolicy
    */
@@ -3032,11 +3393,18 @@ export interface LoggingConfigurationSpec {
   readonly forProvider: LoggingConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema LoggingConfigurationSpec#managementPolicy
+   * @schema LoggingConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: LoggingConfigurationSpecManagementPolicy;
+  readonly initProvider?: LoggingConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema LoggingConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: LoggingConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3044,13 +3412,6 @@ export interface LoggingConfigurationSpec {
    * @schema LoggingConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: LoggingConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema LoggingConfigurationSpec#providerRef
-   */
-  readonly providerRef?: LoggingConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3077,9 +3438,9 @@ export function toJson_LoggingConfigurationSpec(obj: LoggingConfigurationSpec | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_LoggingConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_LoggingConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_LoggingConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_LoggingConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_LoggingConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_LoggingConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3089,7 +3450,7 @@ export function toJson_LoggingConfigurationSpec(obj: LoggingConfigurationSpec | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema LoggingConfigurationSpecDeletionPolicy
  */
@@ -3160,17 +3521,52 @@ export function toJson_LoggingConfigurationSpecForProvider(obj: LoggingConfigura
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema LoggingConfigurationSpecManagementPolicy
+ * @schema LoggingConfigurationSpecInitProvider
  */
-export enum LoggingConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface LoggingConfigurationSpecInitProvider {
+  /**
+   * A configuration block describing how AWS Network Firewall performs logging for a firewall. See Logging Configuration below for details.
+   *
+   * @schema LoggingConfigurationSpecInitProvider#loggingConfiguration
+   */
+  readonly loggingConfiguration?: LoggingConfigurationSpecInitProviderLoggingConfiguration[];
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecInitProvider(obj: LoggingConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'loggingConfiguration': obj.loggingConfiguration?.map(y => toJson_LoggingConfigurationSpecInitProviderLoggingConfiguration(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema LoggingConfigurationSpecManagementPolicies
+ */
+export enum LoggingConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3204,43 +3600,6 @@ export function toJson_LoggingConfigurationSpecProviderConfigRef(obj: LoggingCon
   const result = {
     'name': obj.name,
     'policy': toJson_LoggingConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema LoggingConfigurationSpecProviderRef
- */
-export interface LoggingConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema LoggingConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema LoggingConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: LoggingConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'LoggingConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LoggingConfigurationSpecProviderRef(obj: LoggingConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_LoggingConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3420,7 +3779,7 @@ export interface LoggingConfigurationSpecForProviderLoggingConfiguration {
    *
    * @schema LoggingConfigurationSpecForProviderLoggingConfiguration#logDestinationConfig
    */
-  readonly logDestinationConfig: LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig[];
+  readonly logDestinationConfig?: LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig[];
 
 }
 
@@ -3432,6 +3791,33 @@ export function toJson_LoggingConfigurationSpecForProviderLoggingConfiguration(o
   if (obj === undefined) { return undefined; }
   const result = {
     'logDestinationConfig': obj.logDestinationConfig?.map(y => toJson_LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LoggingConfigurationSpecInitProviderLoggingConfiguration
+ */
+export interface LoggingConfigurationSpecInitProviderLoggingConfiguration {
+  /**
+   * Set of configuration blocks describing the logging details for a firewall. See Log Destination Config below for details. At most, only two blocks can be specified; one for FLOW logs and one for ALERT logs.
+   *
+   * @schema LoggingConfigurationSpecInitProviderLoggingConfiguration#logDestinationConfig
+   */
+  readonly logDestinationConfig?: LoggingConfigurationSpecInitProviderLoggingConfigurationLogDestinationConfig[];
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecInitProviderLoggingConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecInitProviderLoggingConfiguration(obj: LoggingConfigurationSpecInitProviderLoggingConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'logDestinationConfig': obj.logDestinationConfig?.map(y => toJson_LoggingConfigurationSpecInitProviderLoggingConfigurationLogDestinationConfig(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3465,43 +3851,6 @@ export interface LoggingConfigurationSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_LoggingConfigurationSpecProviderConfigRefPolicy(obj: LoggingConfigurationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema LoggingConfigurationSpecProviderRefPolicy
- */
-export interface LoggingConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema LoggingConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: LoggingConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema LoggingConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: LoggingConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'LoggingConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LoggingConfigurationSpecProviderRefPolicy(obj: LoggingConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3677,21 +4026,21 @@ export interface LoggingConfigurationSpecForProviderLoggingConfigurationLogDesti
    *
    * @schema LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig#logDestination
    */
-  readonly logDestination: { [key: string]: string };
+  readonly logDestination?: { [key: string]: string };
 
   /**
    * The location to send logs to. Valid values: S3, CloudWatchLogs, KinesisDataFirehose.
    *
    * @schema LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig#logDestinationType
    */
-  readonly logDestinationType: string;
+  readonly logDestinationType?: string;
 
   /**
    * The type of log to send. Valid values: ALERT or FLOW. Alert logs report traffic that matches a StatefulRule with an action setting that sends a log message. Flow logs are standard network traffic flow logs.
    *
    * @schema LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig#logType
    */
-  readonly logType: string;
+  readonly logType?: string;
 
 }
 
@@ -3700,6 +4049,49 @@ export interface LoggingConfigurationSpecForProviderLoggingConfigurationLogDesti
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig(obj: LoggingConfigurationSpecForProviderLoggingConfigurationLogDestinationConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'logDestination': ((obj.logDestination) === undefined) ? undefined : (Object.entries(obj.logDestination).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'logDestinationType': obj.logDestinationType,
+    'logType': obj.logType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LoggingConfigurationSpecInitProviderLoggingConfigurationLogDestinationConfig
+ */
+export interface LoggingConfigurationSpecInitProviderLoggingConfigurationLogDestinationConfig {
+  /**
+   * A map describing the logging destination for the chosen log_destination_type.
+   *
+   * @schema LoggingConfigurationSpecInitProviderLoggingConfigurationLogDestinationConfig#logDestination
+   */
+  readonly logDestination?: { [key: string]: string };
+
+  /**
+   * The location to send logs to. Valid values: S3, CloudWatchLogs, KinesisDataFirehose.
+   *
+   * @schema LoggingConfigurationSpecInitProviderLoggingConfigurationLogDestinationConfig#logDestinationType
+   */
+  readonly logDestinationType?: string;
+
+  /**
+   * The type of log to send. Valid values: ALERT or FLOW. Alert logs report traffic that matches a StatefulRule with an action setting that sends a log message. Flow logs are standard network traffic flow logs.
+   *
+   * @schema LoggingConfigurationSpecInitProviderLoggingConfigurationLogDestinationConfig#logType
+   */
+  readonly logType?: string;
+
+}
+
+/**
+ * Converts an object of type 'LoggingConfigurationSpecInitProviderLoggingConfigurationLogDestinationConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LoggingConfigurationSpecInitProviderLoggingConfigurationLogDestinationConfig(obj: LoggingConfigurationSpecInitProviderLoggingConfigurationLogDestinationConfig | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'logDestination': ((obj.logDestination) === undefined) ? undefined : (Object.entries(obj.logDestination).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
@@ -3729,30 +4121,6 @@ export enum LoggingConfigurationSpecProviderConfigRefPolicyResolution {
  * @schema LoggingConfigurationSpecProviderConfigRefPolicyResolve
  */
 export enum LoggingConfigurationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema LoggingConfigurationSpecProviderRefPolicyResolution
- */
-export enum LoggingConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema LoggingConfigurationSpecProviderRefPolicyResolve
- */
-export enum LoggingConfigurationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3965,7 +4333,7 @@ export function toJson_RuleGroupProps(obj: RuleGroupProps | undefined): Record<s
  */
 export interface RuleGroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RuleGroupSpec#deletionPolicy
    */
@@ -3977,11 +4345,18 @@ export interface RuleGroupSpec {
   readonly forProvider: RuleGroupSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema RuleGroupSpec#managementPolicy
+   * @schema RuleGroupSpec#initProvider
    */
-  readonly managementPolicy?: RuleGroupSpecManagementPolicy;
+  readonly initProvider?: RuleGroupSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema RuleGroupSpec#managementPolicies
+   */
+  readonly managementPolicies?: RuleGroupSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3989,13 +4364,6 @@ export interface RuleGroupSpec {
    * @schema RuleGroupSpec#providerConfigRef
    */
   readonly providerConfigRef?: RuleGroupSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema RuleGroupSpec#providerRef
-   */
-  readonly providerRef?: RuleGroupSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -4022,9 +4390,9 @@ export function toJson_RuleGroupSpec(obj: RuleGroupSpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RuleGroupSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_RuleGroupSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_RuleGroupSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_RuleGroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RuleGroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_RuleGroupSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -4034,7 +4402,7 @@ export function toJson_RuleGroupSpec(obj: RuleGroupSpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RuleGroupSpecDeletionPolicy
  */
@@ -4137,17 +4505,108 @@ export function toJson_RuleGroupSpecForProvider(obj: RuleGroupSpecForProvider | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema RuleGroupSpecManagementPolicy
+ * @schema RuleGroupSpecInitProvider
  */
-export enum RuleGroupSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface RuleGroupSpecInitProvider {
+  /**
+   * The maximum number of operating resources that this rule group can use. For a stateless rule group, the capacity required is the sum of the capacity requirements of the individual rules. For a stateful rule group, the minimum capacity required is the number of individual rules.
+   *
+   * @schema RuleGroupSpecInitProvider#capacity
+   */
+  readonly capacity?: number;
+
+  /**
+   * A friendly description of the rule group.
+   *
+   * @schema RuleGroupSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * KMS encryption configuration settings. See Encryption Configuration below for details.
+   *
+   * @schema RuleGroupSpecInitProvider#encryptionConfiguration
+   */
+  readonly encryptionConfiguration?: RuleGroupSpecInitProviderEncryptionConfiguration[];
+
+  /**
+   * A friendly name of the rule group.
+   *
+   * @schema RuleGroupSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * A configuration block that defines the rule group rules. Required unless rules is specified. See Rule Group below for details.
+   *
+   * @schema RuleGroupSpecInitProvider#ruleGroup
+   */
+  readonly ruleGroup?: RuleGroupSpecInitProviderRuleGroup[];
+
+  /**
+   * The stateful rule group rules specifications in Suricata file format, with one rule per line. Use this to import your existing Suricata compatible rule groups. Required unless rule_group is specified.
+   *
+   * @schema RuleGroupSpecInitProvider#rules
+   */
+  readonly rules?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema RuleGroupSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Whether the rule group is stateless (containing stateless rules) or stateful (containing stateful rules). Valid values include: STATEFUL or STATELESS.
+   *
+   * @schema RuleGroupSpecInitProvider#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProvider(obj: RuleGroupSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'capacity': obj.capacity,
+    'description': obj.description,
+    'encryptionConfiguration': obj.encryptionConfiguration?.map(y => toJson_RuleGroupSpecInitProviderEncryptionConfiguration(y)),
+    'name': obj.name,
+    'ruleGroup': obj.ruleGroup?.map(y => toJson_RuleGroupSpecInitProviderRuleGroup(y)),
+    'rules': obj.rules,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema RuleGroupSpecManagementPolicies
+ */
+export enum RuleGroupSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4181,43 +4640,6 @@ export function toJson_RuleGroupSpecProviderConfigRef(obj: RuleGroupSpecProvider
   const result = {
     'name': obj.name,
     'policy': toJson_RuleGroupSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema RuleGroupSpecProviderRef
- */
-export interface RuleGroupSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema RuleGroupSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema RuleGroupSpecProviderRef#policy
-   */
-  readonly policy?: RuleGroupSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'RuleGroupSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RuleGroupSpecProviderRef(obj: RuleGroupSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_RuleGroupSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4322,7 +4744,7 @@ export interface RuleGroupSpecForProviderEncryptionConfiguration {
    *
    * @schema RuleGroupSpecForProviderEncryptionConfiguration#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -4364,7 +4786,7 @@ export interface RuleGroupSpecForProviderRuleGroup {
    *
    * @schema RuleGroupSpecForProviderRuleGroup#rulesSource
    */
-  readonly rulesSource: RuleGroupSpecForProviderRuleGroupRulesSource[];
+  readonly rulesSource?: RuleGroupSpecForProviderRuleGroupRulesSource[];
 
   /**
    * A configuration block that defines stateful rule options for the rule group. See Stateful Rule Options below for details.
@@ -4386,6 +4808,92 @@ export function toJson_RuleGroupSpecForProviderRuleGroup(obj: RuleGroupSpecForPr
     'ruleVariables': obj.ruleVariables?.map(y => toJson_RuleGroupSpecForProviderRuleGroupRuleVariables(y)),
     'rulesSource': obj.rulesSource?.map(y => toJson_RuleGroupSpecForProviderRuleGroupRulesSource(y)),
     'statefulRuleOptions': obj.statefulRuleOptions?.map(y => toJson_RuleGroupSpecForProviderRuleGroupStatefulRuleOptions(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderEncryptionConfiguration
+ */
+export interface RuleGroupSpecInitProviderEncryptionConfiguration {
+  /**
+   * The ID of the customer managed key. You can use any of the key identifiers that KMS supports, unless you're using a key that's managed by another account. If you're using a key managed by another account, then specify the key ARN.
+   *
+   * @schema RuleGroupSpecInitProviderEncryptionConfiguration#keyId
+   */
+  readonly keyId?: string;
+
+  /**
+   * The type of AWS KMS key to use for encryption of your Network Firewall resources. Valid values are CUSTOMER_KMS and AWS_OWNED_KMS_KEY.
+   *
+   * @schema RuleGroupSpecInitProviderEncryptionConfiguration#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderEncryptionConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderEncryptionConfiguration(obj: RuleGroupSpecInitProviderEncryptionConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'keyId': obj.keyId,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroup
+ */
+export interface RuleGroupSpecInitProviderRuleGroup {
+  /**
+   * A configuration block that defines the IP Set References for the rule group. See Reference Sets below for details. Please notes that there can only be a maximum of 5 reference_sets in a rule_group. See the AWS documentation for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroup#referenceSets
+   */
+  readonly referenceSets?: RuleGroupSpecInitProviderRuleGroupReferenceSets[];
+
+  /**
+   * A configuration block that defines additional settings available to use in the rules defined in the rule group. Can only be specified for stateful rule groups. See Rule Variables below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroup#ruleVariables
+   */
+  readonly ruleVariables?: RuleGroupSpecInitProviderRuleGroupRuleVariables[];
+
+  /**
+   * A configuration block that defines the stateful or stateless rules for the rule group. See Rules Source below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroup#rulesSource
+   */
+  readonly rulesSource?: RuleGroupSpecInitProviderRuleGroupRulesSource[];
+
+  /**
+   * A configuration block that defines stateful rule options for the rule group. See Stateful Rule Options below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroup#statefulRuleOptions
+   */
+  readonly statefulRuleOptions?: RuleGroupSpecInitProviderRuleGroupStatefulRuleOptions[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroup' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroup(obj: RuleGroupSpecInitProviderRuleGroup | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'referenceSets': obj.referenceSets?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupReferenceSets(y)),
+    'ruleVariables': obj.ruleVariables?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRuleVariables(y)),
+    'rulesSource': obj.rulesSource?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSource(y)),
+    'statefulRuleOptions': obj.statefulRuleOptions?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupStatefulRuleOptions(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4419,43 +4927,6 @@ export interface RuleGroupSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_RuleGroupSpecProviderConfigRefPolicy(obj: RuleGroupSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema RuleGroupSpecProviderRefPolicy
- */
-export interface RuleGroupSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema RuleGroupSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: RuleGroupSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema RuleGroupSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: RuleGroupSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'RuleGroupSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RuleGroupSpecProviderRefPolicy(obj: RuleGroupSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -4668,7 +5139,7 @@ export interface RuleGroupSpecForProviderRuleGroupStatefulRuleOptions {
    *
    * @schema RuleGroupSpecForProviderRuleGroupStatefulRuleOptions#ruleOrder
    */
-  readonly ruleOrder: string;
+  readonly ruleOrder?: string;
 
 }
 
@@ -4677,6 +5148,144 @@ export interface RuleGroupSpecForProviderRuleGroupStatefulRuleOptions {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_RuleGroupSpecForProviderRuleGroupStatefulRuleOptions(obj: RuleGroupSpecForProviderRuleGroupStatefulRuleOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ruleOrder': obj.ruleOrder,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupReferenceSets
+ */
+export interface RuleGroupSpecInitProviderRuleGroupReferenceSets {
+  /**
+   * @schema RuleGroupSpecInitProviderRuleGroupReferenceSets#ipSetReferences
+   */
+  readonly ipSetReferences?: RuleGroupSpecInitProviderRuleGroupReferenceSetsIpSetReferences[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupReferenceSets' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupReferenceSets(obj: RuleGroupSpecInitProviderRuleGroupReferenceSets | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ipSetReferences': obj.ipSetReferences?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupReferenceSetsIpSetReferences(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRuleVariables
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRuleVariables {
+  /**
+   * Set of configuration blocks that define IP address information. See IP Sets below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRuleVariables#ipSets
+   */
+  readonly ipSets?: RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSets[];
+
+  /**
+   * Set of configuration blocks that define port range information. See Port Sets below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRuleVariables#portSets
+   */
+  readonly portSets?: RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSets[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRuleVariables' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRuleVariables(obj: RuleGroupSpecInitProviderRuleGroupRuleVariables | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ipSets': obj.ipSets?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSets(y)),
+    'portSets': obj.portSets?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSets(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSource
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSource {
+  /**
+   * A configuration block containing stateful inspection criteria for a domain list rule group. See Rules Source List below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSource#rulesSourceList
+   */
+  readonly rulesSourceList?: RuleGroupSpecInitProviderRuleGroupRulesSourceRulesSourceList[];
+
+  /**
+   * The fully qualified name of a file in an S3 bucket that contains Suricata compatible intrusion preventions system (IPS) rules or the Suricata rules as a string. These rules contain stateful inspection criteria and the action to take for traffic that matches the criteria.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSource#rulesString
+   */
+  readonly rulesString?: string;
+
+  /**
+   * Set of configuration blocks containing stateful inspection criteria for 5-tuple rules to be used together in a rule group. See Stateful Rule below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSource#statefulRule
+   */
+  readonly statefulRule?: RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRule[];
+
+  /**
+   * A configuration block containing stateless inspection criteria for a stateless rule group. See Stateless Rules and Custom Actions below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSource#statelessRulesAndCustomActions
+   */
+  readonly statelessRulesAndCustomActions?: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActions[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSource(obj: RuleGroupSpecInitProviderRuleGroupRulesSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'rulesSourceList': obj.rulesSourceList?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceRulesSourceList(y)),
+    'rulesString': obj.rulesString,
+    'statefulRule': obj.statefulRule?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRule(y)),
+    'statelessRulesAndCustomActions': obj.statelessRulesAndCustomActions?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActions(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupStatefulRuleOptions
+ */
+export interface RuleGroupSpecInitProviderRuleGroupStatefulRuleOptions {
+  /**
+   * Indicates how to manage the order of the rule evaluation for the rule group. Default value: DEFAULT_ACTION_ORDER. Valid values: DEFAULT_ACTION_ORDER, STRICT_ORDER.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupStatefulRuleOptions#ruleOrder
+   */
+  readonly ruleOrder?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupStatefulRuleOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupStatefulRuleOptions(obj: RuleGroupSpecInitProviderRuleGroupStatefulRuleOptions | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'ruleOrder': obj.ruleOrder,
@@ -4704,30 +5313,6 @@ export enum RuleGroupSpecProviderConfigRefPolicyResolution {
  * @schema RuleGroupSpecProviderConfigRefPolicyResolve
  */
 export enum RuleGroupSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema RuleGroupSpecProviderRefPolicyResolution
- */
-export enum RuleGroupSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema RuleGroupSpecProviderRefPolicyResolve
- */
-export enum RuleGroupSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -4780,14 +5365,14 @@ export interface RuleGroupSpecForProviderRuleGroupReferenceSetsIpSetReferences {
    *
    * @schema RuleGroupSpecForProviderRuleGroupReferenceSetsIpSetReferences#ipSetReference
    */
-  readonly ipSetReference: RuleGroupSpecForProviderRuleGroupReferenceSetsIpSetReferencesIpSetReference[];
+  readonly ipSetReference?: RuleGroupSpecForProviderRuleGroupReferenceSetsIpSetReferencesIpSetReference[];
 
   /**
    * An unique alphanumeric string to identify the port_set.
    *
    * @schema RuleGroupSpecForProviderRuleGroupReferenceSetsIpSetReferences#key
    */
-  readonly key: string;
+  readonly key?: string;
 
 }
 
@@ -4815,14 +5400,14 @@ export interface RuleGroupSpecForProviderRuleGroupRuleVariablesIpSets {
    *
    * @schema RuleGroupSpecForProviderRuleGroupRuleVariablesIpSets#ipSet
    */
-  readonly ipSet: RuleGroupSpecForProviderRuleGroupRuleVariablesIpSetsIpSet[];
+  readonly ipSet?: RuleGroupSpecForProviderRuleGroupRuleVariablesIpSetsIpSet[];
 
   /**
    * An unique alphanumeric string to identify the port_set.
    *
    * @schema RuleGroupSpecForProviderRuleGroupRuleVariablesIpSets#key
    */
-  readonly key: string;
+  readonly key?: string;
 
 }
 
@@ -4850,14 +5435,14 @@ export interface RuleGroupSpecForProviderRuleGroupRuleVariablesPortSets {
    *
    * @schema RuleGroupSpecForProviderRuleGroupRuleVariablesPortSets#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * A configuration block that defines a set of port ranges. See Port Set below for details.
    *
    * @schema RuleGroupSpecForProviderRuleGroupRuleVariablesPortSets#portSet
    */
-  readonly portSet: RuleGroupSpecForProviderRuleGroupRuleVariablesPortSetsPortSet[];
+  readonly portSet?: RuleGroupSpecForProviderRuleGroupRuleVariablesPortSetsPortSet[];
 
 }
 
@@ -4885,21 +5470,21 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceRulesSourceList {
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceRulesSourceList#generatedRulesType
    */
-  readonly generatedRulesType: string;
+  readonly generatedRulesType?: string;
 
   /**
    * Set of types of domain specifications that are provided in the targets argument. Valid values: HTTP_HOST, TLS_SNI.
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceRulesSourceList#targetTypes
    */
-  readonly targetTypes: string[];
+  readonly targetTypes?: string[];
 
   /**
    * Set of domains that you want to inspect for in your traffic flows.
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceRulesSourceList#targets
    */
-  readonly targets: string[];
+  readonly targets?: string[];
 
 }
 
@@ -4928,21 +5513,21 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRule {
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRule#action
    */
-  readonly action: string;
+  readonly action?: string;
 
   /**
    * A configuration block containing the stateful 5-tuple inspection criteria for the rule, used to inspect traffic flows. See Header below for details.
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRule#header
    */
-  readonly header: RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRuleHeader[];
+  readonly header?: RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRuleHeader[];
 
   /**
    * Set of configuration blocks containing additional settings for a stateful rule. See Rule Option below for details.
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRule#ruleOption
    */
-  readonly ruleOption: RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRuleRuleOption[];
+  readonly ruleOption?: RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRuleRuleOption[];
 
 }
 
@@ -4978,7 +5563,7 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCu
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActions#statelessRule
    */
-  readonly statelessRule: RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRule[];
+  readonly statelessRule?: RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRule[];
 
 }
 
@@ -4991,6 +5576,232 @@ export function toJson_RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRule
   const result = {
     'customAction': obj.customAction?.map(y => toJson_RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomAction(y)),
     'statelessRule': obj.statelessRule?.map(y => toJson_RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRule(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupReferenceSetsIpSetReferences
+ */
+export interface RuleGroupSpecInitProviderRuleGroupReferenceSetsIpSetReferences {
+  /**
+   * Set of configuration blocks that define the IP Reference information. See IP Set Reference below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupReferenceSetsIpSetReferences#ipSetReference
+   */
+  readonly ipSetReference?: any[];
+
+  /**
+   * An unique alphanumeric string to identify the port_set.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupReferenceSetsIpSetReferences#key
+   */
+  readonly key?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupReferenceSetsIpSetReferences' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupReferenceSetsIpSetReferences(obj: RuleGroupSpecInitProviderRuleGroupReferenceSetsIpSetReferences | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ipSetReference': obj.ipSetReference?.map(y => y),
+    'key': obj.key,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSets
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSets {
+  /**
+   * A configuration block that defines a set of IP addresses. See IP Set below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSets#ipSet
+   */
+  readonly ipSet?: RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSetsIpSet[];
+
+  /**
+   * An unique alphanumeric string to identify the port_set.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSets#key
+   */
+  readonly key?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSets' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSets(obj: RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSets | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ipSet': obj.ipSet?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSetsIpSet(y)),
+    'key': obj.key,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSets
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSets {
+  /**
+   * An unique alphanumeric string to identify the port_set.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSets#key
+   */
+  readonly key?: string;
+
+  /**
+   * A configuration block that defines a set of port ranges. See Port Set below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSets#portSet
+   */
+  readonly portSet?: RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSetsPortSet[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSets' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSets(obj: RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSets | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'portSet': obj.portSet?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSetsPortSet(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceRulesSourceList
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceRulesSourceList {
+  /**
+   * String value to specify whether domains in the target list are allowed or denied access. Valid values: ALLOWLIST, DENYLIST.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceRulesSourceList#generatedRulesType
+   */
+  readonly generatedRulesType?: string;
+
+  /**
+   * Set of types of domain specifications that are provided in the targets argument. Valid values: HTTP_HOST, TLS_SNI.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceRulesSourceList#targetTypes
+   */
+  readonly targetTypes?: string[];
+
+  /**
+   * Set of domains that you want to inspect for in your traffic flows.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceRulesSourceList#targets
+   */
+  readonly targets?: string[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceRulesSourceList' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceRulesSourceList(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceRulesSourceList | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'generatedRulesType': obj.generatedRulesType,
+    'targetTypes': obj.targetTypes?.map(y => y),
+    'targets': obj.targets?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRule
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRule {
+  /**
+   * Action to take with packets in a traffic flow when the flow matches the stateful rule criteria. For all actions, AWS Network Firewall performs the specified action and discontinues stateful inspection of the traffic flow. Valid values: ALERT, DROP or PASS.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRule#action
+   */
+  readonly action?: string;
+
+  /**
+   * A configuration block containing the stateful 5-tuple inspection criteria for the rule, used to inspect traffic flows. See Header below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRule#header
+   */
+  readonly header?: RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleHeader[];
+
+  /**
+   * Set of configuration blocks containing additional settings for a stateful rule. See Rule Option below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRule#ruleOption
+   */
+  readonly ruleOption?: RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleRuleOption[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRule(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action,
+    'header': obj.header?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleHeader(y)),
+    'ruleOption': obj.ruleOption?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleRuleOption(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActions
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActions {
+  /**
+   * Set of configuration blocks containing custom action definitions that are available for use by the set of stateless rule. See Custom Action below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActions#customAction
+   */
+  readonly customAction?: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomAction[];
+
+  /**
+   * Set of configuration blocks containing the stateless rules for use in the stateless rule group. See Stateless Rule below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActions#statelessRule
+   */
+  readonly statelessRule?: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRule[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActions(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customAction': obj.customAction?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomAction(y)),
+    'statelessRule': obj.statelessRule?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRule(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5073,7 +5884,7 @@ export interface RuleGroupSpecForProviderRuleGroupRuleVariablesIpSetsIpSet {
    *
    * @schema RuleGroupSpecForProviderRuleGroupRuleVariablesIpSetsIpSet#definition
    */
-  readonly definition: string[];
+  readonly definition?: string[];
 
 }
 
@@ -5100,7 +5911,7 @@ export interface RuleGroupSpecForProviderRuleGroupRuleVariablesPortSetsPortSet {
    *
    * @schema RuleGroupSpecForProviderRuleGroupRuleVariablesPortSetsPortSet#definition
    */
-  readonly definition: string[];
+  readonly definition?: string[];
 
 }
 
@@ -5127,42 +5938,42 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRuleHeader 
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRuleHeader#destination
    */
-  readonly destination: string;
+  readonly destination?: string;
 
   /**
    * Set of configuration blocks describing the destination ports to inspect for. If not specified, this matches with any destination port. See Destination Port below for details.
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRuleHeader#destinationPort
    */
-  readonly destinationPort: string;
+  readonly destinationPort?: string;
 
   /**
    * The direction of traffic flow to inspect. Valid values: ANY or FORWARD.
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRuleHeader#direction
    */
-  readonly direction: string;
+  readonly direction?: string;
 
   /**
    * The protocol to inspect. Valid values: IP, TCP, UDP, ICMP, HTTP, FTP, TLS, SMB, DNS, DCERPC, SSH, SMTP, IMAP, MSN, KRB5, IKEV2, TFTP, NTP, DHCP.
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRuleHeader#protocol
    */
-  readonly protocol: string;
+  readonly protocol?: string;
 
   /**
    * Set of configuration blocks describing the source IP address and address ranges to inspect for, in CIDR notation. If not specified, this matches with any source address. See Source below for details.
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRuleHeader#source
    */
-  readonly source: string;
+  readonly source?: string;
 
   /**
    * Set of configuration blocks describing the source ports to inspect for. If not specified, this matches with any source port. See Source Port below for details.
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRuleHeader#sourcePort
    */
-  readonly sourcePort: string;
+  readonly sourcePort?: string;
 
 }
 
@@ -5194,7 +6005,7 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRuleRuleOpt
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatefulRuleRuleOption#keyword
    */
-  readonly keyword: string;
+  readonly keyword?: string;
 
   /**
    * Set of strings for additional settings to use in stateful rule inspection.
@@ -5229,14 +6040,14 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCu
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomAction#actionDefinition
    */
-  readonly actionDefinition: RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinition[];
+  readonly actionDefinition?: RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinition[];
 
   /**
    * A friendly name of the custom action.
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomAction#actionName
    */
-  readonly actionName: string;
+  readonly actionName?: string;
 
 }
 
@@ -5264,14 +6075,14 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCu
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRule#priority
    */
-  readonly priority: number;
+  readonly priority?: number;
 
   /**
    * A configuration block defining the stateless 5-tuple packet inspection criteria and the action to take on a packet that matches the criteria. See Rule Definition below for details.
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRule#ruleDefinition
    */
-  readonly ruleDefinition: RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinition[];
+  readonly ruleDefinition?: RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinition[];
 
 }
 
@@ -5284,6 +6095,232 @@ export function toJson_RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRule
   const result = {
     'priority': obj.priority,
     'ruleDefinition': obj.ruleDefinition?.map(y => toJson_RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinition(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSetsIpSet
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSetsIpSet {
+  /**
+   * Set of port ranges.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSetsIpSet#definition
+   */
+  readonly definition?: string[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSetsIpSet' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSetsIpSet(obj: RuleGroupSpecInitProviderRuleGroupRuleVariablesIpSetsIpSet | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'definition': obj.definition?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSetsPortSet
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSetsPortSet {
+  /**
+   * Set of port ranges.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSetsPortSet#definition
+   */
+  readonly definition?: string[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSetsPortSet' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSetsPortSet(obj: RuleGroupSpecInitProviderRuleGroupRuleVariablesPortSetsPortSet | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'definition': obj.definition?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleHeader
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleHeader {
+  /**
+   * Set of configuration blocks describing the destination IP address and address ranges to inspect for, in CIDR notation. If not specified, this matches with any destination address. See Destination below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleHeader#destination
+   */
+  readonly destination?: string;
+
+  /**
+   * Set of configuration blocks describing the destination ports to inspect for. If not specified, this matches with any destination port. See Destination Port below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleHeader#destinationPort
+   */
+  readonly destinationPort?: string;
+
+  /**
+   * The direction of traffic flow to inspect. Valid values: ANY or FORWARD.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleHeader#direction
+   */
+  readonly direction?: string;
+
+  /**
+   * The protocol to inspect. Valid values: IP, TCP, UDP, ICMP, HTTP, FTP, TLS, SMB, DNS, DCERPC, SSH, SMTP, IMAP, MSN, KRB5, IKEV2, TFTP, NTP, DHCP.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleHeader#protocol
+   */
+  readonly protocol?: string;
+
+  /**
+   * Set of configuration blocks describing the source IP address and address ranges to inspect for, in CIDR notation. If not specified, this matches with any source address. See Source below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleHeader#source
+   */
+  readonly source?: string;
+
+  /**
+   * Set of configuration blocks describing the source ports to inspect for. If not specified, this matches with any source port. See Source Port below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleHeader#sourcePort
+   */
+  readonly sourcePort?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleHeader' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleHeader(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleHeader | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destination': obj.destination,
+    'destinationPort': obj.destinationPort,
+    'direction': obj.direction,
+    'protocol': obj.protocol,
+    'source': obj.source,
+    'sourcePort': obj.sourcePort,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleRuleOption
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleRuleOption {
+  /**
+   * Keyword defined by open source detection systems like Snort or Suricata for stateful rule inspection. See Snort General Rule Options or Suricata Rule Options for more details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleRuleOption#keyword
+   */
+  readonly keyword?: string;
+
+  /**
+   * Set of strings for additional settings to use in stateful rule inspection.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleRuleOption#settings
+   */
+  readonly settings?: string[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleRuleOption' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleRuleOption(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceStatefulRuleRuleOption | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'keyword': obj.keyword,
+    'settings': obj.settings?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomAction
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomAction {
+  /**
+   * A configuration block describing the custom action associated with the action_name. See Action Definition below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomAction#actionDefinition
+   */
+  readonly actionDefinition?: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinition[];
+
+  /**
+   * A friendly name of the custom action.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomAction#actionName
+   */
+  readonly actionName?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomAction(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'actionDefinition': obj.actionDefinition?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinition(y)),
+    'actionName': obj.actionName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRule
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRule {
+  /**
+   * A setting that indicates the order in which to run this rule relative to all of the rules that are defined for a stateless rule group. AWS Network Firewall evaluates the rules in a rule group starting with the lowest priority setting.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRule#priority
+   */
+  readonly priority?: number;
+
+  /**
+   * A configuration block defining the stateless 5-tuple packet inspection criteria and the action to take on a packet that matches the criteria. See Rule Definition below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRule#ruleDefinition
+   */
+  readonly ruleDefinition?: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinition[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRule(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'priority': obj.priority,
+    'ruleDefinition': obj.ruleDefinition?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinition(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5381,7 +6418,7 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCu
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinition#publishMetricAction
    */
-  readonly publishMetricAction: RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricAction[];
+  readonly publishMetricAction?: RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricAction[];
 
 }
 
@@ -5408,14 +6445,14 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCu
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinition#actions
    */
-  readonly actions: string[];
+  readonly actions?: string[];
 
   /**
    * A configuration block containing criteria for AWS Network Firewall to use to inspect an individual packet in stateless rule inspection. See Match Attributes below for details.
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinition#matchAttributes
    */
-  readonly matchAttributes: RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributes[];
+  readonly matchAttributes?: RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributes[];
 
 }
 
@@ -5428,6 +6465,68 @@ export function toJson_RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRule
   const result = {
     'actions': obj.actions?.map(y => y),
     'matchAttributes': obj.matchAttributes?.map(y => toJson_RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributes(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinition
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinition {
+  /**
+   * A configuration block describing the stateless inspection criteria that publishes the specified metrics to Amazon CloudWatch for the matching packet. You can pair this custom action with any of the standard stateless rule actions. See Publish Metric Action below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinition#publishMetricAction
+   */
+  readonly publishMetricAction?: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricAction[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinition(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'publishMetricAction': obj.publishMetricAction?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricAction(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinition
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinition {
+  /**
+   * Set of actions to take on a packet that matches one of the stateless rule definition's match_attributes. For every rule you must specify 1 standard action, and you can add custom actions. Standard actions include: aws:pass, aws:drop, aws:forward_to_sfe.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinition#actions
+   */
+  readonly actions?: string[];
+
+  /**
+   * A configuration block containing criteria for AWS Network Firewall to use to inspect an individual packet in stateless rule inspection. See Match Attributes below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinition#matchAttributes
+   */
+  readonly matchAttributes?: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributes[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinition(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'actions': obj.actions?.map(y => y),
+    'matchAttributes': obj.matchAttributes?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributes(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5517,7 +6616,7 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCu
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricAction#dimension
    */
-  readonly dimension: RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricActionDimension[];
+  readonly dimension?: RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricActionDimension[];
 
 }
 
@@ -5603,6 +6702,100 @@ export function toJson_RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRule
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricAction
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricAction {
+  /**
+   * Set of configuration blocks containing the dimension settings to use for Amazon CloudWatch custom metrics. See Dimension below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricAction#dimension
+   */
+  readonly dimension?: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricActionDimension[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricAction(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dimension': obj.dimension?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricActionDimension(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributes
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributes {
+  /**
+   * Set of configuration blocks describing the destination IP address and address ranges to inspect for, in CIDR notation. If not specified, this matches with any destination address. See Destination below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributes#destination
+   */
+  readonly destination?: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestination[];
+
+  /**
+   * Set of configuration blocks describing the destination ports to inspect for. If not specified, this matches with any destination port. See Destination Port below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributes#destinationPort
+   */
+  readonly destinationPort?: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestinationPort[];
+
+  /**
+   * Set of protocols to inspect for, specified using the protocol's assigned internet protocol number (IANA). If not specified, this matches with any protocol.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributes#protocols
+   */
+  readonly protocols?: number[];
+
+  /**
+   * Set of configuration blocks describing the source IP address and address ranges to inspect for, in CIDR notation. If not specified, this matches with any source address. See Source below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributes#source
+   */
+  readonly source?: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSource[];
+
+  /**
+   * Set of configuration blocks describing the source ports to inspect for. If not specified, this matches with any source port. See Source Port below for details.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributes#sourcePort
+   */
+  readonly sourcePort?: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSourcePort[];
+
+  /**
+   * Set of configuration blocks containing the TCP flags and masks to inspect for. If not specified, this matches with any settings.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributes#tcpFlag
+   */
+  readonly tcpFlag?: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesTcpFlag[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributes(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destination': obj.destination?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestination(y)),
+    'destinationPort': obj.destinationPort?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestinationPort(y)),
+    'protocols': obj.protocols?.map(y => y),
+    'source': obj.source?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSource(y)),
+    'sourcePort': obj.sourcePort?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSourcePort(y)),
+    'tcpFlag': obj.tcpFlag?.map(y => toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesTcpFlag(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema RuleGroupSpecForProviderRuleGroupReferenceSetsIpSetReferencesIpSetReferenceReferenceArnRefPolicyResolution
@@ -5659,7 +6852,7 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCu
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricActionDimension#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5686,7 +6879,7 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCu
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestination#addressDefinition
    */
-  readonly addressDefinition: string;
+  readonly addressDefinition?: string;
 
 }
 
@@ -5713,7 +6906,7 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCu
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestinationPort#fromPort
    */
-  readonly fromPort: number;
+  readonly fromPort?: number;
 
   /**
    * The upper limit of the port range. This must be greater than or equal to the from_port.
@@ -5748,7 +6941,7 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCu
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSource#addressDefinition
    */
-  readonly addressDefinition: string;
+  readonly addressDefinition?: string;
 
 }
 
@@ -5775,7 +6968,7 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCu
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSourcePort#fromPort
    */
-  readonly fromPort: number;
+  readonly fromPort?: number;
 
   /**
    * The upper limit of the port range. This must be greater than or equal to the from_port.
@@ -5810,7 +7003,7 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCu
    *
    * @schema RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesTcpFlag#flags
    */
-  readonly flags: string[];
+  readonly flags?: string[];
 
   /**
    * Set of flags to consider in the inspection. To inspect all flags, leave this empty. Valid values: FIN, SYN, RST, PSH, ACK, URG, ECE, CWR.
@@ -5826,6 +7019,192 @@ export interface RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCu
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesTcpFlag(obj: RuleGroupSpecForProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesTcpFlag | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'flags': obj.flags?.map(y => y),
+    'masks': obj.masks?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricActionDimension
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricActionDimension {
+  /**
+   * The value to use in the custom metric dimension.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricActionDimension#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricActionDimension' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricActionDimension(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsCustomActionActionDefinitionPublishMetricActionDimension | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestination
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestination {
+  /**
+   * An IP address or a block of IP addresses in CIDR notation. AWS Network Firewall supports all address ranges for IPv4.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestination#addressDefinition
+   */
+  readonly addressDefinition?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestination(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'addressDefinition': obj.addressDefinition,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestinationPort
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestinationPort {
+  /**
+   * The lower limit of the port range. This must be less than or equal to the to_port.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestinationPort#fromPort
+   */
+  readonly fromPort?: number;
+
+  /**
+   * The upper limit of the port range. This must be greater than or equal to the from_port.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestinationPort#toPort
+   */
+  readonly toPort?: number;
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestinationPort' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestinationPort(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesDestinationPort | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fromPort': obj.fromPort,
+    'toPort': obj.toPort,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSource
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSource {
+  /**
+   * An IP address or a block of IP addresses in CIDR notation. AWS Network Firewall supports all address ranges for IPv4.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSource#addressDefinition
+   */
+  readonly addressDefinition?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSource(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'addressDefinition': obj.addressDefinition,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSourcePort
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSourcePort {
+  /**
+   * The lower limit of the port range. This must be less than or equal to the to_port.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSourcePort#fromPort
+   */
+  readonly fromPort?: number;
+
+  /**
+   * The upper limit of the port range. This must be greater than or equal to the from_port.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSourcePort#toPort
+   */
+  readonly toPort?: number;
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSourcePort' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSourcePort(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesSourcePort | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fromPort': obj.fromPort,
+    'toPort': obj.toPort,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesTcpFlag
+ */
+export interface RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesTcpFlag {
+  /**
+   * Set of flags to look for in a packet. This setting can only specify values that are also specified in masks. Valid values: FIN, SYN, RST, PSH, ACK, URG, ECE, CWR.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesTcpFlag#flags
+   */
+  readonly flags?: string[];
+
+  /**
+   * Set of flags to consider in the inspection. To inspect all flags, leave this empty. Valid values: FIN, SYN, RST, PSH, ACK, URG, ECE, CWR.
+   *
+   * @schema RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesTcpFlag#masks
+   */
+  readonly masks?: string[];
+
+}
+
+/**
+ * Converts an object of type 'RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesTcpFlag' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesTcpFlag(obj: RuleGroupSpecInitProviderRuleGroupRulesSourceStatelessRulesAndCustomActionsStatelessRuleRuleDefinitionMatchAttributesTcpFlag | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'flags': obj.flags?.map(y => y),

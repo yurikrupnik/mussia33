@@ -99,7 +99,7 @@ export function toJson_NotificationRuleProps(obj: NotificationRuleProps | undefi
  */
 export interface NotificationRuleSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema NotificationRuleSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface NotificationRuleSpec {
   readonly forProvider: NotificationRuleSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema NotificationRuleSpec#managementPolicy
+   * @schema NotificationRuleSpec#initProvider
    */
-  readonly managementPolicy?: NotificationRuleSpecManagementPolicy;
+  readonly initProvider?: NotificationRuleSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema NotificationRuleSpec#managementPolicies
+   */
+  readonly managementPolicies?: NotificationRuleSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface NotificationRuleSpec {
    * @schema NotificationRuleSpec#providerConfigRef
    */
   readonly providerConfigRef?: NotificationRuleSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema NotificationRuleSpec#providerRef
-   */
-  readonly providerRef?: NotificationRuleSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_NotificationRuleSpec(obj: NotificationRuleSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_NotificationRuleSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_NotificationRuleSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_NotificationRuleSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_NotificationRuleSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_NotificationRuleSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_NotificationRuleSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_NotificationRuleSpec(obj: NotificationRuleSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema NotificationRuleSpecDeletionPolicy
  */
@@ -279,17 +279,92 @@ export function toJson_NotificationRuleSpecForProvider(obj: NotificationRuleSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema NotificationRuleSpecManagementPolicy
+ * @schema NotificationRuleSpecInitProvider
  */
-export enum NotificationRuleSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface NotificationRuleSpecInitProvider {
+  /**
+   * The level of detail to include in the notifications for this resource. Possible values are BASIC and FULL.
+   *
+   * @schema NotificationRuleSpecInitProvider#detailType
+   */
+  readonly detailType?: string;
+
+  /**
+   * A list of event types associated with this notification rule. For list of allowed events see here.
+   *
+   * @schema NotificationRuleSpecInitProvider#eventTypeIds
+   */
+  readonly eventTypeIds?: string[];
+
+  /**
+   * The name of notification rule.
+   *
+   * @schema NotificationRuleSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The status of the notification rule. Possible values are ENABLED and DISABLED, default is ENABLED.
+   *
+   * @schema NotificationRuleSpecInitProvider#status
+   */
+  readonly status?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema NotificationRuleSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Configuration blocks containing notification target information. Can be specified multiple times. At least one target must be specified on creation.
+   *
+   * @schema NotificationRuleSpecInitProvider#target
+   */
+  readonly target?: NotificationRuleSpecInitProviderTarget[];
+
+}
+
+/**
+ * Converts an object of type 'NotificationRuleSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NotificationRuleSpecInitProvider(obj: NotificationRuleSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'detailType': obj.detailType,
+    'eventTypeIds': obj.eventTypeIds?.map(y => y),
+    'name': obj.name,
+    'status': obj.status,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'target': obj.target?.map(y => toJson_NotificationRuleSpecInitProviderTarget(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema NotificationRuleSpecManagementPolicies
+ */
+export enum NotificationRuleSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -323,43 +398,6 @@ export function toJson_NotificationRuleSpecProviderConfigRef(obj: NotificationRu
   const result = {
     'name': obj.name,
     'policy': toJson_NotificationRuleSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema NotificationRuleSpecProviderRef
- */
-export interface NotificationRuleSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema NotificationRuleSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema NotificationRuleSpecProviderRef#policy
-   */
-  readonly policy?: NotificationRuleSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'NotificationRuleSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_NotificationRuleSpecProviderRef(obj: NotificationRuleSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_NotificationRuleSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -582,6 +620,33 @@ export function toJson_NotificationRuleSpecForProviderTarget(obj: NotificationRu
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema NotificationRuleSpecInitProviderTarget
+ */
+export interface NotificationRuleSpecInitProviderTarget {
+  /**
+   * The type of the notification target. Default value is SNS.
+   *
+   * @schema NotificationRuleSpecInitProviderTarget#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'NotificationRuleSpecInitProviderTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NotificationRuleSpecInitProviderTarget(obj: NotificationRuleSpecInitProviderTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema NotificationRuleSpecProviderConfigRefPolicy
@@ -608,43 +673,6 @@ export interface NotificationRuleSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_NotificationRuleSpecProviderConfigRefPolicy(obj: NotificationRuleSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema NotificationRuleSpecProviderRefPolicy
- */
-export interface NotificationRuleSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema NotificationRuleSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: NotificationRuleSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema NotificationRuleSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: NotificationRuleSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'NotificationRuleSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_NotificationRuleSpecProviderRefPolicy(obj: NotificationRuleSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -911,30 +939,6 @@ export enum NotificationRuleSpecProviderConfigRefPolicyResolution {
  * @schema NotificationRuleSpecProviderConfigRefPolicyResolve
  */
 export enum NotificationRuleSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema NotificationRuleSpecProviderRefPolicyResolution
- */
-export enum NotificationRuleSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema NotificationRuleSpecProviderRefPolicyResolve
- */
-export enum NotificationRuleSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

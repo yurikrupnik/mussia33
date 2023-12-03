@@ -99,7 +99,7 @@ export function toJson_MembershipProps(obj: MembershipProps | undefined): Record
  */
 export interface MembershipSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MembershipSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface MembershipSpec {
   readonly forProvider: MembershipSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema MembershipSpec#managementPolicy
+   * @schema MembershipSpec#initProvider
    */
-  readonly managementPolicy?: MembershipSpecManagementPolicy;
+  readonly initProvider?: MembershipSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema MembershipSpec#managementPolicies
+   */
+  readonly managementPolicies?: MembershipSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface MembershipSpec {
    * @schema MembershipSpec#providerConfigRef
    */
   readonly providerConfigRef?: MembershipSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema MembershipSpec#providerRef
-   */
-  readonly providerRef?: MembershipSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_MembershipSpec(obj: MembershipSpec | undefined): Record<s
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MembershipSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_MembershipSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_MembershipSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_MembershipSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MembershipSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_MembershipSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_MembershipSpec(obj: MembershipSpec | undefined): Record<s
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MembershipSpecDeletionPolicy
  */
@@ -231,17 +231,76 @@ export function toJson_MembershipSpecForProvider(obj: MembershipSpecForProvider 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema MembershipSpecManagementPolicy
+ * @schema MembershipSpecInitProvider
  */
-export enum MembershipSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface MembershipSpecInitProvider {
+  /**
+   * Authority encodes how Google will recognize identities from this Membership. See the workload identity documentation for more details: https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity Structure is documented below.
+   *
+   * @schema MembershipSpecInitProvider#authority
+   */
+  readonly authority?: MembershipSpecInitProviderAuthority[];
+
+  /**
+   * If this Membership is a Kubernetes API server hosted on GKE, this is a self link to its GCP resource. Structure is documented below.
+   *
+   * @schema MembershipSpecInitProvider#endpoint
+   */
+  readonly endpoint?: MembershipSpecInitProviderEndpoint[];
+
+  /**
+   * Labels to apply to this membership.
+   *
+   * @schema MembershipSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema MembershipSpecInitProvider#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'MembershipSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MembershipSpecInitProvider(obj: MembershipSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'authority': obj.authority?.map(y => toJson_MembershipSpecInitProviderAuthority(y)),
+    'endpoint': obj.endpoint?.map(y => toJson_MembershipSpecInitProviderEndpoint(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema MembershipSpecManagementPolicies
+ */
+export enum MembershipSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -275,43 +334,6 @@ export function toJson_MembershipSpecProviderConfigRef(obj: MembershipSpecProvid
   const result = {
     'name': obj.name,
     'policy': toJson_MembershipSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema MembershipSpecProviderRef
- */
-export interface MembershipSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema MembershipSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema MembershipSpecProviderRef#policy
-   */
-  readonly policy?: MembershipSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'MembershipSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MembershipSpecProviderRef(obj: MembershipSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_MembershipSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -409,7 +431,7 @@ export interface MembershipSpecForProviderAuthority {
    *
    * @schema MembershipSpecForProviderAuthority#issuer
    */
-  readonly issuer: string;
+  readonly issuer?: string;
 
 }
 
@@ -455,6 +477,60 @@ export function toJson_MembershipSpecForProviderEndpoint(obj: MembershipSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema MembershipSpecInitProviderAuthority
+ */
+export interface MembershipSpecInitProviderAuthority {
+  /**
+   * A JSON Web Token (JWT) issuer URI. issuer must start with https:// and // be a valid with length <2000 characters. For example: https://container.googleapis.com/v1/projects/my-project/locations/us-west1/clusters/my-cluster (must be locations rather than zones).googleapis.com/v1/${google_container_cluster.my-cluster.id}".
+   *
+   * @schema MembershipSpecInitProviderAuthority#issuer
+   */
+  readonly issuer?: string;
+
+}
+
+/**
+ * Converts an object of type 'MembershipSpecInitProviderAuthority' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MembershipSpecInitProviderAuthority(obj: MembershipSpecInitProviderAuthority | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'issuer': obj.issuer,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MembershipSpecInitProviderEndpoint
+ */
+export interface MembershipSpecInitProviderEndpoint {
+  /**
+   * If this Membership is a Kubernetes API server hosted on GKE, this is a self link to its GCP resource. Structure is documented below.
+   *
+   * @schema MembershipSpecInitProviderEndpoint#gkeCluster
+   */
+  readonly gkeCluster?: any[];
+
+}
+
+/**
+ * Converts an object of type 'MembershipSpecInitProviderEndpoint' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MembershipSpecInitProviderEndpoint(obj: MembershipSpecInitProviderEndpoint | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'gkeCluster': obj.gkeCluster?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema MembershipSpecProviderConfigRefPolicy
@@ -481,43 +557,6 @@ export interface MembershipSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_MembershipSpecProviderConfigRefPolicy(obj: MembershipSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema MembershipSpecProviderRefPolicy
- */
-export interface MembershipSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema MembershipSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: MembershipSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema MembershipSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: MembershipSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'MembershipSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MembershipSpecProviderRefPolicy(obj: MembershipSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -671,30 +710,6 @@ export enum MembershipSpecProviderConfigRefPolicyResolution {
  * @schema MembershipSpecProviderConfigRefPolicyResolve
  */
 export enum MembershipSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema MembershipSpecProviderRefPolicyResolution
- */
-export enum MembershipSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema MembershipSpecProviderRefPolicyResolve
- */
-export enum MembershipSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1063,7 +1078,7 @@ export function toJson_MembershipIamMemberProps(obj: MembershipIamMemberProps | 
  */
 export interface MembershipIamMemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MembershipIamMemberSpec#deletionPolicy
    */
@@ -1075,11 +1090,18 @@ export interface MembershipIamMemberSpec {
   readonly forProvider: MembershipIamMemberSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema MembershipIamMemberSpec#managementPolicy
+   * @schema MembershipIamMemberSpec#initProvider
    */
-  readonly managementPolicy?: MembershipIamMemberSpecManagementPolicy;
+  readonly initProvider?: MembershipIamMemberSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema MembershipIamMemberSpec#managementPolicies
+   */
+  readonly managementPolicies?: MembershipIamMemberSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1087,13 +1109,6 @@ export interface MembershipIamMemberSpec {
    * @schema MembershipIamMemberSpec#providerConfigRef
    */
   readonly providerConfigRef?: MembershipIamMemberSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema MembershipIamMemberSpec#providerRef
-   */
-  readonly providerRef?: MembershipIamMemberSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1120,9 +1135,9 @@ export function toJson_MembershipIamMemberSpec(obj: MembershipIamMemberSpec | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MembershipIamMemberSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_MembershipIamMemberSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_MembershipIamMemberSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_MembershipIamMemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MembershipIamMemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_MembershipIamMemberSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1132,7 +1147,7 @@ export function toJson_MembershipIamMemberSpec(obj: MembershipIamMemberSpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MembershipIamMemberSpecDeletionPolicy
  */
@@ -1209,17 +1224,68 @@ export function toJson_MembershipIamMemberSpecForProvider(obj: MembershipIamMemb
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema MembershipIamMemberSpecManagementPolicy
+ * @schema MembershipIamMemberSpecInitProvider
  */
-export enum MembershipIamMemberSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface MembershipIamMemberSpecInitProvider {
+  /**
+   * @schema MembershipIamMemberSpecInitProvider#condition
+   */
+  readonly condition?: MembershipIamMemberSpecInitProviderCondition[];
+
+  /**
+   * @schema MembershipIamMemberSpecInitProvider#member
+   */
+  readonly member?: string;
+
+  /**
+   * @schema MembershipIamMemberSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * @schema MembershipIamMemberSpecInitProvider#role
+   */
+  readonly role?: string;
+
+}
+
+/**
+ * Converts an object of type 'MembershipIamMemberSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MembershipIamMemberSpecInitProvider(obj: MembershipIamMemberSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'condition': obj.condition?.map(y => toJson_MembershipIamMemberSpecInitProviderCondition(y)),
+    'member': obj.member,
+    'project': obj.project,
+    'role': obj.role,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema MembershipIamMemberSpecManagementPolicies
+ */
+export enum MembershipIamMemberSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1253,43 +1319,6 @@ export function toJson_MembershipIamMemberSpecProviderConfigRef(obj: MembershipI
   const result = {
     'name': obj.name,
     'policy': toJson_MembershipIamMemberSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema MembershipIamMemberSpecProviderRef
- */
-export interface MembershipIamMemberSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema MembershipIamMemberSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema MembershipIamMemberSpecProviderRef#policy
-   */
-  readonly policy?: MembershipIamMemberSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'MembershipIamMemberSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MembershipIamMemberSpecProviderRef(obj: MembershipIamMemberSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_MembershipIamMemberSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1390,12 +1419,12 @@ export interface MembershipIamMemberSpecForProviderCondition {
   /**
    * @schema MembershipIamMemberSpecForProviderCondition#expression
    */
-  readonly expression: string;
+  readonly expression?: string;
 
   /**
    * @schema MembershipIamMemberSpecForProviderCondition#title
    */
-  readonly title: string;
+  readonly title?: string;
 
 }
 
@@ -1498,6 +1527,43 @@ export function toJson_MembershipIamMemberSpecForProviderMembershipIdSelector(ob
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema MembershipIamMemberSpecInitProviderCondition
+ */
+export interface MembershipIamMemberSpecInitProviderCondition {
+  /**
+   * @schema MembershipIamMemberSpecInitProviderCondition#description
+   */
+  readonly description?: string;
+
+  /**
+   * @schema MembershipIamMemberSpecInitProviderCondition#expression
+   */
+  readonly expression?: string;
+
+  /**
+   * @schema MembershipIamMemberSpecInitProviderCondition#title
+   */
+  readonly title?: string;
+
+}
+
+/**
+ * Converts an object of type 'MembershipIamMemberSpecInitProviderCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MembershipIamMemberSpecInitProviderCondition(obj: MembershipIamMemberSpecInitProviderCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'expression': obj.expression,
+    'title': obj.title,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema MembershipIamMemberSpecProviderConfigRefPolicy
@@ -1524,43 +1590,6 @@ export interface MembershipIamMemberSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_MembershipIamMemberSpecProviderConfigRefPolicy(obj: MembershipIamMemberSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema MembershipIamMemberSpecProviderRefPolicy
- */
-export interface MembershipIamMemberSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema MembershipIamMemberSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: MembershipIamMemberSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema MembershipIamMemberSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: MembershipIamMemberSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'MembershipIamMemberSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MembershipIamMemberSpecProviderRefPolicy(obj: MembershipIamMemberSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1745,30 +1774,6 @@ export enum MembershipIamMemberSpecProviderConfigRefPolicyResolution {
  * @schema MembershipIamMemberSpecProviderConfigRefPolicyResolve
  */
 export enum MembershipIamMemberSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema MembershipIamMemberSpecProviderRefPolicyResolution
- */
-export enum MembershipIamMemberSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema MembershipIamMemberSpecProviderRefPolicyResolve
- */
-export enum MembershipIamMemberSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

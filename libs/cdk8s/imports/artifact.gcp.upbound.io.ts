@@ -99,7 +99,7 @@ export function toJson_RegistryRepositoryProps(obj: RegistryRepositoryProps | un
  */
 export interface RegistryRepositorySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RegistryRepositorySpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface RegistryRepositorySpec {
   readonly forProvider: RegistryRepositorySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema RegistryRepositorySpec#managementPolicy
+   * @schema RegistryRepositorySpec#initProvider
    */
-  readonly managementPolicy?: RegistryRepositorySpecManagementPolicy;
+  readonly initProvider?: RegistryRepositorySpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema RegistryRepositorySpec#managementPolicies
+   */
+  readonly managementPolicies?: RegistryRepositorySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface RegistryRepositorySpec {
    * @schema RegistryRepositorySpec#providerConfigRef
    */
   readonly providerConfigRef?: RegistryRepositorySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema RegistryRepositorySpec#providerRef
-   */
-  readonly providerRef?: RegistryRepositorySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_RegistryRepositorySpec(obj: RegistryRepositorySpec | unde
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RegistryRepositorySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_RegistryRepositorySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_RegistryRepositorySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_RegistryRepositorySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RegistryRepositorySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_RegistryRepositorySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_RegistryRepositorySpec(obj: RegistryRepositorySpec | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RegistryRepositorySpecDeletionPolicy
  */
@@ -287,17 +287,124 @@ export function toJson_RegistryRepositorySpecForProvider(obj: RegistryRepository
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema RegistryRepositorySpecManagementPolicy
+ * @schema RegistryRepositorySpecInitProvider
  */
-export enum RegistryRepositorySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface RegistryRepositorySpecInitProvider {
+  /**
+   * The user-provided description of the repository.
+   *
+   * @schema RegistryRepositorySpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Docker repository config contains repository level configuration for the repositories of docker type. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecInitProvider#dockerConfig
+   */
+  readonly dockerConfig?: RegistryRepositorySpecInitProviderDockerConfig[];
+
+  /**
+   * The format of packages that are stored in the repository. Supported formats can be found here. You can only create alpha formats if you are a member of the alpha user group.
+   *
+   * @schema RegistryRepositorySpecInitProvider#format
+   */
+  readonly format?: string;
+
+  /**
+   * The Cloud KMS resource name of the customer managed encryption key that’s used to encrypt the contents of the Repository. Has the form: projects/my-project/locations/my-region/keyRings/my-kr/cryptoKeys/my-key. This value may not be changed after the Repository has been created.
+   *
+   * @schema RegistryRepositorySpecInitProvider#kmsKeyName
+   */
+  readonly kmsKeyName?: string;
+
+  /**
+   * Labels with user-defined metadata. This field may contain up to 64 entries. Label keys and values may be no longer than 63 characters. Label keys must begin with a lowercase letter and may only contain lowercase letters, numeric characters, underscores, and dashes.
+   *
+   * @schema RegistryRepositorySpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * MavenRepositoryConfig is maven related repository details. Provides additional configuration details for repositories of the maven format type. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecInitProvider#mavenConfig
+   */
+  readonly mavenConfig?: RegistryRepositorySpecInitProviderMavenConfig[];
+
+  /**
+   * The mode configures the repository to serve artifacts from different sources. Default value is STANDARD_REPOSITORY. Possible values are: STANDARD_REPOSITORY, VIRTUAL_REPOSITORY, REMOTE_REPOSITORY.
+   *
+   * @schema RegistryRepositorySpecInitProvider#mode
+   */
+  readonly mode?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema RegistryRepositorySpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * Configuration specific for a Remote Repository. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecInitProvider#remoteRepositoryConfig
+   */
+  readonly remoteRepositoryConfig?: RegistryRepositorySpecInitProviderRemoteRepositoryConfig[];
+
+  /**
+   * Configuration specific for a Virtual Repository. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecInitProvider#virtualRepositoryConfig
+   */
+  readonly virtualRepositoryConfig?: RegistryRepositorySpecInitProviderVirtualRepositoryConfig[];
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecInitProvider(obj: RegistryRepositorySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'dockerConfig': obj.dockerConfig?.map(y => toJson_RegistryRepositorySpecInitProviderDockerConfig(y)),
+    'format': obj.format,
+    'kmsKeyName': obj.kmsKeyName,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'mavenConfig': obj.mavenConfig?.map(y => toJson_RegistryRepositorySpecInitProviderMavenConfig(y)),
+    'mode': obj.mode,
+    'project': obj.project,
+    'remoteRepositoryConfig': obj.remoteRepositoryConfig?.map(y => toJson_RegistryRepositorySpecInitProviderRemoteRepositoryConfig(y)),
+    'virtualRepositoryConfig': obj.virtualRepositoryConfig?.map(y => toJson_RegistryRepositorySpecInitProviderVirtualRepositoryConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema RegistryRepositorySpecManagementPolicies
+ */
+export enum RegistryRepositorySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -331,43 +438,6 @@ export function toJson_RegistryRepositorySpecProviderConfigRef(obj: RegistryRepo
   const result = {
     'name': obj.name,
     'policy': toJson_RegistryRepositorySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema RegistryRepositorySpecProviderRef
- */
-export interface RegistryRepositorySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema RegistryRepositorySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema RegistryRepositorySpecProviderRef#policy
-   */
-  readonly policy?: RegistryRepositorySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'RegistryRepositorySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RegistryRepositorySpecProviderRef(obj: RegistryRepositorySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_RegistryRepositorySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -605,6 +675,154 @@ export function toJson_RegistryRepositorySpecForProviderVirtualRepositoryConfig(
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RegistryRepositorySpecInitProviderDockerConfig
+ */
+export interface RegistryRepositorySpecInitProviderDockerConfig {
+  /**
+   * The repository which enabled this flag prevents all tags from being modified, moved or deleted. This does not prevent tags from being created.
+   *
+   * @schema RegistryRepositorySpecInitProviderDockerConfig#immutableTags
+   */
+  readonly immutableTags?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecInitProviderDockerConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecInitProviderDockerConfig(obj: RegistryRepositorySpecInitProviderDockerConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'immutableTags': obj.immutableTags,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RegistryRepositorySpecInitProviderMavenConfig
+ */
+export interface RegistryRepositorySpecInitProviderMavenConfig {
+  /**
+   * The repository with this flag will allow publishing the same snapshot versions.
+   *
+   * @schema RegistryRepositorySpecInitProviderMavenConfig#allowSnapshotOverwrites
+   */
+  readonly allowSnapshotOverwrites?: boolean;
+
+  /**
+   * Version policy defines the versions that the registry will accept. Default value is VERSION_POLICY_UNSPECIFIED. Possible values are: VERSION_POLICY_UNSPECIFIED, RELEASE, SNAPSHOT.
+   *
+   * @schema RegistryRepositorySpecInitProviderMavenConfig#versionPolicy
+   */
+  readonly versionPolicy?: string;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecInitProviderMavenConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecInitProviderMavenConfig(obj: RegistryRepositorySpecInitProviderMavenConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowSnapshotOverwrites': obj.allowSnapshotOverwrites,
+    'versionPolicy': obj.versionPolicy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RegistryRepositorySpecInitProviderRemoteRepositoryConfig
+ */
+export interface RegistryRepositorySpecInitProviderRemoteRepositoryConfig {
+  /**
+   * The description of the remote source.
+   *
+   * @schema RegistryRepositorySpecInitProviderRemoteRepositoryConfig#description
+   */
+  readonly description?: string;
+
+  /**
+   * Specific settings for a Docker remote repository. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecInitProviderRemoteRepositoryConfig#dockerRepository
+   */
+  readonly dockerRepository?: RegistryRepositorySpecInitProviderRemoteRepositoryConfigDockerRepository[];
+
+  /**
+   * Specific settings for a Maven remote repository. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecInitProviderRemoteRepositoryConfig#mavenRepository
+   */
+  readonly mavenRepository?: RegistryRepositorySpecInitProviderRemoteRepositoryConfigMavenRepository[];
+
+  /**
+   * Specific settings for an Npm remote repository. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecInitProviderRemoteRepositoryConfig#npmRepository
+   */
+  readonly npmRepository?: RegistryRepositorySpecInitProviderRemoteRepositoryConfigNpmRepository[];
+
+  /**
+   * Specific settings for a Python remote repository. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecInitProviderRemoteRepositoryConfig#pythonRepository
+   */
+  readonly pythonRepository?: RegistryRepositorySpecInitProviderRemoteRepositoryConfigPythonRepository[];
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecInitProviderRemoteRepositoryConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecInitProviderRemoteRepositoryConfig(obj: RegistryRepositorySpecInitProviderRemoteRepositoryConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'dockerRepository': obj.dockerRepository?.map(y => toJson_RegistryRepositorySpecInitProviderRemoteRepositoryConfigDockerRepository(y)),
+    'mavenRepository': obj.mavenRepository?.map(y => toJson_RegistryRepositorySpecInitProviderRemoteRepositoryConfigMavenRepository(y)),
+    'npmRepository': obj.npmRepository?.map(y => toJson_RegistryRepositorySpecInitProviderRemoteRepositoryConfigNpmRepository(y)),
+    'pythonRepository': obj.pythonRepository?.map(y => toJson_RegistryRepositorySpecInitProviderRemoteRepositoryConfigPythonRepository(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RegistryRepositorySpecInitProviderVirtualRepositoryConfig
+ */
+export interface RegistryRepositorySpecInitProviderVirtualRepositoryConfig {
+  /**
+   * Policies that configure the upstream artifacts distributed by the Virtual Repository. Upstream policies cannot be set on a standard repository. Structure is documented below.
+   *
+   * @schema RegistryRepositorySpecInitProviderVirtualRepositoryConfig#upstreamPolicies
+   */
+  readonly upstreamPolicies?: RegistryRepositorySpecInitProviderVirtualRepositoryConfigUpstreamPolicies[];
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecInitProviderVirtualRepositoryConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecInitProviderVirtualRepositoryConfig(obj: RegistryRepositorySpecInitProviderVirtualRepositoryConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'upstreamPolicies': obj.upstreamPolicies?.map(y => toJson_RegistryRepositorySpecInitProviderVirtualRepositoryConfigUpstreamPolicies(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema RegistryRepositorySpecProviderConfigRefPolicy
@@ -631,43 +849,6 @@ export interface RegistryRepositorySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_RegistryRepositorySpecProviderConfigRefPolicy(obj: RegistryRepositorySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema RegistryRepositorySpecProviderRefPolicy
- */
-export interface RegistryRepositorySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema RegistryRepositorySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: RegistryRepositorySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema RegistryRepositorySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: RegistryRepositorySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'RegistryRepositorySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RegistryRepositorySpecProviderRefPolicy(obj: RegistryRepositorySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -928,6 +1109,149 @@ export function toJson_RegistryRepositorySpecForProviderVirtualRepositoryConfigU
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RegistryRepositorySpecInitProviderRemoteRepositoryConfigDockerRepository
+ */
+export interface RegistryRepositorySpecInitProviderRemoteRepositoryConfigDockerRepository {
+  /**
+   * Address of the remote repository. Default value is PYPI. Possible values are: PYPI.
+   *
+   * @schema RegistryRepositorySpecInitProviderRemoteRepositoryConfigDockerRepository#publicRepository
+   */
+  readonly publicRepository?: string;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecInitProviderRemoteRepositoryConfigDockerRepository' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecInitProviderRemoteRepositoryConfigDockerRepository(obj: RegistryRepositorySpecInitProviderRemoteRepositoryConfigDockerRepository | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'publicRepository': obj.publicRepository,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RegistryRepositorySpecInitProviderRemoteRepositoryConfigMavenRepository
+ */
+export interface RegistryRepositorySpecInitProviderRemoteRepositoryConfigMavenRepository {
+  /**
+   * Address of the remote repository. Default value is PYPI. Possible values are: PYPI.
+   *
+   * @schema RegistryRepositorySpecInitProviderRemoteRepositoryConfigMavenRepository#publicRepository
+   */
+  readonly publicRepository?: string;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecInitProviderRemoteRepositoryConfigMavenRepository' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecInitProviderRemoteRepositoryConfigMavenRepository(obj: RegistryRepositorySpecInitProviderRemoteRepositoryConfigMavenRepository | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'publicRepository': obj.publicRepository,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RegistryRepositorySpecInitProviderRemoteRepositoryConfigNpmRepository
+ */
+export interface RegistryRepositorySpecInitProviderRemoteRepositoryConfigNpmRepository {
+  /**
+   * Address of the remote repository. Default value is PYPI. Possible values are: PYPI.
+   *
+   * @schema RegistryRepositorySpecInitProviderRemoteRepositoryConfigNpmRepository#publicRepository
+   */
+  readonly publicRepository?: string;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecInitProviderRemoteRepositoryConfigNpmRepository' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecInitProviderRemoteRepositoryConfigNpmRepository(obj: RegistryRepositorySpecInitProviderRemoteRepositoryConfigNpmRepository | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'publicRepository': obj.publicRepository,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RegistryRepositorySpecInitProviderRemoteRepositoryConfigPythonRepository
+ */
+export interface RegistryRepositorySpecInitProviderRemoteRepositoryConfigPythonRepository {
+  /**
+   * Address of the remote repository. Default value is PYPI. Possible values are: PYPI.
+   *
+   * @schema RegistryRepositorySpecInitProviderRemoteRepositoryConfigPythonRepository#publicRepository
+   */
+  readonly publicRepository?: string;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecInitProviderRemoteRepositoryConfigPythonRepository' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecInitProviderRemoteRepositoryConfigPythonRepository(obj: RegistryRepositorySpecInitProviderRemoteRepositoryConfigPythonRepository | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'publicRepository': obj.publicRepository,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RegistryRepositorySpecInitProviderVirtualRepositoryConfigUpstreamPolicies
+ */
+export interface RegistryRepositorySpecInitProviderVirtualRepositoryConfigUpstreamPolicies {
+  /**
+   * The user-provided ID of the upstream policy.
+   *
+   * @schema RegistryRepositorySpecInitProviderVirtualRepositoryConfigUpstreamPolicies#id
+   */
+  readonly id?: string;
+
+  /**
+   * Entries with a greater priority value take precedence in the pull order.
+   *
+   * @schema RegistryRepositorySpecInitProviderVirtualRepositoryConfigUpstreamPolicies#priority
+   */
+  readonly priority?: number;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositorySpecInitProviderVirtualRepositoryConfigUpstreamPolicies' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositorySpecInitProviderVirtualRepositoryConfigUpstreamPolicies(obj: RegistryRepositorySpecInitProviderVirtualRepositoryConfigUpstreamPolicies | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'id': obj.id,
+    'priority': obj.priority,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema RegistryRepositorySpecProviderConfigRefPolicyResolution
@@ -945,30 +1269,6 @@ export enum RegistryRepositorySpecProviderConfigRefPolicyResolution {
  * @schema RegistryRepositorySpecProviderConfigRefPolicyResolve
  */
 export enum RegistryRepositorySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema RegistryRepositorySpecProviderRefPolicyResolution
- */
-export enum RegistryRepositorySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema RegistryRepositorySpecProviderRefPolicyResolve
- */
-export enum RegistryRepositorySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1337,7 +1637,7 @@ export function toJson_RegistryRepositoryIamMemberProps(obj: RegistryRepositoryI
  */
 export interface RegistryRepositoryIamMemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RegistryRepositoryIamMemberSpec#deletionPolicy
    */
@@ -1349,11 +1649,18 @@ export interface RegistryRepositoryIamMemberSpec {
   readonly forProvider: RegistryRepositoryIamMemberSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema RegistryRepositoryIamMemberSpec#managementPolicy
+   * @schema RegistryRepositoryIamMemberSpec#initProvider
    */
-  readonly managementPolicy?: RegistryRepositoryIamMemberSpecManagementPolicy;
+  readonly initProvider?: RegistryRepositoryIamMemberSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema RegistryRepositoryIamMemberSpec#managementPolicies
+   */
+  readonly managementPolicies?: RegistryRepositoryIamMemberSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1361,13 +1668,6 @@ export interface RegistryRepositoryIamMemberSpec {
    * @schema RegistryRepositoryIamMemberSpec#providerConfigRef
    */
   readonly providerConfigRef?: RegistryRepositoryIamMemberSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema RegistryRepositoryIamMemberSpec#providerRef
-   */
-  readonly providerRef?: RegistryRepositoryIamMemberSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1394,9 +1694,9 @@ export function toJson_RegistryRepositoryIamMemberSpec(obj: RegistryRepositoryIa
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RegistryRepositoryIamMemberSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_RegistryRepositoryIamMemberSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_RegistryRepositoryIamMemberSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_RegistryRepositoryIamMemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RegistryRepositoryIamMemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_RegistryRepositoryIamMemberSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1406,7 +1706,7 @@ export function toJson_RegistryRepositoryIamMemberSpec(obj: RegistryRepositoryIa
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RegistryRepositoryIamMemberSpecDeletionPolicy
  */
@@ -1473,17 +1773,80 @@ export function toJson_RegistryRepositoryIamMemberSpecForProvider(obj: RegistryR
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema RegistryRepositoryIamMemberSpecManagementPolicy
+ * @schema RegistryRepositoryIamMemberSpecInitProvider
  */
-export enum RegistryRepositoryIamMemberSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface RegistryRepositoryIamMemberSpecInitProvider {
+  /**
+   * @schema RegistryRepositoryIamMemberSpecInitProvider#condition
+   */
+  readonly condition?: RegistryRepositoryIamMemberSpecInitProviderCondition[];
+
+  /**
+   * @schema RegistryRepositoryIamMemberSpecInitProvider#location
+   */
+  readonly location?: string;
+
+  /**
+   * @schema RegistryRepositoryIamMemberSpecInitProvider#member
+   */
+  readonly member?: string;
+
+  /**
+   * @schema RegistryRepositoryIamMemberSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * @schema RegistryRepositoryIamMemberSpecInitProvider#repository
+   */
+  readonly repository?: string;
+
+  /**
+   * @schema RegistryRepositoryIamMemberSpecInitProvider#role
+   */
+  readonly role?: string;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositoryIamMemberSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositoryIamMemberSpecInitProvider(obj: RegistryRepositoryIamMemberSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'condition': obj.condition?.map(y => toJson_RegistryRepositoryIamMemberSpecInitProviderCondition(y)),
+    'location': obj.location,
+    'member': obj.member,
+    'project': obj.project,
+    'repository': obj.repository,
+    'role': obj.role,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema RegistryRepositoryIamMemberSpecManagementPolicies
+ */
+export enum RegistryRepositoryIamMemberSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1517,43 +1880,6 @@ export function toJson_RegistryRepositoryIamMemberSpecProviderConfigRef(obj: Reg
   const result = {
     'name': obj.name,
     'policy': toJson_RegistryRepositoryIamMemberSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema RegistryRepositoryIamMemberSpecProviderRef
- */
-export interface RegistryRepositoryIamMemberSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema RegistryRepositoryIamMemberSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema RegistryRepositoryIamMemberSpecProviderRef#policy
-   */
-  readonly policy?: RegistryRepositoryIamMemberSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'RegistryRepositoryIamMemberSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RegistryRepositoryIamMemberSpecProviderRef(obj: RegistryRepositoryIamMemberSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_RegistryRepositoryIamMemberSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1654,12 +1980,12 @@ export interface RegistryRepositoryIamMemberSpecForProviderCondition {
   /**
    * @schema RegistryRepositoryIamMemberSpecForProviderCondition#expression
    */
-  readonly expression: string;
+  readonly expression?: string;
 
   /**
    * @schema RegistryRepositoryIamMemberSpecForProviderCondition#title
    */
-  readonly title: string;
+  readonly title?: string;
 
 }
 
@@ -1668,6 +1994,43 @@ export interface RegistryRepositoryIamMemberSpecForProviderCondition {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_RegistryRepositoryIamMemberSpecForProviderCondition(obj: RegistryRepositoryIamMemberSpecForProviderCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'expression': obj.expression,
+    'title': obj.title,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RegistryRepositoryIamMemberSpecInitProviderCondition
+ */
+export interface RegistryRepositoryIamMemberSpecInitProviderCondition {
+  /**
+   * @schema RegistryRepositoryIamMemberSpecInitProviderCondition#description
+   */
+  readonly description?: string;
+
+  /**
+   * @schema RegistryRepositoryIamMemberSpecInitProviderCondition#expression
+   */
+  readonly expression?: string;
+
+  /**
+   * @schema RegistryRepositoryIamMemberSpecInitProviderCondition#title
+   */
+  readonly title?: string;
+
+}
+
+/**
+ * Converts an object of type 'RegistryRepositoryIamMemberSpecInitProviderCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistryRepositoryIamMemberSpecInitProviderCondition(obj: RegistryRepositoryIamMemberSpecInitProviderCondition | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'description': obj.description,
@@ -1706,43 +2069,6 @@ export interface RegistryRepositoryIamMemberSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_RegistryRepositoryIamMemberSpecProviderConfigRefPolicy(obj: RegistryRepositoryIamMemberSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema RegistryRepositoryIamMemberSpecProviderRefPolicy
- */
-export interface RegistryRepositoryIamMemberSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema RegistryRepositoryIamMemberSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: RegistryRepositoryIamMemberSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema RegistryRepositoryIamMemberSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: RegistryRepositoryIamMemberSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'RegistryRepositoryIamMemberSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RegistryRepositoryIamMemberSpecProviderRefPolicy(obj: RegistryRepositoryIamMemberSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1853,30 +2179,6 @@ export enum RegistryRepositoryIamMemberSpecProviderConfigRefPolicyResolution {
  * @schema RegistryRepositoryIamMemberSpecProviderConfigRefPolicyResolve
  */
 export enum RegistryRepositoryIamMemberSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema RegistryRepositoryIamMemberSpecProviderRefPolicyResolution
- */
-export enum RegistryRepositoryIamMemberSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema RegistryRepositoryIamMemberSpecProviderRefPolicyResolve
- */
-export enum RegistryRepositoryIamMemberSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

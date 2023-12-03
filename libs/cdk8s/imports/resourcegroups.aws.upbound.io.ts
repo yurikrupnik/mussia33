@@ -99,7 +99,7 @@ export function toJson_GroupProps(obj: GroupProps | undefined): Record<string, a
  */
 export interface GroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema GroupSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface GroupSpec {
   readonly forProvider: GroupSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema GroupSpec#managementPolicy
+   * @schema GroupSpec#initProvider
    */
-  readonly managementPolicy?: GroupSpecManagementPolicy;
+  readonly initProvider?: GroupSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema GroupSpec#managementPolicies
+   */
+  readonly managementPolicies?: GroupSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface GroupSpec {
    * @schema GroupSpec#providerConfigRef
    */
   readonly providerConfigRef?: GroupSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema GroupSpec#providerRef
-   */
-  readonly providerRef?: GroupSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_GroupSpec(obj: GroupSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_GroupSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_GroupSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_GroupSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_GroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_GroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_GroupSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_GroupSpec(obj: GroupSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema GroupSpecDeletionPolicy
  */
@@ -239,17 +239,76 @@ export function toJson_GroupSpecForProvider(obj: GroupSpecForProvider | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema GroupSpecManagementPolicy
+ * @schema GroupSpecInitProvider
  */
-export enum GroupSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface GroupSpecInitProvider {
+  /**
+   * A configuration associates the resource group with an AWS service and specifies how the service can interact with the resources in the group. See below for details.
+   *
+   * @schema GroupSpecInitProvider#configuration
+   */
+  readonly configuration?: GroupSpecInitProviderConfiguration[];
+
+  /**
+   * A description of the resource group.
+   *
+   * @schema GroupSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * A resource_query block. Resource queries are documented below.
+   *
+   * @schema GroupSpecInitProvider#resourceQuery
+   */
+  readonly resourceQuery?: GroupSpecInitProviderResourceQuery[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema GroupSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'GroupSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GroupSpecInitProvider(obj: GroupSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configuration': obj.configuration?.map(y => toJson_GroupSpecInitProviderConfiguration(y)),
+    'description': obj.description,
+    'resourceQuery': obj.resourceQuery?.map(y => toJson_GroupSpecInitProviderResourceQuery(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema GroupSpecManagementPolicies
+ */
+export enum GroupSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -283,43 +342,6 @@ export function toJson_GroupSpecProviderConfigRef(obj: GroupSpecProviderConfigRe
   const result = {
     'name': obj.name,
     'policy': toJson_GroupSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema GroupSpecProviderRef
- */
-export interface GroupSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema GroupSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema GroupSpecProviderRef#policy
-   */
-  readonly policy?: GroupSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'GroupSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_GroupSpecProviderRef(obj: GroupSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_GroupSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -424,7 +446,7 @@ export interface GroupSpecForProviderConfiguration {
    *
    * @schema GroupSpecForProviderConfiguration#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -452,7 +474,7 @@ export interface GroupSpecForProviderResourceQuery {
    *
    * @schema GroupSpecForProviderResourceQuery#query
    */
-  readonly query: string;
+  readonly query?: string;
 
   /**
    * The type of the resource query. Defaults to TAG_FILTERS_1_0.
@@ -469,6 +491,77 @@ export interface GroupSpecForProviderResourceQuery {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_GroupSpecForProviderResourceQuery(obj: GroupSpecForProviderResourceQuery | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'query': obj.query,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GroupSpecInitProviderConfiguration
+ */
+export interface GroupSpecInitProviderConfiguration {
+  /**
+   * A collection of parameters for this group configuration item. See below for details.
+   *
+   * @schema GroupSpecInitProviderConfiguration#parameters
+   */
+  readonly parameters?: GroupSpecInitProviderConfigurationParameters[];
+
+  /**
+   * Specifies the type of group configuration item.
+   *
+   * @schema GroupSpecInitProviderConfiguration#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'GroupSpecInitProviderConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GroupSpecInitProviderConfiguration(obj: GroupSpecInitProviderConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'parameters': obj.parameters?.map(y => toJson_GroupSpecInitProviderConfigurationParameters(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GroupSpecInitProviderResourceQuery
+ */
+export interface GroupSpecInitProviderResourceQuery {
+  /**
+   * The resource query as a JSON string.
+   *
+   * @schema GroupSpecInitProviderResourceQuery#query
+   */
+  readonly query?: string;
+
+  /**
+   * The type of the resource query. Defaults to TAG_FILTERS_1_0.
+   *
+   * @default TAG_FILTERS_1_0.
+   * @schema GroupSpecInitProviderResourceQuery#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'GroupSpecInitProviderResourceQuery' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GroupSpecInitProviderResourceQuery(obj: GroupSpecInitProviderResourceQuery | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'query': obj.query,
@@ -506,43 +599,6 @@ export interface GroupSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_GroupSpecProviderConfigRefPolicy(obj: GroupSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema GroupSpecProviderRefPolicy
- */
-export interface GroupSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema GroupSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: GroupSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema GroupSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: GroupSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'GroupSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_GroupSpecProviderRefPolicy(obj: GroupSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -644,14 +700,14 @@ export interface GroupSpecForProviderConfigurationParameters {
    *
    * @schema GroupSpecForProviderConfigurationParameters#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The value or values to be used for the specified parameter.
    *
    * @schema GroupSpecForProviderConfigurationParameters#values
    */
-  readonly values: string[];
+  readonly values?: string[];
 
 }
 
@@ -660,6 +716,41 @@ export interface GroupSpecForProviderConfigurationParameters {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_GroupSpecForProviderConfigurationParameters(obj: GroupSpecForProviderConfigurationParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GroupSpecInitProviderConfigurationParameters
+ */
+export interface GroupSpecInitProviderConfigurationParameters {
+  /**
+   * The name of the group configuration parameter.
+   *
+   * @schema GroupSpecInitProviderConfigurationParameters#name
+   */
+  readonly name?: string;
+
+  /**
+   * The value or values to be used for the specified parameter.
+   *
+   * @schema GroupSpecInitProviderConfigurationParameters#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'GroupSpecInitProviderConfigurationParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GroupSpecInitProviderConfigurationParameters(obj: GroupSpecInitProviderConfigurationParameters | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'name': obj.name,
@@ -688,30 +779,6 @@ export enum GroupSpecProviderConfigRefPolicyResolution {
  * @schema GroupSpecProviderConfigRefPolicyResolve
  */
 export enum GroupSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema GroupSpecProviderRefPolicyResolution
- */
-export enum GroupSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema GroupSpecProviderRefPolicyResolve
- */
-export enum GroupSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

@@ -99,7 +99,7 @@ export function toJson_GatewayRouteProps(obj: GatewayRouteProps | undefined): Re
  */
 export interface GatewayRouteSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema GatewayRouteSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface GatewayRouteSpec {
   readonly forProvider: GatewayRouteSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema GatewayRouteSpec#managementPolicy
+   * @schema GatewayRouteSpec#initProvider
    */
-  readonly managementPolicy?: GatewayRouteSpecManagementPolicy;
+  readonly initProvider?: GatewayRouteSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema GatewayRouteSpec#managementPolicies
+   */
+  readonly managementPolicies?: GatewayRouteSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface GatewayRouteSpec {
    * @schema GatewayRouteSpec#providerConfigRef
    */
   readonly providerConfigRef?: GatewayRouteSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema GatewayRouteSpec#providerRef
-   */
-  readonly providerRef?: GatewayRouteSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_GatewayRouteSpec(obj: GatewayRouteSpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_GatewayRouteSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_GatewayRouteSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_GatewayRouteSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_GatewayRouteSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_GatewayRouteSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_GatewayRouteSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_GatewayRouteSpec(obj: GatewayRouteSpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema GatewayRouteSpecDeletionPolicy
  */
@@ -272,17 +272,85 @@ export function toJson_GatewayRouteSpecForProvider(obj: GatewayRouteSpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema GatewayRouteSpecManagementPolicy
+ * @schema GatewayRouteSpecInitProvider
  */
-export enum GatewayRouteSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface GatewayRouteSpecInitProvider {
+  /**
+   * Name of the service mesh in which to create the gateway route. Must be between 1 and 255 characters in length.
+   *
+   * @schema GatewayRouteSpecInitProvider#meshName
+   */
+  readonly meshName?: string;
+
+  /**
+   * AWS account ID of the service mesh's owner. Defaults to the account ID the AWS provider is currently connected to.
+   *
+   * @default the account ID the AWS provider is currently connected to.
+   * @schema GatewayRouteSpecInitProvider#meshOwner
+   */
+  readonly meshOwner?: string;
+
+  /**
+   * Name to use for the gateway route. Must be between 1 and 255 characters in length.
+   *
+   * @schema GatewayRouteSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Gateway route specification to apply.
+   *
+   * @schema GatewayRouteSpecInitProvider#spec
+   */
+  readonly spec?: GatewayRouteSpecInitProviderSpec[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema GatewayRouteSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProvider(obj: GatewayRouteSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'meshName': obj.meshName,
+    'meshOwner': obj.meshOwner,
+    'name': obj.name,
+    'spec': obj.spec?.map(y => toJson_GatewayRouteSpecInitProviderSpec(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema GatewayRouteSpecManagementPolicies
+ */
+export enum GatewayRouteSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -316,43 +384,6 @@ export function toJson_GatewayRouteSpecProviderConfigRef(obj: GatewayRouteSpecPr
   const result = {
     'name': obj.name,
     'policy': toJson_GatewayRouteSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema GatewayRouteSpecProviderRef
- */
-export interface GatewayRouteSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema GatewayRouteSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema GatewayRouteSpecProviderRef#policy
-   */
-  readonly policy?: GatewayRouteSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'GatewayRouteSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_GatewayRouteSpecProviderRef(obj: GatewayRouteSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_GatewayRouteSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -575,6 +606,57 @@ export function toJson_GatewayRouteSpecForProviderVirtualGatewayNameSelector(obj
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema GatewayRouteSpecInitProviderSpec
+ */
+export interface GatewayRouteSpecInitProviderSpec {
+  /**
+   * Specification of a gRPC gateway route.
+   *
+   * @schema GatewayRouteSpecInitProviderSpec#grpcRoute
+   */
+  readonly grpcRoute?: GatewayRouteSpecInitProviderSpecGrpcRoute[];
+
+  /**
+   * Specification of an HTTP/2 gateway route.
+   *
+   * @schema GatewayRouteSpecInitProviderSpec#http2Route
+   */
+  readonly http2Route?: GatewayRouteSpecInitProviderSpecHttp2Route[];
+
+  /**
+   * Specification of an HTTP gateway route.
+   *
+   * @schema GatewayRouteSpecInitProviderSpec#httpRoute
+   */
+  readonly httpRoute?: GatewayRouteSpecInitProviderSpecHttpRoute[];
+
+  /**
+   * Priority for the gateway route, between 0 and 1000.
+   *
+   * @schema GatewayRouteSpecInitProviderSpec#priority
+   */
+  readonly priority?: number;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpec(obj: GatewayRouteSpecInitProviderSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'grpcRoute': obj.grpcRoute?.map(y => toJson_GatewayRouteSpecInitProviderSpecGrpcRoute(y)),
+    'http2Route': obj.http2Route?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttp2Route(y)),
+    'httpRoute': obj.httpRoute?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttpRoute(y)),
+    'priority': obj.priority,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema GatewayRouteSpecProviderConfigRefPolicy
@@ -601,43 +683,6 @@ export interface GatewayRouteSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_GatewayRouteSpecProviderConfigRefPolicy(obj: GatewayRouteSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema GatewayRouteSpecProviderRefPolicy
- */
-export interface GatewayRouteSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema GatewayRouteSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: GatewayRouteSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema GatewayRouteSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: GatewayRouteSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'GatewayRouteSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_GatewayRouteSpecProviderRefPolicy(obj: GatewayRouteSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -739,14 +784,14 @@ export interface GatewayRouteSpecForProviderSpecGrpcRoute {
    *
    * @schema GatewayRouteSpecForProviderSpecGrpcRoute#action
    */
-  readonly action: GatewayRouteSpecForProviderSpecGrpcRouteAction[];
+  readonly action?: GatewayRouteSpecForProviderSpecGrpcRouteAction[];
 
   /**
    * Criteria for determining a request match.
    *
    * @schema GatewayRouteSpecForProviderSpecGrpcRoute#match
    */
-  readonly match: GatewayRouteSpecForProviderSpecGrpcRouteMatch[];
+  readonly match?: GatewayRouteSpecForProviderSpecGrpcRouteMatch[];
 
 }
 
@@ -774,14 +819,14 @@ export interface GatewayRouteSpecForProviderSpecHttp2Route {
    *
    * @schema GatewayRouteSpecForProviderSpecHttp2Route#action
    */
-  readonly action: GatewayRouteSpecForProviderSpecHttp2RouteAction[];
+  readonly action?: GatewayRouteSpecForProviderSpecHttp2RouteAction[];
 
   /**
    * Criteria for determining a request match.
    *
    * @schema GatewayRouteSpecForProviderSpecHttp2Route#match
    */
-  readonly match: GatewayRouteSpecForProviderSpecHttp2RouteMatch[];
+  readonly match?: GatewayRouteSpecForProviderSpecHttp2RouteMatch[];
 
 }
 
@@ -809,14 +854,14 @@ export interface GatewayRouteSpecForProviderSpecHttpRoute {
    *
    * @schema GatewayRouteSpecForProviderSpecHttpRoute#action
    */
-  readonly action: GatewayRouteSpecForProviderSpecHttpRouteAction[];
+  readonly action?: GatewayRouteSpecForProviderSpecHttpRouteAction[];
 
   /**
    * Criteria for determining a request match.
    *
    * @schema GatewayRouteSpecForProviderSpecHttpRoute#match
    */
-  readonly match: GatewayRouteSpecForProviderSpecHttpRouteMatch[];
+  readonly match?: GatewayRouteSpecForProviderSpecHttpRouteMatch[];
 
 }
 
@@ -910,6 +955,111 @@ export function toJson_GatewayRouteSpecForProviderVirtualGatewayNameSelectorPoli
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema GatewayRouteSpecInitProviderSpecGrpcRoute
+ */
+export interface GatewayRouteSpecInitProviderSpecGrpcRoute {
+  /**
+   * Action to take if a match is determined.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecGrpcRoute#action
+   */
+  readonly action?: GatewayRouteSpecInitProviderSpecGrpcRouteAction[];
+
+  /**
+   * Criteria for determining a request match.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecGrpcRoute#match
+   */
+  readonly match?: GatewayRouteSpecInitProviderSpecGrpcRouteMatch[];
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecGrpcRoute' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecGrpcRoute(obj: GatewayRouteSpecInitProviderSpecGrpcRoute | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action?.map(y => toJson_GatewayRouteSpecInitProviderSpecGrpcRouteAction(y)),
+    'match': obj.match?.map(y => toJson_GatewayRouteSpecInitProviderSpecGrpcRouteMatch(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttp2Route
+ */
+export interface GatewayRouteSpecInitProviderSpecHttp2Route {
+  /**
+   * Action to take if a match is determined.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2Route#action
+   */
+  readonly action?: GatewayRouteSpecInitProviderSpecHttp2RouteAction[];
+
+  /**
+   * Criteria for determining a request match.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2Route#match
+   */
+  readonly match?: GatewayRouteSpecInitProviderSpecHttp2RouteMatch[];
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttp2Route' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttp2Route(obj: GatewayRouteSpecInitProviderSpecHttp2Route | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttp2RouteAction(y)),
+    'match': obj.match?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttp2RouteMatch(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttpRoute
+ */
+export interface GatewayRouteSpecInitProviderSpecHttpRoute {
+  /**
+   * Action to take if a match is determined.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRoute#action
+   */
+  readonly action?: GatewayRouteSpecInitProviderSpecHttpRouteAction[];
+
+  /**
+   * Criteria for determining a request match.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRoute#match
+   */
+  readonly match?: GatewayRouteSpecInitProviderSpecHttpRouteMatch[];
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttpRoute' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttpRoute(obj: GatewayRouteSpecInitProviderSpecHttpRoute | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttpRouteAction(y)),
+    'match': obj.match?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttpRouteMatch(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema GatewayRouteSpecProviderConfigRefPolicyResolution
@@ -927,30 +1077,6 @@ export enum GatewayRouteSpecProviderConfigRefPolicyResolution {
  * @schema GatewayRouteSpecProviderConfigRefPolicyResolve
  */
 export enum GatewayRouteSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema GatewayRouteSpecProviderRefPolicyResolution
- */
-export enum GatewayRouteSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema GatewayRouteSpecProviderRefPolicyResolve
- */
-export enum GatewayRouteSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1003,7 +1129,7 @@ export interface GatewayRouteSpecForProviderSpecGrpcRouteAction {
    *
    * @schema GatewayRouteSpecForProviderSpecGrpcRouteAction#target
    */
-  readonly target: GatewayRouteSpecForProviderSpecGrpcRouteActionTarget[];
+  readonly target?: GatewayRouteSpecForProviderSpecGrpcRouteActionTarget[];
 
 }
 
@@ -1037,7 +1163,7 @@ export interface GatewayRouteSpecForProviderSpecGrpcRouteMatch {
    *
    * @schema GatewayRouteSpecForProviderSpecGrpcRouteMatch#serviceName
    */
-  readonly serviceName: string;
+  readonly serviceName?: string;
 
 }
 
@@ -1072,7 +1198,7 @@ export interface GatewayRouteSpecForProviderSpecHttp2RouteAction {
    *
    * @schema GatewayRouteSpecForProviderSpecHttp2RouteAction#target
    */
-  readonly target: GatewayRouteSpecForProviderSpecHttp2RouteActionTarget[];
+  readonly target?: GatewayRouteSpecForProviderSpecHttp2RouteActionTarget[];
 
 }
 
@@ -1174,7 +1300,7 @@ export interface GatewayRouteSpecForProviderSpecHttpRouteAction {
    *
    * @schema GatewayRouteSpecForProviderSpecHttpRouteAction#target
    */
-  readonly target: GatewayRouteSpecForProviderSpecHttpRouteActionTarget[];
+  readonly target?: GatewayRouteSpecForProviderSpecHttpRouteActionTarget[];
 
 }
 
@@ -1309,6 +1435,272 @@ export enum GatewayRouteSpecForProviderVirtualGatewayNameSelectorPolicyResolve {
 }
 
 /**
+ * @schema GatewayRouteSpecInitProviderSpecGrpcRouteAction
+ */
+export interface GatewayRouteSpecInitProviderSpecGrpcRouteAction {
+  /**
+   * Target that traffic is routed to when a request matches the gateway route.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecGrpcRouteAction#target
+   */
+  readonly target?: GatewayRouteSpecInitProviderSpecGrpcRouteActionTarget[];
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecGrpcRouteAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecGrpcRouteAction(obj: GatewayRouteSpecInitProviderSpecGrpcRouteAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'target': obj.target?.map(y => toJson_GatewayRouteSpecInitProviderSpecGrpcRouteActionTarget(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecGrpcRouteMatch
+ */
+export interface GatewayRouteSpecInitProviderSpecGrpcRouteMatch {
+  /**
+   * The port number that corresponds to the target for Virtual Service provider port. This is required when the provider (router or node) of the Virtual Service has multiple listeners.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecGrpcRouteMatch#port
+   */
+  readonly port?: number;
+
+  /**
+   * Fully qualified domain name for the service to match from the request.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecGrpcRouteMatch#serviceName
+   */
+  readonly serviceName?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecGrpcRouteMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecGrpcRouteMatch(obj: GatewayRouteSpecInitProviderSpecGrpcRouteMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'serviceName': obj.serviceName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttp2RouteAction
+ */
+export interface GatewayRouteSpecInitProviderSpecHttp2RouteAction {
+  /**
+   * Gateway route action to rewrite.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteAction#rewrite
+   */
+  readonly rewrite?: GatewayRouteSpecInitProviderSpecHttp2RouteActionRewrite[];
+
+  /**
+   * Target that traffic is routed to when a request matches the gateway route.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteAction#target
+   */
+  readonly target?: GatewayRouteSpecInitProviderSpecHttp2RouteActionTarget[];
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttp2RouteAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttp2RouteAction(obj: GatewayRouteSpecInitProviderSpecHttp2RouteAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'rewrite': obj.rewrite?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttp2RouteActionRewrite(y)),
+    'target': obj.target?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttp2RouteActionTarget(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatch
+ */
+export interface GatewayRouteSpecInitProviderSpecHttp2RouteMatch {
+  /**
+   * Client request headers to match on.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatch#header
+   */
+  readonly header?: GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeader[];
+
+  /**
+   * Host name to rewrite.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatch#hostname
+   */
+  readonly hostname?: GatewayRouteSpecInitProviderSpecHttp2RouteMatchHostname[];
+
+  /**
+   * Client request path to match on.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatch#path
+   */
+  readonly path?: GatewayRouteSpecInitProviderSpecHttp2RouteMatchPath[];
+
+  /**
+   * The port number that corresponds to the target for Virtual Service provider port. This is required when the provider (router or node) of the Virtual Service has multiple listeners.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatch#port
+   */
+  readonly port?: number;
+
+  /**
+   * Specified beginning characters to rewrite.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatch#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Client request query parameters to match on.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatch#queryParameter
+   */
+  readonly queryParameter?: GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameter[];
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttp2RouteMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttp2RouteMatch(obj: GatewayRouteSpecInitProviderSpecHttp2RouteMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'header': obj.header?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeader(y)),
+    'hostname': obj.hostname?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttp2RouteMatchHostname(y)),
+    'path': obj.path?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttp2RouteMatchPath(y)),
+    'port': obj.port,
+    'prefix': obj.prefix,
+    'queryParameter': obj.queryParameter?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameter(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttpRouteAction
+ */
+export interface GatewayRouteSpecInitProviderSpecHttpRouteAction {
+  /**
+   * Gateway route action to rewrite.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteAction#rewrite
+   */
+  readonly rewrite?: GatewayRouteSpecInitProviderSpecHttpRouteActionRewrite[];
+
+  /**
+   * Target that traffic is routed to when a request matches the gateway route.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteAction#target
+   */
+  readonly target?: GatewayRouteSpecInitProviderSpecHttpRouteActionTarget[];
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttpRouteAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttpRouteAction(obj: GatewayRouteSpecInitProviderSpecHttpRouteAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'rewrite': obj.rewrite?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttpRouteActionRewrite(y)),
+    'target': obj.target?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttpRouteActionTarget(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatch
+ */
+export interface GatewayRouteSpecInitProviderSpecHttpRouteMatch {
+  /**
+   * Client request headers to match on.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatch#header
+   */
+  readonly header?: GatewayRouteSpecInitProviderSpecHttpRouteMatchHeader[];
+
+  /**
+   * Host name to rewrite.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatch#hostname
+   */
+  readonly hostname?: GatewayRouteSpecInitProviderSpecHttpRouteMatchHostname[];
+
+  /**
+   * Client request path to match on.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatch#path
+   */
+  readonly path?: GatewayRouteSpecInitProviderSpecHttpRouteMatchPath[];
+
+  /**
+   * The port number that corresponds to the target for Virtual Service provider port. This is required when the provider (router or node) of the Virtual Service has multiple listeners.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatch#port
+   */
+  readonly port?: number;
+
+  /**
+   * Specified beginning characters to rewrite.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatch#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Client request query parameters to match on.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatch#queryParameter
+   */
+  readonly queryParameter?: GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameter[];
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttpRouteMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttpRouteMatch(obj: GatewayRouteSpecInitProviderSpecHttpRouteMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'header': obj.header?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttpRouteMatchHeader(y)),
+    'hostname': obj.hostname?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttpRouteMatchHostname(y)),
+    'path': obj.path?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttpRouteMatchPath(y)),
+    'port': obj.port,
+    'prefix': obj.prefix,
+    'queryParameter': obj.queryParameter?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameter(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema GatewayRouteSpecPublishConnectionDetailsToConfigRefPolicyResolution
@@ -1348,7 +1740,7 @@ export interface GatewayRouteSpecForProviderSpecGrpcRouteActionTarget {
    *
    * @schema GatewayRouteSpecForProviderSpecGrpcRouteActionTarget#virtualService
    */
-  readonly virtualService: GatewayRouteSpecForProviderSpecGrpcRouteActionTargetVirtualService[];
+  readonly virtualService?: GatewayRouteSpecForProviderSpecGrpcRouteActionTargetVirtualService[];
 
 }
 
@@ -1418,7 +1810,7 @@ export interface GatewayRouteSpecForProviderSpecHttp2RouteActionTarget {
    *
    * @schema GatewayRouteSpecForProviderSpecHttp2RouteActionTarget#virtualService
    */
-  readonly virtualService: GatewayRouteSpecForProviderSpecHttp2RouteActionTargetVirtualService[];
+  readonly virtualService?: GatewayRouteSpecForProviderSpecHttp2RouteActionTargetVirtualService[];
 
 }
 
@@ -1461,7 +1853,7 @@ export interface GatewayRouteSpecForProviderSpecHttp2RouteMatchHeader {
    *
    * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeader#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -1567,7 +1959,7 @@ export interface GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameter {
    *
    * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchQueryParameter#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -1637,7 +2029,7 @@ export interface GatewayRouteSpecForProviderSpecHttpRouteActionTarget {
    *
    * @schema GatewayRouteSpecForProviderSpecHttpRouteActionTarget#virtualService
    */
-  readonly virtualService: GatewayRouteSpecForProviderSpecHttpRouteActionTargetVirtualService[];
+  readonly virtualService?: GatewayRouteSpecForProviderSpecHttpRouteActionTargetVirtualService[];
 
 }
 
@@ -1680,7 +2072,7 @@ export interface GatewayRouteSpecForProviderSpecHttpRouteMatchHeader {
    *
    * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHeader#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -1786,7 +2178,7 @@ export interface GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameter {
    *
    * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParameter#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -1806,6 +2198,479 @@ export function toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParamet
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema GatewayRouteSpecInitProviderSpecGrpcRouteActionTarget
+ */
+export interface GatewayRouteSpecInitProviderSpecGrpcRouteActionTarget {
+  /**
+   * The port number that corresponds to the target for Virtual Service provider port. This is required when the provider (router or node) of the Virtual Service has multiple listeners.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecGrpcRouteActionTarget#port
+   */
+  readonly port?: number;
+
+  /**
+   * Virtual service gateway route target.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecGrpcRouteActionTarget#virtualService
+   */
+  readonly virtualService?: GatewayRouteSpecInitProviderSpecGrpcRouteActionTargetVirtualService[];
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecGrpcRouteActionTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecGrpcRouteActionTarget(obj: GatewayRouteSpecInitProviderSpecGrpcRouteActionTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'virtualService': obj.virtualService?.map(y => toJson_GatewayRouteSpecInitProviderSpecGrpcRouteActionTargetVirtualService(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttp2RouteActionRewrite
+ */
+export interface GatewayRouteSpecInitProviderSpecHttp2RouteActionRewrite {
+  /**
+   * Host name to rewrite.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteActionRewrite#hostname
+   */
+  readonly hostname?: GatewayRouteSpecInitProviderSpecHttp2RouteActionRewriteHostname[];
+
+  /**
+   * Specified beginning characters to rewrite.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteActionRewrite#prefix
+   */
+  readonly prefix?: GatewayRouteSpecInitProviderSpecHttp2RouteActionRewritePrefix[];
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttp2RouteActionRewrite' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttp2RouteActionRewrite(obj: GatewayRouteSpecInitProviderSpecHttp2RouteActionRewrite | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hostname': obj.hostname?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttp2RouteActionRewriteHostname(y)),
+    'prefix': obj.prefix?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttp2RouteActionRewritePrefix(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttp2RouteActionTarget
+ */
+export interface GatewayRouteSpecInitProviderSpecHttp2RouteActionTarget {
+  /**
+   * The port number that corresponds to the target for Virtual Service provider port. This is required when the provider (router or node) of the Virtual Service has multiple listeners.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteActionTarget#port
+   */
+  readonly port?: number;
+
+  /**
+   * Virtual service gateway route target.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteActionTarget#virtualService
+   */
+  readonly virtualService?: GatewayRouteSpecInitProviderSpecHttp2RouteActionTargetVirtualService[];
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttp2RouteActionTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttp2RouteActionTarget(obj: GatewayRouteSpecInitProviderSpecHttp2RouteActionTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'virtualService': obj.virtualService?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttp2RouteActionTargetVirtualService(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeader
+ */
+export interface GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeader {
+  /**
+   * If true, the match is on the opposite of the match method and value. Default is false.
+   *
+   * @default false.
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeader#invert
+   */
+  readonly invert?: boolean;
+
+  /**
+   * Criteria for determining a request match.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeader#match
+   */
+  readonly match?: GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch[];
+
+  /**
+   * Name to use for the gateway route. Must be between 1 and 255 characters in length.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeader#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeader' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeader(obj: GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeader | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'invert': obj.invert,
+    'match': obj.match?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchHostname
+ */
+export interface GatewayRouteSpecInitProviderSpecHttp2RouteMatchHostname {
+  /**
+   * Header value sent by the client must match the specified value exactly.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchHostname#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Header value sent by the client must end with the specified characters.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchHostname#suffix
+   */
+  readonly suffix?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttp2RouteMatchHostname' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttp2RouteMatchHostname(obj: GatewayRouteSpecInitProviderSpecHttp2RouteMatchHostname | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'suffix': obj.suffix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchPath
+ */
+export interface GatewayRouteSpecInitProviderSpecHttp2RouteMatchPath {
+  /**
+   * Header value sent by the client must match the specified value exactly.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchPath#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Header value sent by the client must include the specified characters.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchPath#regex
+   */
+  readonly regex?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttp2RouteMatchPath' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttp2RouteMatchPath(obj: GatewayRouteSpecInitProviderSpecHttp2RouteMatchPath | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'regex': obj.regex,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameter
+ */
+export interface GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameter {
+  /**
+   * Criteria for determining a request match.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameter#match
+   */
+  readonly match?: GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameterMatch[];
+
+  /**
+   * Name to use for the gateway route. Must be between 1 and 255 characters in length.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameter#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameter(obj: GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'match': obj.match?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameterMatch(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttpRouteActionRewrite
+ */
+export interface GatewayRouteSpecInitProviderSpecHttpRouteActionRewrite {
+  /**
+   * Host name to rewrite.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteActionRewrite#hostname
+   */
+  readonly hostname?: GatewayRouteSpecInitProviderSpecHttpRouteActionRewriteHostname[];
+
+  /**
+   * Specified beginning characters to rewrite.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteActionRewrite#prefix
+   */
+  readonly prefix?: GatewayRouteSpecInitProviderSpecHttpRouteActionRewritePrefix[];
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttpRouteActionRewrite' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttpRouteActionRewrite(obj: GatewayRouteSpecInitProviderSpecHttpRouteActionRewrite | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hostname': obj.hostname?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttpRouteActionRewriteHostname(y)),
+    'prefix': obj.prefix?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttpRouteActionRewritePrefix(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttpRouteActionTarget
+ */
+export interface GatewayRouteSpecInitProviderSpecHttpRouteActionTarget {
+  /**
+   * The port number that corresponds to the target for Virtual Service provider port. This is required when the provider (router or node) of the Virtual Service has multiple listeners.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteActionTarget#port
+   */
+  readonly port?: number;
+
+  /**
+   * Virtual service gateway route target.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteActionTarget#virtualService
+   */
+  readonly virtualService?: any[];
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttpRouteActionTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttpRouteActionTarget(obj: GatewayRouteSpecInitProviderSpecHttpRouteActionTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'virtualService': obj.virtualService?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchHeader
+ */
+export interface GatewayRouteSpecInitProviderSpecHttpRouteMatchHeader {
+  /**
+   * If true, the match is on the opposite of the match method and value. Default is false.
+   *
+   * @default false.
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchHeader#invert
+   */
+  readonly invert?: boolean;
+
+  /**
+   * Criteria for determining a request match.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchHeader#match
+   */
+  readonly match?: GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatch[];
+
+  /**
+   * Name to use for the gateway route. Must be between 1 and 255 characters in length.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchHeader#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttpRouteMatchHeader' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttpRouteMatchHeader(obj: GatewayRouteSpecInitProviderSpecHttpRouteMatchHeader | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'invert': obj.invert,
+    'match': obj.match?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatch(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchHostname
+ */
+export interface GatewayRouteSpecInitProviderSpecHttpRouteMatchHostname {
+  /**
+   * Header value sent by the client must match the specified value exactly.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchHostname#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Header value sent by the client must end with the specified characters.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchHostname#suffix
+   */
+  readonly suffix?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttpRouteMatchHostname' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttpRouteMatchHostname(obj: GatewayRouteSpecInitProviderSpecHttpRouteMatchHostname | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'suffix': obj.suffix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchPath
+ */
+export interface GatewayRouteSpecInitProviderSpecHttpRouteMatchPath {
+  /**
+   * Header value sent by the client must match the specified value exactly.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchPath#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Header value sent by the client must include the specified characters.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchPath#regex
+   */
+  readonly regex?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttpRouteMatchPath' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttpRouteMatchPath(obj: GatewayRouteSpecInitProviderSpecHttpRouteMatchPath | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'regex': obj.regex,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameter
+ */
+export interface GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameter {
+  /**
+   * Criteria for determining a request match.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameter#match
+   */
+  readonly match?: GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameterMatch[];
+
+  /**
+   * Name to use for the gateway route. Must be between 1 and 255 characters in length.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameter#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameter(obj: GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'match': obj.match?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameterMatch(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema GatewayRouteSpecForProviderSpecGrpcRouteActionTargetVirtualService
  */
 export interface GatewayRouteSpecForProviderSpecGrpcRouteActionTargetVirtualService {
@@ -1814,7 +2679,7 @@ export interface GatewayRouteSpecForProviderSpecGrpcRouteActionTargetVirtualServ
    *
    * @schema GatewayRouteSpecForProviderSpecGrpcRouteActionTargetVirtualService#virtualServiceName
    */
-  readonly virtualServiceName: string;
+  readonly virtualServiceName?: string;
 
 }
 
@@ -1841,7 +2706,7 @@ export interface GatewayRouteSpecForProviderSpecHttp2RouteActionRewriteHostname 
    *
    * @schema GatewayRouteSpecForProviderSpecHttp2RouteActionRewriteHostname#defaultTargetHostname
    */
-  readonly defaultTargetHostname: string;
+  readonly defaultTargetHostname?: string;
 
 }
 
@@ -1903,7 +2768,7 @@ export interface GatewayRouteSpecForProviderSpecHttp2RouteActionTargetVirtualSer
    *
    * @schema GatewayRouteSpecForProviderSpecHttp2RouteActionTargetVirtualService#virtualServiceName
    */
-  readonly virtualServiceName: string;
+  readonly virtualServiceName?: string;
 
 }
 
@@ -2016,7 +2881,7 @@ export interface GatewayRouteSpecForProviderSpecHttpRouteActionRewriteHostname {
    *
    * @schema GatewayRouteSpecForProviderSpecHttpRouteActionRewriteHostname#defaultTargetHostname
    */
-  readonly defaultTargetHostname: string;
+  readonly defaultTargetHostname?: string;
 
 }
 
@@ -2199,6 +3064,356 @@ export function toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchQueryParamet
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema GatewayRouteSpecInitProviderSpecGrpcRouteActionTargetVirtualService
+ */
+export interface GatewayRouteSpecInitProviderSpecGrpcRouteActionTargetVirtualService {
+  /**
+   * Name of the virtual service that traffic is routed to. Must be between 1 and 255 characters in length.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecGrpcRouteActionTargetVirtualService#virtualServiceName
+   */
+  readonly virtualServiceName?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecGrpcRouteActionTargetVirtualService' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecGrpcRouteActionTargetVirtualService(obj: GatewayRouteSpecInitProviderSpecGrpcRouteActionTargetVirtualService | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'virtualServiceName': obj.virtualServiceName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttp2RouteActionRewriteHostname
+ */
+export interface GatewayRouteSpecInitProviderSpecHttp2RouteActionRewriteHostname {
+  /**
+   * Default target host name to write to. Valid values: ENABLED, DISABLED.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteActionRewriteHostname#defaultTargetHostname
+   */
+  readonly defaultTargetHostname?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttp2RouteActionRewriteHostname' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttp2RouteActionRewriteHostname(obj: GatewayRouteSpecInitProviderSpecHttp2RouteActionRewriteHostname | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultTargetHostname': obj.defaultTargetHostname,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttp2RouteActionRewritePrefix
+ */
+export interface GatewayRouteSpecInitProviderSpecHttp2RouteActionRewritePrefix {
+  /**
+   * Default prefix used to replace the incoming route prefix when rewritten. Valid values: ENABLED, DISABLED.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteActionRewritePrefix#defaultPrefix
+   */
+  readonly defaultPrefix?: string;
+
+  /**
+   * Value used to replace the incoming route prefix when rewritten.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteActionRewritePrefix#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttp2RouteActionRewritePrefix' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttp2RouteActionRewritePrefix(obj: GatewayRouteSpecInitProviderSpecHttp2RouteActionRewritePrefix | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultPrefix': obj.defaultPrefix,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttp2RouteActionTargetVirtualService
+ */
+export interface GatewayRouteSpecInitProviderSpecHttp2RouteActionTargetVirtualService {
+  /**
+   * Name of the virtual service that traffic is routed to. Must be between 1 and 255 characters in length.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteActionTargetVirtualService#virtualServiceName
+   */
+  readonly virtualServiceName?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttp2RouteActionTargetVirtualService' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttp2RouteActionTargetVirtualService(obj: GatewayRouteSpecInitProviderSpecHttp2RouteActionTargetVirtualService | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'virtualServiceName': obj.virtualServiceName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch
+ */
+export interface GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch {
+  /**
+   * Header value sent by the client must match the specified value exactly.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Specified beginning characters to rewrite.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Object that specifies the range of numbers that the header value sent by the client must be included in.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch#range
+   */
+  readonly range?: GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange[];
+
+  /**
+   * Header value sent by the client must include the specified characters.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch#regex
+   */
+  readonly regex?: string;
+
+  /**
+   * Header value sent by the client must end with the specified characters.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch#suffix
+   */
+  readonly suffix?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch(obj: GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'prefix': obj.prefix,
+    'range': obj.range?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange(y)),
+    'regex': obj.regex,
+    'suffix': obj.suffix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameterMatch
+ */
+export interface GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameterMatch {
+  /**
+   * Header value sent by the client must match the specified value exactly.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameterMatch#exact
+   */
+  readonly exact?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameterMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameterMatch(obj: GatewayRouteSpecInitProviderSpecHttp2RouteMatchQueryParameterMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttpRouteActionRewriteHostname
+ */
+export interface GatewayRouteSpecInitProviderSpecHttpRouteActionRewriteHostname {
+  /**
+   * Default target host name to write to. Valid values: ENABLED, DISABLED.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteActionRewriteHostname#defaultTargetHostname
+   */
+  readonly defaultTargetHostname?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttpRouteActionRewriteHostname' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttpRouteActionRewriteHostname(obj: GatewayRouteSpecInitProviderSpecHttpRouteActionRewriteHostname | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultTargetHostname': obj.defaultTargetHostname,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttpRouteActionRewritePrefix
+ */
+export interface GatewayRouteSpecInitProviderSpecHttpRouteActionRewritePrefix {
+  /**
+   * Default prefix used to replace the incoming route prefix when rewritten. Valid values: ENABLED, DISABLED.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteActionRewritePrefix#defaultPrefix
+   */
+  readonly defaultPrefix?: string;
+
+  /**
+   * Value used to replace the incoming route prefix when rewritten.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteActionRewritePrefix#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttpRouteActionRewritePrefix' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttpRouteActionRewritePrefix(obj: GatewayRouteSpecInitProviderSpecHttpRouteActionRewritePrefix | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultPrefix': obj.defaultPrefix,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatch
+ */
+export interface GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatch {
+  /**
+   * Header value sent by the client must match the specified value exactly.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatch#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Specified beginning characters to rewrite.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatch#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Object that specifies the range of numbers that the header value sent by the client must be included in.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatch#range
+   */
+  readonly range?: GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange[];
+
+  /**
+   * Header value sent by the client must include the specified characters.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatch#regex
+   */
+  readonly regex?: string;
+
+  /**
+   * Header value sent by the client must end with the specified characters.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatch#suffix
+   */
+  readonly suffix?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatch(obj: GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'prefix': obj.prefix,
+    'range': obj.range?.map(y => toJson_GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange(y)),
+    'regex': obj.regex,
+    'suffix': obj.suffix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameterMatch
+ */
+export interface GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameterMatch {
+  /**
+   * Header value sent by the client must match the specified value exactly.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameterMatch#exact
+   */
+  readonly exact?: string;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameterMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameterMatch(obj: GatewayRouteSpecInitProviderSpecHttpRouteMatchQueryParameterMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange
  */
 export interface GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange {
@@ -2207,14 +3422,14 @@ export interface GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange 
    *
    * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange#end
    */
-  readonly end: number;
+  readonly end?: number;
 
   /**
    * (Requited) Start of the range.
    *
    * @schema GatewayRouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange#start
    */
-  readonly start: number;
+  readonly start?: number;
 
 }
 
@@ -2324,14 +3539,14 @@ export interface GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange {
    *
    * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange#end
    */
-  readonly end: number;
+  readonly end?: number;
 
   /**
    * (Requited) Start of the range.
    *
    * @schema GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange#start
    */
-  readonly start: number;
+  readonly start?: number;
 
 }
 
@@ -2340,6 +3555,76 @@ export interface GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange(obj: GatewayRouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'end': obj.end,
+    'start': obj.start,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange
+ */
+export interface GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange {
+  /**
+   * End of the range.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange#end
+   */
+  readonly end?: number;
+
+  /**
+   * (Requited) Start of the range.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange#start
+   */
+  readonly start?: number;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange(obj: GatewayRouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'end': obj.end,
+    'start': obj.start,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange
+ */
+export interface GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange {
+  /**
+   * End of the range.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange#end
+   */
+  readonly end?: number;
+
+  /**
+   * (Requited) Start of the range.
+   *
+   * @schema GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange#start
+   */
+  readonly start?: number;
+
+}
+
+/**
+ * Converts an object of type 'GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange(obj: GatewayRouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'end': obj.end,
@@ -2569,7 +3854,7 @@ export function toJson_MeshProps(obj: MeshProps | undefined): Record<string, any
  */
 export interface MeshSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MeshSpec#deletionPolicy
    */
@@ -2581,11 +3866,18 @@ export interface MeshSpec {
   readonly forProvider: MeshSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema MeshSpec#managementPolicy
+   * @schema MeshSpec#initProvider
    */
-  readonly managementPolicy?: MeshSpecManagementPolicy;
+  readonly initProvider?: MeshSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema MeshSpec#managementPolicies
+   */
+  readonly managementPolicies?: MeshSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2593,13 +3885,6 @@ export interface MeshSpec {
    * @schema MeshSpec#providerConfigRef
    */
   readonly providerConfigRef?: MeshSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema MeshSpec#providerRef
-   */
-  readonly providerRef?: MeshSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2626,9 +3911,9 @@ export function toJson_MeshSpec(obj: MeshSpec | undefined): Record<string, any> 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MeshSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_MeshSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_MeshSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_MeshSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MeshSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_MeshSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2638,7 +3923,7 @@ export function toJson_MeshSpec(obj: MeshSpec | undefined): Record<string, any> 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MeshSpecDeletionPolicy
  */
@@ -2693,17 +3978,60 @@ export function toJson_MeshSpecForProvider(obj: MeshSpecForProvider | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema MeshSpecManagementPolicy
+ * @schema MeshSpecInitProvider
  */
-export enum MeshSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface MeshSpecInitProvider {
+  /**
+   * Service mesh specification to apply.
+   *
+   * @schema MeshSpecInitProvider#spec
+   */
+  readonly spec?: MeshSpecInitProviderSpec[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema MeshSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'MeshSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MeshSpecInitProvider(obj: MeshSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'spec': obj.spec?.map(y => toJson_MeshSpecInitProviderSpec(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema MeshSpecManagementPolicies
+ */
+export enum MeshSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2737,43 +4065,6 @@ export function toJson_MeshSpecProviderConfigRef(obj: MeshSpecProviderConfigRef 
   const result = {
     'name': obj.name,
     'policy': toJson_MeshSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema MeshSpecProviderRef
- */
-export interface MeshSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema MeshSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema MeshSpecProviderRef#policy
-   */
-  readonly policy?: MeshSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'MeshSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MeshSpecProviderRef(obj: MeshSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_MeshSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2890,6 +4181,33 @@ export function toJson_MeshSpecForProviderSpec(obj: MeshSpecForProviderSpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema MeshSpecInitProviderSpec
+ */
+export interface MeshSpecInitProviderSpec {
+  /**
+   * Egress filter rules for the service mesh.
+   *
+   * @schema MeshSpecInitProviderSpec#egressFilter
+   */
+  readonly egressFilter?: MeshSpecInitProviderSpecEgressFilter[];
+
+}
+
+/**
+ * Converts an object of type 'MeshSpecInitProviderSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MeshSpecInitProviderSpec(obj: MeshSpecInitProviderSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'egressFilter': obj.egressFilter?.map(y => toJson_MeshSpecInitProviderSpecEgressFilter(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema MeshSpecProviderConfigRefPolicy
@@ -2916,43 +4234,6 @@ export interface MeshSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_MeshSpecProviderConfigRefPolicy(obj: MeshSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema MeshSpecProviderRefPolicy
- */
-export interface MeshSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema MeshSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: MeshSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema MeshSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: MeshSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'MeshSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MeshSpecProviderRefPolicy(obj: MeshSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3073,6 +4354,33 @@ export function toJson_MeshSpecForProviderSpecEgressFilter(obj: MeshSpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema MeshSpecInitProviderSpecEgressFilter
+ */
+export interface MeshSpecInitProviderSpecEgressFilter {
+  /**
+   * Egress filter type. By default, the type is DROP_ALL. Valid values are ALLOW_ALL and DROP_ALL.
+   *
+   * @schema MeshSpecInitProviderSpecEgressFilter#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'MeshSpecInitProviderSpecEgressFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MeshSpecInitProviderSpecEgressFilter(obj: MeshSpecInitProviderSpecEgressFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema MeshSpecProviderConfigRefPolicyResolution
@@ -3090,30 +4398,6 @@ export enum MeshSpecProviderConfigRefPolicyResolution {
  * @schema MeshSpecProviderConfigRefPolicyResolve
  */
 export enum MeshSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema MeshSpecProviderRefPolicyResolution
- */
-export enum MeshSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema MeshSpecProviderRefPolicyResolve
- */
-export enum MeshSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3278,7 +4562,7 @@ export function toJson_RouteProps(obj: RouteProps | undefined): Record<string, a
  */
 export interface RouteSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RouteSpec#deletionPolicy
    */
@@ -3290,11 +4574,18 @@ export interface RouteSpec {
   readonly forProvider: RouteSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema RouteSpec#managementPolicy
+   * @schema RouteSpec#initProvider
    */
-  readonly managementPolicy?: RouteSpecManagementPolicy;
+  readonly initProvider?: RouteSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema RouteSpec#managementPolicies
+   */
+  readonly managementPolicies?: RouteSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3302,13 +4593,6 @@ export interface RouteSpec {
    * @schema RouteSpec#providerConfigRef
    */
   readonly providerConfigRef?: RouteSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema RouteSpec#providerRef
-   */
-  readonly providerRef?: RouteSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3335,9 +4619,9 @@ export function toJson_RouteSpec(obj: RouteSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RouteSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_RouteSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_RouteSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_RouteSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RouteSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_RouteSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3347,7 +4631,7 @@ export function toJson_RouteSpec(obj: RouteSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RouteSpecDeletionPolicy
  */
@@ -3467,17 +4751,77 @@ export function toJson_RouteSpecForProvider(obj: RouteSpecForProvider | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema RouteSpecManagementPolicy
+ * @schema RouteSpecInitProvider
  */
-export enum RouteSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface RouteSpecInitProvider {
+  /**
+   * AWS account ID of the service mesh's owner. Defaults to the account ID the AWS provider is currently connected to.
+   *
+   * @default the account ID the AWS provider is currently connected to.
+   * @schema RouteSpecInitProvider#meshOwner
+   */
+  readonly meshOwner?: string;
+
+  /**
+   * Name to use for the route. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Route specification to apply.
+   *
+   * @schema RouteSpecInitProvider#spec
+   */
+  readonly spec?: RouteSpecInitProviderSpec[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema RouteSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProvider(obj: RouteSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'meshOwner': obj.meshOwner,
+    'name': obj.name,
+    'spec': obj.spec?.map(y => toJson_RouteSpecInitProviderSpec(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema RouteSpecManagementPolicies
+ */
+export enum RouteSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3511,43 +4855,6 @@ export function toJson_RouteSpecProviderConfigRef(obj: RouteSpecProviderConfigRe
   const result = {
     'name': obj.name,
     'policy': toJson_RouteSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema RouteSpecProviderRef
- */
-export interface RouteSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema RouteSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema RouteSpecProviderRef#policy
-   */
-  readonly policy?: RouteSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'RouteSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RouteSpecProviderRef(obj: RouteSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_RouteSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3860,6 +5167,65 @@ export function toJson_RouteSpecForProviderVirtualRouterNameSelector(obj: RouteS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RouteSpecInitProviderSpec
+ */
+export interface RouteSpecInitProviderSpec {
+  /**
+   * GRPC routing information for the route.
+   *
+   * @schema RouteSpecInitProviderSpec#grpcRoute
+   */
+  readonly grpcRoute?: RouteSpecInitProviderSpecGrpcRoute[];
+
+  /**
+   * HTTP/2 routing information for the route.
+   *
+   * @schema RouteSpecInitProviderSpec#http2Route
+   */
+  readonly http2Route?: RouteSpecInitProviderSpecHttp2Route[];
+
+  /**
+   * HTTP routing information for the route.
+   *
+   * @schema RouteSpecInitProviderSpec#httpRoute
+   */
+  readonly httpRoute?: RouteSpecInitProviderSpecHttpRoute[];
+
+  /**
+   * Priority for the route, between 0 and 1000. Routes are matched based on the specified value, where 0 is the highest priority.
+   *
+   * @schema RouteSpecInitProviderSpec#priority
+   */
+  readonly priority?: number;
+
+  /**
+   * TCP routing information for the route.
+   *
+   * @schema RouteSpecInitProviderSpec#tcpRoute
+   */
+  readonly tcpRoute?: RouteSpecInitProviderSpecTcpRoute[];
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpec(obj: RouteSpecInitProviderSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'grpcRoute': obj.grpcRoute?.map(y => toJson_RouteSpecInitProviderSpecGrpcRoute(y)),
+    'http2Route': obj.http2Route?.map(y => toJson_RouteSpecInitProviderSpecHttp2Route(y)),
+    'httpRoute': obj.httpRoute?.map(y => toJson_RouteSpecInitProviderSpecHttpRoute(y)),
+    'priority': obj.priority,
+    'tcpRoute': obj.tcpRoute?.map(y => toJson_RouteSpecInitProviderSpecTcpRoute(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema RouteSpecProviderConfigRefPolicy
@@ -3886,43 +5252,6 @@ export interface RouteSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_RouteSpecProviderConfigRefPolicy(obj: RouteSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema RouteSpecProviderRefPolicy
- */
-export interface RouteSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema RouteSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: RouteSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema RouteSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: RouteSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'RouteSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RouteSpecProviderRefPolicy(obj: RouteSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -4098,7 +5427,7 @@ export interface RouteSpecForProviderSpecGrpcRoute {
    *
    * @schema RouteSpecForProviderSpecGrpcRoute#action
    */
-  readonly action: RouteSpecForProviderSpecGrpcRouteAction[];
+  readonly action?: RouteSpecForProviderSpecGrpcRouteAction[];
 
   /**
    * Criteria for determining an gRPC request match.
@@ -4149,14 +5478,14 @@ export interface RouteSpecForProviderSpecHttp2Route {
    *
    * @schema RouteSpecForProviderSpecHttp2Route#action
    */
-  readonly action: RouteSpecForProviderSpecHttp2RouteAction[];
+  readonly action?: RouteSpecForProviderSpecHttp2RouteAction[];
 
   /**
    * Criteria for determining an gRPC request match.
    *
    * @schema RouteSpecForProviderSpecHttp2Route#match
    */
-  readonly match: RouteSpecForProviderSpecHttp2RouteMatch[];
+  readonly match?: RouteSpecForProviderSpecHttp2RouteMatch[];
 
   /**
    * Retry policy.
@@ -4200,14 +5529,14 @@ export interface RouteSpecForProviderSpecHttpRoute {
    *
    * @schema RouteSpecForProviderSpecHttpRoute#action
    */
-  readonly action: RouteSpecForProviderSpecHttpRouteAction[];
+  readonly action?: RouteSpecForProviderSpecHttpRouteAction[];
 
   /**
    * Criteria for determining an gRPC request match.
    *
    * @schema RouteSpecForProviderSpecHttpRoute#match
    */
-  readonly match: RouteSpecForProviderSpecHttpRouteMatch[];
+  readonly match?: RouteSpecForProviderSpecHttpRouteMatch[];
 
   /**
    * Retry policy.
@@ -4251,7 +5580,7 @@ export interface RouteSpecForProviderSpecTcpRoute {
    *
    * @schema RouteSpecForProviderSpecTcpRoute#action
    */
-  readonly action: RouteSpecForProviderSpecTcpRouteAction[];
+  readonly action?: RouteSpecForProviderSpecTcpRouteAction[];
 
   /**
    * Criteria for determining an gRPC request match.
@@ -4360,6 +5689,202 @@ export function toJson_RouteSpecForProviderVirtualRouterNameSelectorPolicy(obj: 
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RouteSpecInitProviderSpecGrpcRoute
+ */
+export interface RouteSpecInitProviderSpecGrpcRoute {
+  /**
+   * Action to take if a match is determined.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRoute#action
+   */
+  readonly action?: RouteSpecInitProviderSpecGrpcRouteAction[];
+
+  /**
+   * Criteria for determining an gRPC request match.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRoute#match
+   */
+  readonly match?: RouteSpecInitProviderSpecGrpcRouteMatch[];
+
+  /**
+   * Retry policy.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRoute#retryPolicy
+   */
+  readonly retryPolicy?: RouteSpecInitProviderSpecGrpcRouteRetryPolicy[];
+
+  /**
+   * Types of timeouts.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRoute#timeout
+   */
+  readonly timeout?: RouteSpecInitProviderSpecGrpcRouteTimeout[];
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecGrpcRoute' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecGrpcRoute(obj: RouteSpecInitProviderSpecGrpcRoute | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action?.map(y => toJson_RouteSpecInitProviderSpecGrpcRouteAction(y)),
+    'match': obj.match?.map(y => toJson_RouteSpecInitProviderSpecGrpcRouteMatch(y)),
+    'retryPolicy': obj.retryPolicy?.map(y => toJson_RouteSpecInitProviderSpecGrpcRouteRetryPolicy(y)),
+    'timeout': obj.timeout?.map(y => toJson_RouteSpecInitProviderSpecGrpcRouteTimeout(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttp2Route
+ */
+export interface RouteSpecInitProviderSpecHttp2Route {
+  /**
+   * Action to take if a match is determined.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2Route#action
+   */
+  readonly action?: RouteSpecInitProviderSpecHttp2RouteAction[];
+
+  /**
+   * Criteria for determining an gRPC request match.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2Route#match
+   */
+  readonly match?: RouteSpecInitProviderSpecHttp2RouteMatch[];
+
+  /**
+   * Retry policy.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2Route#retryPolicy
+   */
+  readonly retryPolicy?: RouteSpecInitProviderSpecHttp2RouteRetryPolicy[];
+
+  /**
+   * Types of timeouts.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2Route#timeout
+   */
+  readonly timeout?: RouteSpecInitProviderSpecHttp2RouteTimeout[];
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttp2Route' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttp2Route(obj: RouteSpecInitProviderSpecHttp2Route | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action?.map(y => toJson_RouteSpecInitProviderSpecHttp2RouteAction(y)),
+    'match': obj.match?.map(y => toJson_RouteSpecInitProviderSpecHttp2RouteMatch(y)),
+    'retryPolicy': obj.retryPolicy?.map(y => toJson_RouteSpecInitProviderSpecHttp2RouteRetryPolicy(y)),
+    'timeout': obj.timeout?.map(y => toJson_RouteSpecInitProviderSpecHttp2RouteTimeout(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttpRoute
+ */
+export interface RouteSpecInitProviderSpecHttpRoute {
+  /**
+   * Action to take if a match is determined.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRoute#action
+   */
+  readonly action?: RouteSpecInitProviderSpecHttpRouteAction[];
+
+  /**
+   * Criteria for determining an gRPC request match.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRoute#match
+   */
+  readonly match?: RouteSpecInitProviderSpecHttpRouteMatch[];
+
+  /**
+   * Retry policy.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRoute#retryPolicy
+   */
+  readonly retryPolicy?: RouteSpecInitProviderSpecHttpRouteRetryPolicy[];
+
+  /**
+   * Types of timeouts.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRoute#timeout
+   */
+  readonly timeout?: RouteSpecInitProviderSpecHttpRouteTimeout[];
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttpRoute' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttpRoute(obj: RouteSpecInitProviderSpecHttpRoute | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action?.map(y => toJson_RouteSpecInitProviderSpecHttpRouteAction(y)),
+    'match': obj.match?.map(y => toJson_RouteSpecInitProviderSpecHttpRouteMatch(y)),
+    'retryPolicy': obj.retryPolicy?.map(y => toJson_RouteSpecInitProviderSpecHttpRouteRetryPolicy(y)),
+    'timeout': obj.timeout?.map(y => toJson_RouteSpecInitProviderSpecHttpRouteTimeout(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecTcpRoute
+ */
+export interface RouteSpecInitProviderSpecTcpRoute {
+  /**
+   * Action to take if a match is determined.
+   *
+   * @schema RouteSpecInitProviderSpecTcpRoute#action
+   */
+  readonly action?: RouteSpecInitProviderSpecTcpRouteAction[];
+
+  /**
+   * Criteria for determining an gRPC request match.
+   *
+   * @schema RouteSpecInitProviderSpecTcpRoute#match
+   */
+  readonly match?: RouteSpecInitProviderSpecTcpRouteMatch[];
+
+  /**
+   * Types of timeouts.
+   *
+   * @schema RouteSpecInitProviderSpecTcpRoute#timeout
+   */
+  readonly timeout?: RouteSpecInitProviderSpecTcpRouteTimeout[];
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecTcpRoute' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecTcpRoute(obj: RouteSpecInitProviderSpecTcpRoute | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action?.map(y => toJson_RouteSpecInitProviderSpecTcpRouteAction(y)),
+    'match': obj.match?.map(y => toJson_RouteSpecInitProviderSpecTcpRouteMatch(y)),
+    'timeout': obj.timeout?.map(y => toJson_RouteSpecInitProviderSpecTcpRouteTimeout(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema RouteSpecProviderConfigRefPolicyResolution
@@ -4377,30 +5902,6 @@ export enum RouteSpecProviderConfigRefPolicyResolution {
  * @schema RouteSpecProviderConfigRefPolicyResolve
  */
 export enum RouteSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema RouteSpecProviderRefPolicyResolution
- */
-export enum RouteSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema RouteSpecProviderRefPolicyResolve
- */
-export enum RouteSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -4501,7 +6002,7 @@ export interface RouteSpecForProviderSpecGrpcRouteAction {
    *
    * @schema RouteSpecForProviderSpecGrpcRouteAction#weightedTarget
    */
-  readonly weightedTarget: RouteSpecForProviderSpecGrpcRouteActionWeightedTarget[];
+  readonly weightedTarget?: RouteSpecForProviderSpecGrpcRouteActionWeightedTarget[];
 
 }
 
@@ -4601,14 +6102,14 @@ export interface RouteSpecForProviderSpecGrpcRouteRetryPolicy {
    *
    * @schema RouteSpecForProviderSpecGrpcRouteRetryPolicy#maxRetries
    */
-  readonly maxRetries: number;
+  readonly maxRetries?: number;
 
   /**
    * Per-retry timeout.
    *
    * @schema RouteSpecForProviderSpecGrpcRouteRetryPolicy#perRetryTimeout
    */
-  readonly perRetryTimeout: RouteSpecForProviderSpecGrpcRouteRetryPolicyPerRetryTimeout[];
+  readonly perRetryTimeout?: RouteSpecForProviderSpecGrpcRouteRetryPolicyPerRetryTimeout[];
 
   /**
    * List of TCP retry events. The only valid value is connection-error.
@@ -4681,7 +6182,7 @@ export interface RouteSpecForProviderSpecHttp2RouteAction {
    *
    * @schema RouteSpecForProviderSpecHttp2RouteAction#weightedTarget
    */
-  readonly weightedTarget: RouteSpecForProviderSpecHttp2RouteActionWeightedTarget[];
+  readonly weightedTarget?: RouteSpecForProviderSpecHttp2RouteActionWeightedTarget[];
 
 }
 
@@ -4790,14 +6291,14 @@ export interface RouteSpecForProviderSpecHttp2RouteRetryPolicy {
    *
    * @schema RouteSpecForProviderSpecHttp2RouteRetryPolicy#maxRetries
    */
-  readonly maxRetries: number;
+  readonly maxRetries?: number;
 
   /**
    * Per-retry timeout.
    *
    * @schema RouteSpecForProviderSpecHttp2RouteRetryPolicy#perRetryTimeout
    */
-  readonly perRetryTimeout: RouteSpecForProviderSpecHttp2RouteRetryPolicyPerRetryTimeout[];
+  readonly perRetryTimeout?: RouteSpecForProviderSpecHttp2RouteRetryPolicyPerRetryTimeout[];
 
   /**
    * List of TCP retry events. The only valid value is connection-error.
@@ -4869,7 +6370,7 @@ export interface RouteSpecForProviderSpecHttpRouteAction {
    *
    * @schema RouteSpecForProviderSpecHttpRouteAction#weightedTarget
    */
-  readonly weightedTarget: RouteSpecForProviderSpecHttpRouteActionWeightedTarget[];
+  readonly weightedTarget?: RouteSpecForProviderSpecHttpRouteActionWeightedTarget[];
 
 }
 
@@ -4978,14 +6479,14 @@ export interface RouteSpecForProviderSpecHttpRouteRetryPolicy {
    *
    * @schema RouteSpecForProviderSpecHttpRouteRetryPolicy#maxRetries
    */
-  readonly maxRetries: number;
+  readonly maxRetries?: number;
 
   /**
    * Per-retry timeout.
    *
    * @schema RouteSpecForProviderSpecHttpRouteRetryPolicy#perRetryTimeout
    */
-  readonly perRetryTimeout: RouteSpecForProviderSpecHttpRouteRetryPolicyPerRetryTimeout[];
+  readonly perRetryTimeout?: RouteSpecForProviderSpecHttpRouteRetryPolicyPerRetryTimeout[];
 
   /**
    * List of TCP retry events. The only valid value is connection-error.
@@ -5057,7 +6558,7 @@ export interface RouteSpecForProviderSpecTcpRouteAction {
    *
    * @schema RouteSpecForProviderSpecTcpRouteAction#weightedTarget
    */
-  readonly weightedTarget: RouteSpecForProviderSpecTcpRouteActionWeightedTarget[];
+  readonly weightedTarget?: RouteSpecForProviderSpecTcpRouteActionWeightedTarget[];
 
 }
 
@@ -5178,6 +6679,643 @@ export enum RouteSpecForProviderVirtualRouterNameSelectorPolicyResolve {
 }
 
 /**
+ * @schema RouteSpecInitProviderSpecGrpcRouteAction
+ */
+export interface RouteSpecInitProviderSpecGrpcRouteAction {
+  /**
+   * Targets that traffic is routed to when a request matches the route. You can specify one or more targets and their relative weights with which to distribute traffic.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteAction#weightedTarget
+   */
+  readonly weightedTarget?: RouteSpecInitProviderSpecGrpcRouteActionWeightedTarget[];
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecGrpcRouteAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecGrpcRouteAction(obj: RouteSpecInitProviderSpecGrpcRouteAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'weightedTarget': obj.weightedTarget?.map(y => toJson_RouteSpecInitProviderSpecGrpcRouteActionWeightedTarget(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecGrpcRouteMatch
+ */
+export interface RouteSpecInitProviderSpecGrpcRouteMatch {
+  /**
+   * Data to match from the gRPC request.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteMatch#metadata
+   */
+  readonly metadata?: RouteSpecInitProviderSpecGrpcRouteMatchMetadata[];
+
+  /**
+   * Method name to match from the request. If you specify a name, you must also specify a service_name.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteMatch#methodName
+   */
+  readonly methodName?: string;
+
+  /**
+   * The port number to match from the request.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteMatch#port
+   */
+  readonly port?: number;
+
+  /**
+   * Value sent by the client must begin with the specified characters. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteMatch#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Fully qualified domain name for the service to match from the request.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteMatch#serviceName
+   */
+  readonly serviceName?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecGrpcRouteMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecGrpcRouteMatch(obj: RouteSpecInitProviderSpecGrpcRouteMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metadata': obj.metadata?.map(y => toJson_RouteSpecInitProviderSpecGrpcRouteMatchMetadata(y)),
+    'methodName': obj.methodName,
+    'port': obj.port,
+    'prefix': obj.prefix,
+    'serviceName': obj.serviceName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecGrpcRouteRetryPolicy
+ */
+export interface RouteSpecInitProviderSpecGrpcRouteRetryPolicy {
+  /**
+   * List of gRPC retry events. Valid values: cancelled, deadline-exceeded, internal, resource-exhausted, unavailable.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteRetryPolicy#grpcRetryEvents
+   */
+  readonly grpcRetryEvents?: string[];
+
+  /**
+   * List of HTTP retry events. Valid values: client-error (HTTP status code 409), gateway-error (HTTP status codes 502, 503, and 504), server-error (HTTP status codes 500, 501, 502, 503, 504, 505, 506, 507, 508, 510, and 511), stream-error (retry on refused stream).
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteRetryPolicy#httpRetryEvents
+   */
+  readonly httpRetryEvents?: string[];
+
+  /**
+   * Maximum number of retries.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteRetryPolicy#maxRetries
+   */
+  readonly maxRetries?: number;
+
+  /**
+   * Per-retry timeout.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteRetryPolicy#perRetryTimeout
+   */
+  readonly perRetryTimeout?: RouteSpecInitProviderSpecGrpcRouteRetryPolicyPerRetryTimeout[];
+
+  /**
+   * List of TCP retry events. The only valid value is connection-error.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteRetryPolicy#tcpRetryEvents
+   */
+  readonly tcpRetryEvents?: string[];
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecGrpcRouteRetryPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecGrpcRouteRetryPolicy(obj: RouteSpecInitProviderSpecGrpcRouteRetryPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'grpcRetryEvents': obj.grpcRetryEvents?.map(y => y),
+    'httpRetryEvents': obj.httpRetryEvents?.map(y => y),
+    'maxRetries': obj.maxRetries,
+    'perRetryTimeout': obj.perRetryTimeout?.map(y => toJson_RouteSpecInitProviderSpecGrpcRouteRetryPolicyPerRetryTimeout(y)),
+    'tcpRetryEvents': obj.tcpRetryEvents?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecGrpcRouteTimeout
+ */
+export interface RouteSpecInitProviderSpecGrpcRouteTimeout {
+  /**
+   * Idle timeout. An idle timeout bounds the amount of time that a connection may be idle.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteTimeout#idle
+   */
+  readonly idle?: RouteSpecInitProviderSpecGrpcRouteTimeoutIdle[];
+
+  /**
+   * Per request timeout.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteTimeout#perRequest
+   */
+  readonly perRequest?: RouteSpecInitProviderSpecGrpcRouteTimeoutPerRequest[];
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecGrpcRouteTimeout' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecGrpcRouteTimeout(obj: RouteSpecInitProviderSpecGrpcRouteTimeout | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'idle': obj.idle?.map(y => toJson_RouteSpecInitProviderSpecGrpcRouteTimeoutIdle(y)),
+    'perRequest': obj.perRequest?.map(y => toJson_RouteSpecInitProviderSpecGrpcRouteTimeoutPerRequest(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttp2RouteAction
+ */
+export interface RouteSpecInitProviderSpecHttp2RouteAction {
+  /**
+   * Targets that traffic is routed to when a request matches the route. You can specify one or more targets and their relative weights with which to distribute traffic.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteAction#weightedTarget
+   */
+  readonly weightedTarget?: RouteSpecInitProviderSpecHttp2RouteActionWeightedTarget[];
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttp2RouteAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttp2RouteAction(obj: RouteSpecInitProviderSpecHttp2RouteAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'weightedTarget': obj.weightedTarget?.map(y => toJson_RouteSpecInitProviderSpecHttp2RouteActionWeightedTarget(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttp2RouteMatch
+ */
+export interface RouteSpecInitProviderSpecHttp2RouteMatch {
+  /**
+   * Client request headers to match on.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatch#header
+   */
+  readonly header?: RouteSpecInitProviderSpecHttp2RouteMatchHeader[];
+
+  /**
+   * Client request header method to match on. Valid values: GET, HEAD, POST, PUT, DELETE, CONNECT, OPTIONS, TRACE, PATCH.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatch#method
+   */
+  readonly method?: string;
+
+  /**
+   * Client request path to match on.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatch#path
+   */
+  readonly path?: RouteSpecInitProviderSpecHttp2RouteMatchPath[];
+
+  /**
+   * The port number to match from the request.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatch#port
+   */
+  readonly port?: number;
+
+  /**
+   * Value sent by the client must begin with the specified characters. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatch#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Client request query parameters to match on.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatch#queryParameter
+   */
+  readonly queryParameter?: RouteSpecInitProviderSpecHttp2RouteMatchQueryParameter[];
+
+  /**
+   * Client request header scheme to match on. Valid values: http, https.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatch#scheme
+   */
+  readonly scheme?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttp2RouteMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttp2RouteMatch(obj: RouteSpecInitProviderSpecHttp2RouteMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'header': obj.header?.map(y => toJson_RouteSpecInitProviderSpecHttp2RouteMatchHeader(y)),
+    'method': obj.method,
+    'path': obj.path?.map(y => toJson_RouteSpecInitProviderSpecHttp2RouteMatchPath(y)),
+    'port': obj.port,
+    'prefix': obj.prefix,
+    'queryParameter': obj.queryParameter?.map(y => toJson_RouteSpecInitProviderSpecHttp2RouteMatchQueryParameter(y)),
+    'scheme': obj.scheme,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttp2RouteRetryPolicy
+ */
+export interface RouteSpecInitProviderSpecHttp2RouteRetryPolicy {
+  /**
+   * List of HTTP retry events. Valid values: client-error (HTTP status code 409), gateway-error (HTTP status codes 502, 503, and 504), server-error (HTTP status codes 500, 501, 502, 503, 504, 505, 506, 507, 508, 510, and 511), stream-error (retry on refused stream).
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteRetryPolicy#httpRetryEvents
+   */
+  readonly httpRetryEvents?: string[];
+
+  /**
+   * Maximum number of retries.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteRetryPolicy#maxRetries
+   */
+  readonly maxRetries?: number;
+
+  /**
+   * Per-retry timeout.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteRetryPolicy#perRetryTimeout
+   */
+  readonly perRetryTimeout?: RouteSpecInitProviderSpecHttp2RouteRetryPolicyPerRetryTimeout[];
+
+  /**
+   * List of TCP retry events. The only valid value is connection-error.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteRetryPolicy#tcpRetryEvents
+   */
+  readonly tcpRetryEvents?: string[];
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttp2RouteRetryPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttp2RouteRetryPolicy(obj: RouteSpecInitProviderSpecHttp2RouteRetryPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'httpRetryEvents': obj.httpRetryEvents?.map(y => y),
+    'maxRetries': obj.maxRetries,
+    'perRetryTimeout': obj.perRetryTimeout?.map(y => toJson_RouteSpecInitProviderSpecHttp2RouteRetryPolicyPerRetryTimeout(y)),
+    'tcpRetryEvents': obj.tcpRetryEvents?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttp2RouteTimeout
+ */
+export interface RouteSpecInitProviderSpecHttp2RouteTimeout {
+  /**
+   * Idle timeout. An idle timeout bounds the amount of time that a connection may be idle.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteTimeout#idle
+   */
+  readonly idle?: RouteSpecInitProviderSpecHttp2RouteTimeoutIdle[];
+
+  /**
+   * Per request timeout.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteTimeout#perRequest
+   */
+  readonly perRequest?: RouteSpecInitProviderSpecHttp2RouteTimeoutPerRequest[];
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttp2RouteTimeout' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttp2RouteTimeout(obj: RouteSpecInitProviderSpecHttp2RouteTimeout | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'idle': obj.idle?.map(y => toJson_RouteSpecInitProviderSpecHttp2RouteTimeoutIdle(y)),
+    'perRequest': obj.perRequest?.map(y => toJson_RouteSpecInitProviderSpecHttp2RouteTimeoutPerRequest(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttpRouteAction
+ */
+export interface RouteSpecInitProviderSpecHttpRouteAction {
+  /**
+   * Targets that traffic is routed to when a request matches the route. You can specify one or more targets and their relative weights with which to distribute traffic.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteAction#weightedTarget
+   */
+  readonly weightedTarget?: RouteSpecInitProviderSpecHttpRouteActionWeightedTarget[];
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttpRouteAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttpRouteAction(obj: RouteSpecInitProviderSpecHttpRouteAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'weightedTarget': obj.weightedTarget?.map(y => toJson_RouteSpecInitProviderSpecHttpRouteActionWeightedTarget(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttpRouteMatch
+ */
+export interface RouteSpecInitProviderSpecHttpRouteMatch {
+  /**
+   * Client request headers to match on.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatch#header
+   */
+  readonly header?: RouteSpecInitProviderSpecHttpRouteMatchHeader[];
+
+  /**
+   * Client request header method to match on. Valid values: GET, HEAD, POST, PUT, DELETE, CONNECT, OPTIONS, TRACE, PATCH.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatch#method
+   */
+  readonly method?: string;
+
+  /**
+   * Client request path to match on.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatch#path
+   */
+  readonly path?: RouteSpecInitProviderSpecHttpRouteMatchPath[];
+
+  /**
+   * The port number to match from the request.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatch#port
+   */
+  readonly port?: number;
+
+  /**
+   * Value sent by the client must begin with the specified characters. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatch#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Client request query parameters to match on.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatch#queryParameter
+   */
+  readonly queryParameter?: RouteSpecInitProviderSpecHttpRouteMatchQueryParameter[];
+
+  /**
+   * Client request header scheme to match on. Valid values: http, https.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatch#scheme
+   */
+  readonly scheme?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttpRouteMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttpRouteMatch(obj: RouteSpecInitProviderSpecHttpRouteMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'header': obj.header?.map(y => toJson_RouteSpecInitProviderSpecHttpRouteMatchHeader(y)),
+    'method': obj.method,
+    'path': obj.path?.map(y => toJson_RouteSpecInitProviderSpecHttpRouteMatchPath(y)),
+    'port': obj.port,
+    'prefix': obj.prefix,
+    'queryParameter': obj.queryParameter?.map(y => toJson_RouteSpecInitProviderSpecHttpRouteMatchQueryParameter(y)),
+    'scheme': obj.scheme,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttpRouteRetryPolicy
+ */
+export interface RouteSpecInitProviderSpecHttpRouteRetryPolicy {
+  /**
+   * List of HTTP retry events. Valid values: client-error (HTTP status code 409), gateway-error (HTTP status codes 502, 503, and 504), server-error (HTTP status codes 500, 501, 502, 503, 504, 505, 506, 507, 508, 510, and 511), stream-error (retry on refused stream).
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteRetryPolicy#httpRetryEvents
+   */
+  readonly httpRetryEvents?: string[];
+
+  /**
+   * Maximum number of retries.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteRetryPolicy#maxRetries
+   */
+  readonly maxRetries?: number;
+
+  /**
+   * Per-retry timeout.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteRetryPolicy#perRetryTimeout
+   */
+  readonly perRetryTimeout?: RouteSpecInitProviderSpecHttpRouteRetryPolicyPerRetryTimeout[];
+
+  /**
+   * List of TCP retry events. The only valid value is connection-error.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteRetryPolicy#tcpRetryEvents
+   */
+  readonly tcpRetryEvents?: string[];
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttpRouteRetryPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttpRouteRetryPolicy(obj: RouteSpecInitProviderSpecHttpRouteRetryPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'httpRetryEvents': obj.httpRetryEvents?.map(y => y),
+    'maxRetries': obj.maxRetries,
+    'perRetryTimeout': obj.perRetryTimeout?.map(y => toJson_RouteSpecInitProviderSpecHttpRouteRetryPolicyPerRetryTimeout(y)),
+    'tcpRetryEvents': obj.tcpRetryEvents?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttpRouteTimeout
+ */
+export interface RouteSpecInitProviderSpecHttpRouteTimeout {
+  /**
+   * Idle timeout. An idle timeout bounds the amount of time that a connection may be idle.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteTimeout#idle
+   */
+  readonly idle?: RouteSpecInitProviderSpecHttpRouteTimeoutIdle[];
+
+  /**
+   * Per request timeout.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteTimeout#perRequest
+   */
+  readonly perRequest?: RouteSpecInitProviderSpecHttpRouteTimeoutPerRequest[];
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttpRouteTimeout' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttpRouteTimeout(obj: RouteSpecInitProviderSpecHttpRouteTimeout | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'idle': obj.idle?.map(y => toJson_RouteSpecInitProviderSpecHttpRouteTimeoutIdle(y)),
+    'perRequest': obj.perRequest?.map(y => toJson_RouteSpecInitProviderSpecHttpRouteTimeoutPerRequest(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecTcpRouteAction
+ */
+export interface RouteSpecInitProviderSpecTcpRouteAction {
+  /**
+   * Targets that traffic is routed to when a request matches the route. You can specify one or more targets and their relative weights with which to distribute traffic.
+   *
+   * @schema RouteSpecInitProviderSpecTcpRouteAction#weightedTarget
+   */
+  readonly weightedTarget?: RouteSpecInitProviderSpecTcpRouteActionWeightedTarget[];
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecTcpRouteAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecTcpRouteAction(obj: RouteSpecInitProviderSpecTcpRouteAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'weightedTarget': obj.weightedTarget?.map(y => toJson_RouteSpecInitProviderSpecTcpRouteActionWeightedTarget(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecTcpRouteMatch
+ */
+export interface RouteSpecInitProviderSpecTcpRouteMatch {
+  /**
+   * The port number to match from the request.
+   *
+   * @schema RouteSpecInitProviderSpecTcpRouteMatch#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecTcpRouteMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecTcpRouteMatch(obj: RouteSpecInitProviderSpecTcpRouteMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecTcpRouteTimeout
+ */
+export interface RouteSpecInitProviderSpecTcpRouteTimeout {
+  /**
+   * Idle timeout. An idle timeout bounds the amount of time that a connection may be idle.
+   *
+   * @schema RouteSpecInitProviderSpecTcpRouteTimeout#idle
+   */
+  readonly idle?: RouteSpecInitProviderSpecTcpRouteTimeoutIdle[];
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecTcpRouteTimeout' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecTcpRouteTimeout(obj: RouteSpecInitProviderSpecTcpRouteTimeout | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'idle': obj.idle?.map(y => toJson_RouteSpecInitProviderSpecTcpRouteTimeoutIdle(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema RouteSpecPublishConnectionDetailsToConfigRefPolicyResolution
@@ -5217,14 +7355,14 @@ export interface RouteSpecForProviderSpecGrpcRouteActionWeightedTarget {
    *
    * @schema RouteSpecForProviderSpecGrpcRouteActionWeightedTarget#virtualNode
    */
-  readonly virtualNode: string;
+  readonly virtualNode?: string;
 
   /**
    * Relative weight of the weighted target. An integer between 0 and 100.
    *
    * @schema RouteSpecForProviderSpecGrpcRouteActionWeightedTarget#weight
    */
-  readonly weight: number;
+  readonly weight?: number;
 
 }
 
@@ -5268,7 +7406,7 @@ export interface RouteSpecForProviderSpecGrpcRouteMatchMetadata {
    *
    * @schema RouteSpecForProviderSpecGrpcRouteMatchMetadata#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -5297,14 +7435,14 @@ export interface RouteSpecForProviderSpecGrpcRouteRetryPolicyPerRetryTimeout {
    *
    * @schema RouteSpecForProviderSpecGrpcRouteRetryPolicyPerRetryTimeout#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * Number of time units. Minimum value of 0.
    *
    * @schema RouteSpecForProviderSpecGrpcRouteRetryPolicyPerRetryTimeout#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -5332,14 +7470,14 @@ export interface RouteSpecForProviderSpecGrpcRouteTimeoutIdle {
    *
    * @schema RouteSpecForProviderSpecGrpcRouteTimeoutIdle#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * Number of time units. Minimum value of 0.
    *
    * @schema RouteSpecForProviderSpecGrpcRouteTimeoutIdle#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -5367,14 +7505,14 @@ export interface RouteSpecForProviderSpecGrpcRouteTimeoutPerRequest {
    *
    * @schema RouteSpecForProviderSpecGrpcRouteTimeoutPerRequest#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * Number of time units. Minimum value of 0.
    *
    * @schema RouteSpecForProviderSpecGrpcRouteTimeoutPerRequest#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -5409,14 +7547,14 @@ export interface RouteSpecForProviderSpecHttp2RouteActionWeightedTarget {
    *
    * @schema RouteSpecForProviderSpecHttp2RouteActionWeightedTarget#virtualNode
    */
-  readonly virtualNode: string;
+  readonly virtualNode?: string;
 
   /**
    * Relative weight of the weighted target. An integer between 0 and 100.
    *
    * @schema RouteSpecForProviderSpecHttp2RouteActionWeightedTarget#weight
    */
-  readonly weight: number;
+  readonly weight?: number;
 
 }
 
@@ -5460,7 +7598,7 @@ export interface RouteSpecForProviderSpecHttp2RouteMatchHeader {
    *
    * @schema RouteSpecForProviderSpecHttp2RouteMatchHeader#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -5531,7 +7669,7 @@ export interface RouteSpecForProviderSpecHttp2RouteMatchQueryParameter {
    *
    * @schema RouteSpecForProviderSpecHttp2RouteMatchQueryParameter#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -5559,14 +7697,14 @@ export interface RouteSpecForProviderSpecHttp2RouteRetryPolicyPerRetryTimeout {
    *
    * @schema RouteSpecForProviderSpecHttp2RouteRetryPolicyPerRetryTimeout#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * Number of time units. Minimum value of 0.
    *
    * @schema RouteSpecForProviderSpecHttp2RouteRetryPolicyPerRetryTimeout#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -5594,14 +7732,14 @@ export interface RouteSpecForProviderSpecHttp2RouteTimeoutIdle {
    *
    * @schema RouteSpecForProviderSpecHttp2RouteTimeoutIdle#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * Number of time units. Minimum value of 0.
    *
    * @schema RouteSpecForProviderSpecHttp2RouteTimeoutIdle#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -5629,14 +7767,14 @@ export interface RouteSpecForProviderSpecHttp2RouteTimeoutPerRequest {
    *
    * @schema RouteSpecForProviderSpecHttp2RouteTimeoutPerRequest#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * Number of time units. Minimum value of 0.
    *
    * @schema RouteSpecForProviderSpecHttp2RouteTimeoutPerRequest#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -5692,7 +7830,7 @@ export interface RouteSpecForProviderSpecHttpRouteActionWeightedTarget {
    *
    * @schema RouteSpecForProviderSpecHttpRouteActionWeightedTarget#weight
    */
-  readonly weight: number;
+  readonly weight?: number;
 
 }
 
@@ -5738,7 +7876,7 @@ export interface RouteSpecForProviderSpecHttpRouteMatchHeader {
    *
    * @schema RouteSpecForProviderSpecHttpRouteMatchHeader#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -5809,7 +7947,7 @@ export interface RouteSpecForProviderSpecHttpRouteMatchQueryParameter {
    *
    * @schema RouteSpecForProviderSpecHttpRouteMatchQueryParameter#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -5837,14 +7975,14 @@ export interface RouteSpecForProviderSpecHttpRouteRetryPolicyPerRetryTimeout {
    *
    * @schema RouteSpecForProviderSpecHttpRouteRetryPolicyPerRetryTimeout#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * Number of time units. Minimum value of 0.
    *
    * @schema RouteSpecForProviderSpecHttpRouteRetryPolicyPerRetryTimeout#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -5872,14 +8010,14 @@ export interface RouteSpecForProviderSpecHttpRouteTimeoutIdle {
    *
    * @schema RouteSpecForProviderSpecHttpRouteTimeoutIdle#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * Number of time units. Minimum value of 0.
    *
    * @schema RouteSpecForProviderSpecHttpRouteTimeoutIdle#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -5907,14 +8045,14 @@ export interface RouteSpecForProviderSpecHttpRouteTimeoutPerRequest {
    *
    * @schema RouteSpecForProviderSpecHttpRouteTimeoutPerRequest#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * Number of time units. Minimum value of 0.
    *
    * @schema RouteSpecForProviderSpecHttpRouteTimeoutPerRequest#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -5970,7 +8108,7 @@ export interface RouteSpecForProviderSpecTcpRouteActionWeightedTarget {
    *
    * @schema RouteSpecForProviderSpecTcpRouteActionWeightedTarget#weight
    */
-  readonly weight: number;
+  readonly weight?: number;
 
 }
 
@@ -6001,14 +8139,14 @@ export interface RouteSpecForProviderSpecTcpRouteTimeoutIdle {
    *
    * @schema RouteSpecForProviderSpecTcpRouteTimeoutIdle#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * Number of time units. Minimum value of 0.
    *
    * @schema RouteSpecForProviderSpecTcpRouteTimeoutIdle#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -6017,6 +8155,784 @@ export interface RouteSpecForProviderSpecTcpRouteTimeoutIdle {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_RouteSpecForProviderSpecTcpRouteTimeoutIdle(obj: RouteSpecForProviderSpecTcpRouteTimeoutIdle | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecGrpcRouteActionWeightedTarget
+ */
+export interface RouteSpecInitProviderSpecGrpcRouteActionWeightedTarget {
+  /**
+   * The port number to match from the request.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteActionWeightedTarget#port
+   */
+  readonly port?: number;
+
+  /**
+   * Virtual node to associate with the weighted target. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteActionWeightedTarget#virtualNode
+   */
+  readonly virtualNode?: string;
+
+  /**
+   * Relative weight of the weighted target. An integer between 0 and 100.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteActionWeightedTarget#weight
+   */
+  readonly weight?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecGrpcRouteActionWeightedTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecGrpcRouteActionWeightedTarget(obj: RouteSpecInitProviderSpecGrpcRouteActionWeightedTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'virtualNode': obj.virtualNode,
+    'weight': obj.weight,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecGrpcRouteMatchMetadata
+ */
+export interface RouteSpecInitProviderSpecGrpcRouteMatchMetadata {
+  /**
+   * If true, the match is on the opposite of the match criteria. Default is false.
+   *
+   * @default false.
+   * @schema RouteSpecInitProviderSpecGrpcRouteMatchMetadata#invert
+   */
+  readonly invert?: boolean;
+
+  /**
+   * Criteria for determining an gRPC request match.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteMatchMetadata#match
+   */
+  readonly match?: RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatch[];
+
+  /**
+   * Name to use for the route. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteMatchMetadata#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecGrpcRouteMatchMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecGrpcRouteMatchMetadata(obj: RouteSpecInitProviderSpecGrpcRouteMatchMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'invert': obj.invert,
+    'match': obj.match?.map(y => toJson_RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatch(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecGrpcRouteRetryPolicyPerRetryTimeout
+ */
+export interface RouteSpecInitProviderSpecGrpcRouteRetryPolicyPerRetryTimeout {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteRetryPolicyPerRetryTimeout#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * Number of time units. Minimum value of 0.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteRetryPolicyPerRetryTimeout#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecGrpcRouteRetryPolicyPerRetryTimeout' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecGrpcRouteRetryPolicyPerRetryTimeout(obj: RouteSpecInitProviderSpecGrpcRouteRetryPolicyPerRetryTimeout | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecGrpcRouteTimeoutIdle
+ */
+export interface RouteSpecInitProviderSpecGrpcRouteTimeoutIdle {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteTimeoutIdle#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * Number of time units. Minimum value of 0.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteTimeoutIdle#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecGrpcRouteTimeoutIdle' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecGrpcRouteTimeoutIdle(obj: RouteSpecInitProviderSpecGrpcRouteTimeoutIdle | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecGrpcRouteTimeoutPerRequest
+ */
+export interface RouteSpecInitProviderSpecGrpcRouteTimeoutPerRequest {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteTimeoutPerRequest#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * Number of time units. Minimum value of 0.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteTimeoutPerRequest#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecGrpcRouteTimeoutPerRequest' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecGrpcRouteTimeoutPerRequest(obj: RouteSpecInitProviderSpecGrpcRouteTimeoutPerRequest | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttp2RouteActionWeightedTarget
+ */
+export interface RouteSpecInitProviderSpecHttp2RouteActionWeightedTarget {
+  /**
+   * The port number to match from the request.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteActionWeightedTarget#port
+   */
+  readonly port?: number;
+
+  /**
+   * Virtual node to associate with the weighted target. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteActionWeightedTarget#virtualNode
+   */
+  readonly virtualNode?: string;
+
+  /**
+   * Relative weight of the weighted target. An integer between 0 and 100.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteActionWeightedTarget#weight
+   */
+  readonly weight?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttp2RouteActionWeightedTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttp2RouteActionWeightedTarget(obj: RouteSpecInitProviderSpecHttp2RouteActionWeightedTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'virtualNode': obj.virtualNode,
+    'weight': obj.weight,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttp2RouteMatchHeader
+ */
+export interface RouteSpecInitProviderSpecHttp2RouteMatchHeader {
+  /**
+   * If true, the match is on the opposite of the match criteria. Default is false.
+   *
+   * @default false.
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatchHeader#invert
+   */
+  readonly invert?: boolean;
+
+  /**
+   * Criteria for determining an gRPC request match.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatchHeader#match
+   */
+  readonly match?: RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch[];
+
+  /**
+   * Name to use for the route. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatchHeader#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttp2RouteMatchHeader' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttp2RouteMatchHeader(obj: RouteSpecInitProviderSpecHttp2RouteMatchHeader | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'invert': obj.invert,
+    'match': obj.match?.map(y => toJson_RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttp2RouteMatchPath
+ */
+export interface RouteSpecInitProviderSpecHttp2RouteMatchPath {
+  /**
+   * Value sent by the client must match the specified value exactly. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatchPath#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Value sent by the client must include the specified characters. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatchPath#regex
+   */
+  readonly regex?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttp2RouteMatchPath' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttp2RouteMatchPath(obj: RouteSpecInitProviderSpecHttp2RouteMatchPath | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'regex': obj.regex,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttp2RouteMatchQueryParameter
+ */
+export interface RouteSpecInitProviderSpecHttp2RouteMatchQueryParameter {
+  /**
+   * Criteria for determining an gRPC request match.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatchQueryParameter#match
+   */
+  readonly match?: RouteSpecInitProviderSpecHttp2RouteMatchQueryParameterMatch[];
+
+  /**
+   * Name to use for the route. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatchQueryParameter#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttp2RouteMatchQueryParameter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttp2RouteMatchQueryParameter(obj: RouteSpecInitProviderSpecHttp2RouteMatchQueryParameter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'match': obj.match?.map(y => toJson_RouteSpecInitProviderSpecHttp2RouteMatchQueryParameterMatch(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttp2RouteRetryPolicyPerRetryTimeout
+ */
+export interface RouteSpecInitProviderSpecHttp2RouteRetryPolicyPerRetryTimeout {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteRetryPolicyPerRetryTimeout#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * Number of time units. Minimum value of 0.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteRetryPolicyPerRetryTimeout#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttp2RouteRetryPolicyPerRetryTimeout' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttp2RouteRetryPolicyPerRetryTimeout(obj: RouteSpecInitProviderSpecHttp2RouteRetryPolicyPerRetryTimeout | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttp2RouteTimeoutIdle
+ */
+export interface RouteSpecInitProviderSpecHttp2RouteTimeoutIdle {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteTimeoutIdle#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * Number of time units. Minimum value of 0.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteTimeoutIdle#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttp2RouteTimeoutIdle' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttp2RouteTimeoutIdle(obj: RouteSpecInitProviderSpecHttp2RouteTimeoutIdle | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttp2RouteTimeoutPerRequest
+ */
+export interface RouteSpecInitProviderSpecHttp2RouteTimeoutPerRequest {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteTimeoutPerRequest#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * Number of time units. Minimum value of 0.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteTimeoutPerRequest#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttp2RouteTimeoutPerRequest' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttp2RouteTimeoutPerRequest(obj: RouteSpecInitProviderSpecHttp2RouteTimeoutPerRequest | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttpRouteActionWeightedTarget
+ */
+export interface RouteSpecInitProviderSpecHttpRouteActionWeightedTarget {
+  /**
+   * The port number to match from the request.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteActionWeightedTarget#port
+   */
+  readonly port?: number;
+
+  /**
+   * Relative weight of the weighted target. An integer between 0 and 100.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteActionWeightedTarget#weight
+   */
+  readonly weight?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttpRouteActionWeightedTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttpRouteActionWeightedTarget(obj: RouteSpecInitProviderSpecHttpRouteActionWeightedTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'weight': obj.weight,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttpRouteMatchHeader
+ */
+export interface RouteSpecInitProviderSpecHttpRouteMatchHeader {
+  /**
+   * If true, the match is on the opposite of the match criteria. Default is false.
+   *
+   * @default false.
+   * @schema RouteSpecInitProviderSpecHttpRouteMatchHeader#invert
+   */
+  readonly invert?: boolean;
+
+  /**
+   * Criteria for determining an gRPC request match.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatchHeader#match
+   */
+  readonly match?: RouteSpecInitProviderSpecHttpRouteMatchHeaderMatch[];
+
+  /**
+   * Name to use for the route. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatchHeader#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttpRouteMatchHeader' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttpRouteMatchHeader(obj: RouteSpecInitProviderSpecHttpRouteMatchHeader | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'invert': obj.invert,
+    'match': obj.match?.map(y => toJson_RouteSpecInitProviderSpecHttpRouteMatchHeaderMatch(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttpRouteMatchPath
+ */
+export interface RouteSpecInitProviderSpecHttpRouteMatchPath {
+  /**
+   * Value sent by the client must match the specified value exactly. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatchPath#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Value sent by the client must include the specified characters. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatchPath#regex
+   */
+  readonly regex?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttpRouteMatchPath' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttpRouteMatchPath(obj: RouteSpecInitProviderSpecHttpRouteMatchPath | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'regex': obj.regex,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttpRouteMatchQueryParameter
+ */
+export interface RouteSpecInitProviderSpecHttpRouteMatchQueryParameter {
+  /**
+   * Criteria for determining an gRPC request match.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatchQueryParameter#match
+   */
+  readonly match?: RouteSpecInitProviderSpecHttpRouteMatchQueryParameterMatch[];
+
+  /**
+   * Name to use for the route. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatchQueryParameter#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttpRouteMatchQueryParameter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttpRouteMatchQueryParameter(obj: RouteSpecInitProviderSpecHttpRouteMatchQueryParameter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'match': obj.match?.map(y => toJson_RouteSpecInitProviderSpecHttpRouteMatchQueryParameterMatch(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttpRouteRetryPolicyPerRetryTimeout
+ */
+export interface RouteSpecInitProviderSpecHttpRouteRetryPolicyPerRetryTimeout {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteRetryPolicyPerRetryTimeout#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * Number of time units. Minimum value of 0.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteRetryPolicyPerRetryTimeout#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttpRouteRetryPolicyPerRetryTimeout' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttpRouteRetryPolicyPerRetryTimeout(obj: RouteSpecInitProviderSpecHttpRouteRetryPolicyPerRetryTimeout | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttpRouteTimeoutIdle
+ */
+export interface RouteSpecInitProviderSpecHttpRouteTimeoutIdle {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteTimeoutIdle#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * Number of time units. Minimum value of 0.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteTimeoutIdle#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttpRouteTimeoutIdle' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttpRouteTimeoutIdle(obj: RouteSpecInitProviderSpecHttpRouteTimeoutIdle | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttpRouteTimeoutPerRequest
+ */
+export interface RouteSpecInitProviderSpecHttpRouteTimeoutPerRequest {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteTimeoutPerRequest#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * Number of time units. Minimum value of 0.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteTimeoutPerRequest#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttpRouteTimeoutPerRequest' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttpRouteTimeoutPerRequest(obj: RouteSpecInitProviderSpecHttpRouteTimeoutPerRequest | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecTcpRouteActionWeightedTarget
+ */
+export interface RouteSpecInitProviderSpecTcpRouteActionWeightedTarget {
+  /**
+   * The port number to match from the request.
+   *
+   * @schema RouteSpecInitProviderSpecTcpRouteActionWeightedTarget#port
+   */
+  readonly port?: number;
+
+  /**
+   * Relative weight of the weighted target. An integer between 0 and 100.
+   *
+   * @schema RouteSpecInitProviderSpecTcpRouteActionWeightedTarget#weight
+   */
+  readonly weight?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecTcpRouteActionWeightedTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecTcpRouteActionWeightedTarget(obj: RouteSpecInitProviderSpecTcpRouteActionWeightedTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'weight': obj.weight,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecTcpRouteTimeoutIdle
+ */
+export interface RouteSpecInitProviderSpecTcpRouteTimeoutIdle {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema RouteSpecInitProviderSpecTcpRouteTimeoutIdle#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * Number of time units. Minimum value of 0.
+   *
+   * @schema RouteSpecInitProviderSpecTcpRouteTimeoutIdle#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecTcpRouteTimeoutIdle' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecTcpRouteTimeoutIdle(obj: RouteSpecInitProviderSpecTcpRouteTimeoutIdle | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'unit': obj.unit,
@@ -6423,6 +9339,237 @@ export function toJson_RouteSpecForProviderSpecTcpRouteActionWeightedTargetVirtu
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatch
+ */
+export interface RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatch {
+  /**
+   * Value sent by the client must match the specified value exactly. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatch#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Value sent by the client must begin with the specified characters. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatch#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Object that specifies the range of numbers that the value sent by the client must be included in.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatch#range
+   */
+  readonly range?: RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatchRange[];
+
+  /**
+   * Value sent by the client must include the specified characters. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatch#regex
+   */
+  readonly regex?: string;
+
+  /**
+   * Value sent by the client must end with the specified characters. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatch#suffix
+   */
+  readonly suffix?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatch(obj: RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'prefix': obj.prefix,
+    'range': obj.range?.map(y => toJson_RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatchRange(y)),
+    'regex': obj.regex,
+    'suffix': obj.suffix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch
+ */
+export interface RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch {
+  /**
+   * Value sent by the client must match the specified value exactly. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Value sent by the client must begin with the specified characters. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Object that specifies the range of numbers that the value sent by the client must be included in.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch#range
+   */
+  readonly range?: RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange[];
+
+  /**
+   * Value sent by the client must include the specified characters. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch#regex
+   */
+  readonly regex?: string;
+
+  /**
+   * Value sent by the client must end with the specified characters. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch#suffix
+   */
+  readonly suffix?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch(obj: RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'prefix': obj.prefix,
+    'range': obj.range?.map(y => toJson_RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange(y)),
+    'regex': obj.regex,
+    'suffix': obj.suffix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttp2RouteMatchQueryParameterMatch
+ */
+export interface RouteSpecInitProviderSpecHttp2RouteMatchQueryParameterMatch {
+  /**
+   * Value sent by the client must match the specified value exactly. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatchQueryParameterMatch#exact
+   */
+  readonly exact?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttp2RouteMatchQueryParameterMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttp2RouteMatchQueryParameterMatch(obj: RouteSpecInitProviderSpecHttp2RouteMatchQueryParameterMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttpRouteMatchHeaderMatch
+ */
+export interface RouteSpecInitProviderSpecHttpRouteMatchHeaderMatch {
+  /**
+   * Value sent by the client must match the specified value exactly. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatchHeaderMatch#exact
+   */
+  readonly exact?: string;
+
+  /**
+   * Value sent by the client must begin with the specified characters. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatchHeaderMatch#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Object that specifies the range of numbers that the value sent by the client must be included in.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatchHeaderMatch#range
+   */
+  readonly range?: RouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange[];
+
+  /**
+   * Value sent by the client must include the specified characters. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatchHeaderMatch#regex
+   */
+  readonly regex?: string;
+
+  /**
+   * Value sent by the client must end with the specified characters. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatchHeaderMatch#suffix
+   */
+  readonly suffix?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttpRouteMatchHeaderMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttpRouteMatchHeaderMatch(obj: RouteSpecInitProviderSpecHttpRouteMatchHeaderMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+    'prefix': obj.prefix,
+    'range': obj.range?.map(y => toJson_RouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange(y)),
+    'regex': obj.regex,
+    'suffix': obj.suffix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttpRouteMatchQueryParameterMatch
+ */
+export interface RouteSpecInitProviderSpecHttpRouteMatchQueryParameterMatch {
+  /**
+   * Value sent by the client must match the specified value exactly. Must be between 1 and 255 characters in length.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatchQueryParameterMatch#exact
+   */
+  readonly exact?: string;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttpRouteMatchQueryParameterMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttpRouteMatchQueryParameterMatch(obj: RouteSpecInitProviderSpecHttpRouteMatchQueryParameterMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema RouteSpecForProviderSpecGrpcRouteMatchMetadataMatchRange
  */
 export interface RouteSpecForProviderSpecGrpcRouteMatchMetadataMatchRange {
@@ -6431,14 +9578,14 @@ export interface RouteSpecForProviderSpecGrpcRouteMatchMetadataMatchRange {
    *
    * @schema RouteSpecForProviderSpecGrpcRouteMatchMetadataMatchRange#end
    */
-  readonly end: number;
+  readonly end?: number;
 
   /**
    * (Requited) Start of the range.
    *
    * @schema RouteSpecForProviderSpecGrpcRouteMatchMetadataMatchRange#start
    */
-  readonly start: number;
+  readonly start?: number;
 
 }
 
@@ -6466,14 +9613,14 @@ export interface RouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange {
    *
    * @schema RouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange#end
    */
-  readonly end: number;
+  readonly end?: number;
 
   /**
    * (Requited) Start of the range.
    *
    * @schema RouteSpecForProviderSpecHttp2RouteMatchHeaderMatchRange#start
    */
-  readonly start: number;
+  readonly start?: number;
 
 }
 
@@ -6575,14 +9722,14 @@ export interface RouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange {
    *
    * @schema RouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange#end
    */
-  readonly end: number;
+  readonly end?: number;
 
   /**
    * (Requited) Start of the range.
    *
    * @schema RouteSpecForProviderSpecHttpRouteMatchHeaderMatchRange#start
    */
-  readonly start: number;
+  readonly start?: number;
 
 }
 
@@ -6669,6 +9816,111 @@ export function toJson_RouteSpecForProviderSpecTcpRouteActionWeightedTargetVirtu
   const result = {
     'resolution': obj.resolution,
     'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatchRange
+ */
+export interface RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatchRange {
+  /**
+   * End of the range.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatchRange#end
+   */
+  readonly end?: number;
+
+  /**
+   * (Requited) Start of the range.
+   *
+   * @schema RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatchRange#start
+   */
+  readonly start?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatchRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatchRange(obj: RouteSpecInitProviderSpecGrpcRouteMatchMetadataMatchRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'end': obj.end,
+    'start': obj.start,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange
+ */
+export interface RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange {
+  /**
+   * End of the range.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange#end
+   */
+  readonly end?: number;
+
+  /**
+   * (Requited) Start of the range.
+   *
+   * @schema RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange#start
+   */
+  readonly start?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange(obj: RouteSpecInitProviderSpecHttp2RouteMatchHeaderMatchRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'end': obj.end,
+    'start': obj.start,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange
+ */
+export interface RouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange {
+  /**
+   * End of the range.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange#end
+   */
+  readonly end?: number;
+
+  /**
+   * (Requited) Start of the range.
+   *
+   * @schema RouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange#start
+   */
+  readonly start?: number;
+
+}
+
+/**
+ * Converts an object of type 'RouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange(obj: RouteSpecInitProviderSpecHttpRouteMatchHeaderMatchRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'end': obj.end,
+    'start': obj.start,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6868,7 +10120,7 @@ export function toJson_VirtualGatewayProps(obj: VirtualGatewayProps | undefined)
  */
 export interface VirtualGatewaySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VirtualGatewaySpec#deletionPolicy
    */
@@ -6880,11 +10132,18 @@ export interface VirtualGatewaySpec {
   readonly forProvider: VirtualGatewaySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema VirtualGatewaySpec#managementPolicy
+   * @schema VirtualGatewaySpec#initProvider
    */
-  readonly managementPolicy?: VirtualGatewaySpecManagementPolicy;
+  readonly initProvider?: VirtualGatewaySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema VirtualGatewaySpec#managementPolicies
+   */
+  readonly managementPolicies?: VirtualGatewaySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6892,13 +10151,6 @@ export interface VirtualGatewaySpec {
    * @schema VirtualGatewaySpec#providerConfigRef
    */
   readonly providerConfigRef?: VirtualGatewaySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema VirtualGatewaySpec#providerRef
-   */
-  readonly providerRef?: VirtualGatewaySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -6925,9 +10177,9 @@ export function toJson_VirtualGatewaySpec(obj: VirtualGatewaySpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VirtualGatewaySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_VirtualGatewaySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_VirtualGatewaySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_VirtualGatewaySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VirtualGatewaySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_VirtualGatewaySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -6937,7 +10189,7 @@ export function toJson_VirtualGatewaySpec(obj: VirtualGatewaySpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VirtualGatewaySpecDeletionPolicy
  */
@@ -7017,17 +10269,85 @@ export function toJson_VirtualGatewaySpecForProvider(obj: VirtualGatewaySpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema VirtualGatewaySpecManagementPolicy
+ * @schema VirtualGatewaySpecInitProvider
  */
-export enum VirtualGatewaySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface VirtualGatewaySpecInitProvider {
+  /**
+   * Name of the service mesh in which to create the virtual gateway. Must be between 1 and 255 characters in length.
+   *
+   * @schema VirtualGatewaySpecInitProvider#meshName
+   */
+  readonly meshName?: string;
+
+  /**
+   * AWS account ID of the service mesh's owner. Defaults to the account ID the AWS provider is currently connected to.
+   *
+   * @default the account ID the AWS provider is currently connected to.
+   * @schema VirtualGatewaySpecInitProvider#meshOwner
+   */
+  readonly meshOwner?: string;
+
+  /**
+   * Name to use for the virtual gateway. Must be between 1 and 255 characters in length.
+   *
+   * @schema VirtualGatewaySpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Virtual gateway specification to apply.
+   *
+   * @schema VirtualGatewaySpecInitProvider#spec
+   */
+  readonly spec?: VirtualGatewaySpecInitProviderSpec[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema VirtualGatewaySpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProvider(obj: VirtualGatewaySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'meshName': obj.meshName,
+    'meshOwner': obj.meshOwner,
+    'name': obj.name,
+    'spec': obj.spec?.map(y => toJson_VirtualGatewaySpecInitProviderSpec(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema VirtualGatewaySpecManagementPolicies
+ */
+export enum VirtualGatewaySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -7061,43 +10381,6 @@ export function toJson_VirtualGatewaySpecProviderConfigRef(obj: VirtualGatewaySp
   const result = {
     'name': obj.name,
     'policy': toJson_VirtualGatewaySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema VirtualGatewaySpecProviderRef
- */
-export interface VirtualGatewaySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema VirtualGatewaySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema VirtualGatewaySpecProviderRef#policy
-   */
-  readonly policy?: VirtualGatewaySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'VirtualGatewaySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VirtualGatewaySpecProviderRef(obj: VirtualGatewaySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_VirtualGatewaySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7202,7 +10485,7 @@ export interface VirtualGatewaySpecForProviderSpec {
    *
    * @schema VirtualGatewaySpecForProviderSpec#listener
    */
-  readonly listener: VirtualGatewaySpecForProviderSpecListener[];
+  readonly listener?: VirtualGatewaySpecForProviderSpecListener[];
 
   /**
    * Inbound and outbound access logging information for the virtual gateway.
@@ -7223,6 +10506,49 @@ export function toJson_VirtualGatewaySpecForProviderSpec(obj: VirtualGatewaySpec
     'backendDefaults': obj.backendDefaults?.map(y => toJson_VirtualGatewaySpecForProviderSpecBackendDefaults(y)),
     'listener': obj.listener?.map(y => toJson_VirtualGatewaySpecForProviderSpecListener(y)),
     'logging': obj.logging?.map(y => toJson_VirtualGatewaySpecForProviderSpecLogging(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpec
+ */
+export interface VirtualGatewaySpecInitProviderSpec {
+  /**
+   * Defaults for backends.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpec#backendDefaults
+   */
+  readonly backendDefaults?: VirtualGatewaySpecInitProviderSpecBackendDefaults[];
+
+  /**
+   * Listeners that the mesh endpoint is expected to receive inbound traffic from. You can specify one listener.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpec#listener
+   */
+  readonly listener?: VirtualGatewaySpecInitProviderSpecListener[];
+
+  /**
+   * Inbound and outbound access logging information for the virtual gateway.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpec#logging
+   */
+  readonly logging?: VirtualGatewaySpecInitProviderSpecLogging[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpec(obj: VirtualGatewaySpecInitProviderSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'backendDefaults': obj.backendDefaults?.map(y => toJson_VirtualGatewaySpecInitProviderSpecBackendDefaults(y)),
+    'listener': obj.listener?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListener(y)),
+    'logging': obj.logging?.map(y => toJson_VirtualGatewaySpecInitProviderSpecLogging(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7256,43 +10582,6 @@ export interface VirtualGatewaySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_VirtualGatewaySpecProviderConfigRefPolicy(obj: VirtualGatewaySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema VirtualGatewaySpecProviderRefPolicy
- */
-export interface VirtualGatewaySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema VirtualGatewaySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: VirtualGatewaySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema VirtualGatewaySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: VirtualGatewaySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'VirtualGatewaySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VirtualGatewaySpecProviderRefPolicy(obj: VirtualGatewaySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -7435,7 +10724,7 @@ export interface VirtualGatewaySpecForProviderSpecListener {
    *
    * @schema VirtualGatewaySpecForProviderSpecListener#portMapping
    */
-  readonly portMapping: VirtualGatewaySpecForProviderSpecListenerPortMapping[];
+  readonly portMapping?: VirtualGatewaySpecForProviderSpecListenerPortMapping[];
 
   /**
    * Transport Layer Security (TLS) client policy.
@@ -7491,6 +10780,111 @@ export function toJson_VirtualGatewaySpecForProviderSpecLogging(obj: VirtualGate
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema VirtualGatewaySpecInitProviderSpecBackendDefaults
+ */
+export interface VirtualGatewaySpecInitProviderSpecBackendDefaults {
+  /**
+   * Default client policy for virtual gateway backends.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaults#clientPolicy
+   */
+  readonly clientPolicy?: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicy[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecBackendDefaults' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecBackendDefaults(obj: VirtualGatewaySpecInitProviderSpecBackendDefaults | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clientPolicy': obj.clientPolicy?.map(y => toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicy(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListener
+ */
+export interface VirtualGatewaySpecInitProviderSpecListener {
+  /**
+   * Connection pool information for the listener.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListener#connectionPool
+   */
+  readonly connectionPool?: VirtualGatewaySpecInitProviderSpecListenerConnectionPool[];
+
+  /**
+   * Health check information for the listener.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListener#healthCheck
+   */
+  readonly healthCheck?: VirtualGatewaySpecInitProviderSpecListenerHealthCheck[];
+
+  /**
+   * Port mapping information for the listener.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListener#portMapping
+   */
+  readonly portMapping?: VirtualGatewaySpecInitProviderSpecListenerPortMapping[];
+
+  /**
+   * Transport Layer Security (TLS) client policy.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListener#tls
+   */
+  readonly tls?: VirtualGatewaySpecInitProviderSpecListenerTls[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListener' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListener(obj: VirtualGatewaySpecInitProviderSpecListener | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'connectionPool': obj.connectionPool?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListenerConnectionPool(y)),
+    'healthCheck': obj.healthCheck?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListenerHealthCheck(y)),
+    'portMapping': obj.portMapping?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListenerPortMapping(y)),
+    'tls': obj.tls?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListenerTls(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecLogging
+ */
+export interface VirtualGatewaySpecInitProviderSpecLogging {
+  /**
+   * Access log configuration for a virtual gateway.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecLogging#accessLog
+   */
+  readonly accessLog?: VirtualGatewaySpecInitProviderSpecLoggingAccessLog[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecLogging' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecLogging(obj: VirtualGatewaySpecInitProviderSpecLogging | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessLog': obj.accessLog?.map(y => toJson_VirtualGatewaySpecInitProviderSpecLoggingAccessLog(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema VirtualGatewaySpecProviderConfigRefPolicyResolution
@@ -7508,30 +10902,6 @@ export enum VirtualGatewaySpecProviderConfigRefPolicyResolution {
  * @schema VirtualGatewaySpecProviderConfigRefPolicyResolve
  */
 export enum VirtualGatewaySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema VirtualGatewaySpecProviderRefPolicyResolution
- */
-export enum VirtualGatewaySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema VirtualGatewaySpecProviderRefPolicyResolve
- */
-export enum VirtualGatewaySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -7654,14 +11024,14 @@ export interface VirtualGatewaySpecForProviderSpecListenerHealthCheck {
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerHealthCheck#healthyThreshold
    */
-  readonly healthyThreshold: number;
+  readonly healthyThreshold?: number;
 
   /**
    * Time period in milliseconds between each health check execution.
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerHealthCheck#intervalMillis
    */
-  readonly intervalMillis: number;
+  readonly intervalMillis?: number;
 
   /**
    * File path to write access logs to. You can use /dev/stdout to send access logs to standard out. Must be between 1 and 255 characters in length.
@@ -7682,21 +11052,21 @@ export interface VirtualGatewaySpecForProviderSpecListenerHealthCheck {
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerHealthCheck#protocol
    */
-  readonly protocol: string;
+  readonly protocol?: string;
 
   /**
    * Amount of time to wait when receiving a response from the health check, in milliseconds.
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerHealthCheck#timeoutMillis
    */
-  readonly timeoutMillis: number;
+  readonly timeoutMillis?: number;
 
   /**
    * Number of consecutive failed health checks that must occur before declaring a virtual gateway unhealthy.
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerHealthCheck#unhealthyThreshold
    */
-  readonly unhealthyThreshold: number;
+  readonly unhealthyThreshold?: number;
 
 }
 
@@ -7729,14 +11099,14 @@ export interface VirtualGatewaySpecForProviderSpecListenerPortMapping {
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerPortMapping#port
    */
-  readonly port: number;
+  readonly port?: number;
 
   /**
    * Protocol used for the port mapping. Valid values are http, http2, tcp and grpc.
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerPortMapping#protocol
    */
-  readonly protocol: string;
+  readonly protocol?: string;
 
 }
 
@@ -7764,14 +11134,14 @@ export interface VirtualGatewaySpecForProviderSpecListenerTls {
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerTls#certificate
    */
-  readonly certificate: VirtualGatewaySpecForProviderSpecListenerTlsCertificate[];
+  readonly certificate?: VirtualGatewaySpecForProviderSpecListenerTlsCertificate[];
 
   /**
    * Listener's TLS mode. Valid values: DISABLED, PERMISSIVE, STRICT.
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerTls#mode
    */
-  readonly mode: string;
+  readonly mode?: string;
 
   /**
    * TLS validation context.
@@ -7819,6 +11189,256 @@ export function toJson_VirtualGatewaySpecForProviderSpecLoggingAccessLog(obj: Vi
   if (obj === undefined) { return undefined; }
   const result = {
     'file': obj.file?.map(y => toJson_VirtualGatewaySpecForProviderSpecLoggingAccessLogFile(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicy
+ */
+export interface VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicy {
+  /**
+   * Transport Layer Security (TLS) client policy.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicy#tls
+   */
+  readonly tls?: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTls[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicy(obj: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'tls': obj.tls?.map(y => toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTls(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListenerConnectionPool
+ */
+export interface VirtualGatewaySpecInitProviderSpecListenerConnectionPool {
+  /**
+   * Connection pool information for gRPC listeners.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerConnectionPool#grpc
+   */
+  readonly grpc?: VirtualGatewaySpecInitProviderSpecListenerConnectionPoolGrpc[];
+
+  /**
+   * Connection pool information for HTTP listeners.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerConnectionPool#http
+   */
+  readonly http?: VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp[];
+
+  /**
+   * Connection pool information for HTTP2 listeners.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerConnectionPool#http2
+   */
+  readonly http2?: VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp2[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListenerConnectionPool' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListenerConnectionPool(obj: VirtualGatewaySpecInitProviderSpecListenerConnectionPool | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'grpc': obj.grpc?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListenerConnectionPoolGrpc(y)),
+    'http': obj.http?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp(y)),
+    'http2': obj.http2?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp2(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListenerHealthCheck
+ */
+export interface VirtualGatewaySpecInitProviderSpecListenerHealthCheck {
+  /**
+   * Number of consecutive successful health checks that must occur before declaring listener healthy.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerHealthCheck#healthyThreshold
+   */
+  readonly healthyThreshold?: number;
+
+  /**
+   * Time period in milliseconds between each health check execution.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerHealthCheck#intervalMillis
+   */
+  readonly intervalMillis?: number;
+
+  /**
+   * File path to write access logs to. You can use /dev/stdout to send access logs to standard out. Must be between 1 and 255 characters in length.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerHealthCheck#path
+   */
+  readonly path?: string;
+
+  /**
+   * Port used for the port mapping.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerHealthCheck#port
+   */
+  readonly port?: number;
+
+  /**
+   * Protocol used for the port mapping. Valid values are http, http2, tcp and grpc.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerHealthCheck#protocol
+   */
+  readonly protocol?: string;
+
+  /**
+   * Amount of time to wait when receiving a response from the health check, in milliseconds.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerHealthCheck#timeoutMillis
+   */
+  readonly timeoutMillis?: number;
+
+  /**
+   * Number of consecutive failed health checks that must occur before declaring a virtual gateway unhealthy.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerHealthCheck#unhealthyThreshold
+   */
+  readonly unhealthyThreshold?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListenerHealthCheck' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListenerHealthCheck(obj: VirtualGatewaySpecInitProviderSpecListenerHealthCheck | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'healthyThreshold': obj.healthyThreshold,
+    'intervalMillis': obj.intervalMillis,
+    'path': obj.path,
+    'port': obj.port,
+    'protocol': obj.protocol,
+    'timeoutMillis': obj.timeoutMillis,
+    'unhealthyThreshold': obj.unhealthyThreshold,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListenerPortMapping
+ */
+export interface VirtualGatewaySpecInitProviderSpecListenerPortMapping {
+  /**
+   * Port used for the port mapping.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerPortMapping#port
+   */
+  readonly port?: number;
+
+  /**
+   * Protocol used for the port mapping. Valid values are http, http2, tcp and grpc.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerPortMapping#protocol
+   */
+  readonly protocol?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListenerPortMapping' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListenerPortMapping(obj: VirtualGatewaySpecInitProviderSpecListenerPortMapping | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'protocol': obj.protocol,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListenerTls
+ */
+export interface VirtualGatewaySpecInitProviderSpecListenerTls {
+  /**
+   * Virtual gateway's client's Transport Layer Security (TLS) certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTls#certificate
+   */
+  readonly certificate?: VirtualGatewaySpecInitProviderSpecListenerTlsCertificate[];
+
+  /**
+   * Listener's TLS mode. Valid values: DISABLED, PERMISSIVE, STRICT.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTls#mode
+   */
+  readonly mode?: string;
+
+  /**
+   * TLS validation context.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTls#validation
+   */
+  readonly validation?: VirtualGatewaySpecInitProviderSpecListenerTlsValidation[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListenerTls' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListenerTls(obj: VirtualGatewaySpecInitProviderSpecListenerTls | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificate': obj.certificate?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListenerTlsCertificate(y)),
+    'mode': obj.mode,
+    'validation': obj.validation?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListenerTlsValidation(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecLoggingAccessLog
+ */
+export interface VirtualGatewaySpecInitProviderSpecLoggingAccessLog {
+  /**
+   * Local file certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecLoggingAccessLog#file
+   */
+  readonly file?: VirtualGatewaySpecInitProviderSpecLoggingAccessLogFile[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecLoggingAccessLog' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecLoggingAccessLog(obj: VirtualGatewaySpecInitProviderSpecLoggingAccessLog | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'file': obj.file?.map(y => toJson_VirtualGatewaySpecInitProviderSpecLoggingAccessLogFile(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7880,7 +11500,7 @@ export interface VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTls
    *
    * @schema VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTls#validation
    */
-  readonly validation: VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsValidation[];
+  readonly validation?: VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsValidation[];
 
 }
 
@@ -7910,7 +11530,7 @@ export interface VirtualGatewaySpecForProviderSpecListenerConnectionPoolGrpc {
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerConnectionPoolGrpc#maxRequests
    */
-  readonly maxRequests: number;
+  readonly maxRequests?: number;
 
 }
 
@@ -7937,7 +11557,7 @@ export interface VirtualGatewaySpecForProviderSpecListenerConnectionPoolHttp {
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerConnectionPoolHttp#maxConnections
    */
-  readonly maxConnections: number;
+  readonly maxConnections?: number;
 
   /**
    * Number of overflowing requests after max_connections Envoy will queue to upstream cluster. Minimum value of 1.
@@ -7972,7 +11592,7 @@ export interface VirtualGatewaySpecForProviderSpecListenerConnectionPoolHttp2 {
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerConnectionPoolHttp2#maxRequests
    */
-  readonly maxRequests: number;
+  readonly maxRequests?: number;
 
 }
 
@@ -8049,7 +11669,7 @@ export interface VirtualGatewaySpecForProviderSpecListenerTlsValidation {
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerTlsValidation#trust
    */
-  readonly trust: VirtualGatewaySpecForProviderSpecListenerTlsValidationTrust[];
+  readonly trust?: VirtualGatewaySpecForProviderSpecListenerTlsValidationTrust[];
 
 }
 
@@ -8084,7 +11704,7 @@ export interface VirtualGatewaySpecForProviderSpecLoggingAccessLogFile {
    *
    * @schema VirtualGatewaySpecForProviderSpecLoggingAccessLogFile#path
    */
-  readonly path: string;
+  readonly path?: string;
 
 }
 
@@ -8096,6 +11716,260 @@ export function toJson_VirtualGatewaySpecForProviderSpecLoggingAccessLogFile(obj
   if (obj === undefined) { return undefined; }
   const result = {
     'format': obj.format?.map(y => toJson_VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormat(y)),
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTls
+ */
+export interface VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTls {
+  /**
+   * Virtual gateway's client's Transport Layer Security (TLS) certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTls#certificate
+   */
+  readonly certificate?: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate[];
+
+  /**
+   * Whether the policy is enforced. Default is true.
+   *
+   * @default true.
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTls#enforce
+   */
+  readonly enforce?: boolean;
+
+  /**
+   * One or more ports that the policy is enforced for.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTls#ports
+   */
+  readonly ports?: number[];
+
+  /**
+   * TLS validation context.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTls#validation
+   */
+  readonly validation?: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTls' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTls(obj: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTls | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificate': obj.certificate?.map(y => toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate(y)),
+    'enforce': obj.enforce,
+    'ports': obj.ports?.map(y => y),
+    'validation': obj.validation?.map(y => toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListenerConnectionPoolGrpc
+ */
+export interface VirtualGatewaySpecInitProviderSpecListenerConnectionPoolGrpc {
+  /**
+   * Maximum number of inflight requests Envoy can concurrently support across hosts in upstream cluster. Minimum value of 1.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerConnectionPoolGrpc#maxRequests
+   */
+  readonly maxRequests?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListenerConnectionPoolGrpc' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListenerConnectionPoolGrpc(obj: VirtualGatewaySpecInitProviderSpecListenerConnectionPoolGrpc | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxRequests': obj.maxRequests,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp
+ */
+export interface VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp {
+  /**
+   * Maximum number of outbound TCP connections Envoy can establish concurrently with all hosts in upstream cluster. Minimum value of 1.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp#maxConnections
+   */
+  readonly maxConnections?: number;
+
+  /**
+   * Number of overflowing requests after max_connections Envoy will queue to upstream cluster. Minimum value of 1.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp#maxPendingRequests
+   */
+  readonly maxPendingRequests?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp(obj: VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxConnections': obj.maxConnections,
+    'maxPendingRequests': obj.maxPendingRequests,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp2
+ */
+export interface VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp2 {
+  /**
+   * Maximum number of inflight requests Envoy can concurrently support across hosts in upstream cluster. Minimum value of 1.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp2#maxRequests
+   */
+  readonly maxRequests?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp2' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp2(obj: VirtualGatewaySpecInitProviderSpecListenerConnectionPoolHttp2 | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxRequests': obj.maxRequests,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListenerTlsCertificate
+ */
+export interface VirtualGatewaySpecInitProviderSpecListenerTlsCertificate {
+  /**
+   * TLS validation context trust for an AWS Certificate Manager (ACM) certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTlsCertificate#acm
+   */
+  readonly acm?: any[];
+
+  /**
+   * Local file certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTlsCertificate#file
+   */
+  readonly file?: VirtualGatewaySpecInitProviderSpecListenerTlsCertificateFile[];
+
+  /**
+   * A Secret Discovery Service certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTlsCertificate#sds
+   */
+  readonly sds?: VirtualGatewaySpecInitProviderSpecListenerTlsCertificateSds[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListenerTlsCertificate' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListenerTlsCertificate(obj: VirtualGatewaySpecInitProviderSpecListenerTlsCertificate | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acm': obj.acm?.map(y => y),
+    'file': obj.file?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListenerTlsCertificateFile(y)),
+    'sds': obj.sds?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListenerTlsCertificateSds(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListenerTlsValidation
+ */
+export interface VirtualGatewaySpecInitProviderSpecListenerTlsValidation {
+  /**
+   * SANs for a virtual gateway's listener's Transport Layer Security (TLS) validation context.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTlsValidation#subjectAlternativeNames
+   */
+  readonly subjectAlternativeNames?: VirtualGatewaySpecInitProviderSpecListenerTlsValidationSubjectAlternativeNames[];
+
+  /**
+   * TLS validation context trust.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTlsValidation#trust
+   */
+  readonly trust?: VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrust[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListenerTlsValidation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListenerTlsValidation(obj: VirtualGatewaySpecInitProviderSpecListenerTlsValidation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'subjectAlternativeNames': obj.subjectAlternativeNames?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListenerTlsValidationSubjectAlternativeNames(y)),
+    'trust': obj.trust?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrust(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecLoggingAccessLogFile
+ */
+export interface VirtualGatewaySpecInitProviderSpecLoggingAccessLogFile {
+  /**
+   * The specified format for the logs.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecLoggingAccessLogFile#format
+   */
+  readonly format?: VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormat[];
+
+  /**
+   * File path to write access logs to. You can use /dev/stdout to send access logs to standard out. Must be between 1 and 255 characters in length.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecLoggingAccessLogFile#path
+   */
+  readonly path?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecLoggingAccessLogFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecLoggingAccessLogFile(obj: VirtualGatewaySpecInitProviderSpecLoggingAccessLogFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'format': obj.format?.map(y => toJson_VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormat(y)),
     'path': obj.path,
   };
   // filter undefined values
@@ -8154,7 +12028,7 @@ export interface VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTls
    *
    * @schema VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsValidation#trust
    */
-  readonly trust: VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsValidationTrust[];
+  readonly trust?: VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsValidationTrust[];
 
 }
 
@@ -8225,14 +12099,14 @@ export interface VirtualGatewaySpecForProviderSpecListenerTlsCertificateFile {
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerTlsCertificateFile#certificateChain
    */
-  readonly certificateChain: string;
+  readonly certificateChain?: string;
 
   /**
    * Private key for a certificate stored on the file system of the mesh endpoint that the proxy is running on.
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerTlsCertificateFile#privateKey
    */
-  readonly privateKey: string;
+  readonly privateKey?: string;
 
 }
 
@@ -8260,7 +12134,7 @@ export interface VirtualGatewaySpecForProviderSpecListenerTlsCertificateSds {
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerTlsCertificateSds#secretName
    */
-  readonly secretName: string;
+  readonly secretName?: string;
 
 }
 
@@ -8287,7 +12161,7 @@ export interface VirtualGatewaySpecForProviderSpecListenerTlsValidationSubjectAl
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerTlsValidationSubjectAlternativeNames#match
    */
-  readonly match: VirtualGatewaySpecForProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch[];
+  readonly match?: VirtualGatewaySpecForProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch[];
 
 }
 
@@ -8376,6 +12250,235 @@ export function toJson_VirtualGatewaySpecForProviderSpecLoggingAccessLogFileForm
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate
+ */
+export interface VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate {
+  /**
+   * Local file certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate#file
+   */
+  readonly file?: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile[];
+
+  /**
+   * A Secret Discovery Service certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate#sds
+   */
+  readonly sds?: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateSds[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate(obj: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'file': obj.file?.map(y => toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile(y)),
+    'sds': obj.sds?.map(y => toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateSds(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation
+ */
+export interface VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation {
+  /**
+   * SANs for a virtual gateway's listener's Transport Layer Security (TLS) validation context.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation#subjectAlternativeNames
+   */
+  readonly subjectAlternativeNames?: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames[];
+
+  /**
+   * TLS validation context trust.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation#trust
+   */
+  readonly trust?: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation(obj: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'subjectAlternativeNames': obj.subjectAlternativeNames?.map(y => toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames(y)),
+    'trust': obj.trust?.map(y => toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListenerTlsCertificateFile
+ */
+export interface VirtualGatewaySpecInitProviderSpecListenerTlsCertificateFile {
+  /**
+   * Certificate chain for the certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTlsCertificateFile#certificateChain
+   */
+  readonly certificateChain?: string;
+
+  /**
+   * Private key for a certificate stored on the file system of the mesh endpoint that the proxy is running on.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTlsCertificateFile#privateKey
+   */
+  readonly privateKey?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListenerTlsCertificateFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListenerTlsCertificateFile(obj: VirtualGatewaySpecInitProviderSpecListenerTlsCertificateFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateChain': obj.certificateChain,
+    'privateKey': obj.privateKey,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListenerTlsCertificateSds
+ */
+export interface VirtualGatewaySpecInitProviderSpecListenerTlsCertificateSds {
+  /**
+   * Name of the secret secret requested from the Secret Discovery Service provider representing Transport Layer Security (TLS) materials like a certificate or certificate chain.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTlsCertificateSds#secretName
+   */
+  readonly secretName?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListenerTlsCertificateSds' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListenerTlsCertificateSds(obj: VirtualGatewaySpecInitProviderSpecListenerTlsCertificateSds | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretName': obj.secretName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListenerTlsValidationSubjectAlternativeNames
+ */
+export interface VirtualGatewaySpecInitProviderSpecListenerTlsValidationSubjectAlternativeNames {
+  /**
+   * Criteria for determining a SAN's match.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTlsValidationSubjectAlternativeNames#match
+   */
+  readonly match?: VirtualGatewaySpecInitProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListenerTlsValidationSubjectAlternativeNames' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListenerTlsValidationSubjectAlternativeNames(obj: VirtualGatewaySpecInitProviderSpecListenerTlsValidationSubjectAlternativeNames | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'match': obj.match?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrust
+ */
+export interface VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrust {
+  /**
+   * Local file certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrust#file
+   */
+  readonly file?: VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrustFile[];
+
+  /**
+   * A Secret Discovery Service certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrust#sds
+   */
+  readonly sds?: VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrustSds[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrust' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrust(obj: VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrust | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'file': obj.file?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrustFile(y)),
+    'sds': obj.sds?.map(y => toJson_VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrustSds(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormat
+ */
+export interface VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormat {
+  /**
+   * The logging format for JSON.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormat#json
+   */
+  readonly json?: VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormatJson[];
+
+  /**
+   * The logging format for text. Must be between 1 and 1000 characters in length.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormat#text
+   */
+  readonly text?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormat' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormat(obj: VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormat | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'json': obj.json?.map(y => toJson_VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormatJson(y)),
+    'text': obj.text,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsCertificateFile
  */
 export interface VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsCertificateFile {
@@ -8384,14 +12487,14 @@ export interface VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTls
    *
    * @schema VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsCertificateFile#certificateChain
    */
-  readonly certificateChain: string;
+  readonly certificateChain?: string;
 
   /**
    * Private key for a certificate stored on the file system of the mesh endpoint that the proxy is running on.
    *
    * @schema VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsCertificateFile#privateKey
    */
-  readonly privateKey: string;
+  readonly privateKey?: string;
 
 }
 
@@ -8419,7 +12522,7 @@ export interface VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTls
    *
    * @schema VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsCertificateSds#secretName
    */
-  readonly secretName: string;
+  readonly secretName?: string;
 
 }
 
@@ -8446,7 +12549,7 @@ export interface VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTls
    *
    * @schema VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames#match
    */
-  readonly match: VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch[];
+  readonly match?: VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch[];
 
 }
 
@@ -8598,7 +12701,7 @@ export interface VirtualGatewaySpecForProviderSpecListenerTlsValidationSubjectAl
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch#exact
    */
-  readonly exact: string[];
+  readonly exact?: string[];
 
 }
 
@@ -8625,7 +12728,7 @@ export interface VirtualGatewaySpecForProviderSpecListenerTlsValidationTrustFile
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerTlsValidationTrustFile#certificateChain
    */
-  readonly certificateChain: string;
+  readonly certificateChain?: string;
 
 }
 
@@ -8652,7 +12755,7 @@ export interface VirtualGatewaySpecForProviderSpecListenerTlsValidationTrustSds 
    *
    * @schema VirtualGatewaySpecForProviderSpecListenerTlsValidationTrustSds#secretName
    */
-  readonly secretName: string;
+  readonly secretName?: string;
 
 }
 
@@ -8679,14 +12782,14 @@ export interface VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormatJson
    *
    * @schema VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormatJson#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualGatewaySpecForProviderSpecLoggingAccessLogFileFormatJson#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -8706,6 +12809,254 @@ export function toJson_VirtualGatewaySpecForProviderSpecLoggingAccessLogFileForm
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile
+ */
+export interface VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile {
+  /**
+   * Certificate chain for the certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile#certificateChain
+   */
+  readonly certificateChain?: string;
+
+  /**
+   * Private key for a certificate stored on the file system of the mesh endpoint that the proxy is running on.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile#privateKey
+   */
+  readonly privateKey?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile(obj: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateChain': obj.certificateChain,
+    'privateKey': obj.privateKey,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateSds
+ */
+export interface VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateSds {
+  /**
+   * Name of the secret secret requested from the Secret Discovery Service provider representing Transport Layer Security (TLS) materials like a certificate or certificate chain.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateSds#secretName
+   */
+  readonly secretName?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateSds' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateSds(obj: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateSds | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretName': obj.secretName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames
+ */
+export interface VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames {
+  /**
+   * Criteria for determining a SAN's match.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames#match
+   */
+  readonly match?: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames(obj: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'match': obj.match?.map(y => toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust
+ */
+export interface VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust {
+  /**
+   * TLS validation context trust for an AWS Certificate Manager (ACM) certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust#acm
+   */
+  readonly acm?: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm[];
+
+  /**
+   * Local file certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust#file
+   */
+  readonly file?: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile[];
+
+  /**
+   * A Secret Discovery Service certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust#sds
+   */
+  readonly sds?: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust(obj: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acm': obj.acm?.map(y => toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm(y)),
+    'file': obj.file?.map(y => toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile(y)),
+    'sds': obj.sds?.map(y => toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch
+ */
+export interface VirtualGatewaySpecInitProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch {
+  /**
+   * Values sent must match the specified values exactly.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch#exact
+   */
+  readonly exact?: string[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch(obj: VirtualGatewaySpecInitProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrustFile
+ */
+export interface VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrustFile {
+  /**
+   * Certificate chain for the certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrustFile#certificateChain
+   */
+  readonly certificateChain?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrustFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrustFile(obj: VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrustFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateChain': obj.certificateChain,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrustSds
+ */
+export interface VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrustSds {
+  /**
+   * Name of the secret secret requested from the Secret Discovery Service provider representing Transport Layer Security (TLS) materials like a certificate or certificate chain.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrustSds#secretName
+   */
+  readonly secretName?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrustSds' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrustSds(obj: VirtualGatewaySpecInitProviderSpecListenerTlsValidationTrustSds | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretName': obj.secretName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormatJson
+ */
+export interface VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormatJson {
+  /**
+   * The specified key for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormatJson#key
+   */
+  readonly key?: string;
+
+  /**
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormatJson#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormatJson' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormatJson(obj: VirtualGatewaySpecInitProviderSpecLoggingAccessLogFileFormatJson | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch
  */
 export interface VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch {
@@ -8714,7 +13065,7 @@ export interface VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTls
    *
    * @schema VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch#exact
    */
-  readonly exact: string[];
+  readonly exact?: string[];
 
 }
 
@@ -8741,7 +13092,7 @@ export interface VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTls
    *
    * @schema VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm#certificateAuthorityArns
    */
-  readonly certificateAuthorityArns: string[];
+  readonly certificateAuthorityArns?: string[];
 
 }
 
@@ -8768,7 +13119,7 @@ export interface VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTls
    *
    * @schema VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile#certificateChain
    */
-  readonly certificateChain: string;
+  readonly certificateChain?: string;
 
 }
 
@@ -8795,7 +13146,7 @@ export interface VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTls
    *
    * @schema VirtualGatewaySpecForProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds#secretName
    */
-  readonly secretName: string;
+  readonly secretName?: string;
 
 }
 
@@ -8881,6 +13232,114 @@ export function toJson_VirtualGatewaySpecForProviderSpecListenerTlsCertificateAc
   const result = {
     'resolution': obj.resolution,
     'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch
+ */
+export interface VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch {
+  /**
+   * Values sent must match the specified values exactly.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch#exact
+   */
+  readonly exact?: string[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch(obj: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm
+ */
+export interface VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm {
+  /**
+   * One or more ACM ARNs.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm#certificateAuthorityArns
+   */
+  readonly certificateAuthorityArns?: string[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm(obj: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateAuthorityArns': obj.certificateAuthorityArns?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile
+ */
+export interface VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile {
+  /**
+   * Certificate chain for the certificate.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile#certificateChain
+   */
+  readonly certificateChain?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile(obj: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateChain': obj.certificateChain,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds
+ */
+export interface VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds {
+  /**
+   * Name of the secret secret requested from the Secret Discovery Service provider representing Transport Layer Security (TLS) materials like a certificate or certificate chain.
+   *
+   * @schema VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds#secretName
+   */
+  readonly secretName?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds(obj: VirtualGatewaySpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretName': obj.secretName,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -9032,7 +13491,7 @@ export function toJson_VirtualNodeProps(obj: VirtualNodeProps | undefined): Reco
  */
 export interface VirtualNodeSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VirtualNodeSpec#deletionPolicy
    */
@@ -9044,11 +13503,18 @@ export interface VirtualNodeSpec {
   readonly forProvider: VirtualNodeSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema VirtualNodeSpec#managementPolicy
+   * @schema VirtualNodeSpec#initProvider
    */
-  readonly managementPolicy?: VirtualNodeSpecManagementPolicy;
+  readonly initProvider?: VirtualNodeSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema VirtualNodeSpec#managementPolicies
+   */
+  readonly managementPolicies?: VirtualNodeSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -9056,13 +13522,6 @@ export interface VirtualNodeSpec {
    * @schema VirtualNodeSpec#providerConfigRef
    */
   readonly providerConfigRef?: VirtualNodeSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema VirtualNodeSpec#providerRef
-   */
-  readonly providerRef?: VirtualNodeSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -9089,9 +13548,9 @@ export function toJson_VirtualNodeSpec(obj: VirtualNodeSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VirtualNodeSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_VirtualNodeSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_VirtualNodeSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_VirtualNodeSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VirtualNodeSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_VirtualNodeSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -9101,7 +13560,7 @@ export function toJson_VirtualNodeSpec(obj: VirtualNodeSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VirtualNodeSpecDeletionPolicy
  */
@@ -9197,17 +13656,77 @@ export function toJson_VirtualNodeSpecForProvider(obj: VirtualNodeSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema VirtualNodeSpecManagementPolicy
+ * @schema VirtualNodeSpecInitProvider
  */
-export enum VirtualNodeSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface VirtualNodeSpecInitProvider {
+  /**
+   * AWS account ID of the service mesh's owner. Defaults to the account ID the AWS provider is currently connected to.
+   *
+   * @default the account ID the AWS provider is currently connected to.
+   * @schema VirtualNodeSpecInitProvider#meshOwner
+   */
+  readonly meshOwner?: string;
+
+  /**
+   * Name to use for the virtual node. Must be between 1 and 255 characters in length.
+   *
+   * @schema VirtualNodeSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Virtual node specification to apply.
+   *
+   * @schema VirtualNodeSpecInitProvider#spec
+   */
+  readonly spec?: VirtualNodeSpecInitProviderSpec[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema VirtualNodeSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProvider(obj: VirtualNodeSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'meshOwner': obj.meshOwner,
+    'name': obj.name,
+    'spec': obj.spec?.map(y => toJson_VirtualNodeSpecInitProviderSpec(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema VirtualNodeSpecManagementPolicies
+ */
+export enum VirtualNodeSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -9241,43 +13760,6 @@ export function toJson_VirtualNodeSpecProviderConfigRef(obj: VirtualNodeSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_VirtualNodeSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema VirtualNodeSpecProviderRef
- */
-export interface VirtualNodeSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema VirtualNodeSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema VirtualNodeSpecProviderRef#policy
-   */
-  readonly policy?: VirtualNodeSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'VirtualNodeSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VirtualNodeSpecProviderRef(obj: VirtualNodeSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_VirtualNodeSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -9508,6 +13990,65 @@ export function toJson_VirtualNodeSpecForProviderSpec(obj: VirtualNodeSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema VirtualNodeSpecInitProviderSpec
+ */
+export interface VirtualNodeSpecInitProviderSpec {
+  /**
+   * Backends to which the virtual node is expected to send outbound traffic.
+   *
+   * @schema VirtualNodeSpecInitProviderSpec#backend
+   */
+  readonly backend?: VirtualNodeSpecInitProviderSpecBackend[];
+
+  /**
+   * Defaults for backends.
+   *
+   * @schema VirtualNodeSpecInitProviderSpec#backendDefaults
+   */
+  readonly backendDefaults?: VirtualNodeSpecInitProviderSpecBackendDefaults[];
+
+  /**
+   * Listeners from which the virtual node is expected to receive inbound traffic.
+   *
+   * @schema VirtualNodeSpecInitProviderSpec#listener
+   */
+  readonly listener?: VirtualNodeSpecInitProviderSpecListener[];
+
+  /**
+   * Inbound and outbound access logging information for the virtual node.
+   *
+   * @schema VirtualNodeSpecInitProviderSpec#logging
+   */
+  readonly logging?: VirtualNodeSpecInitProviderSpecLogging[];
+
+  /**
+   * Service discovery information for the virtual node.
+   *
+   * @schema VirtualNodeSpecInitProviderSpec#serviceDiscovery
+   */
+  readonly serviceDiscovery?: VirtualNodeSpecInitProviderSpecServiceDiscovery[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpec(obj: VirtualNodeSpecInitProviderSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'backend': obj.backend?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackend(y)),
+    'backendDefaults': obj.backendDefaults?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendDefaults(y)),
+    'listener': obj.listener?.map(y => toJson_VirtualNodeSpecInitProviderSpecListener(y)),
+    'logging': obj.logging?.map(y => toJson_VirtualNodeSpecInitProviderSpecLogging(y)),
+    'serviceDiscovery': obj.serviceDiscovery?.map(y => toJson_VirtualNodeSpecInitProviderSpecServiceDiscovery(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema VirtualNodeSpecProviderConfigRefPolicy
@@ -9534,43 +14075,6 @@ export interface VirtualNodeSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_VirtualNodeSpecProviderConfigRefPolicy(obj: VirtualNodeSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema VirtualNodeSpecProviderRefPolicy
- */
-export interface VirtualNodeSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema VirtualNodeSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: VirtualNodeSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema VirtualNodeSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: VirtualNodeSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'VirtualNodeSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VirtualNodeSpecProviderRefPolicy(obj: VirtualNodeSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -9746,7 +14250,7 @@ export interface VirtualNodeSpecForProviderSpecBackend {
    *
    * @schema VirtualNodeSpecForProviderSpecBackend#virtualService
    */
-  readonly virtualService: VirtualNodeSpecForProviderSpecBackendVirtualService[];
+  readonly virtualService?: VirtualNodeSpecForProviderSpecBackendVirtualService[];
 
 }
 
@@ -9821,7 +14325,7 @@ export interface VirtualNodeSpecForProviderSpecListener {
    *
    * @schema VirtualNodeSpecForProviderSpecListener#portMapping
    */
-  readonly portMapping: VirtualNodeSpecForProviderSpecListenerPortMapping[];
+  readonly portMapping?: VirtualNodeSpecForProviderSpecListenerPortMapping[];
 
   /**
    * Timeouts for different protocols.
@@ -9921,6 +14425,189 @@ export function toJson_VirtualNodeSpecForProviderSpecServiceDiscovery(obj: Virtu
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema VirtualNodeSpecInitProviderSpecBackend
+ */
+export interface VirtualNodeSpecInitProviderSpecBackend {
+  /**
+   * Virtual service to use as a backend for a virtual node.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackend#virtualService
+   */
+  readonly virtualService?: VirtualNodeSpecInitProviderSpecBackendVirtualService[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackend' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackend(obj: VirtualNodeSpecInitProviderSpecBackend | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'virtualService': obj.virtualService?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendVirtualService(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendDefaults
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendDefaults {
+  /**
+   * Client policy for the backend.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaults#clientPolicy
+   */
+  readonly clientPolicy?: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicy[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendDefaults' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendDefaults(obj: VirtualNodeSpecInitProviderSpecBackendDefaults | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clientPolicy': obj.clientPolicy?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicy(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListener
+ */
+export interface VirtualNodeSpecInitProviderSpecListener {
+  /**
+   * Connection pool information for the listener.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListener#connectionPool
+   */
+  readonly connectionPool?: VirtualNodeSpecInitProviderSpecListenerConnectionPool[];
+
+  /**
+   * Health check information for the listener.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListener#healthCheck
+   */
+  readonly healthCheck?: VirtualNodeSpecInitProviderSpecListenerHealthCheck[];
+
+  /**
+   * Outlier detection information for the listener.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListener#outlierDetection
+   */
+  readonly outlierDetection?: VirtualNodeSpecInitProviderSpecListenerOutlierDetection[];
+
+  /**
+   * Port mapping information for the listener.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListener#portMapping
+   */
+  readonly portMapping?: VirtualNodeSpecInitProviderSpecListenerPortMapping[];
+
+  /**
+   * Timeouts for different protocols.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListener#timeout
+   */
+  readonly timeout?: VirtualNodeSpecInitProviderSpecListenerTimeout[];
+
+  /**
+   * Transport Layer Security (TLS) client policy.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListener#tls
+   */
+  readonly tls?: VirtualNodeSpecInitProviderSpecListenerTls[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListener' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListener(obj: VirtualNodeSpecInitProviderSpecListener | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'connectionPool': obj.connectionPool?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerConnectionPool(y)),
+    'healthCheck': obj.healthCheck?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerHealthCheck(y)),
+    'outlierDetection': obj.outlierDetection?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerOutlierDetection(y)),
+    'portMapping': obj.portMapping?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerPortMapping(y)),
+    'timeout': obj.timeout?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTimeout(y)),
+    'tls': obj.tls?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTls(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecLogging
+ */
+export interface VirtualNodeSpecInitProviderSpecLogging {
+  /**
+   * Access log configuration for a virtual node.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecLogging#accessLog
+   */
+  readonly accessLog?: VirtualNodeSpecInitProviderSpecLoggingAccessLog[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecLogging' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecLogging(obj: VirtualNodeSpecInitProviderSpecLogging | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessLog': obj.accessLog?.map(y => toJson_VirtualNodeSpecInitProviderSpecLoggingAccessLog(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecServiceDiscovery
+ */
+export interface VirtualNodeSpecInitProviderSpecServiceDiscovery {
+  /**
+   * Any AWS Cloud Map information for the virtual node.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecServiceDiscovery#awsCloudMap
+   */
+  readonly awsCloudMap?: VirtualNodeSpecInitProviderSpecServiceDiscoveryAwsCloudMap[];
+
+  /**
+   * DNS service name for the virtual node.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecServiceDiscovery#dns
+   */
+  readonly dns?: VirtualNodeSpecInitProviderSpecServiceDiscoveryDns[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecServiceDiscovery' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecServiceDiscovery(obj: VirtualNodeSpecInitProviderSpecServiceDiscovery | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'awsCloudMap': obj.awsCloudMap?.map(y => toJson_VirtualNodeSpecInitProviderSpecServiceDiscoveryAwsCloudMap(y)),
+    'dns': obj.dns?.map(y => toJson_VirtualNodeSpecInitProviderSpecServiceDiscoveryDns(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema VirtualNodeSpecProviderConfigRefPolicyResolution
@@ -9938,30 +14625,6 @@ export enum VirtualNodeSpecProviderConfigRefPolicyResolution {
  * @schema VirtualNodeSpecProviderConfigRefPolicyResolve
  */
 export enum VirtualNodeSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema VirtualNodeSpecProviderRefPolicyResolution
- */
-export enum VirtualNodeSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema VirtualNodeSpecProviderRefPolicyResolve
- */
-export enum VirtualNodeSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -10069,7 +14732,7 @@ export interface VirtualNodeSpecForProviderSpecBackendVirtualService {
    *
    * @schema VirtualNodeSpecForProviderSpecBackendVirtualService#virtualServiceName
    */
-  readonly virtualServiceName: string;
+  readonly virtualServiceName?: string;
 
 }
 
@@ -10175,14 +14838,14 @@ export interface VirtualNodeSpecForProviderSpecListenerHealthCheck {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerHealthCheck#healthyThreshold
    */
-  readonly healthyThreshold: number;
+  readonly healthyThreshold?: number;
 
   /**
    * Time period in milliseconds between each health check execution.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerHealthCheck#intervalMillis
    */
-  readonly intervalMillis: number;
+  readonly intervalMillis?: number;
 
   /**
    * File path to write access logs to. You can use /dev/stdout to send access logs to standard out. Must be between 1 and 255 characters in length.
@@ -10203,21 +14866,21 @@ export interface VirtualNodeSpecForProviderSpecListenerHealthCheck {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerHealthCheck#protocol
    */
-  readonly protocol: string;
+  readonly protocol?: string;
 
   /**
    * Amount of time to wait when receiving a response from the health check, in milliseconds.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerHealthCheck#timeoutMillis
    */
-  readonly timeoutMillis: number;
+  readonly timeoutMillis?: number;
 
   /**
    * Number of consecutive failed health checks that must occur before declaring a virtual node unhealthy.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerHealthCheck#unhealthyThreshold
    */
-  readonly unhealthyThreshold: number;
+  readonly unhealthyThreshold?: number;
 
 }
 
@@ -10250,28 +14913,28 @@ export interface VirtualNodeSpecForProviderSpecListenerOutlierDetection {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerOutlierDetection#baseEjectionDuration
    */
-  readonly baseEjectionDuration: VirtualNodeSpecForProviderSpecListenerOutlierDetectionBaseEjectionDuration[];
+  readonly baseEjectionDuration?: VirtualNodeSpecForProviderSpecListenerOutlierDetectionBaseEjectionDuration[];
 
   /**
    * Time interval between ejection sweep analysis.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerOutlierDetection#interval
    */
-  readonly interval: VirtualNodeSpecForProviderSpecListenerOutlierDetectionInterval[];
+  readonly interval?: VirtualNodeSpecForProviderSpecListenerOutlierDetectionInterval[];
 
   /**
    * Maximum percentage of hosts in load balancing pool for upstream service that can be ejected. Will eject at least one host regardless of the value. Minimum value of 0. Maximum value of 100.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerOutlierDetection#maxEjectionPercent
    */
-  readonly maxEjectionPercent: number;
+  readonly maxEjectionPercent?: number;
 
   /**
    * Number of consecutive 5xx errors required for ejection. Minimum value of 1.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerOutlierDetection#maxServerErrors
    */
-  readonly maxServerErrors: number;
+  readonly maxServerErrors?: number;
 
 }
 
@@ -10301,14 +14964,14 @@ export interface VirtualNodeSpecForProviderSpecListenerPortMapping {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerPortMapping#port
    */
-  readonly port: number;
+  readonly port?: number;
 
   /**
    * Protocol used for the port mapping. Valid values are http, http2, tcp and grpc.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerPortMapping#protocol
    */
-  readonly protocol: string;
+  readonly protocol?: string;
 
 }
 
@@ -10387,14 +15050,14 @@ export interface VirtualNodeSpecForProviderSpecListenerTls {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTls#certificate
    */
-  readonly certificate: VirtualNodeSpecForProviderSpecListenerTlsCertificate[];
+  readonly certificate?: VirtualNodeSpecForProviderSpecListenerTlsCertificate[];
 
   /**
    * Listener's TLS mode. Valid values: DISABLED, PERMISSIVE, STRICT.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTls#mode
    */
-  readonly mode: string;
+  readonly mode?: string;
 
   /**
    * TLS validation context.
@@ -10485,7 +15148,7 @@ export interface VirtualNodeSpecForProviderSpecServiceDiscoveryAwsCloudMap {
    *
    * @schema VirtualNodeSpecForProviderSpecServiceDiscoveryAwsCloudMap#serviceName
    */
-  readonly serviceName: string;
+  readonly serviceName?: string;
 
 }
 
@@ -10516,7 +15179,7 @@ export interface VirtualNodeSpecForProviderSpecServiceDiscoveryDns {
    *
    * @schema VirtualNodeSpecForProviderSpecServiceDiscoveryDns#hostname
    */
-  readonly hostname: string;
+  readonly hostname?: string;
 
   /**
    * The preferred IP version that this virtual node uses. Valid values: IPv6_PREFERRED, IPv4_PREFERRED, IPv4_ONLY, IPv6_ONLY.
@@ -10539,6 +15202,479 @@ export interface VirtualNodeSpecForProviderSpecServiceDiscoveryDns {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_VirtualNodeSpecForProviderSpecServiceDiscoveryDns(obj: VirtualNodeSpecForProviderSpecServiceDiscoveryDns | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hostname': obj.hostname,
+    'ipPreference': obj.ipPreference,
+    'responseType': obj.responseType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendVirtualService
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendVirtualService {
+  /**
+   * Client policy for the backend.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualService#clientPolicy
+   */
+  readonly clientPolicy?: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicy[];
+
+  /**
+   * Name of the virtual service that is acting as a virtual node backend. Must be between 1 and 255 characters in length.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualService#virtualServiceName
+   */
+  readonly virtualServiceName?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendVirtualService' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendVirtualService(obj: VirtualNodeSpecInitProviderSpecBackendVirtualService | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clientPolicy': obj.clientPolicy?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicy(y)),
+    'virtualServiceName': obj.virtualServiceName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicy
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicy {
+  /**
+   * Transport Layer Security (TLS) client policy.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicy#tls
+   */
+  readonly tls?: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTls[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicy(obj: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'tls': obj.tls?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTls(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerConnectionPool
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerConnectionPool {
+  /**
+   * Connection pool information for gRPC listeners.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerConnectionPool#grpc
+   */
+  readonly grpc?: VirtualNodeSpecInitProviderSpecListenerConnectionPoolGrpc[];
+
+  /**
+   * Connection pool information for HTTP listeners.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerConnectionPool#http
+   */
+  readonly http?: VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp[];
+
+  /**
+   * Connection pool information for HTTP2 listeners.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerConnectionPool#http2
+   */
+  readonly http2?: VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp2[];
+
+  /**
+   * Connection pool information for TCP listeners.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerConnectionPool#tcp
+   */
+  readonly tcp?: VirtualNodeSpecInitProviderSpecListenerConnectionPoolTcp[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerConnectionPool' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerConnectionPool(obj: VirtualNodeSpecInitProviderSpecListenerConnectionPool | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'grpc': obj.grpc?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerConnectionPoolGrpc(y)),
+    'http': obj.http?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp(y)),
+    'http2': obj.http2?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp2(y)),
+    'tcp': obj.tcp?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerConnectionPoolTcp(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerHealthCheck
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerHealthCheck {
+  /**
+   * Number of consecutive successful health checks that must occur before declaring listener healthy.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerHealthCheck#healthyThreshold
+   */
+  readonly healthyThreshold?: number;
+
+  /**
+   * Time period in milliseconds between each health check execution.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerHealthCheck#intervalMillis
+   */
+  readonly intervalMillis?: number;
+
+  /**
+   * File path to write access logs to. You can use /dev/stdout to send access logs to standard out. Must be between 1 and 255 characters in length.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerHealthCheck#path
+   */
+  readonly path?: string;
+
+  /**
+   * Port used for the port mapping.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerHealthCheck#port
+   */
+  readonly port?: number;
+
+  /**
+   * Protocol used for the port mapping. Valid values are http, http2, tcp and grpc.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerHealthCheck#protocol
+   */
+  readonly protocol?: string;
+
+  /**
+   * Amount of time to wait when receiving a response from the health check, in milliseconds.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerHealthCheck#timeoutMillis
+   */
+  readonly timeoutMillis?: number;
+
+  /**
+   * Number of consecutive failed health checks that must occur before declaring a virtual node unhealthy.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerHealthCheck#unhealthyThreshold
+   */
+  readonly unhealthyThreshold?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerHealthCheck' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerHealthCheck(obj: VirtualNodeSpecInitProviderSpecListenerHealthCheck | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'healthyThreshold': obj.healthyThreshold,
+    'intervalMillis': obj.intervalMillis,
+    'path': obj.path,
+    'port': obj.port,
+    'protocol': obj.protocol,
+    'timeoutMillis': obj.timeoutMillis,
+    'unhealthyThreshold': obj.unhealthyThreshold,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerOutlierDetection
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerOutlierDetection {
+  /**
+   * Base amount of time for which a host is ejected.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerOutlierDetection#baseEjectionDuration
+   */
+  readonly baseEjectionDuration?: VirtualNodeSpecInitProviderSpecListenerOutlierDetectionBaseEjectionDuration[];
+
+  /**
+   * Time interval between ejection sweep analysis.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerOutlierDetection#interval
+   */
+  readonly interval?: VirtualNodeSpecInitProviderSpecListenerOutlierDetectionInterval[];
+
+  /**
+   * Maximum percentage of hosts in load balancing pool for upstream service that can be ejected. Will eject at least one host regardless of the value. Minimum value of 0. Maximum value of 100.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerOutlierDetection#maxEjectionPercent
+   */
+  readonly maxEjectionPercent?: number;
+
+  /**
+   * Number of consecutive 5xx errors required for ejection. Minimum value of 1.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerOutlierDetection#maxServerErrors
+   */
+  readonly maxServerErrors?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerOutlierDetection' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerOutlierDetection(obj: VirtualNodeSpecInitProviderSpecListenerOutlierDetection | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'baseEjectionDuration': obj.baseEjectionDuration?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerOutlierDetectionBaseEjectionDuration(y)),
+    'interval': obj.interval?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerOutlierDetectionInterval(y)),
+    'maxEjectionPercent': obj.maxEjectionPercent,
+    'maxServerErrors': obj.maxServerErrors,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerPortMapping
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerPortMapping {
+  /**
+   * Port used for the port mapping.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerPortMapping#port
+   */
+  readonly port?: number;
+
+  /**
+   * Protocol used for the port mapping. Valid values are http, http2, tcp and grpc.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerPortMapping#protocol
+   */
+  readonly protocol?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerPortMapping' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerPortMapping(obj: VirtualNodeSpecInitProviderSpecListenerPortMapping | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'protocol': obj.protocol,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTimeout
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTimeout {
+  /**
+   * Connection pool information for gRPC listeners.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeout#grpc
+   */
+  readonly grpc?: VirtualNodeSpecInitProviderSpecListenerTimeoutGrpc[];
+
+  /**
+   * Connection pool information for HTTP listeners.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeout#http
+   */
+  readonly http?: VirtualNodeSpecInitProviderSpecListenerTimeoutHttp[];
+
+  /**
+   * Connection pool information for HTTP2 listeners.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeout#http2
+   */
+  readonly http2?: VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2[];
+
+  /**
+   * Connection pool information for TCP listeners.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeout#tcp
+   */
+  readonly tcp?: VirtualNodeSpecInitProviderSpecListenerTimeoutTcp[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTimeout' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTimeout(obj: VirtualNodeSpecInitProviderSpecListenerTimeout | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'grpc': obj.grpc?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutGrpc(y)),
+    'http': obj.http?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutHttp(y)),
+    'http2': obj.http2?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2(y)),
+    'tcp': obj.tcp?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutTcp(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTls
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTls {
+  /**
+   * Virtual node's client's Transport Layer Security (TLS) certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTls#certificate
+   */
+  readonly certificate?: VirtualNodeSpecInitProviderSpecListenerTlsCertificate[];
+
+  /**
+   * Listener's TLS mode. Valid values: DISABLED, PERMISSIVE, STRICT.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTls#mode
+   */
+  readonly mode?: string;
+
+  /**
+   * TLS validation context.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTls#validation
+   */
+  readonly validation?: VirtualNodeSpecInitProviderSpecListenerTlsValidation[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTls' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTls(obj: VirtualNodeSpecInitProviderSpecListenerTls | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificate': obj.certificate?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTlsCertificate(y)),
+    'mode': obj.mode,
+    'validation': obj.validation?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTlsValidation(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecLoggingAccessLog
+ */
+export interface VirtualNodeSpecInitProviderSpecLoggingAccessLog {
+  /**
+   * Local file certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecLoggingAccessLog#file
+   */
+  readonly file?: VirtualNodeSpecInitProviderSpecLoggingAccessLogFile[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecLoggingAccessLog' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecLoggingAccessLog(obj: VirtualNodeSpecInitProviderSpecLoggingAccessLog | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'file': obj.file?.map(y => toJson_VirtualNodeSpecInitProviderSpecLoggingAccessLogFile(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecServiceDiscoveryAwsCloudMap
+ */
+export interface VirtualNodeSpecInitProviderSpecServiceDiscoveryAwsCloudMap {
+  /**
+   * String map that contains attributes with values that you can use to filter instances by any custom attribute that you specified when you registered the instance. Only instances that match all of the specified key/value pairs will be returned.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecServiceDiscoveryAwsCloudMap#attributes
+   */
+  readonly attributes?: { [key: string]: string };
+
+  /**
+   * attribute of the dns object to hostname.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecServiceDiscoveryAwsCloudMap#serviceName
+   */
+  readonly serviceName?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecServiceDiscoveryAwsCloudMap' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecServiceDiscoveryAwsCloudMap(obj: VirtualNodeSpecInitProviderSpecServiceDiscoveryAwsCloudMap | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'attributes': ((obj.attributes) === undefined) ? undefined : (Object.entries(obj.attributes).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'serviceName': obj.serviceName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecServiceDiscoveryDns
+ */
+export interface VirtualNodeSpecInitProviderSpecServiceDiscoveryDns {
+  /**
+   * DNS host name for your virtual node.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecServiceDiscoveryDns#hostname
+   */
+  readonly hostname?: string;
+
+  /**
+   * The preferred IP version that this virtual node uses. Valid values: IPv6_PREFERRED, IPv4_PREFERRED, IPv4_ONLY, IPv6_ONLY.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecServiceDiscoveryDns#ipPreference
+   */
+  readonly ipPreference?: string;
+
+  /**
+   * The DNS response type for the virtual node. Valid values: LOADBALANCER, ENDPOINTS.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecServiceDiscoveryDns#responseType
+   */
+  readonly responseType?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecServiceDiscoveryDns' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecServiceDiscoveryDns(obj: VirtualNodeSpecInitProviderSpecServiceDiscoveryDns | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'hostname': obj.hostname,
@@ -10632,7 +15768,7 @@ export interface VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTls {
    *
    * @schema VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTls#validation
    */
-  readonly validation: VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsValidation[];
+  readonly validation?: VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsValidation[];
 
 }
 
@@ -10662,7 +15798,7 @@ export interface VirtualNodeSpecForProviderSpecListenerConnectionPoolGrpc {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerConnectionPoolGrpc#maxRequests
    */
-  readonly maxRequests: number;
+  readonly maxRequests?: number;
 
 }
 
@@ -10689,7 +15825,7 @@ export interface VirtualNodeSpecForProviderSpecListenerConnectionPoolHttp {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerConnectionPoolHttp#maxConnections
    */
-  readonly maxConnections: number;
+  readonly maxConnections?: number;
 
   /**
    * Number of overflowing requests after max_connections Envoy will queue to upstream cluster. Minimum value of 1.
@@ -10724,7 +15860,7 @@ export interface VirtualNodeSpecForProviderSpecListenerConnectionPoolHttp2 {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerConnectionPoolHttp2#maxRequests
    */
-  readonly maxRequests: number;
+  readonly maxRequests?: number;
 
 }
 
@@ -10751,7 +15887,7 @@ export interface VirtualNodeSpecForProviderSpecListenerConnectionPoolTcp {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerConnectionPoolTcp#maxConnections
    */
-  readonly maxConnections: number;
+  readonly maxConnections?: number;
 
 }
 
@@ -10778,14 +15914,14 @@ export interface VirtualNodeSpecForProviderSpecListenerOutlierDetectionBaseEject
    *
    * @schema VirtualNodeSpecForProviderSpecListenerOutlierDetectionBaseEjectionDuration#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerOutlierDetectionBaseEjectionDuration#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -10813,14 +15949,14 @@ export interface VirtualNodeSpecForProviderSpecListenerOutlierDetectionInterval 
    *
    * @schema VirtualNodeSpecForProviderSpecListenerOutlierDetectionInterval#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerOutlierDetectionInterval#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -11030,7 +16166,7 @@ export interface VirtualNodeSpecForProviderSpecListenerTlsValidation {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTlsValidation#trust
    */
-  readonly trust: VirtualNodeSpecForProviderSpecListenerTlsValidationTrust[];
+  readonly trust?: VirtualNodeSpecForProviderSpecListenerTlsValidationTrust[];
 
 }
 
@@ -11065,7 +16201,7 @@ export interface VirtualNodeSpecForProviderSpecLoggingAccessLogFile {
    *
    * @schema VirtualNodeSpecForProviderSpecLoggingAccessLogFile#path
    */
-  readonly path: string;
+  readonly path?: string;
 
 }
 
@@ -11167,6 +16303,516 @@ export function toJson_VirtualNodeSpecForProviderSpecServiceDiscoveryAwsCloudMap
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicy
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicy {
+  /**
+   * Transport Layer Security (TLS) client policy.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicy#tls
+   */
+  readonly tls?: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTls[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicy(obj: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'tls': obj.tls?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTls(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTls
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTls {
+  /**
+   * Virtual node's client's Transport Layer Security (TLS) certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTls#certificate
+   */
+  readonly certificate?: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate[];
+
+  /**
+   * Whether the policy is enforced. Default is true.
+   *
+   * @default true.
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTls#enforce
+   */
+  readonly enforce?: boolean;
+
+  /**
+   * One or more ports that the policy is enforced for.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTls#ports
+   */
+  readonly ports?: number[];
+
+  /**
+   * TLS validation context.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTls#validation
+   */
+  readonly validation?: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTls' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTls(obj: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTls | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificate': obj.certificate?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate(y)),
+    'enforce': obj.enforce,
+    'ports': obj.ports?.map(y => y),
+    'validation': obj.validation?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerConnectionPoolGrpc
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerConnectionPoolGrpc {
+  /**
+   * Maximum number of inflight requests Envoy can concurrently support across hosts in upstream cluster. Minimum value of 1.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerConnectionPoolGrpc#maxRequests
+   */
+  readonly maxRequests?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerConnectionPoolGrpc' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerConnectionPoolGrpc(obj: VirtualNodeSpecInitProviderSpecListenerConnectionPoolGrpc | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxRequests': obj.maxRequests,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp {
+  /**
+   * Maximum number of outbound TCP connections Envoy can establish concurrently with all hosts in upstream cluster. Minimum value of 1.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp#maxConnections
+   */
+  readonly maxConnections?: number;
+
+  /**
+   * Number of overflowing requests after max_connections Envoy will queue to upstream cluster. Minimum value of 1.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp#maxPendingRequests
+   */
+  readonly maxPendingRequests?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp(obj: VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxConnections': obj.maxConnections,
+    'maxPendingRequests': obj.maxPendingRequests,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp2
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp2 {
+  /**
+   * Maximum number of inflight requests Envoy can concurrently support across hosts in upstream cluster. Minimum value of 1.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp2#maxRequests
+   */
+  readonly maxRequests?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp2' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp2(obj: VirtualNodeSpecInitProviderSpecListenerConnectionPoolHttp2 | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxRequests': obj.maxRequests,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerConnectionPoolTcp
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerConnectionPoolTcp {
+  /**
+   * Maximum number of outbound TCP connections Envoy can establish concurrently with all hosts in upstream cluster. Minimum value of 1.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerConnectionPoolTcp#maxConnections
+   */
+  readonly maxConnections?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerConnectionPoolTcp' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerConnectionPoolTcp(obj: VirtualNodeSpecInitProviderSpecListenerConnectionPoolTcp | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxConnections': obj.maxConnections,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerOutlierDetectionBaseEjectionDuration
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerOutlierDetectionBaseEjectionDuration {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerOutlierDetectionBaseEjectionDuration#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerOutlierDetectionBaseEjectionDuration#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerOutlierDetectionBaseEjectionDuration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerOutlierDetectionBaseEjectionDuration(obj: VirtualNodeSpecInitProviderSpecListenerOutlierDetectionBaseEjectionDuration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerOutlierDetectionInterval
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerOutlierDetectionInterval {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerOutlierDetectionInterval#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerOutlierDetectionInterval#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerOutlierDetectionInterval' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerOutlierDetectionInterval(obj: VirtualNodeSpecInitProviderSpecListenerOutlierDetectionInterval | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutGrpc
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTimeoutGrpc {
+  /**
+   * Idle timeout. An idle timeout bounds the amount of time that a connection may be idle.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutGrpc#idle
+   */
+  readonly idle?: VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcIdle[];
+
+  /**
+   * Per request timeout.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutGrpc#perRequest
+   */
+  readonly perRequest?: VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcPerRequest[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTimeoutGrpc' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutGrpc(obj: VirtualNodeSpecInitProviderSpecListenerTimeoutGrpc | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'idle': obj.idle?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcIdle(y)),
+    'perRequest': obj.perRequest?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcPerRequest(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttp
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTimeoutHttp {
+  /**
+   * Idle timeout. An idle timeout bounds the amount of time that a connection may be idle.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttp#idle
+   */
+  readonly idle?: VirtualNodeSpecInitProviderSpecListenerTimeoutHttpIdle[];
+
+  /**
+   * Per request timeout.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttp#perRequest
+   */
+  readonly perRequest?: VirtualNodeSpecInitProviderSpecListenerTimeoutHttpPerRequest[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTimeoutHttp' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutHttp(obj: VirtualNodeSpecInitProviderSpecListenerTimeoutHttp | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'idle': obj.idle?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutHttpIdle(y)),
+    'perRequest': obj.perRequest?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutHttpPerRequest(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2 {
+  /**
+   * Idle timeout. An idle timeout bounds the amount of time that a connection may be idle.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2#idle
+   */
+  readonly idle?: VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2Idle[];
+
+  /**
+   * Per request timeout.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2#perRequest
+   */
+  readonly perRequest?: VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2PerRequest[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2(obj: VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2 | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'idle': obj.idle?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2Idle(y)),
+    'perRequest': obj.perRequest?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2PerRequest(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutTcp
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTimeoutTcp {
+  /**
+   * Idle timeout. An idle timeout bounds the amount of time that a connection may be idle.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutTcp#idle
+   */
+  readonly idle?: VirtualNodeSpecInitProviderSpecListenerTimeoutTcpIdle[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTimeoutTcp' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutTcp(obj: VirtualNodeSpecInitProviderSpecListenerTimeoutTcp | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'idle': obj.idle?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutTcpIdle(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTlsCertificate
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTlsCertificate {
+  /**
+   * TLS validation context trust for an AWS Certificate Manager (ACM) certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTlsCertificate#acm
+   */
+  readonly acm?: VirtualNodeSpecInitProviderSpecListenerTlsCertificateAcm[];
+
+  /**
+   * Local file certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTlsCertificate#file
+   */
+  readonly file?: VirtualNodeSpecInitProviderSpecListenerTlsCertificateFile[];
+
+  /**
+   * A Secret Discovery Service certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTlsCertificate#sds
+   */
+  readonly sds?: VirtualNodeSpecInitProviderSpecListenerTlsCertificateSds[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTlsCertificate' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTlsCertificate(obj: VirtualNodeSpecInitProviderSpecListenerTlsCertificate | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acm': obj.acm?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTlsCertificateAcm(y)),
+    'file': obj.file?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTlsCertificateFile(y)),
+    'sds': obj.sds?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTlsCertificateSds(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTlsValidation
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTlsValidation {
+  /**
+   * SANs for a TLS validation context.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTlsValidation#subjectAlternativeNames
+   */
+  readonly subjectAlternativeNames?: VirtualNodeSpecInitProviderSpecListenerTlsValidationSubjectAlternativeNames[];
+
+  /**
+   * TLS validation context trust.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTlsValidation#trust
+   */
+  readonly trust?: VirtualNodeSpecInitProviderSpecListenerTlsValidationTrust[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTlsValidation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTlsValidation(obj: VirtualNodeSpecInitProviderSpecListenerTlsValidation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'subjectAlternativeNames': obj.subjectAlternativeNames?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTlsValidationSubjectAlternativeNames(y)),
+    'trust': obj.trust?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTlsValidationTrust(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecLoggingAccessLogFile
+ */
+export interface VirtualNodeSpecInitProviderSpecLoggingAccessLogFile {
+  /**
+   * The specified format for the logs.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecLoggingAccessLogFile#format
+   */
+  readonly format?: VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormat[];
+
+  /**
+   * File path to write access logs to. You can use /dev/stdout to send access logs to standard out. Must be between 1 and 255 characters in length.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecLoggingAccessLogFile#path
+   */
+  readonly path?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecLoggingAccessLogFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecLoggingAccessLogFile(obj: VirtualNodeSpecInitProviderSpecLoggingAccessLogFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'format': obj.format?.map(y => toJson_VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormat(y)),
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTls
  */
 export interface VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTls {
@@ -11197,7 +16843,7 @@ export interface VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicy
    *
    * @schema VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTls#validation
    */
-  readonly validation: VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsValidation[];
+  readonly validation?: VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsValidation[];
 
 }
 
@@ -11269,7 +16915,7 @@ export interface VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsVal
    *
    * @schema VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsValidation#trust
    */
-  readonly trust: VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsValidationTrust[];
+  readonly trust?: VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsValidationTrust[];
 
 }
 
@@ -11297,14 +16943,14 @@ export interface VirtualNodeSpecForProviderSpecListenerTimeoutGrpcIdle {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutGrpcIdle#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutGrpcIdle#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -11332,14 +16978,14 @@ export interface VirtualNodeSpecForProviderSpecListenerTimeoutGrpcPerRequest {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutGrpcPerRequest#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutGrpcPerRequest#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -11367,14 +17013,14 @@ export interface VirtualNodeSpecForProviderSpecListenerTimeoutHttpIdle {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutHttpIdle#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutHttpIdle#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -11402,14 +17048,14 @@ export interface VirtualNodeSpecForProviderSpecListenerTimeoutHttpPerRequest {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutHttpPerRequest#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutHttpPerRequest#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -11437,14 +17083,14 @@ export interface VirtualNodeSpecForProviderSpecListenerTimeoutHttp2Idle {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutHttp2Idle#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutHttp2Idle#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -11472,14 +17118,14 @@ export interface VirtualNodeSpecForProviderSpecListenerTimeoutHttp2PerRequest {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutHttp2PerRequest#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutHttp2PerRequest#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -11507,14 +17153,14 @@ export interface VirtualNodeSpecForProviderSpecListenerTimeoutTcpIdle {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutTcpIdle#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTimeoutTcpIdle#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -11542,7 +17188,7 @@ export interface VirtualNodeSpecForProviderSpecListenerTlsCertificateAcm {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTlsCertificateAcm#certificateArn
    */
-  readonly certificateArn: string;
+  readonly certificateArn?: string;
 
 }
 
@@ -11569,14 +17215,14 @@ export interface VirtualNodeSpecForProviderSpecListenerTlsCertificateFile {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTlsCertificateFile#certificateChain
    */
-  readonly certificateChain: string;
+  readonly certificateChain?: string;
 
   /**
    * Private key for a certificate stored on the file system of the mesh endpoint that the proxy is running on.
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTlsCertificateFile#privateKey
    */
-  readonly privateKey: string;
+  readonly privateKey?: string;
 
 }
 
@@ -11604,7 +17250,7 @@ export interface VirtualNodeSpecForProviderSpecListenerTlsCertificateSds {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTlsCertificateSds#secretName
    */
-  readonly secretName: string;
+  readonly secretName?: string;
 
 }
 
@@ -11631,7 +17277,7 @@ export interface VirtualNodeSpecForProviderSpecListenerTlsValidationSubjectAlter
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTlsValidationSubjectAlternativeNames#match
    */
-  readonly match: VirtualNodeSpecForProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch[];
+  readonly match?: VirtualNodeSpecForProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch[];
 
 }
 
@@ -11794,6 +17440,559 @@ export function toJson_VirtualNodeSpecForProviderSpecServiceDiscoveryAwsCloudMap
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTls
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTls {
+  /**
+   * Virtual node's client's Transport Layer Security (TLS) certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTls#certificate
+   */
+  readonly certificate?: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificate[];
+
+  /**
+   * Whether the policy is enforced. Default is true.
+   *
+   * @default true.
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTls#enforce
+   */
+  readonly enforce?: boolean;
+
+  /**
+   * One or more ports that the policy is enforced for.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTls#ports
+   */
+  readonly ports?: number[];
+
+  /**
+   * TLS validation context.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTls#validation
+   */
+  readonly validation?: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidation[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTls' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTls(obj: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTls | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificate': obj.certificate?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificate(y)),
+    'enforce': obj.enforce,
+    'ports': obj.ports?.map(y => y),
+    'validation': obj.validation?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidation(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate {
+  /**
+   * Local file certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate#file
+   */
+  readonly file?: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile[];
+
+  /**
+   * A Secret Discovery Service certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate#sds
+   */
+  readonly sds?: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateSds[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate(obj: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificate | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'file': obj.file?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile(y)),
+    'sds': obj.sds?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateSds(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation {
+  /**
+   * SANs for a TLS validation context.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation#subjectAlternativeNames
+   */
+  readonly subjectAlternativeNames?: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames[];
+
+  /**
+   * TLS validation context trust.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation#trust
+   */
+  readonly trust?: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation(obj: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'subjectAlternativeNames': obj.subjectAlternativeNames?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames(y)),
+    'trust': obj.trust?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcIdle
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcIdle {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcIdle#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcIdle#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcIdle' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcIdle(obj: VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcIdle | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcPerRequest
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcPerRequest {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcPerRequest#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcPerRequest#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcPerRequest' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcPerRequest(obj: VirtualNodeSpecInitProviderSpecListenerTimeoutGrpcPerRequest | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttpIdle
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTimeoutHttpIdle {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttpIdle#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttpIdle#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTimeoutHttpIdle' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutHttpIdle(obj: VirtualNodeSpecInitProviderSpecListenerTimeoutHttpIdle | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttpPerRequest
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTimeoutHttpPerRequest {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttpPerRequest#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttpPerRequest#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTimeoutHttpPerRequest' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutHttpPerRequest(obj: VirtualNodeSpecInitProviderSpecListenerTimeoutHttpPerRequest | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2Idle
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2Idle {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2Idle#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2Idle#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2Idle' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2Idle(obj: VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2Idle | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2PerRequest
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2PerRequest {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2PerRequest#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2PerRequest#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2PerRequest' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2PerRequest(obj: VirtualNodeSpecInitProviderSpecListenerTimeoutHttp2PerRequest | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutTcpIdle
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTimeoutTcpIdle {
+  /**
+   * Unit of time. Valid values: ms, s.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutTcpIdle#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTimeoutTcpIdle#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTimeoutTcpIdle' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTimeoutTcpIdle(obj: VirtualNodeSpecInitProviderSpecListenerTimeoutTcpIdle | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTlsCertificateAcm
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTlsCertificateAcm {
+  /**
+   * ARN for the certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTlsCertificateAcm#certificateArn
+   */
+  readonly certificateArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTlsCertificateAcm' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTlsCertificateAcm(obj: VirtualNodeSpecInitProviderSpecListenerTlsCertificateAcm | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateArn': obj.certificateArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTlsCertificateFile
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTlsCertificateFile {
+  /**
+   * Certificate chain for the certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTlsCertificateFile#certificateChain
+   */
+  readonly certificateChain?: string;
+
+  /**
+   * Private key for a certificate stored on the file system of the mesh endpoint that the proxy is running on.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTlsCertificateFile#privateKey
+   */
+  readonly privateKey?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTlsCertificateFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTlsCertificateFile(obj: VirtualNodeSpecInitProviderSpecListenerTlsCertificateFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateChain': obj.certificateChain,
+    'privateKey': obj.privateKey,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTlsCertificateSds
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTlsCertificateSds {
+  /**
+   * Name of the secret secret requested from the Secret Discovery Service provider representing Transport Layer Security (TLS) materials like a certificate or certificate chain.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTlsCertificateSds#secretName
+   */
+  readonly secretName?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTlsCertificateSds' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTlsCertificateSds(obj: VirtualNodeSpecInitProviderSpecListenerTlsCertificateSds | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretName': obj.secretName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTlsValidationSubjectAlternativeNames
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTlsValidationSubjectAlternativeNames {
+  /**
+   * Criteria for determining a SAN's match.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTlsValidationSubjectAlternativeNames#match
+   */
+  readonly match?: VirtualNodeSpecInitProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTlsValidationSubjectAlternativeNames' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTlsValidationSubjectAlternativeNames(obj: VirtualNodeSpecInitProviderSpecListenerTlsValidationSubjectAlternativeNames | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'match': obj.match?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTlsValidationTrust
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTlsValidationTrust {
+  /**
+   * Local file certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTlsValidationTrust#file
+   */
+  readonly file?: VirtualNodeSpecInitProviderSpecListenerTlsValidationTrustFile[];
+
+  /**
+   * A Secret Discovery Service certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTlsValidationTrust#sds
+   */
+  readonly sds?: VirtualNodeSpecInitProviderSpecListenerTlsValidationTrustSds[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTlsValidationTrust' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTlsValidationTrust(obj: VirtualNodeSpecInitProviderSpecListenerTlsValidationTrust | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'file': obj.file?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTlsValidationTrustFile(y)),
+    'sds': obj.sds?.map(y => toJson_VirtualNodeSpecInitProviderSpecListenerTlsValidationTrustSds(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormat
+ */
+export interface VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormat {
+  /**
+   * The logging format for JSON.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormat#json
+   */
+  readonly json?: VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormatJson[];
+
+  /**
+   * The logging format for text. Must be between 1 and 1000 characters in length.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormat#text
+   */
+  readonly text?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormat' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormat(obj: VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormat | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'json': obj.json?.map(y => toJson_VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormatJson(y)),
+    'text': obj.text,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsCertificate
  */
 export interface VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsCertificate {
@@ -11844,7 +18043,7 @@ export interface VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicy
    *
    * @schema VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsValidation#trust
    */
-  readonly trust: VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrust[];
+  readonly trust?: VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrust[];
 
 }
 
@@ -11872,14 +18071,14 @@ export interface VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsCer
    *
    * @schema VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsCertificateFile#certificateChain
    */
-  readonly certificateChain: string;
+  readonly certificateChain?: string;
 
   /**
    * Private key for a certificate stored on the file system of the mesh endpoint that the proxy is running on.
    *
    * @schema VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsCertificateFile#privateKey
    */
-  readonly privateKey: string;
+  readonly privateKey?: string;
 
 }
 
@@ -11907,7 +18106,7 @@ export interface VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsCer
    *
    * @schema VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsCertificateSds#secretName
    */
-  readonly secretName: string;
+  readonly secretName?: string;
 
 }
 
@@ -11934,7 +18133,7 @@ export interface VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsVal
    *
    * @schema VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames#match
    */
-  readonly match: VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch[];
+  readonly match?: VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch[];
 
 }
 
@@ -12004,7 +18203,7 @@ export interface VirtualNodeSpecForProviderSpecListenerTlsValidationSubjectAlter
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch#exact
    */
-  readonly exact: string[];
+  readonly exact?: string[];
 
 }
 
@@ -12031,7 +18230,7 @@ export interface VirtualNodeSpecForProviderSpecListenerTlsValidationTrustFile {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTlsValidationTrustFile#certificateChain
    */
-  readonly certificateChain: string;
+  readonly certificateChain?: string;
 
 }
 
@@ -12058,7 +18257,7 @@ export interface VirtualNodeSpecForProviderSpecListenerTlsValidationTrustSds {
    *
    * @schema VirtualNodeSpecForProviderSpecListenerTlsValidationTrustSds#secretName
    */
-  readonly secretName: string;
+  readonly secretName?: string;
 
 }
 
@@ -12085,14 +18284,14 @@ export interface VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormatJson {
    *
    * @schema VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormatJson#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * The specified value for the JSON. Must be between 1 and 100 characters in length.
    *
    * @schema VirtualNodeSpecForProviderSpecLoggingAccessLogFileFormatJson#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -12160,6 +18359,324 @@ export enum VirtualNodeSpecForProviderSpecServiceDiscoveryAwsCloudMapNamespaceNa
 }
 
 /**
+ * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificate
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificate {
+  /**
+   * Local file certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificate#file
+   */
+  readonly file?: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateFile[];
+
+  /**
+   * A Secret Discovery Service certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificate#sds
+   */
+  readonly sds?: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateSds[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificate' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificate(obj: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificate | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'file': obj.file?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateFile(y)),
+    'sds': obj.sds?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateSds(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidation
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidation {
+  /**
+   * SANs for a TLS validation context.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidation#subjectAlternativeNames
+   */
+  readonly subjectAlternativeNames?: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNames[];
+
+  /**
+   * TLS validation context trust.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidation#trust
+   */
+  readonly trust?: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrust[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidation(obj: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'subjectAlternativeNames': obj.subjectAlternativeNames?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNames(y)),
+    'trust': obj.trust?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrust(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile {
+  /**
+   * Certificate chain for the certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile#certificateChain
+   */
+  readonly certificateChain?: string;
+
+  /**
+   * Private key for a certificate stored on the file system of the mesh endpoint that the proxy is running on.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile#privateKey
+   */
+  readonly privateKey?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile(obj: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateChain': obj.certificateChain,
+    'privateKey': obj.privateKey,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateSds
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateSds {
+  /**
+   * Name of the secret secret requested from the Secret Discovery Service provider representing Transport Layer Security (TLS) materials like a certificate or certificate chain.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateSds#secretName
+   */
+  readonly secretName?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateSds' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateSds(obj: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsCertificateSds | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretName': obj.secretName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames {
+  /**
+   * Criteria for determining a SAN's match.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames#match
+   */
+  readonly match?: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames(obj: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNames | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'match': obj.match?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust {
+  /**
+   * TLS validation context trust for an AWS Certificate Manager (ACM) certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust#acm
+   */
+  readonly acm?: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm[];
+
+  /**
+   * Local file certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust#file
+   */
+  readonly file?: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile[];
+
+  /**
+   * A Secret Discovery Service certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust#sds
+   */
+  readonly sds?: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust(obj: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrust | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acm': obj.acm?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm(y)),
+    'file': obj.file?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile(y)),
+    'sds': obj.sds?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch {
+  /**
+   * Values sent must match the specified values exactly.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch#exact
+   */
+  readonly exact?: string[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch(obj: VirtualNodeSpecInitProviderSpecListenerTlsValidationSubjectAlternativeNamesMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTlsValidationTrustFile
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTlsValidationTrustFile {
+  /**
+   * Certificate chain for the certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTlsValidationTrustFile#certificateChain
+   */
+  readonly certificateChain?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTlsValidationTrustFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTlsValidationTrustFile(obj: VirtualNodeSpecInitProviderSpecListenerTlsValidationTrustFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateChain': obj.certificateChain,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecListenerTlsValidationTrustSds
+ */
+export interface VirtualNodeSpecInitProviderSpecListenerTlsValidationTrustSds {
+  /**
+   * Name of the secret secret requested from the Secret Discovery Service provider representing Transport Layer Security (TLS) materials like a certificate or certificate chain.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecListenerTlsValidationTrustSds#secretName
+   */
+  readonly secretName?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecListenerTlsValidationTrustSds' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecListenerTlsValidationTrustSds(obj: VirtualNodeSpecInitProviderSpecListenerTlsValidationTrustSds | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretName': obj.secretName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormatJson
+ */
+export interface VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormatJson {
+  /**
+   * The specified key for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormatJson#key
+   */
+  readonly key?: string;
+
+  /**
+   * The specified value for the JSON. Must be between 1 and 100 characters in length.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormatJson#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormatJson' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormatJson(obj: VirtualNodeSpecInitProviderSpecLoggingAccessLogFileFormatJson | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsCertificateFile
  */
 export interface VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsCertificateFile {
@@ -12168,14 +18685,14 @@ export interface VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicy
    *
    * @schema VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsCertificateFile#certificateChain
    */
-  readonly certificateChain: string;
+  readonly certificateChain?: string;
 
   /**
    * Private key for a certificate stored on the file system of the mesh endpoint that the proxy is running on.
    *
    * @schema VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsCertificateFile#privateKey
    */
-  readonly privateKey: string;
+  readonly privateKey?: string;
 
 }
 
@@ -12203,7 +18720,7 @@ export interface VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicy
    *
    * @schema VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsCertificateSds#secretName
    */
-  readonly secretName: string;
+  readonly secretName?: string;
 
 }
 
@@ -12230,7 +18747,7 @@ export interface VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicy
    *
    * @schema VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNames#match
    */
-  readonly match: VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNamesMatch[];
+  readonly match?: VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNamesMatch[];
 
 }
 
@@ -12300,7 +18817,7 @@ export interface VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsVal
    *
    * @schema VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch#exact
    */
-  readonly exact: string[];
+  readonly exact?: string[];
 
 }
 
@@ -12327,7 +18844,7 @@ export interface VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsVal
    *
    * @schema VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm#certificateAuthorityArns
    */
-  readonly certificateAuthorityArns: string[];
+  readonly certificateAuthorityArns?: string[];
 
 }
 
@@ -12354,7 +18871,7 @@ export interface VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsVal
    *
    * @schema VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile#certificateChain
    */
-  readonly certificateChain: string;
+  readonly certificateChain?: string;
 
 }
 
@@ -12381,7 +18898,7 @@ export interface VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsVal
    *
    * @schema VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds#secretName
    */
-  readonly secretName: string;
+  readonly secretName?: string;
 
 }
 
@@ -12400,6 +18917,246 @@ export function toJson_VirtualNodeSpecForProviderSpecBackendDefaultsClientPolicy
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateFile
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateFile {
+  /**
+   * Certificate chain for the certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateFile#certificateChain
+   */
+  readonly certificateChain?: string;
+
+  /**
+   * Private key for a certificate stored on the file system of the mesh endpoint that the proxy is running on.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateFile#privateKey
+   */
+  readonly privateKey?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateFile(obj: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateChain': obj.certificateChain,
+    'privateKey': obj.privateKey,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateSds
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateSds {
+  /**
+   * Name of the secret secret requested from the Secret Discovery Service provider representing Transport Layer Security (TLS) materials like a certificate or certificate chain.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateSds#secretName
+   */
+  readonly secretName?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateSds' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateSds(obj: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsCertificateSds | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretName': obj.secretName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNames
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNames {
+  /**
+   * Criteria for determining a SAN's match.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNames#match
+   */
+  readonly match?: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNamesMatch[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNames' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNames(obj: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNames | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'match': obj.match?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNamesMatch(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrust
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrust {
+  /**
+   * TLS validation context trust for an AWS Certificate Manager (ACM) certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrust#acm
+   */
+  readonly acm?: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustAcm[];
+
+  /**
+   * Local file certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrust#file
+   */
+  readonly file?: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustFile[];
+
+  /**
+   * A Secret Discovery Service certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrust#sds
+   */
+  readonly sds?: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustSds[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrust' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrust(obj: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrust | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acm': obj.acm?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustAcm(y)),
+    'file': obj.file?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustFile(y)),
+    'sds': obj.sds?.map(y => toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustSds(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch {
+  /**
+   * Values sent must match the specified values exactly.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch#exact
+   */
+  readonly exact?: string[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch(obj: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationSubjectAlternativeNamesMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm {
+  /**
+   * One or more ACM ARNs.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm#certificateAuthorityArns
+   */
+  readonly certificateAuthorityArns?: string[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm(obj: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustAcm | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateAuthorityArns': obj.certificateAuthorityArns?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile {
+  /**
+   * Certificate chain for the certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile#certificateChain
+   */
+  readonly certificateChain?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile(obj: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateChain': obj.certificateChain,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds {
+  /**
+   * Name of the secret secret requested from the Secret Discovery Service provider representing Transport Layer Security (TLS) materials like a certificate or certificate chain.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds#secretName
+   */
+  readonly secretName?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds(obj: VirtualNodeSpecInitProviderSpecBackendDefaultsClientPolicyTlsValidationTrustSds | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretName': obj.secretName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNamesMatch
  */
 export interface VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNamesMatch {
@@ -12408,7 +19165,7 @@ export interface VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicy
    *
    * @schema VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNamesMatch#exact
    */
-  readonly exact: string[];
+  readonly exact?: string[];
 
 }
 
@@ -12435,7 +19192,7 @@ export interface VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicy
    *
    * @schema VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustAcm#certificateAuthorityArns
    */
-  readonly certificateAuthorityArns: string[];
+  readonly certificateAuthorityArns?: string[];
 
 }
 
@@ -12462,7 +19219,7 @@ export interface VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicy
    *
    * @schema VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustFile#certificateChain
    */
-  readonly certificateChain: string;
+  readonly certificateChain?: string;
 
 }
 
@@ -12489,7 +19246,7 @@ export interface VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicy
    *
    * @schema VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustSds#secretName
    */
-  readonly secretName: string;
+  readonly secretName?: string;
 
 }
 
@@ -12498,6 +19255,114 @@ export interface VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicy
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustSds(obj: VirtualNodeSpecForProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustSds | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretName': obj.secretName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNamesMatch
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNamesMatch {
+  /**
+   * Values sent must match the specified values exactly.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNamesMatch#exact
+   */
+  readonly exact?: string[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNamesMatch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNamesMatch(obj: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationSubjectAlternativeNamesMatch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exact': obj.exact?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustAcm
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustAcm {
+  /**
+   * One or more ACM ARNs.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustAcm#certificateAuthorityArns
+   */
+  readonly certificateAuthorityArns?: string[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustAcm' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustAcm(obj: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustAcm | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateAuthorityArns': obj.certificateAuthorityArns?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustFile
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustFile {
+  /**
+   * Certificate chain for the certificate.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustFile#certificateChain
+   */
+  readonly certificateChain?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustFile(obj: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateChain': obj.certificateChain,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustSds
+ */
+export interface VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustSds {
+  /**
+   * Name of the secret secret requested from the Secret Discovery Service provider representing Transport Layer Security (TLS) materials like a certificate or certificate chain.
+   *
+   * @schema VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustSds#secretName
+   */
+  readonly secretName?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustSds' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustSds(obj: VirtualNodeSpecInitProviderSpecBackendVirtualServiceClientPolicyTlsValidationTrustSds | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'secretName': obj.secretName,
@@ -12604,7 +19469,7 @@ export function toJson_VirtualRouterProps(obj: VirtualRouterProps | undefined): 
  */
 export interface VirtualRouterSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VirtualRouterSpec#deletionPolicy
    */
@@ -12616,11 +19481,18 @@ export interface VirtualRouterSpec {
   readonly forProvider: VirtualRouterSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema VirtualRouterSpec#managementPolicy
+   * @schema VirtualRouterSpec#initProvider
    */
-  readonly managementPolicy?: VirtualRouterSpecManagementPolicy;
+  readonly initProvider?: VirtualRouterSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema VirtualRouterSpec#managementPolicies
+   */
+  readonly managementPolicies?: VirtualRouterSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -12628,13 +19500,6 @@ export interface VirtualRouterSpec {
    * @schema VirtualRouterSpec#providerConfigRef
    */
   readonly providerConfigRef?: VirtualRouterSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema VirtualRouterSpec#providerRef
-   */
-  readonly providerRef?: VirtualRouterSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -12661,9 +19526,9 @@ export function toJson_VirtualRouterSpec(obj: VirtualRouterSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VirtualRouterSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_VirtualRouterSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_VirtualRouterSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_VirtualRouterSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VirtualRouterSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_VirtualRouterSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -12673,7 +19538,7 @@ export function toJson_VirtualRouterSpec(obj: VirtualRouterSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VirtualRouterSpecDeletionPolicy
  */
@@ -12769,17 +19634,77 @@ export function toJson_VirtualRouterSpecForProvider(obj: VirtualRouterSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema VirtualRouterSpecManagementPolicy
+ * @schema VirtualRouterSpecInitProvider
  */
-export enum VirtualRouterSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface VirtualRouterSpecInitProvider {
+  /**
+   * AWS account ID of the service mesh's owner. Defaults to the account ID the AWS provider is currently connected to.
+   *
+   * @default the account ID the AWS provider is currently connected to.
+   * @schema VirtualRouterSpecInitProvider#meshOwner
+   */
+  readonly meshOwner?: string;
+
+  /**
+   * Name to use for the virtual router. Must be between 1 and 255 characters in length.
+   *
+   * @schema VirtualRouterSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Virtual router specification to apply.
+   *
+   * @schema VirtualRouterSpecInitProvider#spec
+   */
+  readonly spec?: VirtualRouterSpecInitProviderSpec[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema VirtualRouterSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'VirtualRouterSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualRouterSpecInitProvider(obj: VirtualRouterSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'meshOwner': obj.meshOwner,
+    'name': obj.name,
+    'spec': obj.spec?.map(y => toJson_VirtualRouterSpecInitProviderSpec(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema VirtualRouterSpecManagementPolicies
+ */
+export enum VirtualRouterSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -12813,43 +19738,6 @@ export function toJson_VirtualRouterSpecProviderConfigRef(obj: VirtualRouterSpec
   const result = {
     'name': obj.name,
     'policy': toJson_VirtualRouterSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema VirtualRouterSpecProviderRef
- */
-export interface VirtualRouterSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema VirtualRouterSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema VirtualRouterSpecProviderRef#policy
-   */
-  readonly policy?: VirtualRouterSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'VirtualRouterSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VirtualRouterSpecProviderRef(obj: VirtualRouterSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_VirtualRouterSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -13048,6 +19936,33 @@ export function toJson_VirtualRouterSpecForProviderSpec(obj: VirtualRouterSpecFo
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema VirtualRouterSpecInitProviderSpec
+ */
+export interface VirtualRouterSpecInitProviderSpec {
+  /**
+   * configuration block to the spec argument.
+   *
+   * @schema VirtualRouterSpecInitProviderSpec#listener
+   */
+  readonly listener?: VirtualRouterSpecInitProviderSpecListener[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualRouterSpecInitProviderSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualRouterSpecInitProviderSpec(obj: VirtualRouterSpecInitProviderSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'listener': obj.listener?.map(y => toJson_VirtualRouterSpecInitProviderSpecListener(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema VirtualRouterSpecProviderConfigRefPolicy
@@ -13074,43 +19989,6 @@ export interface VirtualRouterSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_VirtualRouterSpecProviderConfigRefPolicy(obj: VirtualRouterSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema VirtualRouterSpecProviderRefPolicy
- */
-export interface VirtualRouterSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema VirtualRouterSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: VirtualRouterSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema VirtualRouterSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: VirtualRouterSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'VirtualRouterSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VirtualRouterSpecProviderRefPolicy(obj: VirtualRouterSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -13286,7 +20164,7 @@ export interface VirtualRouterSpecForProviderSpecListener {
    *
    * @schema VirtualRouterSpecForProviderSpecListener#portMapping
    */
-  readonly portMapping: VirtualRouterSpecForProviderSpecListenerPortMapping[];
+  readonly portMapping?: VirtualRouterSpecForProviderSpecListenerPortMapping[];
 
 }
 
@@ -13298,6 +20176,33 @@ export function toJson_VirtualRouterSpecForProviderSpecListener(obj: VirtualRout
   if (obj === undefined) { return undefined; }
   const result = {
     'portMapping': obj.portMapping?.map(y => toJson_VirtualRouterSpecForProviderSpecListenerPortMapping(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualRouterSpecInitProviderSpecListener
+ */
+export interface VirtualRouterSpecInitProviderSpecListener {
+  /**
+   * Port mapping information for the listener.
+   *
+   * @schema VirtualRouterSpecInitProviderSpecListener#portMapping
+   */
+  readonly portMapping?: VirtualRouterSpecInitProviderSpecListenerPortMapping[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualRouterSpecInitProviderSpecListener' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualRouterSpecInitProviderSpecListener(obj: VirtualRouterSpecInitProviderSpecListener | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'portMapping': obj.portMapping?.map(y => toJson_VirtualRouterSpecInitProviderSpecListenerPortMapping(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -13322,30 +20227,6 @@ export enum VirtualRouterSpecProviderConfigRefPolicyResolution {
  * @schema VirtualRouterSpecProviderConfigRefPolicyResolve
  */
 export enum VirtualRouterSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema VirtualRouterSpecProviderRefPolicyResolution
- */
-export enum VirtualRouterSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema VirtualRouterSpecProviderRefPolicyResolve
- */
-export enum VirtualRouterSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -13446,14 +20327,14 @@ export interface VirtualRouterSpecForProviderSpecListenerPortMapping {
    *
    * @schema VirtualRouterSpecForProviderSpecListenerPortMapping#port
    */
-  readonly port: number;
+  readonly port?: number;
 
   /**
    * Protocol used for the port mapping. Valid values are http,http2, tcp and grpc.
    *
    * @schema VirtualRouterSpecForProviderSpecListenerPortMapping#protocol
    */
-  readonly protocol: string;
+  readonly protocol?: string;
 
 }
 
@@ -13462,6 +20343,41 @@ export interface VirtualRouterSpecForProviderSpecListenerPortMapping {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_VirtualRouterSpecForProviderSpecListenerPortMapping(obj: VirtualRouterSpecForProviderSpecListenerPortMapping | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'protocol': obj.protocol,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema VirtualRouterSpecInitProviderSpecListenerPortMapping
+ */
+export interface VirtualRouterSpecInitProviderSpecListenerPortMapping {
+  /**
+   * Port used for the port mapping.
+   *
+   * @schema VirtualRouterSpecInitProviderSpecListenerPortMapping#port
+   */
+  readonly port?: number;
+
+  /**
+   * Protocol used for the port mapping. Valid values are http,http2, tcp and grpc.
+   *
+   * @schema VirtualRouterSpecInitProviderSpecListenerPortMapping#protocol
+   */
+  readonly protocol?: string;
+
+}
+
+/**
+ * Converts an object of type 'VirtualRouterSpecInitProviderSpecListenerPortMapping' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualRouterSpecInitProviderSpecListenerPortMapping(obj: VirtualRouterSpecInitProviderSpecListenerPortMapping | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'port': obj.port,
@@ -13593,7 +20509,7 @@ export function toJson_VirtualServiceProps(obj: VirtualServiceProps | undefined)
  */
 export interface VirtualServiceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VirtualServiceSpec#deletionPolicy
    */
@@ -13605,11 +20521,18 @@ export interface VirtualServiceSpec {
   readonly forProvider: VirtualServiceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema VirtualServiceSpec#managementPolicy
+   * @schema VirtualServiceSpec#initProvider
    */
-  readonly managementPolicy?: VirtualServiceSpecManagementPolicy;
+  readonly initProvider?: VirtualServiceSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema VirtualServiceSpec#managementPolicies
+   */
+  readonly managementPolicies?: VirtualServiceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -13617,13 +20540,6 @@ export interface VirtualServiceSpec {
    * @schema VirtualServiceSpec#providerConfigRef
    */
   readonly providerConfigRef?: VirtualServiceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema VirtualServiceSpec#providerRef
-   */
-  readonly providerRef?: VirtualServiceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -13650,9 +20566,9 @@ export function toJson_VirtualServiceSpec(obj: VirtualServiceSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VirtualServiceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_VirtualServiceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_VirtualServiceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_VirtualServiceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VirtualServiceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_VirtualServiceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -13662,7 +20578,7 @@ export function toJson_VirtualServiceSpec(obj: VirtualServiceSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VirtualServiceSpecDeletionPolicy
  */
@@ -13758,17 +20674,77 @@ export function toJson_VirtualServiceSpecForProvider(obj: VirtualServiceSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema VirtualServiceSpecManagementPolicy
+ * @schema VirtualServiceSpecInitProvider
  */
-export enum VirtualServiceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface VirtualServiceSpecInitProvider {
+  /**
+   * AWS account ID of the service mesh's owner. Defaults to the account ID the AWS provider is currently connected to.
+   *
+   * @default the account ID the AWS provider is currently connected to.
+   * @schema VirtualServiceSpecInitProvider#meshOwner
+   */
+  readonly meshOwner?: string;
+
+  /**
+   * Name to use for the virtual service. Must be between 1 and 255 characters in length.
+   *
+   * @schema VirtualServiceSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Virtual service specification to apply.
+   *
+   * @schema VirtualServiceSpecInitProvider#spec
+   */
+  readonly spec?: VirtualServiceSpecInitProviderSpec[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema VirtualServiceSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'VirtualServiceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualServiceSpecInitProvider(obj: VirtualServiceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'meshOwner': obj.meshOwner,
+    'name': obj.name,
+    'spec': obj.spec?.map(y => toJson_VirtualServiceSpecInitProviderSpec(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema VirtualServiceSpecManagementPolicies
+ */
+export enum VirtualServiceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -13802,43 +20778,6 @@ export function toJson_VirtualServiceSpecProviderConfigRef(obj: VirtualServiceSp
   const result = {
     'name': obj.name,
     'policy': toJson_VirtualServiceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema VirtualServiceSpecProviderRef
- */
-export interface VirtualServiceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema VirtualServiceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema VirtualServiceSpecProviderRef#policy
-   */
-  readonly policy?: VirtualServiceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'VirtualServiceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VirtualServiceSpecProviderRef(obj: VirtualServiceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_VirtualServiceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -14037,6 +20976,33 @@ export function toJson_VirtualServiceSpecForProviderSpec(obj: VirtualServiceSpec
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema VirtualServiceSpecInitProviderSpec
+ */
+export interface VirtualServiceSpecInitProviderSpec {
+  /**
+   * App Mesh object that is acting as the provider for a virtual service. You can specify a single virtual node or virtual router.
+   *
+   * @schema VirtualServiceSpecInitProviderSpec#provider
+   */
+  readonly provider?: VirtualServiceSpecInitProviderSpecProvider[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualServiceSpecInitProviderSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualServiceSpecInitProviderSpec(obj: VirtualServiceSpecInitProviderSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'provider': obj.provider?.map(y => toJson_VirtualServiceSpecInitProviderSpecProvider(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema VirtualServiceSpecProviderConfigRefPolicy
@@ -14063,43 +21029,6 @@ export interface VirtualServiceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_VirtualServiceSpecProviderConfigRefPolicy(obj: VirtualServiceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema VirtualServiceSpecProviderRefPolicy
- */
-export interface VirtualServiceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema VirtualServiceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: VirtualServiceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema VirtualServiceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: VirtualServiceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'VirtualServiceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VirtualServiceSpecProviderRefPolicy(obj: VirtualServiceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -14302,6 +21231,41 @@ export function toJson_VirtualServiceSpecForProviderSpecProvider(obj: VirtualSer
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema VirtualServiceSpecInitProviderSpecProvider
+ */
+export interface VirtualServiceSpecInitProviderSpecProvider {
+  /**
+   * Virtual node associated with a virtual service.
+   *
+   * @schema VirtualServiceSpecInitProviderSpecProvider#virtualNode
+   */
+  readonly virtualNode?: any[];
+
+  /**
+   * Virtual router associated with a virtual service.
+   *
+   * @schema VirtualServiceSpecInitProviderSpecProvider#virtualRouter
+   */
+  readonly virtualRouter?: any[];
+
+}
+
+/**
+ * Converts an object of type 'VirtualServiceSpecInitProviderSpecProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VirtualServiceSpecInitProviderSpecProvider(obj: VirtualServiceSpecInitProviderSpecProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'virtualNode': obj.virtualNode?.map(y => y),
+    'virtualRouter': obj.virtualRouter?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema VirtualServiceSpecProviderConfigRefPolicyResolution
@@ -14319,30 +21283,6 @@ export enum VirtualServiceSpecProviderConfigRefPolicyResolution {
  * @schema VirtualServiceSpecProviderConfigRefPolicyResolve
  */
 export enum VirtualServiceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema VirtualServiceSpecProviderRefPolicyResolution
- */
-export enum VirtualServiceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema VirtualServiceSpecProviderRefPolicyResolve
- */
-export enum VirtualServiceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

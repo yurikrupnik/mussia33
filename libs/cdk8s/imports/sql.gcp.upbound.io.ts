@@ -99,7 +99,7 @@ export function toJson_DatabaseProps(obj: DatabaseProps | undefined): Record<str
  */
 export interface DatabaseSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DatabaseSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface DatabaseSpec {
   readonly forProvider: DatabaseSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DatabaseSpec#managementPolicy
+   * @schema DatabaseSpec#initProvider
    */
-  readonly managementPolicy?: DatabaseSpecManagementPolicy;
+  readonly initProvider?: DatabaseSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DatabaseSpec#managementPolicies
+   */
+  readonly managementPolicies?: DatabaseSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface DatabaseSpec {
    * @schema DatabaseSpec#providerConfigRef
    */
   readonly providerConfigRef?: DatabaseSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DatabaseSpec#providerRef
-   */
-  readonly providerRef?: DatabaseSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_DatabaseSpec(obj: DatabaseSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DatabaseSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DatabaseSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DatabaseSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DatabaseSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DatabaseSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DatabaseSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_DatabaseSpec(obj: DatabaseSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DatabaseSpecDeletionPolicy
  */
@@ -256,17 +256,77 @@ export function toJson_DatabaseSpecForProvider(obj: DatabaseSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DatabaseSpecManagementPolicy
+ * @schema DatabaseSpecInitProvider
  */
-export enum DatabaseSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DatabaseSpecInitProvider {
+  /**
+   * The charset value. See MySQL's Supported Character Sets and Collations and Postgres' Character Set Support for more details and supported values. Postgres databases only support a value of UTF8 at creation time.
+   *
+   * @schema DatabaseSpecInitProvider#charset
+   */
+  readonly charset?: string;
+
+  /**
+   * The collation value. See MySQL's Supported Character Sets and Collations and Postgres' Collation Support for more details and supported values. Postgres databases only support a value of en_US.UTF8 at creation time.
+   *
+   * @schema DatabaseSpecInitProvider#collation
+   */
+  readonly collation?: string;
+
+  /**
+   * The deletion policy for the database. Setting ABANDON allows the resource to be abandoned rather than deleted. This is useful for Postgres, where databases cannot be deleted from the API if there are users other than cloudsqlsuperuser with access. Possible values are: "ABANDON", "DELETE". Defaults to "DELETE".
+   *
+   * @default DELETE".
+   * @schema DatabaseSpecInitProvider#deletionPolicy
+   */
+  readonly deletionPolicy?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema DatabaseSpecInitProvider#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseSpecInitProvider(obj: DatabaseSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'charset': obj.charset,
+    'collation': obj.collation,
+    'deletionPolicy': obj.deletionPolicy,
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DatabaseSpecManagementPolicies
+ */
+export enum DatabaseSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -300,43 +360,6 @@ export function toJson_DatabaseSpecProviderConfigRef(obj: DatabaseSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_DatabaseSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DatabaseSpecProviderRef
- */
-export interface DatabaseSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DatabaseSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DatabaseSpecProviderRef#policy
-   */
-  readonly policy?: DatabaseSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DatabaseSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DatabaseSpecProviderRef(obj: DatabaseSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DatabaseSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -545,43 +568,6 @@ export function toJson_DatabaseSpecProviderConfigRefPolicy(obj: DatabaseSpecProv
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema DatabaseSpecProviderRefPolicy
- */
-export interface DatabaseSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DatabaseSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DatabaseSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DatabaseSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DatabaseSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DatabaseSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DatabaseSpecProviderRefPolicy(obj: DatabaseSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema DatabaseSpecPublishConnectionDetailsToConfigRef
@@ -755,30 +741,6 @@ export enum DatabaseSpecProviderConfigRefPolicyResolution {
  * @schema DatabaseSpecProviderConfigRefPolicyResolve
  */
 export enum DatabaseSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DatabaseSpecProviderRefPolicyResolution
- */
-export enum DatabaseSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DatabaseSpecProviderRefPolicyResolve
- */
-export enum DatabaseSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -991,7 +953,7 @@ export function toJson_DatabaseInstanceProps(obj: DatabaseInstanceProps | undefi
  */
 export interface DatabaseInstanceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DatabaseInstanceSpec#deletionPolicy
    */
@@ -1003,11 +965,18 @@ export interface DatabaseInstanceSpec {
   readonly forProvider: DatabaseInstanceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DatabaseInstanceSpec#managementPolicy
+   * @schema DatabaseInstanceSpec#initProvider
    */
-  readonly managementPolicy?: DatabaseInstanceSpecManagementPolicy;
+  readonly initProvider?: DatabaseInstanceSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DatabaseInstanceSpec#managementPolicies
+   */
+  readonly managementPolicies?: DatabaseInstanceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1015,13 +984,6 @@ export interface DatabaseInstanceSpec {
    * @schema DatabaseInstanceSpec#providerConfigRef
    */
   readonly providerConfigRef?: DatabaseInstanceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DatabaseInstanceSpec#providerRef
-   */
-  readonly providerRef?: DatabaseInstanceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1048,9 +1010,9 @@ export function toJson_DatabaseInstanceSpec(obj: DatabaseInstanceSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DatabaseInstanceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DatabaseInstanceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DatabaseInstanceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DatabaseInstanceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DatabaseInstanceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DatabaseInstanceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1060,7 +1022,7 @@ export function toJson_DatabaseInstanceSpec(obj: DatabaseInstanceSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DatabaseInstanceSpecDeletionPolicy
  */
@@ -1083,7 +1045,7 @@ export interface DatabaseInstanceSpecForProvider {
   readonly clone?: DatabaseInstanceSpecForProviderClone[];
 
   /**
-   * The MySQL, PostgreSQL or SQL Server version to use. Supported values include MYSQL_5_6, MYSQL_5_7, MYSQL_8_0, POSTGRES_9_6,POSTGRES_10, POSTGRES_11, POSTGRES_12, POSTGRES_13, POSTGRES_14, SQLSERVER_2017_STANDARD, SQLSERVER_2017_ENTERPRISE, SQLSERVER_2017_EXPRESS, SQLSERVER_2017_WEB. SQLSERVER_2019_STANDARD, SQLSERVER_2019_ENTERPRISE, SQLSERVER_2019_EXPRESS, SQLSERVER_2019_WEB. Database Version Policies includes an up-to-date reference of supported versions.
+   * The MySQL, PostgreSQL or SQL Server version to use. Supported values include MYSQL_5_6, MYSQL_5_7, MYSQL_8_0, POSTGRES_9_6,POSTGRES_10, POSTGRES_11, POSTGRES_12, POSTGRES_13, POSTGRES_14, POSTGRES_15, SQLSERVER_2017_STANDARD, SQLSERVER_2017_ENTERPRISE, SQLSERVER_2017_EXPRESS, SQLSERVER_2017_WEB. SQLSERVER_2019_STANDARD, SQLSERVER_2019_ENTERPRISE, SQLSERVER_2019_EXPRESS, SQLSERVER_2019_WEB. Database Version Policies includes an up-to-date reference of supported versions.
    *
    * @schema DatabaseInstanceSpecForProvider#databaseVersion
    */
@@ -1188,17 +1150,133 @@ export function toJson_DatabaseInstanceSpecForProvider(obj: DatabaseInstanceSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DatabaseInstanceSpecManagementPolicy
+ * @schema DatabaseInstanceSpecInitProvider
  */
-export enum DatabaseInstanceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DatabaseInstanceSpecInitProvider {
+  /**
+   * The context needed to create this instance as a clone of another instance. The configuration is detailed below.
+   *
+   * @schema DatabaseInstanceSpecInitProvider#clone
+   */
+  readonly clone?: DatabaseInstanceSpecInitProviderClone[];
+
+  /**
+   * The MySQL, PostgreSQL or SQL Server version to use. Supported values include MYSQL_5_6, MYSQL_5_7, MYSQL_8_0, POSTGRES_9_6,POSTGRES_10, POSTGRES_11, POSTGRES_12, POSTGRES_13, POSTGRES_14, POSTGRES_15, SQLSERVER_2017_STANDARD, SQLSERVER_2017_ENTERPRISE, SQLSERVER_2017_EXPRESS, SQLSERVER_2017_WEB. SQLSERVER_2019_STANDARD, SQLSERVER_2019_ENTERPRISE, SQLSERVER_2019_EXPRESS, SQLSERVER_2019_WEB. Database Version Policies includes an up-to-date reference of supported versions.
+   *
+   * @schema DatabaseInstanceSpecInitProvider#databaseVersion
+   */
+  readonly databaseVersion?: string;
+
+  /**
+   * Defaults to true.
+   *
+   * @default true.
+   * @schema DatabaseInstanceSpecInitProvider#deletionProtection
+   */
+  readonly deletionProtection?: boolean;
+
+  /**
+   * The full path to the encryption key used for the CMEK disk encryption. The provided key must be in the same region as the SQL instance.  In order to use this feature, a special kind of service account must be created and granted permission on this key.  This step can currently only be done manually, please see this step. That service account needs the Cloud KMS > Cloud KMS CryptoKey Encrypter/Decrypter role on your key - please see this step.
+   *
+   * @schema DatabaseInstanceSpecInitProvider#encryptionKeyName
+   */
+  readonly encryptionKeyName?: string;
+
+  /**
+   * The current software version on the instance. This attribute can not be set during creation. Refer to available_maintenance_versions attribute to see what maintenance_version are available for upgrade. When this attribute gets updated, it will cause an instance restart. Setting a maintenance_version value that is older than the current one on the instance will be ignored.
+   *
+   * @schema DatabaseInstanceSpecInitProvider#maintenanceVersion
+   */
+  readonly maintenanceVersion?: string;
+
+  /**
+   * The name of the existing instance that will act as the master in the replication setup. Note, this requires the master to have binary_log_enabled set, as well as existing backups.
+   *
+   * @schema DatabaseInstanceSpecInitProvider#masterInstanceName
+   */
+  readonly masterInstanceName?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema DatabaseInstanceSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The region the instance will sit in. If a region is not provided in the resource definition, the provider region will be used instead.
+   *
+   * @schema DatabaseInstanceSpecInitProvider#region
+   */
+  readonly region?: string;
+
+  /**
+   * The configuration for replication. The configuration is detailed below. Valid only for MySQL instances.
+   *
+   * @schema DatabaseInstanceSpecInitProvider#replicaConfiguration
+   */
+  readonly replicaConfiguration?: DatabaseInstanceSpecInitProviderReplicaConfiguration[];
+
+  /**
+   * The context needed to restore the database to a backup run. The configuration is detailed below. Adding or modifying this block during resource creation/update will trigger the restore action after the resource is created/updated.
+   *
+   * @schema DatabaseInstanceSpecInitProvider#restoreBackupContext
+   */
+  readonly restoreBackupContext?: DatabaseInstanceSpecInitProviderRestoreBackupContext[];
+
+  /**
+   * The settings to use for the database. The configuration is detailed below. Required if clone is not set.
+   *
+   * @schema DatabaseInstanceSpecInitProvider#settings
+   */
+  readonly settings?: DatabaseInstanceSpecInitProviderSettings[];
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProvider(obj: DatabaseInstanceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clone': obj.clone?.map(y => toJson_DatabaseInstanceSpecInitProviderClone(y)),
+    'databaseVersion': obj.databaseVersion,
+    'deletionProtection': obj.deletionProtection,
+    'encryptionKeyName': obj.encryptionKeyName,
+    'maintenanceVersion': obj.maintenanceVersion,
+    'masterInstanceName': obj.masterInstanceName,
+    'project': obj.project,
+    'region': obj.region,
+    'replicaConfiguration': obj.replicaConfiguration?.map(y => toJson_DatabaseInstanceSpecInitProviderReplicaConfiguration(y)),
+    'restoreBackupContext': obj.restoreBackupContext?.map(y => toJson_DatabaseInstanceSpecInitProviderRestoreBackupContext(y)),
+    'settings': obj.settings?.map(y => toJson_DatabaseInstanceSpecInitProviderSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DatabaseInstanceSpecManagementPolicies
+ */
+export enum DatabaseInstanceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1232,43 +1310,6 @@ export function toJson_DatabaseInstanceSpecProviderConfigRef(obj: DatabaseInstan
   const result = {
     'name': obj.name,
     'policy': toJson_DatabaseInstanceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DatabaseInstanceSpecProviderRef
- */
-export interface DatabaseInstanceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DatabaseInstanceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DatabaseInstanceSpecProviderRef#policy
-   */
-  readonly policy?: DatabaseInstanceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DatabaseInstanceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DatabaseInstanceSpecProviderRef(obj: DatabaseInstanceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DatabaseInstanceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1387,7 +1428,7 @@ export interface DatabaseInstanceSpecForProviderClone {
    *
    * @schema DatabaseInstanceSpecForProviderClone#sourceInstanceName
    */
-  readonly sourceInstanceName: string;
+  readonly sourceInstanceName?: string;
 
 }
 
@@ -1448,7 +1489,7 @@ export interface DatabaseInstanceSpecForProviderReplicaConfiguration {
   readonly dumpFilePath?: string;
 
   /**
-   * Specifies if the replica is the failover target. If the field is set to true the replica will be designated as a failover replica. If the master instance fails, the replica instance will be promoted as the new master instance.
+   * Specifies if the replica is the failover target. If the field is set to true the replica will be designated as a failover replica. If the master instance fails, the replica instance will be promoted as the new master instance. ~> NOTE: Not supported for Postgres database.
    *
    * @schema DatabaseInstanceSpecForProviderReplicaConfiguration#failoverTarget
    */
@@ -1522,7 +1563,7 @@ export interface DatabaseInstanceSpecForProviderRestoreBackupContext {
    *
    * @schema DatabaseInstanceSpecForProviderRestoreBackupContext#backupRunId
    */
-  readonly backupRunId: number;
+  readonly backupRunId?: number;
 
   /**
    * The ID of the instance that the backup was taken from. If left empty, this instance's ID will be used.
@@ -1650,6 +1691,11 @@ export interface DatabaseInstanceSpecForProviderSettings {
   readonly connectorEnforcement?: string;
 
   /**
+   * @schema DatabaseInstanceSpecForProviderSettings#dataCacheConfig
+   */
+  readonly dataCacheConfig?: DatabaseInstanceSpecForProviderSettingsDataCacheConfig[];
+
+  /**
    * @schema DatabaseInstanceSpecForProviderSettings#databaseFlags
    */
   readonly databaseFlags?: DatabaseInstanceSpecForProviderSettingsDatabaseFlags[];
@@ -1697,6 +1743,13 @@ export interface DatabaseInstanceSpecForProviderSettings {
   readonly diskType?: string;
 
   /**
+   * The edition of the instance, can be ENTERPRISE or ENTERPRISE_PLUS.
+   *
+   * @schema DatabaseInstanceSpecForProviderSettings#edition
+   */
+  readonly edition?: string;
+
+  /**
    * @schema DatabaseInstanceSpecForProviderSettings#insightsConfig
    */
   readonly insightsConfig?: DatabaseInstanceSpecForProviderSettingsInsightsConfig[];
@@ -1738,7 +1791,7 @@ export interface DatabaseInstanceSpecForProviderSettings {
    *
    * @schema DatabaseInstanceSpecForProviderSettings#tier
    */
-  readonly tier: string;
+  readonly tier?: string;
 
   /**
    * The time_zone to be used by the database engine (supported only for SQL Server), in SQL Server timezone format.
@@ -1770,6 +1823,7 @@ export function toJson_DatabaseInstanceSpecForProviderSettings(obj: DatabaseInst
     'backupConfiguration': obj.backupConfiguration?.map(y => toJson_DatabaseInstanceSpecForProviderSettingsBackupConfiguration(y)),
     'collation': obj.collation,
     'connectorEnforcement': obj.connectorEnforcement,
+    'dataCacheConfig': obj.dataCacheConfig?.map(y => toJson_DatabaseInstanceSpecForProviderSettingsDataCacheConfig(y)),
     'databaseFlags': obj.databaseFlags?.map(y => toJson_DatabaseInstanceSpecForProviderSettingsDatabaseFlags(y)),
     'deletionProtectionEnabled': obj.deletionProtectionEnabled,
     'denyMaintenancePeriod': obj.denyMaintenancePeriod?.map(y => toJson_DatabaseInstanceSpecForProviderSettingsDenyMaintenancePeriod(y)),
@@ -1777,6 +1831,7 @@ export function toJson_DatabaseInstanceSpecForProviderSettings(obj: DatabaseInst
     'diskAutoresizeLimit': obj.diskAutoresizeLimit,
     'diskSize': obj.diskSize,
     'diskType': obj.diskType,
+    'edition': obj.edition,
     'insightsConfig': obj.insightsConfig?.map(y => toJson_DatabaseInstanceSpecForProviderSettingsInsightsConfig(y)),
     'ipConfiguration': obj.ipConfiguration?.map(y => toJson_DatabaseInstanceSpecForProviderSettingsIpConfiguration(y)),
     'locationPreference': obj.locationPreference?.map(y => toJson_DatabaseInstanceSpecForProviderSettingsLocationPreference(y)),
@@ -1784,6 +1839,403 @@ export function toJson_DatabaseInstanceSpecForProviderSettings(obj: DatabaseInst
     'passwordValidationPolicy': obj.passwordValidationPolicy?.map(y => toJson_DatabaseInstanceSpecForProviderSettingsPasswordValidationPolicy(y)),
     'pricingPlan': obj.pricingPlan,
     'sqlServerAuditConfig': obj.sqlServerAuditConfig?.map(y => toJson_DatabaseInstanceSpecForProviderSettingsSqlServerAuditConfig(y)),
+    'tier': obj.tier,
+    'timeZone': obj.timeZone,
+    'userLabels': ((obj.userLabels) === undefined) ? undefined : (Object.entries(obj.userLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderClone
+ */
+export interface DatabaseInstanceSpecInitProviderClone {
+  /**
+   * The name of the allocated ip range for the private ip CloudSQL instance. For example: "google-managed-services-default". If set, the cloned instance ip will be created in the allocated range. The range name must comply with RFC 1035. Specifically, the name must be 1-63 characters long and match the regular expression a-z?.
+   *
+   * @schema DatabaseInstanceSpecInitProviderClone#allocatedIpRange
+   */
+  readonly allocatedIpRange?: string;
+
+  /**
+   * (SQL Server only, use with point_in_time) Clone only the specified databases from the source instance. Clone all databases if empty.
+   *
+   * @schema DatabaseInstanceSpecInitProviderClone#databaseNames
+   */
+  readonly databaseNames?: string[];
+
+  /**
+   * The timestamp of the point in time that should be restored.
+   *
+   * @schema DatabaseInstanceSpecInitProviderClone#pointInTime
+   */
+  readonly pointInTime?: string;
+
+  /**
+   * Name of the source instance which will be cloned.
+   *
+   * @schema DatabaseInstanceSpecInitProviderClone#sourceInstanceName
+   */
+  readonly sourceInstanceName?: string;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderClone' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderClone(obj: DatabaseInstanceSpecInitProviderClone | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allocatedIpRange': obj.allocatedIpRange,
+    'databaseNames': obj.databaseNames?.map(y => y),
+    'pointInTime': obj.pointInTime,
+    'sourceInstanceName': obj.sourceInstanceName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderReplicaConfiguration
+ */
+export interface DatabaseInstanceSpecInitProviderReplicaConfiguration {
+  /**
+   * PEM representation of the trusted CA's x509 certificate.
+   *
+   * @schema DatabaseInstanceSpecInitProviderReplicaConfiguration#caCertificate
+   */
+  readonly caCertificate?: string;
+
+  /**
+   * PEM representation of the replica's x509 certificate.
+   *
+   * @schema DatabaseInstanceSpecInitProviderReplicaConfiguration#clientCertificate
+   */
+  readonly clientCertificate?: string;
+
+  /**
+   * PEM representation of the replica's private key. The corresponding public key in encoded in the client_certificate.
+   *
+   * @schema DatabaseInstanceSpecInitProviderReplicaConfiguration#clientKey
+   */
+  readonly clientKey?: string;
+
+  /**
+   * The number of seconds between connect retries. MySQL's default is 60 seconds.
+   *
+   * @schema DatabaseInstanceSpecInitProviderReplicaConfiguration#connectRetryInterval
+   */
+  readonly connectRetryInterval?: number;
+
+  /**
+   * Path to a SQL file in GCS from which replica instances are created. Format is gs://bucket/filename.
+   *
+   * @schema DatabaseInstanceSpecInitProviderReplicaConfiguration#dumpFilePath
+   */
+  readonly dumpFilePath?: string;
+
+  /**
+   * Specifies if the replica is the failover target. If the field is set to true the replica will be designated as a failover replica. If the master instance fails, the replica instance will be promoted as the new master instance. ~> NOTE: Not supported for Postgres database.
+   *
+   * @schema DatabaseInstanceSpecInitProviderReplicaConfiguration#failoverTarget
+   */
+  readonly failoverTarget?: boolean;
+
+  /**
+   * Time in ms between replication heartbeats.
+   *
+   * @schema DatabaseInstanceSpecInitProviderReplicaConfiguration#masterHeartbeatPeriod
+   */
+  readonly masterHeartbeatPeriod?: number;
+
+  /**
+   * @schema DatabaseInstanceSpecInitProviderReplicaConfiguration#sslCipher
+   */
+  readonly sslCipher?: string;
+
+  /**
+   * Username for replication connection.
+   *
+   * @schema DatabaseInstanceSpecInitProviderReplicaConfiguration#username
+   */
+  readonly username?: string;
+
+  /**
+   * True if the master's common name value is checked during the SSL handshake.
+   *
+   * @schema DatabaseInstanceSpecInitProviderReplicaConfiguration#verifyServerCertificate
+   */
+  readonly verifyServerCertificate?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderReplicaConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderReplicaConfiguration(obj: DatabaseInstanceSpecInitProviderReplicaConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'caCertificate': obj.caCertificate,
+    'clientCertificate': obj.clientCertificate,
+    'clientKey': obj.clientKey,
+    'connectRetryInterval': obj.connectRetryInterval,
+    'dumpFilePath': obj.dumpFilePath,
+    'failoverTarget': obj.failoverTarget,
+    'masterHeartbeatPeriod': obj.masterHeartbeatPeriod,
+    'sslCipher': obj.sslCipher,
+    'username': obj.username,
+    'verifyServerCertificate': obj.verifyServerCertificate,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderRestoreBackupContext
+ */
+export interface DatabaseInstanceSpecInitProviderRestoreBackupContext {
+  /**
+   * The ID of the backup run to restore from.
+   *
+   * @schema DatabaseInstanceSpecInitProviderRestoreBackupContext#backupRunId
+   */
+  readonly backupRunId?: number;
+
+  /**
+   * The ID of the instance that the backup was taken from. If left empty, this instance's ID will be used.
+   *
+   * @schema DatabaseInstanceSpecInitProviderRestoreBackupContext#instanceId
+   */
+  readonly instanceId?: string;
+
+  /**
+   * The full project ID of the source instance.`
+   *
+   * @schema DatabaseInstanceSpecInitProviderRestoreBackupContext#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderRestoreBackupContext' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderRestoreBackupContext(obj: DatabaseInstanceSpecInitProviderRestoreBackupContext | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'backupRunId': obj.backupRunId,
+    'instanceId': obj.instanceId,
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderSettings
+ */
+export interface DatabaseInstanceSpecInitProviderSettings {
+  /**
+   * This specifies when the instance should be active. Can be either ALWAYS, NEVER or ON_DEMAND.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettings#activationPolicy
+   */
+  readonly activationPolicy?: string;
+
+  /**
+   * @schema DatabaseInstanceSpecInitProviderSettings#activeDirectoryConfig
+   */
+  readonly activeDirectoryConfig?: DatabaseInstanceSpecInitProviderSettingsActiveDirectoryConfig[];
+
+  /**
+   * @schema DatabaseInstanceSpecInitProviderSettings#advancedMachineFeatures
+   */
+  readonly advancedMachineFeatures?: DatabaseInstanceSpecInitProviderSettingsAdvancedMachineFeatures[];
+
+  /**
+   * The availability type of the Cloud SQL instance, high availability (REGIONAL) or single zone (ZONAL).' For all instances, ensure that settings.backup_configuration.enabled is set to true. For MySQL instances, ensure that settings.backup_configuration.binary_log_enabled is set to true. For Postgres and SQL Server instances, ensure that settings.backup_configuration.point_in_time_recovery_enabled is set to true. Defaults to ZONAL.
+   *
+   * @default ZONAL.
+   * @schema DatabaseInstanceSpecInitProviderSettings#availabilityType
+   */
+  readonly availabilityType?: string;
+
+  /**
+   * @schema DatabaseInstanceSpecInitProviderSettings#backupConfiguration
+   */
+  readonly backupConfiguration?: DatabaseInstanceSpecInitProviderSettingsBackupConfiguration[];
+
+  /**
+   * The name of server instance collation.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettings#collation
+   */
+  readonly collation?: string;
+
+  /**
+   * Specifies if connections must use Cloud SQL connectors.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettings#connectorEnforcement
+   */
+  readonly connectorEnforcement?: string;
+
+  /**
+   * @schema DatabaseInstanceSpecInitProviderSettings#dataCacheConfig
+   */
+  readonly dataCacheConfig?: DatabaseInstanceSpecInitProviderSettingsDataCacheConfig[];
+
+  /**
+   * @schema DatabaseInstanceSpecInitProviderSettings#databaseFlags
+   */
+  readonly databaseFlags?: DatabaseInstanceSpecInitProviderSettingsDatabaseFlags[];
+
+  /**
+   * .
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettings#deletionProtectionEnabled
+   */
+  readonly deletionProtectionEnabled?: boolean;
+
+  /**
+   * @schema DatabaseInstanceSpecInitProviderSettings#denyMaintenancePeriod
+   */
+  readonly denyMaintenancePeriod?: DatabaseInstanceSpecInitProviderSettingsDenyMaintenancePeriod[];
+
+  /**
+   * Enables auto-resizing of the storage size. Defaults to true.
+   *
+   * @default true.
+   * @schema DatabaseInstanceSpecInitProviderSettings#diskAutoresize
+   */
+  readonly diskAutoresize?: boolean;
+
+  /**
+   * The maximum size to which storage capacity can be automatically increased. The default value is 0, which specifies that there is no limit.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettings#diskAutoresizeLimit
+   */
+  readonly diskAutoresizeLimit?: number;
+
+  /**
+   * The size of data disk, in GB. Size of a running instance cannot be reduced but can be increased. The minimum value is 10GB.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettings#diskSize
+   */
+  readonly diskSize?: number;
+
+  /**
+   * The type of data disk: PD_SSD or PD_HDD. Defaults to PD_SSD.
+   *
+   * @default PD_SSD.
+   * @schema DatabaseInstanceSpecInitProviderSettings#diskType
+   */
+  readonly diskType?: string;
+
+  /**
+   * The edition of the instance, can be ENTERPRISE or ENTERPRISE_PLUS.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettings#edition
+   */
+  readonly edition?: string;
+
+  /**
+   * @schema DatabaseInstanceSpecInitProviderSettings#insightsConfig
+   */
+  readonly insightsConfig?: DatabaseInstanceSpecInitProviderSettingsInsightsConfig[];
+
+  /**
+   * @schema DatabaseInstanceSpecInitProviderSettings#ipConfiguration
+   */
+  readonly ipConfiguration?: DatabaseInstanceSpecInitProviderSettingsIpConfiguration[];
+
+  /**
+   * @schema DatabaseInstanceSpecInitProviderSettings#locationPreference
+   */
+  readonly locationPreference?: DatabaseInstanceSpecInitProviderSettingsLocationPreference[];
+
+  /**
+   * @schema DatabaseInstanceSpecInitProviderSettings#maintenanceWindow
+   */
+  readonly maintenanceWindow?: DatabaseInstanceSpecInitProviderSettingsMaintenanceWindow[];
+
+  /**
+   * @schema DatabaseInstanceSpecInitProviderSettings#passwordValidationPolicy
+   */
+  readonly passwordValidationPolicy?: DatabaseInstanceSpecInitProviderSettingsPasswordValidationPolicy[];
+
+  /**
+   * Pricing plan for this instance, can only be PER_USE.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettings#pricingPlan
+   */
+  readonly pricingPlan?: string;
+
+  /**
+   * @schema DatabaseInstanceSpecInitProviderSettings#sqlServerAuditConfig
+   */
+  readonly sqlServerAuditConfig?: DatabaseInstanceSpecInitProviderSettingsSqlServerAuditConfig[];
+
+  /**
+   * The machine type to use. See tiers for more details and supported versions. Postgres supports only shared-core machine types, and custom machine types such as db-custom-2-13312. See the Custom Machine Type Documentation to learn about specifying custom machine types.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettings#tier
+   */
+  readonly tier?: string;
+
+  /**
+   * The time_zone to be used by the database engine (supported only for SQL Server), in SQL Server timezone format.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettings#timeZone
+   */
+  readonly timeZone?: string;
+
+  /**
+   * A set of key/value user label pairs to assign to the instance.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettings#userLabels
+   */
+  readonly userLabels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderSettings(obj: DatabaseInstanceSpecInitProviderSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'activationPolicy': obj.activationPolicy,
+    'activeDirectoryConfig': obj.activeDirectoryConfig?.map(y => toJson_DatabaseInstanceSpecInitProviderSettingsActiveDirectoryConfig(y)),
+    'advancedMachineFeatures': obj.advancedMachineFeatures?.map(y => toJson_DatabaseInstanceSpecInitProviderSettingsAdvancedMachineFeatures(y)),
+    'availabilityType': obj.availabilityType,
+    'backupConfiguration': obj.backupConfiguration?.map(y => toJson_DatabaseInstanceSpecInitProviderSettingsBackupConfiguration(y)),
+    'collation': obj.collation,
+    'connectorEnforcement': obj.connectorEnforcement,
+    'dataCacheConfig': obj.dataCacheConfig?.map(y => toJson_DatabaseInstanceSpecInitProviderSettingsDataCacheConfig(y)),
+    'databaseFlags': obj.databaseFlags?.map(y => toJson_DatabaseInstanceSpecInitProviderSettingsDatabaseFlags(y)),
+    'deletionProtectionEnabled': obj.deletionProtectionEnabled,
+    'denyMaintenancePeriod': obj.denyMaintenancePeriod?.map(y => toJson_DatabaseInstanceSpecInitProviderSettingsDenyMaintenancePeriod(y)),
+    'diskAutoresize': obj.diskAutoresize,
+    'diskAutoresizeLimit': obj.diskAutoresizeLimit,
+    'diskSize': obj.diskSize,
+    'diskType': obj.diskType,
+    'edition': obj.edition,
+    'insightsConfig': obj.insightsConfig?.map(y => toJson_DatabaseInstanceSpecInitProviderSettingsInsightsConfig(y)),
+    'ipConfiguration': obj.ipConfiguration?.map(y => toJson_DatabaseInstanceSpecInitProviderSettingsIpConfiguration(y)),
+    'locationPreference': obj.locationPreference?.map(y => toJson_DatabaseInstanceSpecInitProviderSettingsLocationPreference(y)),
+    'maintenanceWindow': obj.maintenanceWindow?.map(y => toJson_DatabaseInstanceSpecInitProviderSettingsMaintenanceWindow(y)),
+    'passwordValidationPolicy': obj.passwordValidationPolicy?.map(y => toJson_DatabaseInstanceSpecInitProviderSettingsPasswordValidationPolicy(y)),
+    'pricingPlan': obj.pricingPlan,
+    'sqlServerAuditConfig': obj.sqlServerAuditConfig?.map(y => toJson_DatabaseInstanceSpecInitProviderSettingsSqlServerAuditConfig(y)),
     'tier': obj.tier,
     'timeZone': obj.timeZone,
     'userLabels': ((obj.userLabels) === undefined) ? undefined : (Object.entries(obj.userLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
@@ -1820,43 +2272,6 @@ export interface DatabaseInstanceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DatabaseInstanceSpecProviderConfigRefPolicy(obj: DatabaseInstanceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema DatabaseInstanceSpecProviderRefPolicy
- */
-export interface DatabaseInstanceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DatabaseInstanceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DatabaseInstanceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DatabaseInstanceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DatabaseInstanceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DatabaseInstanceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DatabaseInstanceSpecProviderRefPolicy(obj: DatabaseInstanceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2003,7 +2418,7 @@ export interface DatabaseInstanceSpecForProviderSettingsActiveDirectoryConfig {
    *
    * @schema DatabaseInstanceSpecForProviderSettingsActiveDirectoryConfig#domain
    */
-  readonly domain: string;
+  readonly domain?: string;
 
 }
 
@@ -2095,7 +2510,7 @@ export interface DatabaseInstanceSpecForProviderSettingsBackupConfiguration {
   readonly startTime?: string;
 
   /**
-   * The number of days of transaction logs we retain for point in time restore, from 1-7.
+   * The number of days of transaction logs we retain for point in time restore, from 1-7. For PostgreSQL Enterprise Plus instances, the number of days of retained transaction logs can be set from 1 to 35.
    *
    * @schema DatabaseInstanceSpecForProviderSettingsBackupConfiguration#transactionLogRetentionDays
    */
@@ -2124,6 +2539,34 @@ export function toJson_DatabaseInstanceSpecForProviderSettingsBackupConfiguratio
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DatabaseInstanceSpecForProviderSettingsDataCacheConfig
+ */
+export interface DatabaseInstanceSpecForProviderSettingsDataCacheConfig {
+  /**
+   * Whether data cache is enabled for the instance. Defaults to false Can only be used with MYSQL.
+   *
+   * @default false Can only be used with MYSQL.
+   * @schema DatabaseInstanceSpecForProviderSettingsDataCacheConfig#dataCacheEnabled
+   */
+  readonly dataCacheEnabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecForProviderSettingsDataCacheConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecForProviderSettingsDataCacheConfig(obj: DatabaseInstanceSpecForProviderSettingsDataCacheConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dataCacheEnabled': obj.dataCacheEnabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema DatabaseInstanceSpecForProviderSettingsDatabaseFlags
  */
 export interface DatabaseInstanceSpecForProviderSettingsDatabaseFlags {
@@ -2132,14 +2575,14 @@ export interface DatabaseInstanceSpecForProviderSettingsDatabaseFlags {
    *
    * @schema DatabaseInstanceSpecForProviderSettingsDatabaseFlags#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * A CIDR notation IPv4 or IPv6 address that is allowed to access this instance. Must be set even if other two attributes are not for the whitelist to become active.
    *
    * @schema DatabaseInstanceSpecForProviderSettingsDatabaseFlags#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -2167,21 +2610,21 @@ export interface DatabaseInstanceSpecForProviderSettingsDenyMaintenancePeriod {
    *
    * @schema DatabaseInstanceSpecForProviderSettingsDenyMaintenancePeriod#endDate
    */
-  readonly endDate: string;
+  readonly endDate?: string;
 
   /**
    * "deny maintenance period" start date. If the year of the start date is empty, the year of the end date also must be empty. In this case, it means the deny maintenance period recurs every year. The date is in format yyyy-mm-dd i.e., 2020-11-01, or mm-dd, i.e., 11-01
    *
    * @schema DatabaseInstanceSpecForProviderSettingsDenyMaintenancePeriod#startDate
    */
-  readonly startDate: string;
+  readonly startDate?: string;
 
   /**
    * Time in UTC when the "deny maintenance period" starts on startDate and ends on endDate. The time is in format: HH:mm:SS, i.e., 00:00:00
    *
    * @schema DatabaseInstanceSpecForProviderSettingsDenyMaintenancePeriod#time
    */
-  readonly time: string;
+  readonly time?: string;
 
 }
 
@@ -2221,9 +2664,9 @@ export interface DatabaseInstanceSpecForProviderSettingsInsightsConfig {
   readonly queryPlansPerMinute?: number;
 
   /**
-   * Maximum query length stored in bytes. Between 256 and 4500. Default to 1024.
+   * Maximum query length stored in bytes. Between 256 and 4500. Default to 1024. Higher query lengths are more useful for analytical queries, but they also require more memory. Changing the query length requires you to restart the instance. You can still add tags to queries that exceed the length limit.
    *
-   * @default 1024.
+   * @default 1024. Higher query lengths are more useful for analytical queries, but they also require more memory. Changing the query length requires you to restart the instance. You can still add tags to queries that exceed the length limit.
    * @schema DatabaseInstanceSpecForProviderSettingsInsightsConfig#queryStringLength
    */
   readonly queryStringLength?: number;
@@ -2452,7 +2895,7 @@ export interface DatabaseInstanceSpecForProviderSettingsPasswordValidationPolicy
    *
    * @schema DatabaseInstanceSpecForProviderSettingsPasswordValidationPolicy#enablePasswordPolicy
    */
-  readonly enablePasswordPolicy: boolean;
+  readonly enablePasswordPolicy?: boolean;
 
   /**
    * Specifies the minimum number of characters that the password must have.
@@ -2540,6 +2983,555 @@ export function toJson_DatabaseInstanceSpecForProviderSettingsSqlServerAuditConf
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DatabaseInstanceSpecInitProviderSettingsActiveDirectoryConfig
+ */
+export interface DatabaseInstanceSpecInitProviderSettingsActiveDirectoryConfig {
+  /**
+   * The domain name for the active directory (e.g., mydomain.com). Can only be used with SQL Server.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsActiveDirectoryConfig#domain
+   */
+  readonly domain?: string;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderSettingsActiveDirectoryConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderSettingsActiveDirectoryConfig(obj: DatabaseInstanceSpecInitProviderSettingsActiveDirectoryConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'domain': obj.domain,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderSettingsAdvancedMachineFeatures
+ */
+export interface DatabaseInstanceSpecInitProviderSettingsAdvancedMachineFeatures {
+  /**
+   * The number of threads per core. The value of this flag can be 1 or 2. To disable SMT, set this flag to 1. Only available in Cloud SQL for SQL Server instances. See smt for more details.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsAdvancedMachineFeatures#threadsPerCore
+   */
+  readonly threadsPerCore?: number;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderSettingsAdvancedMachineFeatures' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderSettingsAdvancedMachineFeatures(obj: DatabaseInstanceSpecInitProviderSettingsAdvancedMachineFeatures | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'threadsPerCore': obj.threadsPerCore,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderSettingsBackupConfiguration
+ */
+export interface DatabaseInstanceSpecInitProviderSettingsBackupConfiguration {
+  /**
+   * Backup retention settings. The configuration is detailed below.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsBackupConfiguration#backupRetentionSettings
+   */
+  readonly backupRetentionSettings?: DatabaseInstanceSpecInitProviderSettingsBackupConfigurationBackupRetentionSettings[];
+
+  /**
+   * True if binary logging is enabled. Can only be used with MySQL.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsBackupConfiguration#binaryLogEnabled
+   */
+  readonly binaryLogEnabled?: boolean;
+
+  /**
+   * True if backup configuration is enabled.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsBackupConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The region where the backup will be stored
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsBackupConfiguration#location
+   */
+  readonly location?: string;
+
+  /**
+   * True if Point-in-time recovery is enabled. Will restart database if enabled after instance creation. Valid only for PostgreSQL and SQL Server instances.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsBackupConfiguration#pointInTimeRecoveryEnabled
+   */
+  readonly pointInTimeRecoveryEnabled?: boolean;
+
+  /**
+   * HH:MM format time indicating when backup configuration starts.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsBackupConfiguration#startTime
+   */
+  readonly startTime?: string;
+
+  /**
+   * The number of days of transaction logs we retain for point in time restore, from 1-7. For PostgreSQL Enterprise Plus instances, the number of days of retained transaction logs can be set from 1 to 35.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsBackupConfiguration#transactionLogRetentionDays
+   */
+  readonly transactionLogRetentionDays?: number;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderSettingsBackupConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderSettingsBackupConfiguration(obj: DatabaseInstanceSpecInitProviderSettingsBackupConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'backupRetentionSettings': obj.backupRetentionSettings?.map(y => toJson_DatabaseInstanceSpecInitProviderSettingsBackupConfigurationBackupRetentionSettings(y)),
+    'binaryLogEnabled': obj.binaryLogEnabled,
+    'enabled': obj.enabled,
+    'location': obj.location,
+    'pointInTimeRecoveryEnabled': obj.pointInTimeRecoveryEnabled,
+    'startTime': obj.startTime,
+    'transactionLogRetentionDays': obj.transactionLogRetentionDays,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderSettingsDataCacheConfig
+ */
+export interface DatabaseInstanceSpecInitProviderSettingsDataCacheConfig {
+  /**
+   * Whether data cache is enabled for the instance. Defaults to false Can only be used with MYSQL.
+   *
+   * @default false Can only be used with MYSQL.
+   * @schema DatabaseInstanceSpecInitProviderSettingsDataCacheConfig#dataCacheEnabled
+   */
+  readonly dataCacheEnabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderSettingsDataCacheConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderSettingsDataCacheConfig(obj: DatabaseInstanceSpecInitProviderSettingsDataCacheConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dataCacheEnabled': obj.dataCacheEnabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderSettingsDatabaseFlags
+ */
+export interface DatabaseInstanceSpecInitProviderSettingsDatabaseFlags {
+  /**
+   * A name for this whitelist entry.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsDatabaseFlags#name
+   */
+  readonly name?: string;
+
+  /**
+   * A CIDR notation IPv4 or IPv6 address that is allowed to access this instance. Must be set even if other two attributes are not for the whitelist to become active.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsDatabaseFlags#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderSettingsDatabaseFlags' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderSettingsDatabaseFlags(obj: DatabaseInstanceSpecInitProviderSettingsDatabaseFlags | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderSettingsDenyMaintenancePeriod
+ */
+export interface DatabaseInstanceSpecInitProviderSettingsDenyMaintenancePeriod {
+  /**
+   * "deny maintenance period" end date. If the year of the end date is empty, the year of the start date also must be empty. In this case, it means the no maintenance interval recurs every year. The date is in format yyyy-mm-dd i.e., 2020-11-01, or mm-dd, i.e., 11-01
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsDenyMaintenancePeriod#endDate
+   */
+  readonly endDate?: string;
+
+  /**
+   * "deny maintenance period" start date. If the year of the start date is empty, the year of the end date also must be empty. In this case, it means the deny maintenance period recurs every year. The date is in format yyyy-mm-dd i.e., 2020-11-01, or mm-dd, i.e., 11-01
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsDenyMaintenancePeriod#startDate
+   */
+  readonly startDate?: string;
+
+  /**
+   * Time in UTC when the "deny maintenance period" starts on startDate and ends on endDate. The time is in format: HH:mm:SS, i.e., 00:00:00
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsDenyMaintenancePeriod#time
+   */
+  readonly time?: string;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderSettingsDenyMaintenancePeriod' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderSettingsDenyMaintenancePeriod(obj: DatabaseInstanceSpecInitProviderSettingsDenyMaintenancePeriod | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'endDate': obj.endDate,
+    'startDate': obj.startDate,
+    'time': obj.time,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderSettingsInsightsConfig
+ */
+export interface DatabaseInstanceSpecInitProviderSettingsInsightsConfig {
+  /**
+   * True if Query Insights feature is enabled.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsInsightsConfig#queryInsightsEnabled
+   */
+  readonly queryInsightsEnabled?: boolean;
+
+  /**
+   * Number of query execution plans captured by Insights per minute for all queries combined. Between 0 and 20. Default to 5.
+   *
+   * @default 5.
+   * @schema DatabaseInstanceSpecInitProviderSettingsInsightsConfig#queryPlansPerMinute
+   */
+  readonly queryPlansPerMinute?: number;
+
+  /**
+   * Maximum query length stored in bytes. Between 256 and 4500. Default to 1024. Higher query lengths are more useful for analytical queries, but they also require more memory. Changing the query length requires you to restart the instance. You can still add tags to queries that exceed the length limit.
+   *
+   * @default 1024. Higher query lengths are more useful for analytical queries, but they also require more memory. Changing the query length requires you to restart the instance. You can still add tags to queries that exceed the length limit.
+   * @schema DatabaseInstanceSpecInitProviderSettingsInsightsConfig#queryStringLength
+   */
+  readonly queryStringLength?: number;
+
+  /**
+   * True if Query Insights will record application tags from query when enabled.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsInsightsConfig#recordApplicationTags
+   */
+  readonly recordApplicationTags?: boolean;
+
+  /**
+   * True if Query Insights will record client address when enabled.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsInsightsConfig#recordClientAddress
+   */
+  readonly recordClientAddress?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderSettingsInsightsConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderSettingsInsightsConfig(obj: DatabaseInstanceSpecInitProviderSettingsInsightsConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'queryInsightsEnabled': obj.queryInsightsEnabled,
+    'queryPlansPerMinute': obj.queryPlansPerMinute,
+    'queryStringLength': obj.queryStringLength,
+    'recordApplicationTags': obj.recordApplicationTags,
+    'recordClientAddress': obj.recordClientAddress,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderSettingsIpConfiguration
+ */
+export interface DatabaseInstanceSpecInitProviderSettingsIpConfiguration {
+  /**
+   * The name of the allocated ip range for the private ip CloudSQL instance. For example: "google-managed-services-default". If set, the instance ip will be created in the allocated range. The range name must comply with RFC 1035. Specifically, the name must be 1-63 characters long and match the regular expression a-z?.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsIpConfiguration#allocatedIpRange
+   */
+  readonly allocatedIpRange?: string;
+
+  /**
+   * @schema DatabaseInstanceSpecInitProviderSettingsIpConfiguration#authorizedNetworks
+   */
+  readonly authorizedNetworks?: DatabaseInstanceSpecInitProviderSettingsIpConfigurationAuthorizedNetworks[];
+
+  /**
+   * Whether Google Cloud services such as BigQuery are allowed to access data in this Cloud SQL instance over a private IP connection. SQLSERVER database type is not supported.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsIpConfiguration#enablePrivatePathForGoogleCloudServices
+   */
+  readonly enablePrivatePathForGoogleCloudServices?: boolean;
+
+  /**
+   * Whether this Cloud SQL instance should be assigned a public IPV4 address. At least ipv4_enabled must be enabled or a private_network must be configured.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsIpConfiguration#ipv4Enabled
+   */
+  readonly ipv4Enabled?: boolean;
+
+  /**
+   * Whether SSL connections over IP are enforced or not.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsIpConfiguration#requireSsl
+   */
+  readonly requireSsl?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderSettingsIpConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderSettingsIpConfiguration(obj: DatabaseInstanceSpecInitProviderSettingsIpConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allocatedIpRange': obj.allocatedIpRange,
+    'authorizedNetworks': obj.authorizedNetworks?.map(y => toJson_DatabaseInstanceSpecInitProviderSettingsIpConfigurationAuthorizedNetworks(y)),
+    'enablePrivatePathForGoogleCloudServices': obj.enablePrivatePathForGoogleCloudServices,
+    'ipv4Enabled': obj.ipv4Enabled,
+    'requireSsl': obj.requireSsl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderSettingsLocationPreference
+ */
+export interface DatabaseInstanceSpecInitProviderSettingsLocationPreference {
+  /**
+   * A GAE application whose zone to remain in. Must be in the same region as this instance.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsLocationPreference#followGaeApplication
+   */
+  readonly followGaeApplication?: string;
+
+  /**
+   * The preferred Compute Engine zone for the secondary/failover.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsLocationPreference#secondaryZone
+   */
+  readonly secondaryZone?: string;
+
+  /**
+   * The preferred compute engine zone.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsLocationPreference#zone
+   */
+  readonly zone?: string;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderSettingsLocationPreference' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderSettingsLocationPreference(obj: DatabaseInstanceSpecInitProviderSettingsLocationPreference | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'followGaeApplication': obj.followGaeApplication,
+    'secondaryZone': obj.secondaryZone,
+    'zone': obj.zone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderSettingsMaintenanceWindow
+ */
+export interface DatabaseInstanceSpecInitProviderSettingsMaintenanceWindow {
+  /**
+   * Day of week (1-7), starting on Monday
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsMaintenanceWindow#day
+   */
+  readonly day?: number;
+
+  /**
+   * Hour of day (0-23), ignored if day not set
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsMaintenanceWindow#hour
+   */
+  readonly hour?: number;
+
+  /**
+   * Receive updates earlier (canary) or later (stable)
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsMaintenanceWindow#updateTrack
+   */
+  readonly updateTrack?: string;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderSettingsMaintenanceWindow' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderSettingsMaintenanceWindow(obj: DatabaseInstanceSpecInitProviderSettingsMaintenanceWindow | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'day': obj.day,
+    'hour': obj.hour,
+    'updateTrack': obj.updateTrack,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderSettingsPasswordValidationPolicy
+ */
+export interface DatabaseInstanceSpecInitProviderSettingsPasswordValidationPolicy {
+  /**
+   * Checks if the password is a combination of lowercase, uppercase, numeric, and non-alphanumeric characters.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsPasswordValidationPolicy#complexity
+   */
+  readonly complexity?: string;
+
+  /**
+   * Prevents the use of the username in the password.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsPasswordValidationPolicy#disallowUsernameSubstring
+   */
+  readonly disallowUsernameSubstring?: boolean;
+
+  /**
+   * Enables or disable the password validation policy.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsPasswordValidationPolicy#enablePasswordPolicy
+   */
+  readonly enablePasswordPolicy?: boolean;
+
+  /**
+   * Specifies the minimum number of characters that the password must have.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsPasswordValidationPolicy#minLength
+   */
+  readonly minLength?: number;
+
+  /**
+   * Specifies the minimum duration after which you can change the password.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsPasswordValidationPolicy#passwordChangeInterval
+   */
+  readonly passwordChangeInterval?: string;
+
+  /**
+   * Specifies the number of previous passwords that you can't reuse.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsPasswordValidationPolicy#reuseInterval
+   */
+  readonly reuseInterval?: number;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderSettingsPasswordValidationPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderSettingsPasswordValidationPolicy(obj: DatabaseInstanceSpecInitProviderSettingsPasswordValidationPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'complexity': obj.complexity,
+    'disallowUsernameSubstring': obj.disallowUsernameSubstring,
+    'enablePasswordPolicy': obj.enablePasswordPolicy,
+    'minLength': obj.minLength,
+    'passwordChangeInterval': obj.passwordChangeInterval,
+    'reuseInterval': obj.reuseInterval,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderSettingsSqlServerAuditConfig
+ */
+export interface DatabaseInstanceSpecInitProviderSettingsSqlServerAuditConfig {
+  /**
+   * The name of the destination bucket (e.g., gs://mybucket).
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsSqlServerAuditConfig#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * How long to keep generated audit files. A duration in seconds with up to nine fractional digits, terminated by 's'. Example: "3.5s".
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsSqlServerAuditConfig#retentionInterval
+   */
+  readonly retentionInterval?: string;
+
+  /**
+   * How often to upload generated audit files. A duration in seconds with up to nine fractional digits, terminated by 's'. Example: "3.5s".
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsSqlServerAuditConfig#uploadInterval
+   */
+  readonly uploadInterval?: string;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderSettingsSqlServerAuditConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderSettingsSqlServerAuditConfig(obj: DatabaseInstanceSpecInitProviderSettingsSqlServerAuditConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'retentionInterval': obj.retentionInterval,
+    'uploadInterval': obj.uploadInterval,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema DatabaseInstanceSpecProviderConfigRefPolicyResolution
@@ -2557,30 +3549,6 @@ export enum DatabaseInstanceSpecProviderConfigRefPolicyResolution {
  * @schema DatabaseInstanceSpecProviderConfigRefPolicyResolve
  */
 export enum DatabaseInstanceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DatabaseInstanceSpecProviderRefPolicyResolution
- */
-export enum DatabaseInstanceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DatabaseInstanceSpecProviderRefPolicyResolve
- */
-export enum DatabaseInstanceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2633,7 +3601,7 @@ export interface DatabaseInstanceSpecForProviderSettingsBackupConfigurationBacku
    *
    * @schema DatabaseInstanceSpecForProviderSettingsBackupConfigurationBackupRetentionSettings#retainedBackups
    */
-  readonly retainedBackups: number;
+  readonly retainedBackups?: number;
 
   /**
    * The unit that 'retained_backups' represents. Defaults to COUNT.
@@ -2683,7 +3651,7 @@ export interface DatabaseInstanceSpecForProviderSettingsIpConfigurationAuthorize
    *
    * @schema DatabaseInstanceSpecForProviderSettingsIpConfigurationAuthorizedNetworks#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -2779,6 +3747,85 @@ export function toJson_DatabaseInstanceSpecForProviderSettingsIpConfigurationPri
     'matchControllerRef': obj.matchControllerRef,
     'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'policy': toJson_DatabaseInstanceSpecForProviderSettingsIpConfigurationPrivateNetworkSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderSettingsBackupConfigurationBackupRetentionSettings
+ */
+export interface DatabaseInstanceSpecInitProviderSettingsBackupConfigurationBackupRetentionSettings {
+  /**
+   * Depending on the value of retention_unit, this is used to determine if a backup needs to be deleted. If retention_unit is 'COUNT', we will retain this many backups.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsBackupConfigurationBackupRetentionSettings#retainedBackups
+   */
+  readonly retainedBackups?: number;
+
+  /**
+   * The unit that 'retained_backups' represents. Defaults to COUNT.
+   *
+   * @default COUNT.
+   * @schema DatabaseInstanceSpecInitProviderSettingsBackupConfigurationBackupRetentionSettings#retentionUnit
+   */
+  readonly retentionUnit?: string;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderSettingsBackupConfigurationBackupRetentionSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderSettingsBackupConfigurationBackupRetentionSettings(obj: DatabaseInstanceSpecInitProviderSettingsBackupConfigurationBackupRetentionSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'retainedBackups': obj.retainedBackups,
+    'retentionUnit': obj.retentionUnit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DatabaseInstanceSpecInitProviderSettingsIpConfigurationAuthorizedNetworks
+ */
+export interface DatabaseInstanceSpecInitProviderSettingsIpConfigurationAuthorizedNetworks {
+  /**
+   * The RFC 3339 formatted date time string indicating when this whitelist expires.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsIpConfigurationAuthorizedNetworks#expirationTime
+   */
+  readonly expirationTime?: string;
+
+  /**
+   * A name for this whitelist entry.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsIpConfigurationAuthorizedNetworks#name
+   */
+  readonly name?: string;
+
+  /**
+   * A CIDR notation IPv4 or IPv6 address that is allowed to access this instance. Must be set even if other two attributes are not for the whitelist to become active.
+   *
+   * @schema DatabaseInstanceSpecInitProviderSettingsIpConfigurationAuthorizedNetworks#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'DatabaseInstanceSpecInitProviderSettingsIpConfigurationAuthorizedNetworks' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseInstanceSpecInitProviderSettingsIpConfigurationAuthorizedNetworks(obj: DatabaseInstanceSpecInitProviderSettingsIpConfigurationAuthorizedNetworks | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'expirationTime': obj.expirationTime,
+    'name': obj.name,
+    'value': obj.value,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3028,7 +4075,7 @@ export function toJson_SourceRepresentationInstanceProps(obj: SourceRepresentati
  */
 export interface SourceRepresentationInstanceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SourceRepresentationInstanceSpec#deletionPolicy
    */
@@ -3040,11 +4087,18 @@ export interface SourceRepresentationInstanceSpec {
   readonly forProvider: SourceRepresentationInstanceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema SourceRepresentationInstanceSpec#managementPolicy
+   * @schema SourceRepresentationInstanceSpec#initProvider
    */
-  readonly managementPolicy?: SourceRepresentationInstanceSpecManagementPolicy;
+  readonly initProvider?: SourceRepresentationInstanceSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema SourceRepresentationInstanceSpec#managementPolicies
+   */
+  readonly managementPolicies?: SourceRepresentationInstanceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3052,13 +4106,6 @@ export interface SourceRepresentationInstanceSpec {
    * @schema SourceRepresentationInstanceSpec#providerConfigRef
    */
   readonly providerConfigRef?: SourceRepresentationInstanceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema SourceRepresentationInstanceSpec#providerRef
-   */
-  readonly providerRef?: SourceRepresentationInstanceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3085,9 +4132,9 @@ export function toJson_SourceRepresentationInstanceSpec(obj: SourceRepresentatio
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SourceRepresentationInstanceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_SourceRepresentationInstanceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_SourceRepresentationInstanceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_SourceRepresentationInstanceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SourceRepresentationInstanceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_SourceRepresentationInstanceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3097,7 +4144,7 @@ export function toJson_SourceRepresentationInstanceSpec(obj: SourceRepresentatio
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SourceRepresentationInstanceSpecDeletionPolicy
  */
@@ -3217,17 +4264,125 @@ export function toJson_SourceRepresentationInstanceSpecForProvider(obj: SourceRe
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema SourceRepresentationInstanceSpecManagementPolicy
+ * @schema SourceRepresentationInstanceSpecInitProvider
  */
-export enum SourceRepresentationInstanceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface SourceRepresentationInstanceSpecInitProvider {
+  /**
+   * The CA certificate on the external server. Include only if SSL/TLS is used on the external server.
+   *
+   * @schema SourceRepresentationInstanceSpecInitProvider#caCertificate
+   */
+  readonly caCertificate?: string;
+
+  /**
+   * The client certificate on the external server. Required only for server-client authentication. Include only if SSL/TLS is used on the external server.
+   *
+   * @schema SourceRepresentationInstanceSpecInitProvider#clientCertificate
+   */
+  readonly clientCertificate?: string;
+
+  /**
+   * The private key file for the client certificate on the external server. Required only for server-client authentication. Include only if SSL/TLS is used on the external server.
+   *
+   * @schema SourceRepresentationInstanceSpecInitProvider#clientKey
+   */
+  readonly clientKey?: string;
+
+  /**
+   * The MySQL version running on your source database server. Possible values are: MYSQL_5_6, MYSQL_5_7, MYSQL_8_0, POSTGRES_9_6, POSTGRES_10, POSTGRES_11, POSTGRES_12, POSTGRES_13, POSTGRES_14.
+   *
+   * @schema SourceRepresentationInstanceSpecInitProvider#databaseVersion
+   */
+  readonly databaseVersion?: string;
+
+  /**
+   * A file in the bucket that contains the data from the external server.
+   *
+   * @schema SourceRepresentationInstanceSpecInitProvider#dumpFilePath
+   */
+  readonly dumpFilePath?: string;
+
+  /**
+   * The externally accessible IPv4 address for the source database server.
+   *
+   * @schema SourceRepresentationInstanceSpecInitProvider#host
+   */
+  readonly host?: string;
+
+  /**
+   * The externally accessible port for the source database server. Defaults to 3306.
+   *
+   * @default 3306.
+   * @schema SourceRepresentationInstanceSpecInitProvider#port
+   */
+  readonly port?: number;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema SourceRepresentationInstanceSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The Region in which the created instance should reside. If it is not provided, the provider region is used.
+   *
+   * @schema SourceRepresentationInstanceSpecInitProvider#region
+   */
+  readonly region?: string;
+
+  /**
+   * The replication user account on the external server.
+   *
+   * @schema SourceRepresentationInstanceSpecInitProvider#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'SourceRepresentationInstanceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SourceRepresentationInstanceSpecInitProvider(obj: SourceRepresentationInstanceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'caCertificate': obj.caCertificate,
+    'clientCertificate': obj.clientCertificate,
+    'clientKey': obj.clientKey,
+    'databaseVersion': obj.databaseVersion,
+    'dumpFilePath': obj.dumpFilePath,
+    'host': obj.host,
+    'port': obj.port,
+    'project': obj.project,
+    'region': obj.region,
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema SourceRepresentationInstanceSpecManagementPolicies
+ */
+export enum SourceRepresentationInstanceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3261,43 +4416,6 @@ export function toJson_SourceRepresentationInstanceSpecProviderConfigRef(obj: So
   const result = {
     'name': obj.name,
     'policy': toJson_SourceRepresentationInstanceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema SourceRepresentationInstanceSpecProviderRef
- */
-export interface SourceRepresentationInstanceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema SourceRepresentationInstanceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema SourceRepresentationInstanceSpecProviderRef#policy
-   */
-  readonly policy?: SourceRepresentationInstanceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'SourceRepresentationInstanceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SourceRepresentationInstanceSpecProviderRef(obj: SourceRepresentationInstanceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_SourceRepresentationInstanceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3469,43 +4587,6 @@ export function toJson_SourceRepresentationInstanceSpecProviderConfigRefPolicy(o
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema SourceRepresentationInstanceSpecProviderRefPolicy
- */
-export interface SourceRepresentationInstanceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema SourceRepresentationInstanceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: SourceRepresentationInstanceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema SourceRepresentationInstanceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: SourceRepresentationInstanceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'SourceRepresentationInstanceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SourceRepresentationInstanceSpecProviderRefPolicy(obj: SourceRepresentationInstanceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema SourceRepresentationInstanceSpecPublishConnectionDetailsToConfigRef
@@ -3605,30 +4686,6 @@ export enum SourceRepresentationInstanceSpecProviderConfigRefPolicyResolution {
  * @schema SourceRepresentationInstanceSpecProviderConfigRefPolicyResolve
  */
 export enum SourceRepresentationInstanceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema SourceRepresentationInstanceSpecProviderRefPolicyResolution
- */
-export enum SourceRepresentationInstanceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema SourceRepresentationInstanceSpecProviderRefPolicyResolve
- */
-export enum SourceRepresentationInstanceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3793,7 +4850,7 @@ export function toJson_SslCertProps(obj: SslCertProps | undefined): Record<strin
  */
 export interface SslCertSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SslCertSpec#deletionPolicy
    */
@@ -3805,11 +4862,18 @@ export interface SslCertSpec {
   readonly forProvider: SslCertSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema SslCertSpec#managementPolicy
+   * @schema SslCertSpec#initProvider
    */
-  readonly managementPolicy?: SslCertSpecManagementPolicy;
+  readonly initProvider?: SslCertSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema SslCertSpec#managementPolicies
+   */
+  readonly managementPolicies?: SslCertSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3817,13 +4881,6 @@ export interface SslCertSpec {
    * @schema SslCertSpec#providerConfigRef
    */
   readonly providerConfigRef?: SslCertSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema SslCertSpec#providerRef
-   */
-  readonly providerRef?: SslCertSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3850,9 +4907,9 @@ export function toJson_SslCertSpec(obj: SslCertSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SslCertSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_SslCertSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_SslCertSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_SslCertSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SslCertSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_SslCertSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3862,7 +4919,7 @@ export function toJson_SslCertSpec(obj: SslCertSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SslCertSpecDeletionPolicy
  */
@@ -3933,17 +4990,60 @@ export function toJson_SslCertSpecForProvider(obj: SslCertSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema SslCertSpecManagementPolicy
+ * @schema SslCertSpecInitProvider
  */
-export enum SslCertSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface SslCertSpecInitProvider {
+  /**
+   * The common name to be used in the certificate to identify the client. Constrained to [a-zA-Z.-_ ]+. Changing this forces a new resource to be created.
+   *
+   * @schema SslCertSpecInitProvider#commonName
+   */
+  readonly commonName?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema SslCertSpecInitProvider#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'SslCertSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SslCertSpecInitProvider(obj: SslCertSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'commonName': obj.commonName,
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema SslCertSpecManagementPolicies
+ */
+export enum SslCertSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3977,43 +5077,6 @@ export function toJson_SslCertSpecProviderConfigRef(obj: SslCertSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_SslCertSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema SslCertSpecProviderRef
- */
-export interface SslCertSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema SslCertSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema SslCertSpecProviderRef#policy
-   */
-  readonly policy?: SslCertSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'SslCertSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SslCertSpecProviderRef(obj: SslCertSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_SslCertSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4222,43 +5285,6 @@ export function toJson_SslCertSpecProviderConfigRefPolicy(obj: SslCertSpecProvid
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema SslCertSpecProviderRefPolicy
- */
-export interface SslCertSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema SslCertSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: SslCertSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema SslCertSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: SslCertSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'SslCertSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SslCertSpecProviderRefPolicy(obj: SslCertSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema SslCertSpecPublishConnectionDetailsToConfigRef
@@ -4432,30 +5458,6 @@ export enum SslCertSpecProviderConfigRefPolicyResolution {
  * @schema SslCertSpecProviderConfigRefPolicyResolve
  */
 export enum SslCertSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema SslCertSpecProviderRefPolicyResolution
- */
-export enum SslCertSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema SslCertSpecProviderRefPolicyResolve
- */
-export enum SslCertSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -4668,7 +5670,7 @@ export function toJson_UserProps(obj: UserProps | undefined): Record<string, any
  */
 export interface UserSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema UserSpec#deletionPolicy
    */
@@ -4680,11 +5682,18 @@ export interface UserSpec {
   readonly forProvider: UserSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema UserSpec#managementPolicy
+   * @schema UserSpec#initProvider
    */
-  readonly managementPolicy?: UserSpecManagementPolicy;
+  readonly initProvider?: UserSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema UserSpec#managementPolicies
+   */
+  readonly managementPolicies?: UserSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4692,13 +5701,6 @@ export interface UserSpec {
    * @schema UserSpec#providerConfigRef
    */
   readonly providerConfigRef?: UserSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema UserSpec#providerRef
-   */
-  readonly providerRef?: UserSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -4725,9 +5727,9 @@ export function toJson_UserSpec(obj: UserSpec | undefined): Record<string, any> 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_UserSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_UserSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_UserSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_UserSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_UserSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_UserSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -4737,7 +5739,7 @@ export function toJson_UserSpec(obj: UserSpec | undefined): Record<string, any> 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema UserSpecDeletionPolicy
  */
@@ -4838,17 +5840,82 @@ export function toJson_UserSpecForProvider(obj: UserSpecForProvider | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema UserSpecManagementPolicy
+ * @schema UserSpecInitProvider
  */
-export enum UserSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface UserSpecInitProvider {
+  /**
+   * The deletion policy for the user. Setting ABANDON allows the resource to be abandoned rather than deleted. This is useful for Postgres, where users cannot be deleted from the API if they have been granted SQL roles.
+   *
+   * @schema UserSpecInitProvider#deletionPolicy
+   */
+  readonly deletionPolicy?: string;
+
+  /**
+   * The host the user can connect from. This is only supported for BUILT_IN users in MySQL instances. Don't set this field for PostgreSQL and SQL Server instances. Can be an IP address. Changing this forces a new resource to be created.
+   *
+   * @schema UserSpecInitProvider#host
+   */
+  readonly host?: string;
+
+  /**
+   * @schema UserSpecInitProvider#passwordPolicy
+   */
+  readonly passwordPolicy?: UserSpecInitProviderPasswordPolicy[];
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema UserSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The user type. It determines the method to authenticate the user during login. The default is the database's built-in user type. Flags include "BUILT_IN", "CLOUD_IAM_USER", or "CLOUD_IAM_SERVICE_ACCOUNT".
+   *
+   * @schema UserSpecInitProvider#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserSpecInitProvider(obj: UserSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deletionPolicy': obj.deletionPolicy,
+    'host': obj.host,
+    'passwordPolicy': obj.passwordPolicy?.map(y => toJson_UserSpecInitProviderPasswordPolicy(y)),
+    'project': obj.project,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema UserSpecManagementPolicies
+ */
+export enum UserSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4882,43 +5949,6 @@ export function toJson_UserSpecProviderConfigRef(obj: UserSpecProviderConfigRef 
   const result = {
     'name': obj.name,
     'policy': toJson_UserSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema UserSpecProviderRef
- */
-export interface UserSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema UserSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema UserSpecProviderRef#policy
-   */
-  readonly policy?: UserSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'UserSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserSpecProviderRef(obj: UserSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_UserSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5186,6 +6216,57 @@ export function toJson_UserSpecForProviderPasswordSecretRef(obj: UserSpecForProv
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema UserSpecInitProviderPasswordPolicy
+ */
+export interface UserSpecInitProviderPasswordPolicy {
+  /**
+   * Number of failed attempts allowed before the user get locked.
+   *
+   * @schema UserSpecInitProviderPasswordPolicy#allowedFailedAttempts
+   */
+  readonly allowedFailedAttempts?: number;
+
+  /**
+   * If true, the check that will lock user after too many failed login attempts will be enabled.
+   *
+   * @schema UserSpecInitProviderPasswordPolicy#enableFailedAttemptsCheck
+   */
+  readonly enableFailedAttemptsCheck?: boolean;
+
+  /**
+   * If true, the user must specify the current password before changing the password. This flag is supported only for MySQL.
+   *
+   * @schema UserSpecInitProviderPasswordPolicy#enablePasswordVerification
+   */
+  readonly enablePasswordVerification?: boolean;
+
+  /**
+   * Password expiration duration with one week grace period.
+   *
+   * @schema UserSpecInitProviderPasswordPolicy#passwordExpirationDuration
+   */
+  readonly passwordExpirationDuration?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserSpecInitProviderPasswordPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserSpecInitProviderPasswordPolicy(obj: UserSpecInitProviderPasswordPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowedFailedAttempts': obj.allowedFailedAttempts,
+    'enableFailedAttemptsCheck': obj.enableFailedAttemptsCheck,
+    'enablePasswordVerification': obj.enablePasswordVerification,
+    'passwordExpirationDuration': obj.passwordExpirationDuration,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema UserSpecProviderConfigRefPolicy
@@ -5212,43 +6293,6 @@ export interface UserSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_UserSpecProviderConfigRefPolicy(obj: UserSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema UserSpecProviderRefPolicy
- */
-export interface UserSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema UserSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: UserSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema UserSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: UserSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'UserSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserSpecProviderRefPolicy(obj: UserSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -5433,30 +6477,6 @@ export enum UserSpecProviderConfigRefPolicyResolution {
  * @schema UserSpecProviderConfigRefPolicyResolve
  */
 export enum UserSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema UserSpecProviderRefPolicyResolution
- */
-export enum UserSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema UserSpecProviderRefPolicyResolve
- */
-export enum UserSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

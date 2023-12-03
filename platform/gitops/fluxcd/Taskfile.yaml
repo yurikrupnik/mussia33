@@ -10,6 +10,9 @@ tasks:
     cmds:
       - echo "{{.GREETING}}"
     silent: true
+  install:
+    cmds:
+      - helm install -n flux-system flux oci://ghcr.io/fluxcd-community/charts/flux2 --create-namespace
   apply:
     dir: platform/gitops/fluxcd
     cmds:

@@ -4,6 +4,946 @@ import { Construct } from 'constructs';
 
 
 /**
+ * JobDefinition is the Schema for the JobDefinitions API. Provides a Batch Job Definition resource.
+ *
+ * @schema JobDefinition
+ */
+export class JobDefinition extends ApiObject {
+  /**
+   * Returns the apiVersion and kind for "JobDefinition"
+   */
+  public static readonly GVK: GroupVersionKind = {
+    apiVersion: 'batch.aws.upbound.io/v1beta1',
+    kind: 'JobDefinition',
+  }
+
+  /**
+   * Renders a Kubernetes manifest for "JobDefinition".
+   *
+   * This can be used to inline resource manifests inside other objects (e.g. as templates).
+   *
+   * @param props initialization props
+   */
+  public static manifest(props: JobDefinitionProps): any {
+    return {
+      ...JobDefinition.GVK,
+      ...toJson_JobDefinitionProps(props),
+    };
+  }
+
+  /**
+   * Defines a "JobDefinition" API object
+   * @param scope the scope in which to define this object
+   * @param id a scope-local name for the object
+   * @param props initialization props
+   */
+  public constructor(scope: Construct, id: string, props: JobDefinitionProps) {
+    super(scope, id, {
+      ...JobDefinition.GVK,
+      ...props,
+    });
+  }
+
+  /**
+   * Renders the object to Kubernetes JSON.
+   */
+  public toJson(): any {
+    const resolved = super.toJson();
+
+    return {
+      ...JobDefinition.GVK,
+      ...toJson_JobDefinitionProps(resolved),
+    };
+  }
+}
+
+/**
+ * JobDefinition is the Schema for the JobDefinitions API. Provides a Batch Job Definition resource.
+ *
+ * @schema JobDefinition
+ */
+export interface JobDefinitionProps {
+  /**
+   * @schema JobDefinition#metadata
+   */
+  readonly metadata?: ApiObjectMetadata;
+
+  /**
+   * JobDefinitionSpec defines the desired state of JobDefinition
+   *
+   * @schema JobDefinition#spec
+   */
+  readonly spec: JobDefinitionSpec;
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionProps' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionProps(obj: JobDefinitionProps | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metadata': obj.metadata,
+    'spec': toJson_JobDefinitionSpec(obj.spec),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * JobDefinitionSpec defines the desired state of JobDefinition
+ *
+ * @schema JobDefinitionSpec
+ */
+export interface JobDefinitionSpec {
+  /**
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema JobDefinitionSpec#deletionPolicy
+   */
+  readonly deletionPolicy?: JobDefinitionSpecDeletionPolicy;
+
+  /**
+   * @schema JobDefinitionSpec#forProvider
+   */
+  readonly forProvider: JobDefinitionSpecForProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
+   *
+   * @schema JobDefinitionSpec#initProvider
+   */
+  readonly initProvider?: JobDefinitionSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema JobDefinitionSpec#managementPolicies
+   */
+  readonly managementPolicies?: JobDefinitionSpecManagementPolicies[];
+
+  /**
+   * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+   *
+   * @schema JobDefinitionSpec#providerConfigRef
+   */
+  readonly providerConfigRef?: JobDefinitionSpecProviderConfigRef;
+
+  /**
+   * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+   *
+   * @schema JobDefinitionSpec#publishConnectionDetailsTo
+   */
+  readonly publishConnectionDetailsTo?: JobDefinitionSpecPublishConnectionDetailsTo;
+
+  /**
+   * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+   *
+   * @schema JobDefinitionSpec#writeConnectionSecretToRef
+   */
+  readonly writeConnectionSecretToRef?: JobDefinitionSpecWriteConnectionSecretToRef;
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionSpec(obj: JobDefinitionSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deletionPolicy': obj.deletionPolicy,
+    'forProvider': toJson_JobDefinitionSpecForProvider(obj.forProvider),
+    'initProvider': toJson_JobDefinitionSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
+    'providerConfigRef': toJson_JobDefinitionSpecProviderConfigRef(obj.providerConfigRef),
+    'publishConnectionDetailsTo': toJson_JobDefinitionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
+    'writeConnectionSecretToRef': toJson_JobDefinitionSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema JobDefinitionSpecDeletionPolicy
+ */
+export enum JobDefinitionSpecDeletionPolicy {
+  /** Orphan */
+  ORPHAN = "Orphan",
+  /** Delete */
+  DELETE = "Delete",
+}
+
+/**
+ * @schema JobDefinitionSpecForProvider
+ */
+export interface JobDefinitionSpecForProvider {
+  /**
+   * A valid container properties provided as a single valid JSON document. This parameter is required if the type parameter is container.
+   *
+   * @schema JobDefinitionSpecForProvider#containerProperties
+   */
+  readonly containerProperties?: string;
+
+  /**
+   * Specifies the name of the job definition.
+   *
+   * @schema JobDefinitionSpecForProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Specifies the parameter substitution placeholders to set in the job definition.
+   *
+   * @schema JobDefinitionSpecForProvider#parameters
+   */
+  readonly parameters?: { [key: string]: string };
+
+  /**
+   * The platform capabilities required by the job definition. If no value is specified, it defaults to EC2. To run the job on Fargate resources, specify FARGATE.
+   *
+   * @schema JobDefinitionSpecForProvider#platformCapabilities
+   */
+  readonly platformCapabilities?: string[];
+
+  /**
+   * Specifies whether to propagate the tags from the job definition to the corresponding Amazon ECS task. Default is false.
+   *
+   * @default false.
+   * @schema JobDefinitionSpecForProvider#propagateTags
+   */
+  readonly propagateTags?: boolean;
+
+  /**
+   * Region is the region you'd like your resource to be created in.
+   *
+   * @schema JobDefinitionSpecForProvider#region
+   */
+  readonly region: string;
+
+  /**
+   * Specifies the retry strategy to use for failed jobs that are submitted with this job definition. Maximum number of retry_strategy is 1.  Defined below.
+   *
+   * @schema JobDefinitionSpecForProvider#retryStrategy
+   */
+  readonly retryStrategy?: JobDefinitionSpecForProviderRetryStrategy[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema JobDefinitionSpecForProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Specifies the timeout for jobs so that if a job runs longer, AWS Batch terminates the job. Maximum number of timeout is 1. Defined below.
+   *
+   * @schema JobDefinitionSpecForProvider#timeout
+   */
+  readonly timeout?: JobDefinitionSpecForProviderTimeout[];
+
+  /**
+   * The type of job definition. Must be container.
+   *
+   * @schema JobDefinitionSpecForProvider#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionSpecForProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionSpecForProvider(obj: JobDefinitionSpecForProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'containerProperties': obj.containerProperties,
+    'name': obj.name,
+    'parameters': ((obj.parameters) === undefined) ? undefined : (Object.entries(obj.parameters).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'platformCapabilities': obj.platformCapabilities?.map(y => y),
+    'propagateTags': obj.propagateTags,
+    'region': obj.region,
+    'retryStrategy': obj.retryStrategy?.map(y => toJson_JobDefinitionSpecForProviderRetryStrategy(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'timeout': obj.timeout?.map(y => toJson_JobDefinitionSpecForProviderTimeout(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
+ *
+ * @schema JobDefinitionSpecInitProvider
+ */
+export interface JobDefinitionSpecInitProvider {
+  /**
+   * A valid container properties provided as a single valid JSON document. This parameter is required if the type parameter is container.
+   *
+   * @schema JobDefinitionSpecInitProvider#containerProperties
+   */
+  readonly containerProperties?: string;
+
+  /**
+   * Specifies the name of the job definition.
+   *
+   * @schema JobDefinitionSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Specifies the parameter substitution placeholders to set in the job definition.
+   *
+   * @schema JobDefinitionSpecInitProvider#parameters
+   */
+  readonly parameters?: { [key: string]: string };
+
+  /**
+   * The platform capabilities required by the job definition. If no value is specified, it defaults to EC2. To run the job on Fargate resources, specify FARGATE.
+   *
+   * @schema JobDefinitionSpecInitProvider#platformCapabilities
+   */
+  readonly platformCapabilities?: string[];
+
+  /**
+   * Specifies whether to propagate the tags from the job definition to the corresponding Amazon ECS task. Default is false.
+   *
+   * @default false.
+   * @schema JobDefinitionSpecInitProvider#propagateTags
+   */
+  readonly propagateTags?: boolean;
+
+  /**
+   * Specifies the retry strategy to use for failed jobs that are submitted with this job definition. Maximum number of retry_strategy is 1.  Defined below.
+   *
+   * @schema JobDefinitionSpecInitProvider#retryStrategy
+   */
+  readonly retryStrategy?: JobDefinitionSpecInitProviderRetryStrategy[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema JobDefinitionSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Specifies the timeout for jobs so that if a job runs longer, AWS Batch terminates the job. Maximum number of timeout is 1. Defined below.
+   *
+   * @schema JobDefinitionSpecInitProvider#timeout
+   */
+  readonly timeout?: JobDefinitionSpecInitProviderTimeout[];
+
+  /**
+   * The type of job definition. Must be container.
+   *
+   * @schema JobDefinitionSpecInitProvider#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionSpecInitProvider(obj: JobDefinitionSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'containerProperties': obj.containerProperties,
+    'name': obj.name,
+    'parameters': ((obj.parameters) === undefined) ? undefined : (Object.entries(obj.parameters).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'platformCapabilities': obj.platformCapabilities?.map(y => y),
+    'propagateTags': obj.propagateTags,
+    'retryStrategy': obj.retryStrategy?.map(y => toJson_JobDefinitionSpecInitProviderRetryStrategy(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'timeout': obj.timeout?.map(y => toJson_JobDefinitionSpecInitProviderTimeout(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema JobDefinitionSpecManagementPolicies
+ */
+export enum JobDefinitionSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
+}
+
+/**
+ * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+ *
+ * @schema JobDefinitionSpecProviderConfigRef
+ */
+export interface JobDefinitionSpecProviderConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema JobDefinitionSpecProviderConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema JobDefinitionSpecProviderConfigRef#policy
+   */
+  readonly policy?: JobDefinitionSpecProviderConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionSpecProviderConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionSpecProviderConfigRef(obj: JobDefinitionSpecProviderConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_JobDefinitionSpecProviderConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+ *
+ * @schema JobDefinitionSpecPublishConnectionDetailsTo
+ */
+export interface JobDefinitionSpecPublishConnectionDetailsTo {
+  /**
+   * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+   *
+   * @schema JobDefinitionSpecPublishConnectionDetailsTo#configRef
+   */
+  readonly configRef?: JobDefinitionSpecPublishConnectionDetailsToConfigRef;
+
+  /**
+   * Metadata is the metadata for connection secret.
+   *
+   * @schema JobDefinitionSpecPublishConnectionDetailsTo#metadata
+   */
+  readonly metadata?: JobDefinitionSpecPublishConnectionDetailsToMetadata;
+
+  /**
+   * Name is the name of the connection secret.
+   *
+   * @schema JobDefinitionSpecPublishConnectionDetailsTo#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionSpecPublishConnectionDetailsTo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionSpecPublishConnectionDetailsTo(obj: JobDefinitionSpecPublishConnectionDetailsTo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configRef': toJson_JobDefinitionSpecPublishConnectionDetailsToConfigRef(obj.configRef),
+    'metadata': toJson_JobDefinitionSpecPublishConnectionDetailsToMetadata(obj.metadata),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+ *
+ * @schema JobDefinitionSpecWriteConnectionSecretToRef
+ */
+export interface JobDefinitionSpecWriteConnectionSecretToRef {
+  /**
+   * Name of the secret.
+   *
+   * @schema JobDefinitionSpecWriteConnectionSecretToRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the secret.
+   *
+   * @schema JobDefinitionSpecWriteConnectionSecretToRef#namespace
+   */
+  readonly namespace: string;
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionSpecWriteConnectionSecretToRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionSpecWriteConnectionSecretToRef(obj: JobDefinitionSpecWriteConnectionSecretToRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobDefinitionSpecForProviderRetryStrategy
+ */
+export interface JobDefinitionSpecForProviderRetryStrategy {
+  /**
+   * The number of times to move a job to the RUNNABLE status. You may specify between 1 and 10 attempts.
+   *
+   * @schema JobDefinitionSpecForProviderRetryStrategy#attempts
+   */
+  readonly attempts?: number;
+
+  /**
+   * The evaluate on exit conditions under which the job should be retried or failed. If this parameter is specified, then the attempts parameter must also be specified. You may specify up to 5 configuration blocks.
+   *
+   * @schema JobDefinitionSpecForProviderRetryStrategy#evaluateOnExit
+   */
+  readonly evaluateOnExit?: JobDefinitionSpecForProviderRetryStrategyEvaluateOnExit[];
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionSpecForProviderRetryStrategy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionSpecForProviderRetryStrategy(obj: JobDefinitionSpecForProviderRetryStrategy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'attempts': obj.attempts,
+    'evaluateOnExit': obj.evaluateOnExit?.map(y => toJson_JobDefinitionSpecForProviderRetryStrategyEvaluateOnExit(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobDefinitionSpecForProviderTimeout
+ */
+export interface JobDefinitionSpecForProviderTimeout {
+  /**
+   * The time duration in seconds after which AWS Batch terminates your jobs if they have not finished. The minimum value for the timeout is 60 seconds.
+   *
+   * @schema JobDefinitionSpecForProviderTimeout#attemptDurationSeconds
+   */
+  readonly attemptDurationSeconds?: number;
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionSpecForProviderTimeout' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionSpecForProviderTimeout(obj: JobDefinitionSpecForProviderTimeout | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'attemptDurationSeconds': obj.attemptDurationSeconds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobDefinitionSpecInitProviderRetryStrategy
+ */
+export interface JobDefinitionSpecInitProviderRetryStrategy {
+  /**
+   * The number of times to move a job to the RUNNABLE status. You may specify between 1 and 10 attempts.
+   *
+   * @schema JobDefinitionSpecInitProviderRetryStrategy#attempts
+   */
+  readonly attempts?: number;
+
+  /**
+   * The evaluate on exit conditions under which the job should be retried or failed. If this parameter is specified, then the attempts parameter must also be specified. You may specify up to 5 configuration blocks.
+   *
+   * @schema JobDefinitionSpecInitProviderRetryStrategy#evaluateOnExit
+   */
+  readonly evaluateOnExit?: JobDefinitionSpecInitProviderRetryStrategyEvaluateOnExit[];
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionSpecInitProviderRetryStrategy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionSpecInitProviderRetryStrategy(obj: JobDefinitionSpecInitProviderRetryStrategy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'attempts': obj.attempts,
+    'evaluateOnExit': obj.evaluateOnExit?.map(y => toJson_JobDefinitionSpecInitProviderRetryStrategyEvaluateOnExit(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobDefinitionSpecInitProviderTimeout
+ */
+export interface JobDefinitionSpecInitProviderTimeout {
+  /**
+   * The time duration in seconds after which AWS Batch terminates your jobs if they have not finished. The minimum value for the timeout is 60 seconds.
+   *
+   * @schema JobDefinitionSpecInitProviderTimeout#attemptDurationSeconds
+   */
+  readonly attemptDurationSeconds?: number;
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionSpecInitProviderTimeout' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionSpecInitProviderTimeout(obj: JobDefinitionSpecInitProviderTimeout | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'attemptDurationSeconds': obj.attemptDurationSeconds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema JobDefinitionSpecProviderConfigRefPolicy
+ */
+export interface JobDefinitionSpecProviderConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema JobDefinitionSpecProviderConfigRefPolicy#resolution
+   */
+  readonly resolution?: JobDefinitionSpecProviderConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema JobDefinitionSpecProviderConfigRefPolicy#resolve
+   */
+  readonly resolve?: JobDefinitionSpecProviderConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionSpecProviderConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionSpecProviderConfigRefPolicy(obj: JobDefinitionSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+ *
+ * @schema JobDefinitionSpecPublishConnectionDetailsToConfigRef
+ */
+export interface JobDefinitionSpecPublishConnectionDetailsToConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema JobDefinitionSpecPublishConnectionDetailsToConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema JobDefinitionSpecPublishConnectionDetailsToConfigRef#policy
+   */
+  readonly policy?: JobDefinitionSpecPublishConnectionDetailsToConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionSpecPublishConnectionDetailsToConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionSpecPublishConnectionDetailsToConfigRef(obj: JobDefinitionSpecPublishConnectionDetailsToConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_JobDefinitionSpecPublishConnectionDetailsToConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Metadata is the metadata for connection secret.
+ *
+ * @schema JobDefinitionSpecPublishConnectionDetailsToMetadata
+ */
+export interface JobDefinitionSpecPublishConnectionDetailsToMetadata {
+  /**
+   * Annotations are the annotations to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.annotations". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema JobDefinitionSpecPublishConnectionDetailsToMetadata#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Labels are the labels/tags to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.labels". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema JobDefinitionSpecPublishConnectionDetailsToMetadata#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Type is the SecretType for the connection secret. - Only valid for Kubernetes Secret Stores.
+   *
+   * @schema JobDefinitionSpecPublishConnectionDetailsToMetadata#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionSpecPublishConnectionDetailsToMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionSpecPublishConnectionDetailsToMetadata(obj: JobDefinitionSpecPublishConnectionDetailsToMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobDefinitionSpecForProviderRetryStrategyEvaluateOnExit
+ */
+export interface JobDefinitionSpecForProviderRetryStrategyEvaluateOnExit {
+  /**
+   * Specifies the action to take if all of the specified conditions are met. The values are not case sensitive. Valid values: RETRY, EXIT.
+   *
+   * @schema JobDefinitionSpecForProviderRetryStrategyEvaluateOnExit#action
+   */
+  readonly action?: string;
+
+  /**
+   * A glob pattern to match against the decimal representation of the exit code returned for a job.
+   *
+   * @schema JobDefinitionSpecForProviderRetryStrategyEvaluateOnExit#onExitCode
+   */
+  readonly onExitCode?: string;
+
+  /**
+   * A glob pattern to match against the reason returned for a job.
+   *
+   * @schema JobDefinitionSpecForProviderRetryStrategyEvaluateOnExit#onReason
+   */
+  readonly onReason?: string;
+
+  /**
+   * A glob pattern to match against the status reason returned for a job.
+   *
+   * @schema JobDefinitionSpecForProviderRetryStrategyEvaluateOnExit#onStatusReason
+   */
+  readonly onStatusReason?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionSpecForProviderRetryStrategyEvaluateOnExit' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionSpecForProviderRetryStrategyEvaluateOnExit(obj: JobDefinitionSpecForProviderRetryStrategyEvaluateOnExit | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action,
+    'onExitCode': obj.onExitCode,
+    'onReason': obj.onReason,
+    'onStatusReason': obj.onStatusReason,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobDefinitionSpecInitProviderRetryStrategyEvaluateOnExit
+ */
+export interface JobDefinitionSpecInitProviderRetryStrategyEvaluateOnExit {
+  /**
+   * Specifies the action to take if all of the specified conditions are met. The values are not case sensitive. Valid values: RETRY, EXIT.
+   *
+   * @schema JobDefinitionSpecInitProviderRetryStrategyEvaluateOnExit#action
+   */
+  readonly action?: string;
+
+  /**
+   * A glob pattern to match against the decimal representation of the exit code returned for a job.
+   *
+   * @schema JobDefinitionSpecInitProviderRetryStrategyEvaluateOnExit#onExitCode
+   */
+  readonly onExitCode?: string;
+
+  /**
+   * A glob pattern to match against the reason returned for a job.
+   *
+   * @schema JobDefinitionSpecInitProviderRetryStrategyEvaluateOnExit#onReason
+   */
+  readonly onReason?: string;
+
+  /**
+   * A glob pattern to match against the status reason returned for a job.
+   *
+   * @schema JobDefinitionSpecInitProviderRetryStrategyEvaluateOnExit#onStatusReason
+   */
+  readonly onStatusReason?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionSpecInitProviderRetryStrategyEvaluateOnExit' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionSpecInitProviderRetryStrategyEvaluateOnExit(obj: JobDefinitionSpecInitProviderRetryStrategyEvaluateOnExit | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action,
+    'onExitCode': obj.onExitCode,
+    'onReason': obj.onReason,
+    'onStatusReason': obj.onStatusReason,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema JobDefinitionSpecProviderConfigRefPolicyResolution
+ */
+export enum JobDefinitionSpecProviderConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema JobDefinitionSpecProviderConfigRefPolicyResolve
+ */
+export enum JobDefinitionSpecProviderConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Policies for referencing.
+ *
+ * @schema JobDefinitionSpecPublishConnectionDetailsToConfigRefPolicy
+ */
+export interface JobDefinitionSpecPublishConnectionDetailsToConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema JobDefinitionSpecPublishConnectionDetailsToConfigRefPolicy#resolution
+   */
+  readonly resolution?: JobDefinitionSpecPublishConnectionDetailsToConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema JobDefinitionSpecPublishConnectionDetailsToConfigRefPolicy#resolve
+   */
+  readonly resolve?: JobDefinitionSpecPublishConnectionDetailsToConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'JobDefinitionSpecPublishConnectionDetailsToConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobDefinitionSpecPublishConnectionDetailsToConfigRefPolicy(obj: JobDefinitionSpecPublishConnectionDetailsToConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema JobDefinitionSpecPublishConnectionDetailsToConfigRefPolicyResolution
+ */
+export enum JobDefinitionSpecPublishConnectionDetailsToConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema JobDefinitionSpecPublishConnectionDetailsToConfigRefPolicyResolve
+ */
+export enum JobDefinitionSpecPublishConnectionDetailsToConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+
+/**
  * SchedulingPolicy is the Schema for the SchedulingPolicys API. Provides a Batch Scheduling Policy resource.
  *
  * @schema SchedulingPolicy
@@ -99,7 +1039,7 @@ export function toJson_SchedulingPolicyProps(obj: SchedulingPolicyProps | undefi
  */
 export interface SchedulingPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SchedulingPolicySpec#deletionPolicy
    */
@@ -111,11 +1051,18 @@ export interface SchedulingPolicySpec {
   readonly forProvider: SchedulingPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema SchedulingPolicySpec#managementPolicy
+   * @schema SchedulingPolicySpec#initProvider
    */
-  readonly managementPolicy?: SchedulingPolicySpecManagementPolicy;
+  readonly initProvider?: SchedulingPolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema SchedulingPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: SchedulingPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +1070,6 @@ export interface SchedulingPolicySpec {
    * @schema SchedulingPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: SchedulingPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema SchedulingPolicySpec#providerRef
-   */
-  readonly providerRef?: SchedulingPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +1096,9 @@ export function toJson_SchedulingPolicySpec(obj: SchedulingPolicySpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SchedulingPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_SchedulingPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_SchedulingPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_SchedulingPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SchedulingPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_SchedulingPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +1108,7 @@ export function toJson_SchedulingPolicySpec(obj: SchedulingPolicySpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SchedulingPolicySpecDeletionPolicy
  */
@@ -221,17 +1161,58 @@ export function toJson_SchedulingPolicySpecForProvider(obj: SchedulingPolicySpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema SchedulingPolicySpecManagementPolicy
+ * @schema SchedulingPolicySpecInitProvider
  */
-export enum SchedulingPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface SchedulingPolicySpecInitProvider {
+  /**
+   * @schema SchedulingPolicySpecInitProvider#fairSharePolicy
+   */
+  readonly fairSharePolicy?: SchedulingPolicySpecInitProviderFairSharePolicy[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema SchedulingPolicySpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'SchedulingPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SchedulingPolicySpecInitProvider(obj: SchedulingPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fairSharePolicy': obj.fairSharePolicy?.map(y => toJson_SchedulingPolicySpecInitProviderFairSharePolicy(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema SchedulingPolicySpecManagementPolicies
+ */
+export enum SchedulingPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -265,43 +1246,6 @@ export function toJson_SchedulingPolicySpecProviderConfigRef(obj: SchedulingPoli
   const result = {
     'name': obj.name,
     'policy': toJson_SchedulingPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema SchedulingPolicySpecProviderRef
- */
-export interface SchedulingPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema SchedulingPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema SchedulingPolicySpecProviderRef#policy
-   */
-  readonly policy?: SchedulingPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'SchedulingPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SchedulingPolicySpecProviderRef(obj: SchedulingPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_SchedulingPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -432,6 +1376,47 @@ export function toJson_SchedulingPolicySpecForProviderFairSharePolicy(obj: Sched
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema SchedulingPolicySpecInitProviderFairSharePolicy
+ */
+export interface SchedulingPolicySpecInitProviderFairSharePolicy {
+  /**
+   * A value used to reserve some of the available maximum vCPU for fair share identifiers that have not yet been used. For more information, see FairsharePolicy.
+   *
+   * @schema SchedulingPolicySpecInitProviderFairSharePolicy#computeReservation
+   */
+  readonly computeReservation?: number;
+
+  /**
+   * @schema SchedulingPolicySpecInitProviderFairSharePolicy#shareDecaySeconds
+   */
+  readonly shareDecaySeconds?: number;
+
+  /**
+   * One or more share distribution blocks which define the weights for the fair share identifiers for the fair share policy. For more information, see FairsharePolicy. The share_distribution block is documented below.
+   *
+   * @schema SchedulingPolicySpecInitProviderFairSharePolicy#shareDistribution
+   */
+  readonly shareDistribution?: SchedulingPolicySpecInitProviderFairSharePolicyShareDistribution[];
+
+}
+
+/**
+ * Converts an object of type 'SchedulingPolicySpecInitProviderFairSharePolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SchedulingPolicySpecInitProviderFairSharePolicy(obj: SchedulingPolicySpecInitProviderFairSharePolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'computeReservation': obj.computeReservation,
+    'shareDecaySeconds': obj.shareDecaySeconds,
+    'shareDistribution': obj.shareDistribution?.map(y => toJson_SchedulingPolicySpecInitProviderFairSharePolicyShareDistribution(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema SchedulingPolicySpecProviderConfigRefPolicy
@@ -458,43 +1443,6 @@ export interface SchedulingPolicySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SchedulingPolicySpecProviderConfigRefPolicy(obj: SchedulingPolicySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema SchedulingPolicySpecProviderRefPolicy
- */
-export interface SchedulingPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema SchedulingPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: SchedulingPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema SchedulingPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: SchedulingPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'SchedulingPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SchedulingPolicySpecProviderRefPolicy(obj: SchedulingPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -596,7 +1544,7 @@ export interface SchedulingPolicySpecForProviderFairSharePolicyShareDistribution
    *
    * @schema SchedulingPolicySpecForProviderFairSharePolicyShareDistribution#shareIdentifier
    */
-  readonly shareIdentifier: string;
+  readonly shareIdentifier?: string;
 
   /**
    * The weight factor for the fair share identifier. For more information, see ShareAttributes.
@@ -612,6 +1560,41 @@ export interface SchedulingPolicySpecForProviderFairSharePolicyShareDistribution
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SchedulingPolicySpecForProviderFairSharePolicyShareDistribution(obj: SchedulingPolicySpecForProviderFairSharePolicyShareDistribution | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'shareIdentifier': obj.shareIdentifier,
+    'weightFactor': obj.weightFactor,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SchedulingPolicySpecInitProviderFairSharePolicyShareDistribution
+ */
+export interface SchedulingPolicySpecInitProviderFairSharePolicyShareDistribution {
+  /**
+   * A fair share identifier or fair share identifier prefix. For more information, see ShareAttributes.
+   *
+   * @schema SchedulingPolicySpecInitProviderFairSharePolicyShareDistribution#shareIdentifier
+   */
+  readonly shareIdentifier?: string;
+
+  /**
+   * The weight factor for the fair share identifier. For more information, see ShareAttributes.
+   *
+   * @schema SchedulingPolicySpecInitProviderFairSharePolicyShareDistribution#weightFactor
+   */
+  readonly weightFactor?: number;
+
+}
+
+/**
+ * Converts an object of type 'SchedulingPolicySpecInitProviderFairSharePolicyShareDistribution' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SchedulingPolicySpecInitProviderFairSharePolicyShareDistribution(obj: SchedulingPolicySpecInitProviderFairSharePolicyShareDistribution | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'shareIdentifier': obj.shareIdentifier,
@@ -640,30 +1623,6 @@ export enum SchedulingPolicySpecProviderConfigRefPolicyResolution {
  * @schema SchedulingPolicySpecProviderConfigRefPolicyResolve
  */
 export enum SchedulingPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema SchedulingPolicySpecProviderRefPolicyResolution
- */
-export enum SchedulingPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema SchedulingPolicySpecProviderRefPolicyResolve
- */
-export enum SchedulingPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

@@ -99,7 +99,7 @@ export function toJson_SigningJobProps(obj: SigningJobProps | undefined): Record
  */
 export interface SigningJobSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SigningJobSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface SigningJobSpec {
   readonly forProvider: SigningJobSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema SigningJobSpec#managementPolicy
+   * @schema SigningJobSpec#initProvider
    */
-  readonly managementPolicy?: SigningJobSpecManagementPolicy;
+  readonly initProvider?: SigningJobSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema SigningJobSpec#managementPolicies
+   */
+  readonly managementPolicies?: SigningJobSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface SigningJobSpec {
    * @schema SigningJobSpec#providerConfigRef
    */
   readonly providerConfigRef?: SigningJobSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema SigningJobSpec#providerRef
-   */
-  readonly providerRef?: SigningJobSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_SigningJobSpec(obj: SigningJobSpec | undefined): Record<s
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SigningJobSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_SigningJobSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_SigningJobSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_SigningJobSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SigningJobSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_SigningJobSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_SigningJobSpec(obj: SigningJobSpec | undefined): Record<s
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SigningJobSpecDeletionPolicy
  */
@@ -255,17 +255,68 @@ export function toJson_SigningJobSpecForProvider(obj: SigningJobSpecForProvider 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema SigningJobSpecManagementPolicy
+ * @schema SigningJobSpecInitProvider
  */
-export enum SigningJobSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface SigningJobSpecInitProvider {
+  /**
+   * The S3 bucket in which to save your signed object. See Destination below for details.
+   *
+   * @schema SigningJobSpecInitProvider#destination
+   */
+  readonly destination?: SigningJobSpecInitProviderDestination[];
+
+  /**
+   * Set this argument to true to ignore signing job failures and retrieve failed status and reason. Default false.
+   *
+   * @schema SigningJobSpecInitProvider#ignoreSigningJobFailure
+   */
+  readonly ignoreSigningJobFailure?: boolean;
+
+  /**
+   * The S3 bucket that contains the object to sign. See Source below for details.
+   *
+   * @schema SigningJobSpecInitProvider#source
+   */
+  readonly source?: SigningJobSpecInitProviderSource[];
+
+}
+
+/**
+ * Converts an object of type 'SigningJobSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SigningJobSpecInitProvider(obj: SigningJobSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destination': obj.destination?.map(y => toJson_SigningJobSpecInitProviderDestination(y)),
+    'ignoreSigningJobFailure': obj.ignoreSigningJobFailure,
+    'source': obj.source?.map(y => toJson_SigningJobSpecInitProviderSource(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema SigningJobSpecManagementPolicies
+ */
+export enum SigningJobSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -299,43 +350,6 @@ export function toJson_SigningJobSpecProviderConfigRef(obj: SigningJobSpecProvid
   const result = {
     'name': obj.name,
     'policy': toJson_SigningJobSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema SigningJobSpecProviderRef
- */
-export interface SigningJobSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema SigningJobSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema SigningJobSpecProviderRef#policy
-   */
-  readonly policy?: SigningJobSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'SigningJobSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SigningJobSpecProviderRef(obj: SigningJobSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_SigningJobSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -433,7 +447,7 @@ export interface SigningJobSpecForProviderDestination {
    *
    * @schema SigningJobSpecForProviderDestination#s3
    */
-  readonly s3: SigningJobSpecForProviderDestinationS3[];
+  readonly s3?: SigningJobSpecForProviderDestinationS3[];
 
 }
 
@@ -542,7 +556,7 @@ export interface SigningJobSpecForProviderSource {
    *
    * @schema SigningJobSpecForProviderSource#s3
    */
-  readonly s3: SigningJobSpecForProviderSourceS3[];
+  readonly s3?: SigningJobSpecForProviderSourceS3[];
 
 }
 
@@ -554,6 +568,60 @@ export function toJson_SigningJobSpecForProviderSource(obj: SigningJobSpecForPro
   if (obj === undefined) { return undefined; }
   const result = {
     's3': obj.s3?.map(y => toJson_SigningJobSpecForProviderSourceS3(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SigningJobSpecInitProviderDestination
+ */
+export interface SigningJobSpecInitProviderDestination {
+  /**
+   * A configuration block describing the S3 Source object: See S3 Source below for details.
+   *
+   * @schema SigningJobSpecInitProviderDestination#s3
+   */
+  readonly s3?: SigningJobSpecInitProviderDestinationS3[];
+
+}
+
+/**
+ * Converts an object of type 'SigningJobSpecInitProviderDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SigningJobSpecInitProviderDestination(obj: SigningJobSpecInitProviderDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    's3': obj.s3?.map(y => toJson_SigningJobSpecInitProviderDestinationS3(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SigningJobSpecInitProviderSource
+ */
+export interface SigningJobSpecInitProviderSource {
+  /**
+   * A configuration block describing the S3 Source object: See S3 Source below for details.
+   *
+   * @schema SigningJobSpecInitProviderSource#s3
+   */
+  readonly s3?: SigningJobSpecInitProviderSourceS3[];
+
+}
+
+/**
+ * Converts an object of type 'SigningJobSpecInitProviderSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SigningJobSpecInitProviderSource(obj: SigningJobSpecInitProviderSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    's3': obj.s3?.map(y => toJson_SigningJobSpecInitProviderSourceS3(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -587,43 +655,6 @@ export interface SigningJobSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SigningJobSpecProviderConfigRefPolicy(obj: SigningJobSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema SigningJobSpecProviderRefPolicy
- */
-export interface SigningJobSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema SigningJobSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: SigningJobSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema SigningJobSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: SigningJobSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'SigningJobSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SigningJobSpecProviderRefPolicy(obj: SigningJobSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -725,7 +756,7 @@ export interface SigningJobSpecForProviderDestinationS3 {
    *
    * @schema SigningJobSpecForProviderDestinationS3#bucket
    */
-  readonly bucket: string;
+  readonly bucket?: string;
 
   /**
    * An Amazon S3 object key prefix that you can use to limit signed objects keys to begin with the specified prefix.
@@ -834,21 +865,21 @@ export interface SigningJobSpecForProviderSourceS3 {
    *
    * @schema SigningJobSpecForProviderSourceS3#bucket
    */
-  readonly bucket: string;
+  readonly bucket?: string;
 
   /**
    * Key name of the object that contains your unsigned code.
    *
    * @schema SigningJobSpecForProviderSourceS3#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * Version of your source image in your version enabled S3 bucket.
    *
    * @schema SigningJobSpecForProviderSourceS3#version
    */
-  readonly version: string;
+  readonly version?: string;
 
 }
 
@@ -857,6 +888,84 @@ export interface SigningJobSpecForProviderSourceS3 {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SigningJobSpecForProviderSourceS3(obj: SigningJobSpecForProviderSourceS3 | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'key': obj.key,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SigningJobSpecInitProviderDestinationS3
+ */
+export interface SigningJobSpecInitProviderDestinationS3 {
+  /**
+   * Name of the S3 bucket.
+   *
+   * @schema SigningJobSpecInitProviderDestinationS3#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * An Amazon S3 object key prefix that you can use to limit signed objects keys to begin with the specified prefix.
+   *
+   * @schema SigningJobSpecInitProviderDestinationS3#prefix
+   */
+  readonly prefix?: string;
+
+}
+
+/**
+ * Converts an object of type 'SigningJobSpecInitProviderDestinationS3' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SigningJobSpecInitProviderDestinationS3(obj: SigningJobSpecInitProviderDestinationS3 | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'prefix': obj.prefix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SigningJobSpecInitProviderSourceS3
+ */
+export interface SigningJobSpecInitProviderSourceS3 {
+  /**
+   * Name of the S3 bucket.
+   *
+   * @schema SigningJobSpecInitProviderSourceS3#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * Key name of the object that contains your unsigned code.
+   *
+   * @schema SigningJobSpecInitProviderSourceS3#key
+   */
+  readonly key?: string;
+
+  /**
+   * Version of your source image in your version enabled S3 bucket.
+   *
+   * @schema SigningJobSpecInitProviderSourceS3#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'SigningJobSpecInitProviderSourceS3' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SigningJobSpecInitProviderSourceS3(obj: SigningJobSpecInitProviderSourceS3 | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'bucket': obj.bucket,
@@ -886,30 +995,6 @@ export enum SigningJobSpecProviderConfigRefPolicyResolution {
  * @schema SigningJobSpecProviderConfigRefPolicyResolve
  */
 export enum SigningJobSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema SigningJobSpecProviderRefPolicyResolution
- */
-export enum SigningJobSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema SigningJobSpecProviderRefPolicyResolve
- */
-export enum SigningJobSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1122,7 +1207,7 @@ export function toJson_SigningProfileProps(obj: SigningProfileProps | undefined)
  */
 export interface SigningProfileSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SigningProfileSpec#deletionPolicy
    */
@@ -1134,11 +1219,18 @@ export interface SigningProfileSpec {
   readonly forProvider: SigningProfileSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema SigningProfileSpec#managementPolicy
+   * @schema SigningProfileSpec#initProvider
    */
-  readonly managementPolicy?: SigningProfileSpecManagementPolicy;
+  readonly initProvider?: SigningProfileSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema SigningProfileSpec#managementPolicies
+   */
+  readonly managementPolicies?: SigningProfileSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1146,13 +1238,6 @@ export interface SigningProfileSpec {
    * @schema SigningProfileSpec#providerConfigRef
    */
   readonly providerConfigRef?: SigningProfileSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema SigningProfileSpec#providerRef
-   */
-  readonly providerRef?: SigningProfileSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1179,9 +1264,9 @@ export function toJson_SigningProfileSpec(obj: SigningProfileSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SigningProfileSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_SigningProfileSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_SigningProfileSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_SigningProfileSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SigningProfileSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_SigningProfileSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1191,7 +1276,7 @@ export function toJson_SigningProfileSpec(obj: SigningProfileSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SigningProfileSpecDeletionPolicy
  */
@@ -1254,17 +1339,68 @@ export function toJson_SigningProfileSpecForProvider(obj: SigningProfileSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema SigningProfileSpecManagementPolicy
+ * @schema SigningProfileSpecInitProvider
  */
-export enum SigningProfileSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface SigningProfileSpecInitProvider {
+  /**
+   * The ID of the platform that is used by the target signing profile.
+   *
+   * @schema SigningProfileSpecInitProvider#platformId
+   */
+  readonly platformId?: string;
+
+  /**
+   * The validity period for a signing job.
+   *
+   * @schema SigningProfileSpecInitProvider#signatureValidityPeriod
+   */
+  readonly signatureValidityPeriod?: SigningProfileSpecInitProviderSignatureValidityPeriod[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema SigningProfileSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'SigningProfileSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SigningProfileSpecInitProvider(obj: SigningProfileSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'platformId': obj.platformId,
+    'signatureValidityPeriod': obj.signatureValidityPeriod?.map(y => toJson_SigningProfileSpecInitProviderSignatureValidityPeriod(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema SigningProfileSpecManagementPolicies
+ */
+export enum SigningProfileSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1298,43 +1434,6 @@ export function toJson_SigningProfileSpecProviderConfigRef(obj: SigningProfileSp
   const result = {
     'name': obj.name,
     'policy': toJson_SigningProfileSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema SigningProfileSpecProviderRef
- */
-export interface SigningProfileSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema SigningProfileSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema SigningProfileSpecProviderRef#policy
-   */
-  readonly policy?: SigningProfileSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'SigningProfileSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SigningProfileSpecProviderRef(obj: SigningProfileSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_SigningProfileSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1430,12 +1529,12 @@ export interface SigningProfileSpecForProviderSignatureValidityPeriod {
   /**
    * @schema SigningProfileSpecForProviderSignatureValidityPeriod#type
    */
-  readonly type: string;
+  readonly type?: string;
 
   /**
    * @schema SigningProfileSpecForProviderSignatureValidityPeriod#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -1444,6 +1543,37 @@ export interface SigningProfileSpecForProviderSignatureValidityPeriod {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SigningProfileSpecForProviderSignatureValidityPeriod(obj: SigningProfileSpecForProviderSignatureValidityPeriod | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'type': obj.type,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SigningProfileSpecInitProviderSignatureValidityPeriod
+ */
+export interface SigningProfileSpecInitProviderSignatureValidityPeriod {
+  /**
+   * @schema SigningProfileSpecInitProviderSignatureValidityPeriod#type
+   */
+  readonly type?: string;
+
+  /**
+   * @schema SigningProfileSpecInitProviderSignatureValidityPeriod#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'SigningProfileSpecInitProviderSignatureValidityPeriod' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SigningProfileSpecInitProviderSignatureValidityPeriod(obj: SigningProfileSpecInitProviderSignatureValidityPeriod | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'type': obj.type,
@@ -1481,43 +1611,6 @@ export interface SigningProfileSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SigningProfileSpecProviderConfigRefPolicy(obj: SigningProfileSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema SigningProfileSpecProviderRefPolicy
- */
-export interface SigningProfileSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema SigningProfileSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: SigningProfileSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema SigningProfileSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: SigningProfileSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'SigningProfileSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SigningProfileSpecProviderRefPolicy(obj: SigningProfileSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1628,30 +1721,6 @@ export enum SigningProfileSpecProviderConfigRefPolicyResolution {
  * @schema SigningProfileSpecProviderConfigRefPolicyResolve
  */
 export enum SigningProfileSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema SigningProfileSpecProviderRefPolicyResolution
- */
-export enum SigningProfileSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema SigningProfileSpecProviderRefPolicyResolve
- */
-export enum SigningProfileSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1816,7 +1885,7 @@ export function toJson_SigningProfilePermissionProps(obj: SigningProfilePermissi
  */
 export interface SigningProfilePermissionSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SigningProfilePermissionSpec#deletionPolicy
    */
@@ -1828,11 +1897,18 @@ export interface SigningProfilePermissionSpec {
   readonly forProvider: SigningProfilePermissionSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema SigningProfilePermissionSpec#managementPolicy
+   * @schema SigningProfilePermissionSpec#initProvider
    */
-  readonly managementPolicy?: SigningProfilePermissionSpecManagementPolicy;
+  readonly initProvider?: SigningProfilePermissionSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema SigningProfilePermissionSpec#managementPolicies
+   */
+  readonly managementPolicies?: SigningProfilePermissionSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1840,13 +1916,6 @@ export interface SigningProfilePermissionSpec {
    * @schema SigningProfilePermissionSpec#providerConfigRef
    */
   readonly providerConfigRef?: SigningProfilePermissionSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema SigningProfilePermissionSpec#providerRef
-   */
-  readonly providerRef?: SigningProfilePermissionSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1873,9 +1942,9 @@ export function toJson_SigningProfilePermissionSpec(obj: SigningProfilePermissio
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SigningProfilePermissionSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_SigningProfilePermissionSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_SigningProfilePermissionSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_SigningProfilePermissionSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SigningProfilePermissionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_SigningProfilePermissionSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1885,7 +1954,7 @@ export function toJson_SigningProfilePermissionSpec(obj: SigningProfilePermissio
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SigningProfilePermissionSpecDeletionPolicy
  */
@@ -2004,17 +2073,68 @@ export function toJson_SigningProfilePermissionSpecForProvider(obj: SigningProfi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema SigningProfilePermissionSpecManagementPolicy
+ * @schema SigningProfilePermissionSpecInitProvider
  */
-export enum SigningProfilePermissionSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface SigningProfilePermissionSpecInitProvider {
+  /**
+   * An AWS Signer action permitted as part of cross-account permissions. Valid values: signer:StartSigningJob, signer:GetSigningProfile, or signer:RevokeSignature.
+   *
+   * @schema SigningProfilePermissionSpecInitProvider#action
+   */
+  readonly action?: string;
+
+  /**
+   * The AWS principal to be granted a cross-account permission.
+   *
+   * @schema SigningProfilePermissionSpecInitProvider#principal
+   */
+  readonly principal?: string;
+
+  /**
+   * A statement identifier prefix. Conflicts with statement_id.
+   *
+   * @schema SigningProfilePermissionSpecInitProvider#statementIdPrefix
+   */
+  readonly statementIdPrefix?: string;
+
+}
+
+/**
+ * Converts an object of type 'SigningProfilePermissionSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SigningProfilePermissionSpecInitProvider(obj: SigningProfilePermissionSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action,
+    'principal': obj.principal,
+    'statementIdPrefix': obj.statementIdPrefix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema SigningProfilePermissionSpecManagementPolicies
+ */
+export enum SigningProfilePermissionSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2048,43 +2168,6 @@ export function toJson_SigningProfilePermissionSpecProviderConfigRef(obj: Signin
   const result = {
     'name': obj.name,
     'policy': toJson_SigningProfilePermissionSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema SigningProfilePermissionSpecProviderRef
- */
-export interface SigningProfilePermissionSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema SigningProfilePermissionSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema SigningProfilePermissionSpecProviderRef#policy
-   */
-  readonly policy?: SigningProfilePermissionSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'SigningProfilePermissionSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SigningProfilePermissionSpecProviderRef(obj: SigningProfilePermissionSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_SigningProfilePermissionSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2375,43 +2458,6 @@ export function toJson_SigningProfilePermissionSpecProviderConfigRefPolicy(obj: 
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema SigningProfilePermissionSpecProviderRefPolicy
- */
-export interface SigningProfilePermissionSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema SigningProfilePermissionSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: SigningProfilePermissionSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema SigningProfilePermissionSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: SigningProfilePermissionSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'SigningProfilePermissionSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SigningProfilePermissionSpecProviderRefPolicy(obj: SigningProfilePermissionSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema SigningProfilePermissionSpecPublishConnectionDetailsToConfigRef
@@ -2659,30 +2705,6 @@ export enum SigningProfilePermissionSpecProviderConfigRefPolicyResolution {
  * @schema SigningProfilePermissionSpecProviderConfigRefPolicyResolve
  */
 export enum SigningProfilePermissionSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema SigningProfilePermissionSpecProviderRefPolicyResolution
- */
-export enum SigningProfilePermissionSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema SigningProfilePermissionSpecProviderRefPolicyResolve
- */
-export enum SigningProfilePermissionSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

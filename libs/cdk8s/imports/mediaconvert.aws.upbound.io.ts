@@ -99,7 +99,7 @@ export function toJson_QueueProps(obj: QueueProps | undefined): Record<string, a
  */
 export interface QueueSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema QueueSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface QueueSpec {
   readonly forProvider: QueueSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema QueueSpec#managementPolicy
+   * @schema QueueSpec#initProvider
    */
-  readonly managementPolicy?: QueueSpecManagementPolicy;
+  readonly initProvider?: QueueSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema QueueSpec#managementPolicies
+   */
+  readonly managementPolicies?: QueueSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface QueueSpec {
    * @schema QueueSpec#providerConfigRef
    */
   readonly providerConfigRef?: QueueSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema QueueSpec#providerRef
-   */
-  readonly providerRef?: QueueSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_QueueSpec(obj: QueueSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_QueueSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_QueueSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_QueueSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_QueueSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_QueueSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_QueueSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_QueueSpec(obj: QueueSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema QueueSpecDeletionPolicy
  */
@@ -249,17 +249,86 @@ export function toJson_QueueSpecForProvider(obj: QueueSpecForProvider | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema QueueSpecManagementPolicy
+ * @schema QueueSpecInitProvider
  */
-export enum QueueSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface QueueSpecInitProvider {
+  /**
+   * A description of the queue
+   *
+   * @schema QueueSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Specifies whether the pricing plan for the queue is on-demand or reserved. Valid values are ON_DEMAND or RESERVED. Default to ON_DEMAND.
+   *
+   * @default ON_DEMAND.
+   * @schema QueueSpecInitProvider#pricingPlan
+   */
+  readonly pricingPlan?: string;
+
+  /**
+   * A detail pricing plan of the  reserved queue. See below.
+   *
+   * @schema QueueSpecInitProvider#reservationPlanSettings
+   */
+  readonly reservationPlanSettings?: QueueSpecInitProviderReservationPlanSettings[];
+
+  /**
+   * A status of the queue. Valid values are ACTIVE or RESERVED. Default to PAUSED.
+   *
+   * @default PAUSED.
+   * @schema QueueSpecInitProvider#status
+   */
+  readonly status?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema QueueSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'QueueSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_QueueSpecInitProvider(obj: QueueSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'pricingPlan': obj.pricingPlan,
+    'reservationPlanSettings': obj.reservationPlanSettings?.map(y => toJson_QueueSpecInitProviderReservationPlanSettings(y)),
+    'status': obj.status,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema QueueSpecManagementPolicies
+ */
+export enum QueueSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -293,43 +362,6 @@ export function toJson_QueueSpecProviderConfigRef(obj: QueueSpecProviderConfigRe
   const result = {
     'name': obj.name,
     'policy': toJson_QueueSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema QueueSpecProviderRef
- */
-export interface QueueSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema QueueSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema QueueSpecProviderRef#policy
-   */
-  readonly policy?: QueueSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'QueueSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_QueueSpecProviderRef(obj: QueueSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_QueueSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -427,21 +459,21 @@ export interface QueueSpecForProviderReservationPlanSettings {
    *
    * @schema QueueSpecForProviderReservationPlanSettings#commitment
    */
-  readonly commitment: string;
+  readonly commitment?: string;
 
   /**
    * Specifies whether the term of your reserved queue pricing plan. Valid values are AUTO_RENEW or EXPIRE.
    *
    * @schema QueueSpecForProviderReservationPlanSettings#renewalType
    */
-  readonly renewalType: string;
+  readonly renewalType?: string;
 
   /**
    * Specifies the number of reserved transcode slots (RTS) for queue.
    *
    * @schema QueueSpecForProviderReservationPlanSettings#reservedSlots
    */
-  readonly reservedSlots: number;
+  readonly reservedSlots?: number;
 
 }
 
@@ -450,6 +482,49 @@ export interface QueueSpecForProviderReservationPlanSettings {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_QueueSpecForProviderReservationPlanSettings(obj: QueueSpecForProviderReservationPlanSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'commitment': obj.commitment,
+    'renewalType': obj.renewalType,
+    'reservedSlots': obj.reservedSlots,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema QueueSpecInitProviderReservationPlanSettings
+ */
+export interface QueueSpecInitProviderReservationPlanSettings {
+  /**
+   * The length of the term of your reserved queue pricing plan commitment. Valid value is ONE_YEAR.
+   *
+   * @schema QueueSpecInitProviderReservationPlanSettings#commitment
+   */
+  readonly commitment?: string;
+
+  /**
+   * Specifies whether the term of your reserved queue pricing plan. Valid values are AUTO_RENEW or EXPIRE.
+   *
+   * @schema QueueSpecInitProviderReservationPlanSettings#renewalType
+   */
+  readonly renewalType?: string;
+
+  /**
+   * Specifies the number of reserved transcode slots (RTS) for queue.
+   *
+   * @schema QueueSpecInitProviderReservationPlanSettings#reservedSlots
+   */
+  readonly reservedSlots?: number;
+
+}
+
+/**
+ * Converts an object of type 'QueueSpecInitProviderReservationPlanSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_QueueSpecInitProviderReservationPlanSettings(obj: QueueSpecInitProviderReservationPlanSettings | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'commitment': obj.commitment,
@@ -488,43 +563,6 @@ export interface QueueSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_QueueSpecProviderConfigRefPolicy(obj: QueueSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema QueueSpecProviderRefPolicy
- */
-export interface QueueSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema QueueSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: QueueSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema QueueSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: QueueSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'QueueSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_QueueSpecProviderRefPolicy(obj: QueueSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -635,30 +673,6 @@ export enum QueueSpecProviderConfigRefPolicyResolution {
  * @schema QueueSpecProviderConfigRefPolicyResolve
  */
 export enum QueueSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema QueueSpecProviderRefPolicyResolution
- */
-export enum QueueSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema QueueSpecProviderRefPolicyResolve
- */
-export enum QueueSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

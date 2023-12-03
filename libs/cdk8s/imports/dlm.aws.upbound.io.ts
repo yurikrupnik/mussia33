@@ -99,7 +99,7 @@ export function toJson_LifecyclePolicyProps(obj: LifecyclePolicyProps | undefine
  */
 export interface LifecyclePolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema LifecyclePolicySpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface LifecyclePolicySpec {
   readonly forProvider: LifecyclePolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema LifecyclePolicySpec#managementPolicy
+   * @schema LifecyclePolicySpec#initProvider
    */
-  readonly managementPolicy?: LifecyclePolicySpecManagementPolicy;
+  readonly initProvider?: LifecyclePolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema LifecyclePolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: LifecyclePolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface LifecyclePolicySpec {
    * @schema LifecyclePolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: LifecyclePolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema LifecyclePolicySpec#providerRef
-   */
-  readonly providerRef?: LifecyclePolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_LifecyclePolicySpec(obj: LifecyclePolicySpec | undefined)
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_LifecyclePolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_LifecyclePolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_LifecyclePolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_LifecyclePolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_LifecyclePolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_LifecyclePolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_LifecyclePolicySpec(obj: LifecyclePolicySpec | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema LifecyclePolicySpecDeletionPolicy
  */
@@ -264,17 +264,77 @@ export function toJson_LifecyclePolicySpecForProvider(obj: LifecyclePolicySpecFo
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema LifecyclePolicySpecManagementPolicy
+ * @schema LifecyclePolicySpecInitProvider
  */
-export enum LifecyclePolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface LifecyclePolicySpecInitProvider {
+  /**
+   * A description for the DLM lifecycle policy.
+   *
+   * @schema LifecyclePolicySpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * See the policy_details configuration block. Max of 1.
+   *
+   * @schema LifecyclePolicySpecInitProvider#policyDetails
+   */
+  readonly policyDetails?: LifecyclePolicySpecInitProviderPolicyDetails[];
+
+  /**
+   * Whether the lifecycle policy should be enabled or disabled. ENABLED or DISABLED are valid values. Defaults to ENABLED.
+   *
+   * @default ENABLED.
+   * @schema LifecyclePolicySpecInitProvider#state
+   */
+  readonly state?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema LifecyclePolicySpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProvider(obj: LifecyclePolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'policyDetails': obj.policyDetails?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetails(y)),
+    'state': obj.state,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema LifecyclePolicySpecManagementPolicies
+ */
+export enum LifecyclePolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -308,43 +368,6 @@ export function toJson_LifecyclePolicySpecProviderConfigRef(obj: LifecyclePolicy
   const result = {
     'name': obj.name,
     'policy': toJson_LifecyclePolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema LifecyclePolicySpecProviderRef
- */
-export interface LifecyclePolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema LifecyclePolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema LifecyclePolicySpecProviderRef#policy
-   */
-  readonly policy?: LifecyclePolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'LifecyclePolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LifecyclePolicySpecProviderRef(obj: LifecyclePolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_LifecyclePolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -599,6 +622,89 @@ export function toJson_LifecyclePolicySpecForProviderPolicyDetails(obj: Lifecycl
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetails
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetails {
+  /**
+   * The actions to be performed when the event-based policy is triggered. You can specify only one action per policy. This parameter is required for event-based policies only. If you are creating a snapshot or AMI policy, omit this parameter. See the action configuration block.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetails#action
+   */
+  readonly action?: LifecyclePolicySpecInitProviderPolicyDetailsAction[];
+
+  /**
+   * The event that triggers the event-based policy. This parameter is required for event-based policies only. If you are creating a snapshot or AMI policy, omit this parameter. See the event_source configuration block.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetails#eventSource
+   */
+  readonly eventSource?: LifecyclePolicySpecInitProviderPolicyDetailsEventSource[];
+
+  /**
+   * A set of optional parameters for snapshot and AMI lifecycle policies. See the parameters configuration block.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetails#parameters
+   */
+  readonly parameters?: LifecyclePolicySpecInitProviderPolicyDetailsParameters[];
+
+  /**
+   * The valid target resource types and actions a policy can manage. Specify EBS_SNAPSHOT_MANAGEMENT to create a lifecycle policy that manages the lifecycle of Amazon EBS snapshots. Specify IMAGE_MANAGEMENT to create a lifecycle policy that manages the lifecycle of EBS-backed AMIs. Specify EVENT_BASED_POLICY to create an event-based policy that performs specific actions when a defined event occurs in your AWS account. Default value is EBS_SNAPSHOT_MANAGEMENT.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetails#policyType
+   */
+  readonly policyType?: string;
+
+  /**
+   * The location of the resources to backup. If the source resources are located in an AWS Region, specify CLOUD. If the source resources are located on an Outpost in your account, specify OUTPOST. If you specify OUTPOST, Amazon Data Lifecycle Manager backs up all resources of the specified type with matching target tags across all of the Outposts in your account. Valid values are CLOUD and OUTPOST.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetails#resourceLocations
+   */
+  readonly resourceLocations?: string[];
+
+  /**
+   * A list of resource types that should be targeted by the lifecycle policy. Valid values are VOLUME and INSTANCE.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetails#resourceTypes
+   */
+  readonly resourceTypes?: string[];
+
+  /**
+   * See the schedule configuration block.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetails#schedule
+   */
+  readonly schedule?: LifecyclePolicySpecInitProviderPolicyDetailsSchedule[];
+
+  /**
+   * A map of tag keys and their values. Any resources that match the resource_types and are tagged with any of these tags will be targeted.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetails#targetTags
+   */
+  readonly targetTags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetails(obj: LifecyclePolicySpecInitProviderPolicyDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetailsAction(y)),
+    'eventSource': obj.eventSource?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetailsEventSource(y)),
+    'parameters': obj.parameters?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetailsParameters(y)),
+    'policyType': obj.policyType,
+    'resourceLocations': obj.resourceLocations?.map(y => y),
+    'resourceTypes': obj.resourceTypes?.map(y => y),
+    'schedule': obj.schedule?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetailsSchedule(y)),
+    'targetTags': ((obj.targetTags) === undefined) ? undefined : (Object.entries(obj.targetTags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema LifecyclePolicySpecProviderConfigRefPolicy
@@ -625,43 +731,6 @@ export interface LifecyclePolicySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_LifecyclePolicySpecProviderConfigRefPolicy(obj: LifecyclePolicySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema LifecyclePolicySpecProviderRefPolicy
- */
-export interface LifecyclePolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema LifecyclePolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: LifecyclePolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema LifecyclePolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: LifecyclePolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'LifecyclePolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LifecyclePolicySpecProviderRefPolicy(obj: LifecyclePolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -837,14 +906,14 @@ export interface LifecyclePolicySpecForProviderPolicyDetailsAction {
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsAction#crossRegionCopy
    */
-  readonly crossRegionCopy: LifecyclePolicySpecForProviderPolicyDetailsActionCrossRegionCopy[];
+  readonly crossRegionCopy?: LifecyclePolicySpecForProviderPolicyDetailsActionCrossRegionCopy[];
 
   /**
    * A descriptive name for the action.
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsAction#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -872,14 +941,14 @@ export interface LifecyclePolicySpecForProviderPolicyDetailsEventSource {
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsEventSource#parameters
    */
-  readonly parameters: LifecyclePolicySpecForProviderPolicyDetailsEventSourceParameters[];
+  readonly parameters?: LifecyclePolicySpecForProviderPolicyDetailsEventSourceParameters[];
 
   /**
    * The source of the event. Currently only managed CloudWatch Events rules are supported. Valid values are MANAGED_CWE.
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsEventSource#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -949,7 +1018,7 @@ export interface LifecyclePolicySpecForProviderPolicyDetailsSchedule {
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsSchedule#createRule
    */
-  readonly createRule: LifecyclePolicySpecForProviderPolicyDetailsScheduleCreateRule[];
+  readonly createRule?: LifecyclePolicySpecForProviderPolicyDetailsScheduleCreateRule[];
 
   /**
    * See the cross_region_copy_rule block. Max of 3 per schedule.
@@ -977,14 +1046,14 @@ export interface LifecyclePolicySpecForProviderPolicyDetailsSchedule {
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsSchedule#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Specifies the retention rule for cross-Region snapshot copies. See the retain_rule block. Max of 1 per action.
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsSchedule#retainRule
    */
-  readonly retainRule: LifecyclePolicySpecForProviderPolicyDetailsScheduleRetainRule[];
+  readonly retainRule?: LifecyclePolicySpecForProviderPolicyDetailsScheduleRetainRule[];
 
   /**
    * See the share_rule block. Max of 1 per schedule.
@@ -1033,6 +1102,210 @@ export function toJson_LifecyclePolicySpecForProviderPolicyDetailsSchedule(obj: 
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetailsAction
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetailsAction {
+  /**
+   * The rule for copying shared snapshots across Regions. See the cross_region_copy configuration block.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsAction#crossRegionCopy
+   */
+  readonly crossRegionCopy?: LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopy[];
+
+  /**
+   * A descriptive name for the action.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsAction#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetailsAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetailsAction(obj: LifecyclePolicySpecInitProviderPolicyDetailsAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'crossRegionCopy': obj.crossRegionCopy?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopy(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetailsEventSource
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetailsEventSource {
+  /**
+   * A set of optional parameters for snapshot and AMI lifecycle policies. See the parameters configuration block.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsEventSource#parameters
+   */
+  readonly parameters?: LifecyclePolicySpecInitProviderPolicyDetailsEventSourceParameters[];
+
+  /**
+   * The source of the event. Currently only managed CloudWatch Events rules are supported. Valid values are MANAGED_CWE.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsEventSource#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetailsEventSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetailsEventSource(obj: LifecyclePolicySpecInitProviderPolicyDetailsEventSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'parameters': obj.parameters?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetailsEventSourceParameters(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetailsParameters
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetailsParameters {
+  /**
+   * Indicates whether to exclude the root volume from snapshots created using CreateSnapshots. The default is false.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsParameters#excludeBootVolume
+   */
+  readonly excludeBootVolume?: boolean;
+
+  /**
+   * Applies to AMI lifecycle policies only. Indicates whether targeted instances are rebooted when the lifecycle policy runs. true indicates that targeted instances are not rebooted when the policy runs. false indicates that target instances are rebooted when the policy runs. The default is true (instances are not rebooted).
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsParameters#noReboot
+   */
+  readonly noReboot?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetailsParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetailsParameters(obj: LifecyclePolicySpecInitProviderPolicyDetailsParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'excludeBootVolume': obj.excludeBootVolume,
+    'noReboot': obj.noReboot,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetailsSchedule
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetailsSchedule {
+  /**
+   * Copy all user-defined tags on a source volume to snapshots of the volume created by this policy.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsSchedule#copyTags
+   */
+  readonly copyTags?: boolean;
+
+  /**
+   * See the create_rule block. Max of 1 per schedule.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsSchedule#createRule
+   */
+  readonly createRule?: LifecyclePolicySpecInitProviderPolicyDetailsScheduleCreateRule[];
+
+  /**
+   * See the cross_region_copy_rule block. Max of 3 per schedule.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsSchedule#crossRegionCopyRule
+   */
+  readonly crossRegionCopyRule?: LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRule[];
+
+  /**
+   * See the deprecate_rule block. Max of 1 per schedule.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsSchedule#deprecateRule
+   */
+  readonly deprecateRule?: LifecyclePolicySpecInitProviderPolicyDetailsScheduleDeprecateRule[];
+
+  /**
+   * See the fast_restore_rule block. Max of 1 per schedule.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsSchedule#fastRestoreRule
+   */
+  readonly fastRestoreRule?: LifecyclePolicySpecInitProviderPolicyDetailsScheduleFastRestoreRule[];
+
+  /**
+   * A descriptive name for the action.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsSchedule#name
+   */
+  readonly name?: string;
+
+  /**
+   * Specifies the retention rule for cross-Region snapshot copies. See the retain_rule block. Max of 1 per action.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsSchedule#retainRule
+   */
+  readonly retainRule?: LifecyclePolicySpecInitProviderPolicyDetailsScheduleRetainRule[];
+
+  /**
+   * See the share_rule block. Max of 1 per schedule.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsSchedule#shareRule
+   */
+  readonly shareRule?: LifecyclePolicySpecInitProviderPolicyDetailsScheduleShareRule[];
+
+  /**
+   * A map of tag keys and their values. DLM lifecycle policies will already tag the snapshot with the tags on the volume. This configuration adds extra tags on top of these.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsSchedule#tagsToAdd
+   */
+  readonly tagsToAdd?: { [key: string]: string };
+
+  /**
+   * A map of tag keys and variable values, where the values are determined when the policy is executed. Only $(instance-id) or $(timestamp) are valid values. Can only be used when resource_types is INSTANCE.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsSchedule#variableTags
+   */
+  readonly variableTags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetailsSchedule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetailsSchedule(obj: LifecyclePolicySpecInitProviderPolicyDetailsSchedule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'copyTags': obj.copyTags,
+    'createRule': obj.createRule?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetailsScheduleCreateRule(y)),
+    'crossRegionCopyRule': obj.crossRegionCopyRule?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRule(y)),
+    'deprecateRule': obj.deprecateRule?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetailsScheduleDeprecateRule(y)),
+    'fastRestoreRule': obj.fastRestoreRule?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetailsScheduleFastRestoreRule(y)),
+    'name': obj.name,
+    'retainRule': obj.retainRule?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetailsScheduleRetainRule(y)),
+    'shareRule': obj.shareRule?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetailsScheduleShareRule(y)),
+    'tagsToAdd': ((obj.tagsToAdd) === undefined) ? undefined : (Object.entries(obj.tagsToAdd).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'variableTags': ((obj.variableTags) === undefined) ? undefined : (Object.entries(obj.variableTags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema LifecyclePolicySpecProviderConfigRefPolicyResolution
@@ -1050,30 +1323,6 @@ export enum LifecyclePolicySpecProviderConfigRefPolicyResolution {
  * @schema LifecyclePolicySpecProviderConfigRefPolicyResolve
  */
 export enum LifecyclePolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema LifecyclePolicySpecProviderRefPolicyResolution
- */
-export enum LifecyclePolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema LifecyclePolicySpecProviderRefPolicyResolve
- */
-export enum LifecyclePolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1174,7 +1423,7 @@ export interface LifecyclePolicySpecForProviderPolicyDetailsActionCrossRegionCop
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsActionCrossRegionCopy#encryptionConfiguration
    */
-  readonly encryptionConfiguration: LifecyclePolicySpecForProviderPolicyDetailsActionCrossRegionCopyEncryptionConfiguration[];
+  readonly encryptionConfiguration?: LifecyclePolicySpecForProviderPolicyDetailsActionCrossRegionCopyEncryptionConfiguration[];
 
   /**
    * Specifies the retention rule for cross-Region snapshot copies. See the retain_rule block. Max of 1 per action.
@@ -1188,7 +1437,7 @@ export interface LifecyclePolicySpecForProviderPolicyDetailsActionCrossRegionCop
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsActionCrossRegionCopy#target
    */
-  readonly target: string;
+  readonly target?: string;
 
 }
 
@@ -1217,21 +1466,21 @@ export interface LifecyclePolicySpecForProviderPolicyDetailsEventSourceParameter
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsEventSourceParameters#descriptionRegex
    */
-  readonly descriptionRegex: string;
+  readonly descriptionRegex?: string;
 
   /**
    * The type of event. Currently, only shareSnapshot events are supported.
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsEventSourceParameters#eventType
    */
-  readonly eventType: string;
+  readonly eventType?: string;
 
   /**
    * The IDs of the AWS accounts that can trigger policy by sharing snapshots with your account. The policy only runs if one of the specified AWS accounts shares a snapshot with your account.
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsEventSourceParameters#snapshotOwner
    */
-  readonly snapshotOwner: string[];
+  readonly snapshotOwner?: string[];
 
 }
 
@@ -1354,7 +1603,7 @@ export interface LifecyclePolicySpecForProviderPolicyDetailsScheduleCrossRegionC
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsScheduleCrossRegionCopyRule#encrypted
    */
-  readonly encrypted: boolean;
+  readonly encrypted?: boolean;
 
   /**
    * Specifies the retention rule for cross-Region snapshot copies. See the retain_rule block. Max of 1 per action.
@@ -1368,7 +1617,7 @@ export interface LifecyclePolicySpecForProviderPolicyDetailsScheduleCrossRegionC
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsScheduleCrossRegionCopyRule#target
    */
-  readonly target: string;
+  readonly target?: string;
 
 }
 
@@ -1445,7 +1694,7 @@ export interface LifecyclePolicySpecForProviderPolicyDetailsScheduleFastRestoreR
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsScheduleFastRestoreRule#availabilityZones
    */
-  readonly availabilityZones: string[];
+  readonly availabilityZones?: string[];
 
   /**
    * Specifies the number of oldest AMIs to deprecate. Must be an integer between 1 and 1000.
@@ -1539,7 +1788,7 @@ export interface LifecyclePolicySpecForProviderPolicyDetailsScheduleShareRule {
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsScheduleShareRule#targetAccounts
    */
-  readonly targetAccounts: string[];
+  readonly targetAccounts?: string[];
 
   /**
    * How often this lifecycle policy should be evaluated. 1, 2,3,4,6,8,12 or 24 are valid values.
@@ -1562,6 +1811,390 @@ export interface LifecyclePolicySpecForProviderPolicyDetailsScheduleShareRule {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_LifecyclePolicySpecForProviderPolicyDetailsScheduleShareRule(obj: LifecyclePolicySpecForProviderPolicyDetailsScheduleShareRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'targetAccounts': obj.targetAccounts?.map(y => y),
+    'unshareInterval': obj.unshareInterval,
+    'unshareIntervalUnit': obj.unshareIntervalUnit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopy
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopy {
+  /**
+   * The encryption settings for the copied snapshot. See the encryption_configuration block. Max of 1 per action.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopy#encryptionConfiguration
+   */
+  readonly encryptionConfiguration?: LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyEncryptionConfiguration[];
+
+  /**
+   * Specifies the retention rule for cross-Region snapshot copies. See the retain_rule block. Max of 1 per action.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopy#retainRule
+   */
+  readonly retainRule?: LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyRetainRule[];
+
+  /**
+   * The target Region or the Amazon Resource Name (ARN) of the target Outpost for the snapshot copies.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopy#target
+   */
+  readonly target?: string;
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopy(obj: LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'encryptionConfiguration': obj.encryptionConfiguration?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyEncryptionConfiguration(y)),
+    'retainRule': obj.retainRule?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyRetainRule(y)),
+    'target': obj.target,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetailsEventSourceParameters
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetailsEventSourceParameters {
+  /**
+   * The snapshot description that can trigger the policy. The description pattern is specified using a regular expression. The policy runs only if a snapshot with a description that matches the specified pattern is shared with your account.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsEventSourceParameters#descriptionRegex
+   */
+  readonly descriptionRegex?: string;
+
+  /**
+   * The type of event. Currently, only shareSnapshot events are supported.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsEventSourceParameters#eventType
+   */
+  readonly eventType?: string;
+
+  /**
+   * The IDs of the AWS accounts that can trigger policy by sharing snapshots with your account. The policy only runs if one of the specified AWS accounts shares a snapshot with your account.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsEventSourceParameters#snapshotOwner
+   */
+  readonly snapshotOwner?: string[];
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetailsEventSourceParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetailsEventSourceParameters(obj: LifecyclePolicySpecInitProviderPolicyDetailsEventSourceParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'descriptionRegex': obj.descriptionRegex,
+    'eventType': obj.eventType,
+    'snapshotOwner': obj.snapshotOwner?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCreateRule
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetailsScheduleCreateRule {
+  /**
+   * The schedule, as a Cron expression. The schedule interval must be between 1 hour and 1 year.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCreateRule#cronExpression
+   */
+  readonly cronExpression?: string;
+
+  /**
+   * How often this lifecycle policy should be evaluated. 1, 2,3,4,6,8,12 or 24 are valid values.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCreateRule#interval
+   */
+  readonly interval?: number;
+
+  /**
+   * The unit for how often the lifecycle policy should be evaluated. HOURS is currently the only allowed value and also the default value.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCreateRule#intervalUnit
+   */
+  readonly intervalUnit?: string;
+
+  /**
+   * Specifies the destination for snapshots created by the policy. To create snapshots in the same Region as the source resource, specify CLOUD. To create snapshots on the same Outpost as the source resource, specify OUTPOST_LOCAL. If you omit this parameter, CLOUD is used by default. If the policy targets resources in an AWS Region, then you must create snapshots in the same Region as the source resource. If the policy targets resources on an Outpost, then you can create snapshots on the same Outpost as the source resource, or in the Region of that Outpost. Valid values are CLOUD and OUTPOST_LOCAL.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCreateRule#location
+   */
+  readonly location?: string;
+
+  /**
+   * A list of times in 24 hour clock format that sets when the lifecycle policy should be evaluated. Max of 1.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCreateRule#times
+   */
+  readonly times?: string[];
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetailsScheduleCreateRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetailsScheduleCreateRule(obj: LifecyclePolicySpecInitProviderPolicyDetailsScheduleCreateRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cronExpression': obj.cronExpression,
+    'interval': obj.interval,
+    'intervalUnit': obj.intervalUnit,
+    'location': obj.location,
+    'times': obj.times?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRule
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRule {
+  /**
+   * Copy all user-defined tags on a source volume to snapshots of the volume created by this policy.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRule#copyTags
+   */
+  readonly copyTags?: boolean;
+
+  /**
+   * See the deprecate_rule block. Max of 1 per schedule.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRule#deprecateRule
+   */
+  readonly deprecateRule?: LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleDeprecateRule[];
+
+  /**
+   * To encrypt a copy of an unencrypted snapshot when encryption by default is not enabled, enable encryption using this parameter. Copies of encrypted snapshots are encrypted, even if this parameter is false or when encryption by default is not enabled.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRule#encrypted
+   */
+  readonly encrypted?: boolean;
+
+  /**
+   * Specifies the retention rule for cross-Region snapshot copies. See the retain_rule block. Max of 1 per action.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRule#retainRule
+   */
+  readonly retainRule?: LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleRetainRule[];
+
+  /**
+   * The target Region or the Amazon Resource Name (ARN) of the target Outpost for the snapshot copies.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRule#target
+   */
+  readonly target?: string;
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRule(obj: LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'copyTags': obj.copyTags,
+    'deprecateRule': obj.deprecateRule?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleDeprecateRule(y)),
+    'encrypted': obj.encrypted,
+    'retainRule': obj.retainRule?.map(y => toJson_LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleRetainRule(y)),
+    'target': obj.target,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleDeprecateRule
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetailsScheduleDeprecateRule {
+  /**
+   * Specifies the number of oldest AMIs to deprecate. Must be an integer between 1 and 1000.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleDeprecateRule#count
+   */
+  readonly count?: number;
+
+  /**
+   * How often this lifecycle policy should be evaluated. 1, 2,3,4,6,8,12 or 24 are valid values.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleDeprecateRule#interval
+   */
+  readonly interval?: number;
+
+  /**
+   * The unit for how often the lifecycle policy should be evaluated. HOURS is currently the only allowed value and also the default value.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleDeprecateRule#intervalUnit
+   */
+  readonly intervalUnit?: string;
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetailsScheduleDeprecateRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetailsScheduleDeprecateRule(obj: LifecyclePolicySpecInitProviderPolicyDetailsScheduleDeprecateRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count,
+    'interval': obj.interval,
+    'intervalUnit': obj.intervalUnit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleFastRestoreRule
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetailsScheduleFastRestoreRule {
+  /**
+   * The Availability Zones in which to enable fast snapshot restore.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleFastRestoreRule#availabilityZones
+   */
+  readonly availabilityZones?: string[];
+
+  /**
+   * Specifies the number of oldest AMIs to deprecate. Must be an integer between 1 and 1000.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleFastRestoreRule#count
+   */
+  readonly count?: number;
+
+  /**
+   * How often this lifecycle policy should be evaluated. 1, 2,3,4,6,8,12 or 24 are valid values.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleFastRestoreRule#interval
+   */
+  readonly interval?: number;
+
+  /**
+   * The unit for how often the lifecycle policy should be evaluated. HOURS is currently the only allowed value and also the default value.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleFastRestoreRule#intervalUnit
+   */
+  readonly intervalUnit?: string;
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetailsScheduleFastRestoreRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetailsScheduleFastRestoreRule(obj: LifecyclePolicySpecInitProviderPolicyDetailsScheduleFastRestoreRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'availabilityZones': obj.availabilityZones?.map(y => y),
+    'count': obj.count,
+    'interval': obj.interval,
+    'intervalUnit': obj.intervalUnit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleRetainRule
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetailsScheduleRetainRule {
+  /**
+   * Specifies the number of oldest AMIs to deprecate. Must be an integer between 1 and 1000.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleRetainRule#count
+   */
+  readonly count?: number;
+
+  /**
+   * How often this lifecycle policy should be evaluated. 1, 2,3,4,6,8,12 or 24 are valid values.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleRetainRule#interval
+   */
+  readonly interval?: number;
+
+  /**
+   * The unit for how often the lifecycle policy should be evaluated. HOURS is currently the only allowed value and also the default value.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleRetainRule#intervalUnit
+   */
+  readonly intervalUnit?: string;
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetailsScheduleRetainRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetailsScheduleRetainRule(obj: LifecyclePolicySpecInitProviderPolicyDetailsScheduleRetainRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count,
+    'interval': obj.interval,
+    'intervalUnit': obj.intervalUnit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleShareRule
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetailsScheduleShareRule {
+  /**
+   * The IDs of the AWS accounts with which to share the snapshots.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleShareRule#targetAccounts
+   */
+  readonly targetAccounts?: string[];
+
+  /**
+   * How often this lifecycle policy should be evaluated. 1, 2,3,4,6,8,12 or 24 are valid values.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleShareRule#unshareInterval
+   */
+  readonly unshareInterval?: number;
+
+  /**
+   * The unit for how often the lifecycle policy should be evaluated. HOURS is currently the only allowed value and also the default value.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleShareRule#unshareIntervalUnit
+   */
+  readonly unshareIntervalUnit?: string;
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetailsScheduleShareRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetailsScheduleShareRule(obj: LifecyclePolicySpecInitProviderPolicyDetailsScheduleShareRule | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'targetAccounts': obj.targetAccounts?.map(y => y),
@@ -1641,14 +2274,14 @@ export interface LifecyclePolicySpecForProviderPolicyDetailsActionCrossRegionCop
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsActionCrossRegionCopyRetainRule#interval
    */
-  readonly interval: number;
+  readonly interval?: number;
 
   /**
    * The unit for how often the lifecycle policy should be evaluated. HOURS is currently the only allowed value and also the default value.
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsActionCrossRegionCopyRetainRule#intervalUnit
    */
-  readonly intervalUnit: string;
+  readonly intervalUnit?: string;
 
 }
 
@@ -1758,14 +2391,14 @@ export interface LifecyclePolicySpecForProviderPolicyDetailsScheduleCrossRegionC
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsScheduleCrossRegionCopyRuleDeprecateRule#interval
    */
-  readonly interval: number;
+  readonly interval?: number;
 
   /**
    * The unit for how often the lifecycle policy should be evaluated. HOURS is currently the only allowed value and also the default value.
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsScheduleCrossRegionCopyRuleDeprecateRule#intervalUnit
    */
-  readonly intervalUnit: string;
+  readonly intervalUnit?: string;
 
 }
 
@@ -1793,14 +2426,14 @@ export interface LifecyclePolicySpecForProviderPolicyDetailsScheduleCrossRegionC
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsScheduleCrossRegionCopyRuleRetainRule#interval
    */
-  readonly interval: number;
+  readonly interval?: number;
 
   /**
    * The unit for how often the lifecycle policy should be evaluated. HOURS is currently the only allowed value and also the default value.
    *
    * @schema LifecyclePolicySpecForProviderPolicyDetailsScheduleCrossRegionCopyRuleRetainRule#intervalUnit
    */
-  readonly intervalUnit: string;
+  readonly intervalUnit?: string;
 
 }
 
@@ -1809,6 +2442,146 @@ export interface LifecyclePolicySpecForProviderPolicyDetailsScheduleCrossRegionC
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_LifecyclePolicySpecForProviderPolicyDetailsScheduleCrossRegionCopyRuleRetainRule(obj: LifecyclePolicySpecForProviderPolicyDetailsScheduleCrossRegionCopyRuleRetainRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'interval': obj.interval,
+    'intervalUnit': obj.intervalUnit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyEncryptionConfiguration
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyEncryptionConfiguration {
+  /**
+   * The Amazon Resource Name (ARN) of the AWS KMS key to use for EBS encryption. If this parameter is not specified, the default KMS key for the account is used.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyEncryptionConfiguration#cmkArn
+   */
+  readonly cmkArn?: string;
+
+  /**
+   * To encrypt a copy of an unencrypted snapshot when encryption by default is not enabled, enable encryption using this parameter. Copies of encrypted snapshots are encrypted, even if this parameter is false or when encryption by default is not enabled.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyEncryptionConfiguration#encrypted
+   */
+  readonly encrypted?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyEncryptionConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyEncryptionConfiguration(obj: LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyEncryptionConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cmkArn': obj.cmkArn,
+    'encrypted': obj.encrypted,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyRetainRule
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyRetainRule {
+  /**
+   * How often this lifecycle policy should be evaluated. 1, 2,3,4,6,8,12 or 24 are valid values.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyRetainRule#interval
+   */
+  readonly interval?: number;
+
+  /**
+   * The unit for how often the lifecycle policy should be evaluated. HOURS is currently the only allowed value and also the default value.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyRetainRule#intervalUnit
+   */
+  readonly intervalUnit?: string;
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyRetainRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyRetainRule(obj: LifecyclePolicySpecInitProviderPolicyDetailsActionCrossRegionCopyRetainRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'interval': obj.interval,
+    'intervalUnit': obj.intervalUnit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleDeprecateRule
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleDeprecateRule {
+  /**
+   * How often this lifecycle policy should be evaluated. 1, 2,3,4,6,8,12 or 24 are valid values.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleDeprecateRule#interval
+   */
+  readonly interval?: number;
+
+  /**
+   * The unit for how often the lifecycle policy should be evaluated. HOURS is currently the only allowed value and also the default value.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleDeprecateRule#intervalUnit
+   */
+  readonly intervalUnit?: string;
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleDeprecateRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleDeprecateRule(obj: LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleDeprecateRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'interval': obj.interval,
+    'intervalUnit': obj.intervalUnit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleRetainRule
+ */
+export interface LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleRetainRule {
+  /**
+   * How often this lifecycle policy should be evaluated. 1, 2,3,4,6,8,12 or 24 are valid values.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleRetainRule#interval
+   */
+  readonly interval?: number;
+
+  /**
+   * The unit for how often the lifecycle policy should be evaluated. HOURS is currently the only allowed value and also the default value.
+   *
+   * @schema LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleRetainRule#intervalUnit
+   */
+  readonly intervalUnit?: string;
+
+}
+
+/**
+ * Converts an object of type 'LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleRetainRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleRetainRule(obj: LifecyclePolicySpecInitProviderPolicyDetailsScheduleCrossRegionCopyRuleRetainRule | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'interval': obj.interval,

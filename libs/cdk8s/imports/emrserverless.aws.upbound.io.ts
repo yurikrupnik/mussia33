@@ -99,7 +99,7 @@ export function toJson_ApplicationProps(obj: ApplicationProps | undefined): Reco
  */
 export interface ApplicationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ApplicationSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface ApplicationSpec {
   readonly forProvider: ApplicationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ApplicationSpec#managementPolicy
+   * @schema ApplicationSpec#initProvider
    */
-  readonly managementPolicy?: ApplicationSpecManagementPolicy;
+  readonly initProvider?: ApplicationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ApplicationSpec#managementPolicies
+   */
+  readonly managementPolicies?: ApplicationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface ApplicationSpec {
    * @schema ApplicationSpec#providerConfigRef
    */
   readonly providerConfigRef?: ApplicationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ApplicationSpec#providerRef
-   */
-  readonly providerRef?: ApplicationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_ApplicationSpec(obj: ApplicationSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ApplicationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ApplicationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ApplicationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ApplicationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ApplicationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ApplicationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_ApplicationSpec(obj: ApplicationSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ApplicationSpecDeletionPolicy
  */
@@ -295,17 +295,132 @@ export function toJson_ApplicationSpecForProvider(obj: ApplicationSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ApplicationSpecManagementPolicy
+ * @schema ApplicationSpecInitProvider
  */
-export enum ApplicationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ApplicationSpecInitProvider {
+  /**
+   * –  The CPU architecture of an application. Valid values are ARM64 or X86_64. Default value is X86_64.
+   *
+   * @schema ApplicationSpecInitProvider#architecture
+   */
+  readonly architecture?: string;
+
+  /**
+   * –  The configuration for an application to automatically start on job submission.
+   *
+   * @schema ApplicationSpecInitProvider#autoStartConfiguration
+   */
+  readonly autoStartConfiguration?: ApplicationSpecInitProviderAutoStartConfiguration[];
+
+  /**
+   * –  The configuration for an application to automatically stop after a certain amount of time being idle.
+   *
+   * @schema ApplicationSpecInitProvider#autoStopConfiguration
+   */
+  readonly autoStopConfiguration?: ApplicationSpecInitProviderAutoStopConfiguration[];
+
+  /**
+   * –  The image configuration applied to all worker types.
+   *
+   * @schema ApplicationSpecInitProvider#imageConfiguration
+   */
+  readonly imageConfiguration?: ApplicationSpecInitProviderImageConfiguration[];
+
+  /**
+   * –  The capacity to initialize when the application is created.
+   *
+   * @schema ApplicationSpecInitProvider#initialCapacity
+   */
+  readonly initialCapacity?: ApplicationSpecInitProviderInitialCapacity[];
+
+  /**
+   * –  The maximum capacity to allocate when the application is created. This is cumulative across all workers at any given point in time, not just when an application is created. No new resources will be created once any one of the defined limits is hit.
+   *
+   * @schema ApplicationSpecInitProvider#maximumCapacity
+   */
+  readonly maximumCapacity?: ApplicationSpecInitProviderMaximumCapacity[];
+
+  /**
+   * –  The name of the application.
+   *
+   * @schema ApplicationSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * –  The network configuration for customer VPC connectivity.
+   *
+   * @schema ApplicationSpecInitProvider#networkConfiguration
+   */
+  readonly networkConfiguration?: ApplicationSpecInitProviderNetworkConfiguration[];
+
+  /**
+   * –  The EMR release version associated with the application.
+   *
+   * @schema ApplicationSpecInitProvider#releaseLabel
+   */
+  readonly releaseLabel?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ApplicationSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * –  The type of application you want to start, such as spark or hive.
+   *
+   * @schema ApplicationSpecInitProvider#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProvider(obj: ApplicationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'architecture': obj.architecture,
+    'autoStartConfiguration': obj.autoStartConfiguration?.map(y => toJson_ApplicationSpecInitProviderAutoStartConfiguration(y)),
+    'autoStopConfiguration': obj.autoStopConfiguration?.map(y => toJson_ApplicationSpecInitProviderAutoStopConfiguration(y)),
+    'imageConfiguration': obj.imageConfiguration?.map(y => toJson_ApplicationSpecInitProviderImageConfiguration(y)),
+    'initialCapacity': obj.initialCapacity?.map(y => toJson_ApplicationSpecInitProviderInitialCapacity(y)),
+    'maximumCapacity': obj.maximumCapacity?.map(y => toJson_ApplicationSpecInitProviderMaximumCapacity(y)),
+    'name': obj.name,
+    'networkConfiguration': obj.networkConfiguration?.map(y => toJson_ApplicationSpecInitProviderNetworkConfiguration(y)),
+    'releaseLabel': obj.releaseLabel,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ApplicationSpecManagementPolicies
+ */
+export enum ApplicationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -339,43 +454,6 @@ export function toJson_ApplicationSpecProviderConfigRef(obj: ApplicationSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_ApplicationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ApplicationSpecProviderRef
- */
-export interface ApplicationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ApplicationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ApplicationSpecProviderRef#policy
-   */
-  readonly policy?: ApplicationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ApplicationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ApplicationSpecProviderRef(obj: ApplicationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ApplicationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -538,7 +616,7 @@ export interface ApplicationSpecForProviderImageConfiguration {
    *
    * @schema ApplicationSpecForProviderImageConfiguration#imageUri
    */
-  readonly imageUri: string;
+  readonly imageUri?: string;
 
 }
 
@@ -572,7 +650,7 @@ export interface ApplicationSpecForProviderInitialCapacity {
    *
    * @schema ApplicationSpecForProviderInitialCapacity#initialCapacityType
    */
-  readonly initialCapacityType: string;
+  readonly initialCapacityType?: string;
 
 }
 
@@ -600,7 +678,7 @@ export interface ApplicationSpecForProviderMaximumCapacity {
    *
    * @schema ApplicationSpecForProviderMaximumCapacity#cpu
    */
-  readonly cpu: string;
+  readonly cpu?: string;
 
   /**
    * The maximum allowed disk for an application.
@@ -614,7 +692,7 @@ export interface ApplicationSpecForProviderMaximumCapacity {
    *
    * @schema ApplicationSpecForProviderMaximumCapacity#memory
    */
-  readonly memory: string;
+  readonly memory?: string;
 
 }
 
@@ -670,6 +748,211 @@ export function toJson_ApplicationSpecForProviderNetworkConfiguration(obj: Appli
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSpecInitProviderAutoStartConfiguration
+ */
+export interface ApplicationSpecInitProviderAutoStartConfiguration {
+  /**
+   * Enables the application to automatically start on job submission. Defaults to true.
+   *
+   * @default true.
+   * @schema ApplicationSpecInitProviderAutoStartConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderAutoStartConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderAutoStartConfiguration(obj: ApplicationSpecInitProviderAutoStartConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderAutoStopConfiguration
+ */
+export interface ApplicationSpecInitProviderAutoStopConfiguration {
+  /**
+   * Enables the application to automatically start on job submission. Defaults to true.
+   *
+   * @default true.
+   * @schema ApplicationSpecInitProviderAutoStopConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The amount of idle time in minutes after which your application will automatically stop. Defaults to 15 minutes.
+   *
+   * @default 15 minutes.
+   * @schema ApplicationSpecInitProviderAutoStopConfiguration#idleTimeoutMinutes
+   */
+  readonly idleTimeoutMinutes?: number;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderAutoStopConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderAutoStopConfiguration(obj: ApplicationSpecInitProviderAutoStopConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'idleTimeoutMinutes': obj.idleTimeoutMinutes,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderImageConfiguration
+ */
+export interface ApplicationSpecInitProviderImageConfiguration {
+  /**
+   * The image URI.
+   *
+   * @schema ApplicationSpecInitProviderImageConfiguration#imageUri
+   */
+  readonly imageUri?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderImageConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderImageConfiguration(obj: ApplicationSpecInitProviderImageConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'imageUri': obj.imageUri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderInitialCapacity
+ */
+export interface ApplicationSpecInitProviderInitialCapacity {
+  /**
+   * The initial capacity configuration per worker.
+   *
+   * @schema ApplicationSpecInitProviderInitialCapacity#initialCapacityConfig
+   */
+  readonly initialCapacityConfig?: ApplicationSpecInitProviderInitialCapacityInitialCapacityConfig[];
+
+  /**
+   * The worker type for an analytics framework. For Spark applications, the key can either be set to Driver or Executor. For Hive applications, it can be set to HiveDriver or TezTask.
+   *
+   * @schema ApplicationSpecInitProviderInitialCapacity#initialCapacityType
+   */
+  readonly initialCapacityType?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderInitialCapacity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderInitialCapacity(obj: ApplicationSpecInitProviderInitialCapacity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'initialCapacityConfig': obj.initialCapacityConfig?.map(y => toJson_ApplicationSpecInitProviderInitialCapacityInitialCapacityConfig(y)),
+    'initialCapacityType': obj.initialCapacityType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderMaximumCapacity
+ */
+export interface ApplicationSpecInitProviderMaximumCapacity {
+  /**
+   * The maximum allowed CPU for an application.
+   *
+   * @schema ApplicationSpecInitProviderMaximumCapacity#cpu
+   */
+  readonly cpu?: string;
+
+  /**
+   * The maximum allowed disk for an application.
+   *
+   * @schema ApplicationSpecInitProviderMaximumCapacity#disk
+   */
+  readonly disk?: string;
+
+  /**
+   * The maximum allowed resources for an application.
+   *
+   * @schema ApplicationSpecInitProviderMaximumCapacity#memory
+   */
+  readonly memory?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderMaximumCapacity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderMaximumCapacity(obj: ApplicationSpecInitProviderMaximumCapacity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cpu': obj.cpu,
+    'disk': obj.disk,
+    'memory': obj.memory,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderNetworkConfiguration
+ */
+export interface ApplicationSpecInitProviderNetworkConfiguration {
+  /**
+   * The array of security group Ids for customer VPC connectivity.
+   *
+   * @schema ApplicationSpecInitProviderNetworkConfiguration#securityGroupIds
+   */
+  readonly securityGroupIds?: string[];
+
+  /**
+   * The array of subnet Ids for customer VPC connectivity.
+   *
+   * @schema ApplicationSpecInitProviderNetworkConfiguration#subnetIds
+   */
+  readonly subnetIds?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderNetworkConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderNetworkConfiguration(obj: ApplicationSpecInitProviderNetworkConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'securityGroupIds': obj.securityGroupIds?.map(y => y),
+    'subnetIds': obj.subnetIds?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ApplicationSpecProviderConfigRefPolicy
@@ -696,43 +979,6 @@ export interface ApplicationSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ApplicationSpecProviderConfigRefPolicy(obj: ApplicationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ApplicationSpecProviderRefPolicy
- */
-export interface ApplicationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ApplicationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ApplicationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ApplicationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ApplicationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ApplicationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ApplicationSpecProviderRefPolicy(obj: ApplicationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -841,7 +1087,7 @@ export interface ApplicationSpecForProviderInitialCapacityInitialCapacityConfig 
    *
    * @schema ApplicationSpecForProviderInitialCapacityInitialCapacityConfig#workerCount
    */
-  readonly workerCount: number;
+  readonly workerCount?: number;
 
 }
 
@@ -853,6 +1099,41 @@ export function toJson_ApplicationSpecForProviderInitialCapacityInitialCapacityC
   if (obj === undefined) { return undefined; }
   const result = {
     'workerConfiguration': obj.workerConfiguration?.map(y => toJson_ApplicationSpecForProviderInitialCapacityInitialCapacityConfigWorkerConfiguration(y)),
+    'workerCount': obj.workerCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderInitialCapacityInitialCapacityConfig
+ */
+export interface ApplicationSpecInitProviderInitialCapacityInitialCapacityConfig {
+  /**
+   * The resource configuration of the initial capacity configuration.
+   *
+   * @schema ApplicationSpecInitProviderInitialCapacityInitialCapacityConfig#workerConfiguration
+   */
+  readonly workerConfiguration?: ApplicationSpecInitProviderInitialCapacityInitialCapacityConfigWorkerConfiguration[];
+
+  /**
+   * The number of workers in the initial capacity configuration.
+   *
+   * @schema ApplicationSpecInitProviderInitialCapacityInitialCapacityConfig#workerCount
+   */
+  readonly workerCount?: number;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderInitialCapacityInitialCapacityConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderInitialCapacityInitialCapacityConfig(obj: ApplicationSpecInitProviderInitialCapacityInitialCapacityConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'workerConfiguration': obj.workerConfiguration?.map(y => toJson_ApplicationSpecInitProviderInitialCapacityInitialCapacityConfigWorkerConfiguration(y)),
     'workerCount': obj.workerCount,
   };
   // filter undefined values
@@ -878,30 +1159,6 @@ export enum ApplicationSpecProviderConfigRefPolicyResolution {
  * @schema ApplicationSpecProviderConfigRefPolicyResolve
  */
 export enum ApplicationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ApplicationSpecProviderRefPolicyResolution
- */
-export enum ApplicationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ApplicationSpecProviderRefPolicyResolve
- */
-export enum ApplicationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -954,7 +1211,7 @@ export interface ApplicationSpecForProviderInitialCapacityInitialCapacityConfigW
    *
    * @schema ApplicationSpecForProviderInitialCapacityInitialCapacityConfigWorkerConfiguration#cpu
    */
-  readonly cpu: string;
+  readonly cpu?: string;
 
   /**
    * The maximum allowed disk for an application.
@@ -968,7 +1225,7 @@ export interface ApplicationSpecForProviderInitialCapacityInitialCapacityConfigW
    *
    * @schema ApplicationSpecForProviderInitialCapacityInitialCapacityConfigWorkerConfiguration#memory
    */
-  readonly memory: string;
+  readonly memory?: string;
 
 }
 
@@ -977,6 +1234,49 @@ export interface ApplicationSpecForProviderInitialCapacityInitialCapacityConfigW
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ApplicationSpecForProviderInitialCapacityInitialCapacityConfigWorkerConfiguration(obj: ApplicationSpecForProviderInitialCapacityInitialCapacityConfigWorkerConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cpu': obj.cpu,
+    'disk': obj.disk,
+    'memory': obj.memory,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderInitialCapacityInitialCapacityConfigWorkerConfiguration
+ */
+export interface ApplicationSpecInitProviderInitialCapacityInitialCapacityConfigWorkerConfiguration {
+  /**
+   * The maximum allowed CPU for an application.
+   *
+   * @schema ApplicationSpecInitProviderInitialCapacityInitialCapacityConfigWorkerConfiguration#cpu
+   */
+  readonly cpu?: string;
+
+  /**
+   * The maximum allowed disk for an application.
+   *
+   * @schema ApplicationSpecInitProviderInitialCapacityInitialCapacityConfigWorkerConfiguration#disk
+   */
+  readonly disk?: string;
+
+  /**
+   * The maximum allowed resources for an application.
+   *
+   * @schema ApplicationSpecInitProviderInitialCapacityInitialCapacityConfigWorkerConfiguration#memory
+   */
+  readonly memory?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderInitialCapacityInitialCapacityConfigWorkerConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderInitialCapacityInitialCapacityConfigWorkerConfiguration(obj: ApplicationSpecInitProviderInitialCapacityInitialCapacityConfigWorkerConfiguration | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'cpu': obj.cpu,

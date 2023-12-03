@@ -99,7 +99,7 @@ export function toJson_BucketProps(obj: BucketProps | undefined): Record<string,
  */
 export interface BucketSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface BucketSpec {
   readonly forProvider: BucketSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketSpec#managementPolicy
+   * @schema BucketSpec#initProvider
    */
-  readonly managementPolicy?: BucketSpecManagementPolicy;
+  readonly initProvider?: BucketSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface BucketSpec {
    * @schema BucketSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketSpec#providerRef
-   */
-  readonly providerRef?: BucketSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_BucketSpec(obj: BucketSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_BucketSpec(obj: BucketSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketSpecDeletionPolicy
  */
@@ -231,17 +231,68 @@ export function toJson_BucketSpecForProvider(obj: BucketSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketSpecManagementPolicy
+ * @schema BucketSpecInitProvider
  */
-export enum BucketSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketSpecInitProvider {
+  /**
+   * Boolean that indicates all objects (including any locked objects) should be deleted from the bucket when the bucket is destroyed so that the bucket can be destroyed without error. These objects are not recoverable. This only deletes objects when the bucket is destroyed, not when setting this parameter to true. If setting this field in the same operation that would require replacing the bucket or destroying the bucket, this flag will not work.
+   *
+   * @schema BucketSpecInitProvider#forceDestroy
+   */
+  readonly forceDestroy?: boolean;
+
+  /**
+   * Indicates whether this bucket has an Object Lock configuration enabled. Valid values are true or false. This argument is not supported in all regions or partitions.
+   *
+   * @schema BucketSpecInitProvider#objectLockEnabled
+   */
+  readonly objectLockEnabled?: boolean;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema BucketSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'BucketSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketSpecInitProvider(obj: BucketSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'forceDestroy': obj.forceDestroy,
+    'objectLockEnabled': obj.objectLockEnabled,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketSpecManagementPolicies
+ */
+export enum BucketSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -275,43 +326,6 @@ export function toJson_BucketSpecProviderConfigRef(obj: BucketSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_BucketSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketSpecProviderRef
- */
-export interface BucketSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketSpecProviderRef#policy
-   */
-  readonly policy?: BucketSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketSpecProviderRef(obj: BucketSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -438,43 +452,6 @@ export function toJson_BucketSpecProviderConfigRefPolicy(obj: BucketSpecProvider
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema BucketSpecProviderRefPolicy
- */
-export interface BucketSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketSpecProviderRefPolicy(obj: BucketSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema BucketSpecPublishConnectionDetailsToConfigRef
@@ -574,30 +551,6 @@ export enum BucketSpecProviderConfigRefPolicyResolution {
  * @schema BucketSpecProviderConfigRefPolicyResolve
  */
 export enum BucketSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketSpecProviderRefPolicyResolution
- */
-export enum BucketSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketSpecProviderRefPolicyResolve
- */
-export enum BucketSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -762,7 +715,7 @@ export function toJson_BucketAccelerateConfigurationProps(obj: BucketAccelerateC
  */
 export interface BucketAccelerateConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketAccelerateConfigurationSpec#deletionPolicy
    */
@@ -774,11 +727,18 @@ export interface BucketAccelerateConfigurationSpec {
   readonly forProvider: BucketAccelerateConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketAccelerateConfigurationSpec#managementPolicy
+   * @schema BucketAccelerateConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: BucketAccelerateConfigurationSpecManagementPolicy;
+  readonly initProvider?: BucketAccelerateConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketAccelerateConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketAccelerateConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -786,13 +746,6 @@ export interface BucketAccelerateConfigurationSpec {
    * @schema BucketAccelerateConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketAccelerateConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketAccelerateConfigurationSpec#providerRef
-   */
-  readonly providerRef?: BucketAccelerateConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -819,9 +772,9 @@ export function toJson_BucketAccelerateConfigurationSpec(obj: BucketAccelerateCo
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketAccelerateConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketAccelerateConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketAccelerateConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketAccelerateConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketAccelerateConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketAccelerateConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -831,7 +784,7 @@ export function toJson_BucketAccelerateConfigurationSpec(obj: BucketAccelerateCo
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketAccelerateConfigurationSpecDeletionPolicy
  */
@@ -910,17 +863,60 @@ export function toJson_BucketAccelerateConfigurationSpecForProvider(obj: BucketA
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketAccelerateConfigurationSpecManagementPolicy
+ * @schema BucketAccelerateConfigurationSpecInitProvider
  */
-export enum BucketAccelerateConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketAccelerateConfigurationSpecInitProvider {
+  /**
+   * Account ID of the expected bucket owner.
+   *
+   * @schema BucketAccelerateConfigurationSpecInitProvider#expectedBucketOwner
+   */
+  readonly expectedBucketOwner?: string;
+
+  /**
+   * Transfer acceleration state of the bucket. Valid values: Enabled, Suspended.
+   *
+   * @schema BucketAccelerateConfigurationSpecInitProvider#status
+   */
+  readonly status?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketAccelerateConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketAccelerateConfigurationSpecInitProvider(obj: BucketAccelerateConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'expectedBucketOwner': obj.expectedBucketOwner,
+    'status': obj.status,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketAccelerateConfigurationSpecManagementPolicies
+ */
+export enum BucketAccelerateConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -954,43 +950,6 @@ export function toJson_BucketAccelerateConfigurationSpecProviderConfigRef(obj: B
   const result = {
     'name': obj.name,
     'policy': toJson_BucketAccelerateConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketAccelerateConfigurationSpecProviderRef
- */
-export interface BucketAccelerateConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketAccelerateConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketAccelerateConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: BucketAccelerateConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketAccelerateConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketAccelerateConfigurationSpecProviderRef(obj: BucketAccelerateConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketAccelerateConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1199,43 +1158,6 @@ export function toJson_BucketAccelerateConfigurationSpecProviderConfigRefPolicy(
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema BucketAccelerateConfigurationSpecProviderRefPolicy
- */
-export interface BucketAccelerateConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketAccelerateConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketAccelerateConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketAccelerateConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketAccelerateConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketAccelerateConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketAccelerateConfigurationSpecProviderRefPolicy(obj: BucketAccelerateConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema BucketAccelerateConfigurationSpecPublishConnectionDetailsToConfigRef
@@ -1409,30 +1331,6 @@ export enum BucketAccelerateConfigurationSpecProviderConfigRefPolicyResolution {
  * @schema BucketAccelerateConfigurationSpecProviderConfigRefPolicyResolve
  */
 export enum BucketAccelerateConfigurationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketAccelerateConfigurationSpecProviderRefPolicyResolution
- */
-export enum BucketAccelerateConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketAccelerateConfigurationSpecProviderRefPolicyResolve
- */
-export enum BucketAccelerateConfigurationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1645,7 +1543,7 @@ export function toJson_BucketAclProps(obj: BucketAclProps | undefined): Record<s
  */
 export interface BucketAclSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketAclSpec#deletionPolicy
    */
@@ -1657,11 +1555,18 @@ export interface BucketAclSpec {
   readonly forProvider: BucketAclSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketAclSpec#managementPolicy
+   * @schema BucketAclSpec#initProvider
    */
-  readonly managementPolicy?: BucketAclSpecManagementPolicy;
+  readonly initProvider?: BucketAclSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketAclSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketAclSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1669,13 +1574,6 @@ export interface BucketAclSpec {
    * @schema BucketAclSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketAclSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketAclSpec#providerRef
-   */
-  readonly providerRef?: BucketAclSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1702,9 +1600,9 @@ export function toJson_BucketAclSpec(obj: BucketAclSpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketAclSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketAclSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketAclSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketAclSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketAclSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketAclSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1714,7 +1612,7 @@ export function toJson_BucketAclSpec(obj: BucketAclSpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketAclSpecDeletionPolicy
  */
@@ -1801,17 +1699,68 @@ export function toJson_BucketAclSpecForProvider(obj: BucketAclSpecForProvider | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketAclSpecManagementPolicy
+ * @schema BucketAclSpecInitProvider
  */
-export enum BucketAclSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketAclSpecInitProvider {
+  /**
+   * Configuration block that sets the ACL permissions for an object per grantee. See below.
+   *
+   * @schema BucketAclSpecInitProvider#accessControlPolicy
+   */
+  readonly accessControlPolicy?: BucketAclSpecInitProviderAccessControlPolicy[];
+
+  /**
+   * Canned ACL to apply to the bucket.
+   *
+   * @schema BucketAclSpecInitProvider#acl
+   */
+  readonly acl?: string;
+
+  /**
+   * Account ID of the expected bucket owner.
+   *
+   * @schema BucketAclSpecInitProvider#expectedBucketOwner
+   */
+  readonly expectedBucketOwner?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketAclSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketAclSpecInitProvider(obj: BucketAclSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessControlPolicy': obj.accessControlPolicy?.map(y => toJson_BucketAclSpecInitProviderAccessControlPolicy(y)),
+    'acl': obj.acl,
+    'expectedBucketOwner': obj.expectedBucketOwner,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketAclSpecManagementPolicies
+ */
+export enum BucketAclSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1845,43 +1794,6 @@ export function toJson_BucketAclSpecProviderConfigRef(obj: BucketAclSpecProvider
   const result = {
     'name': obj.name,
     'policy': toJson_BucketAclSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketAclSpecProviderRef
- */
-export interface BucketAclSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketAclSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketAclSpecProviderRef#policy
-   */
-  readonly policy?: BucketAclSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketAclSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketAclSpecProviderRef(obj: BucketAclSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketAclSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1986,7 +1898,7 @@ export interface BucketAclSpecForProviderAccessControlPolicy {
    *
    * @schema BucketAclSpecForProviderAccessControlPolicy#owner
    */
-  readonly owner: BucketAclSpecForProviderAccessControlPolicyOwner[];
+  readonly owner?: BucketAclSpecForProviderAccessControlPolicyOwner[];
 
 }
 
@@ -2088,6 +2000,41 @@ export function toJson_BucketAclSpecForProviderBucketSelector(obj: BucketAclSpec
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BucketAclSpecInitProviderAccessControlPolicy
+ */
+export interface BucketAclSpecInitProviderAccessControlPolicy {
+  /**
+   * Set of grant configuration blocks. See below.
+   *
+   * @schema BucketAclSpecInitProviderAccessControlPolicy#grant
+   */
+  readonly grant?: BucketAclSpecInitProviderAccessControlPolicyGrant[];
+
+  /**
+   * Configuration block of the bucket owner's display name and ID. See below.
+   *
+   * @schema BucketAclSpecInitProviderAccessControlPolicy#owner
+   */
+  readonly owner?: BucketAclSpecInitProviderAccessControlPolicyOwner[];
+
+}
+
+/**
+ * Converts an object of type 'BucketAclSpecInitProviderAccessControlPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketAclSpecInitProviderAccessControlPolicy(obj: BucketAclSpecInitProviderAccessControlPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'grant': obj.grant?.map(y => toJson_BucketAclSpecInitProviderAccessControlPolicyGrant(y)),
+    'owner': obj.owner?.map(y => toJson_BucketAclSpecInitProviderAccessControlPolicyOwner(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema BucketAclSpecProviderConfigRefPolicy
@@ -2114,43 +2061,6 @@ export interface BucketAclSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketAclSpecProviderConfigRefPolicy(obj: BucketAclSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BucketAclSpecProviderRefPolicy
- */
-export interface BucketAclSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketAclSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketAclSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketAclSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketAclSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketAclSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketAclSpecProviderRefPolicy(obj: BucketAclSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2259,7 +2169,7 @@ export interface BucketAclSpecForProviderAccessControlPolicyGrant {
    *
    * @schema BucketAclSpecForProviderAccessControlPolicyGrant#permission
    */
-  readonly permission: string;
+  readonly permission?: string;
 
 }
 
@@ -2294,7 +2204,7 @@ export interface BucketAclSpecForProviderAccessControlPolicyOwner {
    *
    * @schema BucketAclSpecForProviderAccessControlPolicyOwner#id
    */
-  readonly id: string;
+  readonly id?: string;
 
 }
 
@@ -2388,6 +2298,76 @@ export function toJson_BucketAclSpecForProviderBucketSelectorPolicy(obj: BucketA
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BucketAclSpecInitProviderAccessControlPolicyGrant
+ */
+export interface BucketAclSpecInitProviderAccessControlPolicyGrant {
+  /**
+   * Configuration block for the person being granted permissions. See below.
+   *
+   * @schema BucketAclSpecInitProviderAccessControlPolicyGrant#grantee
+   */
+  readonly grantee?: BucketAclSpecInitProviderAccessControlPolicyGrantGrantee[];
+
+  /**
+   * Logging permissions assigned to the grantee for the bucket.
+   *
+   * @schema BucketAclSpecInitProviderAccessControlPolicyGrant#permission
+   */
+  readonly permission?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketAclSpecInitProviderAccessControlPolicyGrant' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketAclSpecInitProviderAccessControlPolicyGrant(obj: BucketAclSpecInitProviderAccessControlPolicyGrant | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'grantee': obj.grantee?.map(y => toJson_BucketAclSpecInitProviderAccessControlPolicyGrantGrantee(y)),
+    'permission': obj.permission,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketAclSpecInitProviderAccessControlPolicyOwner
+ */
+export interface BucketAclSpecInitProviderAccessControlPolicyOwner {
+  /**
+   * Display name of the owner.
+   *
+   * @schema BucketAclSpecInitProviderAccessControlPolicyOwner#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * ID of the owner.
+   *
+   * @schema BucketAclSpecInitProviderAccessControlPolicyOwner#id
+   */
+  readonly id?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketAclSpecInitProviderAccessControlPolicyOwner' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketAclSpecInitProviderAccessControlPolicyOwner(obj: BucketAclSpecInitProviderAccessControlPolicyOwner | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'displayName': obj.displayName,
+    'id': obj.id,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema BucketAclSpecProviderConfigRefPolicyResolution
@@ -2405,30 +2385,6 @@ export enum BucketAclSpecProviderConfigRefPolicyResolution {
  * @schema BucketAclSpecProviderConfigRefPolicyResolve
  */
 export enum BucketAclSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketAclSpecProviderRefPolicyResolution
- */
-export enum BucketAclSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketAclSpecProviderRefPolicyResolve
- */
-export enum BucketAclSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2495,7 +2451,7 @@ export interface BucketAclSpecForProviderAccessControlPolicyGrantGrantee {
    *
    * @schema BucketAclSpecForProviderAccessControlPolicyGrantGrantee#type
    */
-  readonly type: string;
+  readonly type?: string;
 
   /**
    * URI of the grantee group.
@@ -2570,6 +2526,57 @@ export enum BucketAclSpecForProviderBucketSelectorPolicyResolve {
   /** IfNotPresent */
   IF_NOT_PRESENT = "IfNotPresent",
 }
+
+/**
+ * @schema BucketAclSpecInitProviderAccessControlPolicyGrantGrantee
+ */
+export interface BucketAclSpecInitProviderAccessControlPolicyGrantGrantee {
+  /**
+   * Email address of the grantee. See Regions and Endpoints for supported AWS regions where this argument can be specified.
+   *
+   * @schema BucketAclSpecInitProviderAccessControlPolicyGrantGrantee#emailAddress
+   */
+  readonly emailAddress?: string;
+
+  /**
+   * ID of the owner.
+   *
+   * @schema BucketAclSpecInitProviderAccessControlPolicyGrantGrantee#id
+   */
+  readonly id?: string;
+
+  /**
+   * Type of grantee. Valid values: CanonicalUser, AmazonCustomerByEmail, Group.
+   *
+   * @schema BucketAclSpecInitProviderAccessControlPolicyGrantGrantee#type
+   */
+  readonly type?: string;
+
+  /**
+   * URI of the grantee group.
+   *
+   * @schema BucketAclSpecInitProviderAccessControlPolicyGrantGrantee#uri
+   */
+  readonly uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketAclSpecInitProviderAccessControlPolicyGrantGrantee' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketAclSpecInitProviderAccessControlPolicyGrantGrantee(obj: BucketAclSpecInitProviderAccessControlPolicyGrantGrantee | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'emailAddress': obj.emailAddress,
+    'id': obj.id,
+    'type': obj.type,
+    'uri': obj.uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
@@ -2692,7 +2699,7 @@ export function toJson_BucketAnalyticsConfigurationProps(obj: BucketAnalyticsCon
  */
 export interface BucketAnalyticsConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketAnalyticsConfigurationSpec#deletionPolicy
    */
@@ -2704,11 +2711,18 @@ export interface BucketAnalyticsConfigurationSpec {
   readonly forProvider: BucketAnalyticsConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketAnalyticsConfigurationSpec#managementPolicy
+   * @schema BucketAnalyticsConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: BucketAnalyticsConfigurationSpecManagementPolicy;
+  readonly initProvider?: BucketAnalyticsConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketAnalyticsConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketAnalyticsConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2716,13 +2730,6 @@ export interface BucketAnalyticsConfigurationSpec {
    * @schema BucketAnalyticsConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketAnalyticsConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketAnalyticsConfigurationSpec#providerRef
-   */
-  readonly providerRef?: BucketAnalyticsConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2749,9 +2756,9 @@ export function toJson_BucketAnalyticsConfigurationSpec(obj: BucketAnalyticsConf
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketAnalyticsConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketAnalyticsConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketAnalyticsConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketAnalyticsConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketAnalyticsConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketAnalyticsConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2761,7 +2768,7 @@ export function toJson_BucketAnalyticsConfigurationSpec(obj: BucketAnalyticsConf
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketAnalyticsConfigurationSpecDeletionPolicy
  */
@@ -2848,17 +2855,68 @@ export function toJson_BucketAnalyticsConfigurationSpecForProvider(obj: BucketAn
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketAnalyticsConfigurationSpecManagementPolicy
+ * @schema BucketAnalyticsConfigurationSpecInitProvider
  */
-export enum BucketAnalyticsConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketAnalyticsConfigurationSpecInitProvider {
+  /**
+   * Object filtering that accepts a prefix, tags, or a logical AND of prefix and tags (documented below).
+   *
+   * @schema BucketAnalyticsConfigurationSpecInitProvider#filter
+   */
+  readonly filter?: BucketAnalyticsConfigurationSpecInitProviderFilter[];
+
+  /**
+   * Unique identifier of the analytics configuration for the bucket.
+   *
+   * @schema BucketAnalyticsConfigurationSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Configuration for the analytics data export (documented below).
+   *
+   * @schema BucketAnalyticsConfigurationSpecInitProvider#storageClassAnalysis
+   */
+  readonly storageClassAnalysis?: BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysis[];
+
+}
+
+/**
+ * Converts an object of type 'BucketAnalyticsConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketAnalyticsConfigurationSpecInitProvider(obj: BucketAnalyticsConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'filter': obj.filter?.map(y => toJson_BucketAnalyticsConfigurationSpecInitProviderFilter(y)),
+    'name': obj.name,
+    'storageClassAnalysis': obj.storageClassAnalysis?.map(y => toJson_BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysis(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketAnalyticsConfigurationSpecManagementPolicies
+ */
+export enum BucketAnalyticsConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2892,43 +2950,6 @@ export function toJson_BucketAnalyticsConfigurationSpecProviderConfigRef(obj: Bu
   const result = {
     'name': obj.name,
     'policy': toJson_BucketAnalyticsConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketAnalyticsConfigurationSpecProviderRef
- */
-export interface BucketAnalyticsConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketAnalyticsConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketAnalyticsConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: BucketAnalyticsConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketAnalyticsConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketAnalyticsConfigurationSpecProviderRef(obj: BucketAnalyticsConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketAnalyticsConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3143,7 +3164,7 @@ export interface BucketAnalyticsConfigurationSpecForProviderStorageClassAnalysis
    *
    * @schema BucketAnalyticsConfigurationSpecForProviderStorageClassAnalysis#dataExport
    */
-  readonly dataExport: BucketAnalyticsConfigurationSpecForProviderStorageClassAnalysisDataExport[];
+  readonly dataExport?: BucketAnalyticsConfigurationSpecForProviderStorageClassAnalysisDataExport[];
 
 }
 
@@ -3155,6 +3176,68 @@ export function toJson_BucketAnalyticsConfigurationSpecForProviderStorageClassAn
   if (obj === undefined) { return undefined; }
   const result = {
     'dataExport': obj.dataExport?.map(y => toJson_BucketAnalyticsConfigurationSpecForProviderStorageClassAnalysisDataExport(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketAnalyticsConfigurationSpecInitProviderFilter
+ */
+export interface BucketAnalyticsConfigurationSpecInitProviderFilter {
+  /**
+   * Object prefix for filtering.
+   *
+   * @schema BucketAnalyticsConfigurationSpecInitProviderFilter#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema BucketAnalyticsConfigurationSpecInitProviderFilter#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'BucketAnalyticsConfigurationSpecInitProviderFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketAnalyticsConfigurationSpecInitProviderFilter(obj: BucketAnalyticsConfigurationSpecInitProviderFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'prefix': obj.prefix,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysis
+ */
+export interface BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysis {
+  /**
+   * Data export configuration (documented below).
+   *
+   * @schema BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysis#dataExport
+   */
+  readonly dataExport?: BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExport[];
+
+}
+
+/**
+ * Converts an object of type 'BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysis' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysis(obj: BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysis | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dataExport': obj.dataExport?.map(y => toJson_BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExport(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3188,43 +3271,6 @@ export interface BucketAnalyticsConfigurationSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketAnalyticsConfigurationSpecProviderConfigRefPolicy(obj: BucketAnalyticsConfigurationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BucketAnalyticsConfigurationSpecProviderRefPolicy
- */
-export interface BucketAnalyticsConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketAnalyticsConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketAnalyticsConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketAnalyticsConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketAnalyticsConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketAnalyticsConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketAnalyticsConfigurationSpecProviderRefPolicy(obj: BucketAnalyticsConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3400,7 +3446,7 @@ export interface BucketAnalyticsConfigurationSpecForProviderStorageClassAnalysis
    *
    * @schema BucketAnalyticsConfigurationSpecForProviderStorageClassAnalysisDataExport#destination
    */
-  readonly destination: BucketAnalyticsConfigurationSpecForProviderStorageClassAnalysisDataExportDestination[];
+  readonly destination?: BucketAnalyticsConfigurationSpecForProviderStorageClassAnalysisDataExportDestination[];
 
   /**
    * Schema version of exported analytics data. Allowed values: V_1. Default value: V_1.
@@ -3427,6 +3473,41 @@ export function toJson_BucketAnalyticsConfigurationSpecForProviderStorageClassAn
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExport
+ */
+export interface BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExport {
+  /**
+   * Specifies the destination for the exported analytics data (documented below).
+   *
+   * @schema BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExport#destination
+   */
+  readonly destination?: BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestination[];
+
+  /**
+   * Schema version of exported analytics data. Allowed values: V_1. Default value: V_1.
+   *
+   * @schema BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExport#outputSchemaVersion
+   */
+  readonly outputSchemaVersion?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExport' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExport(obj: BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExport | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destination': obj.destination?.map(y => toJson_BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestination(y)),
+    'outputSchemaVersion': obj.outputSchemaVersion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema BucketAnalyticsConfigurationSpecProviderConfigRefPolicyResolution
@@ -3444,30 +3525,6 @@ export enum BucketAnalyticsConfigurationSpecProviderConfigRefPolicyResolution {
  * @schema BucketAnalyticsConfigurationSpecProviderConfigRefPolicyResolve
  */
 export enum BucketAnalyticsConfigurationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketAnalyticsConfigurationSpecProviderRefPolicyResolution
- */
-export enum BucketAnalyticsConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketAnalyticsConfigurationSpecProviderRefPolicyResolve
- */
-export enum BucketAnalyticsConfigurationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3568,7 +3625,7 @@ export interface BucketAnalyticsConfigurationSpecForProviderStorageClassAnalysis
    *
    * @schema BucketAnalyticsConfigurationSpecForProviderStorageClassAnalysisDataExportDestination#s3BucketDestination
    */
-  readonly s3BucketDestination: BucketAnalyticsConfigurationSpecForProviderStorageClassAnalysisDataExportDestinationS3BucketDestination[];
+  readonly s3BucketDestination?: BucketAnalyticsConfigurationSpecForProviderStorageClassAnalysisDataExportDestinationS3BucketDestination[];
 
 }
 
@@ -3580,6 +3637,33 @@ export function toJson_BucketAnalyticsConfigurationSpecForProviderStorageClassAn
   if (obj === undefined) { return undefined; }
   const result = {
     's3BucketDestination': obj.s3BucketDestination?.map(y => toJson_BucketAnalyticsConfigurationSpecForProviderStorageClassAnalysisDataExportDestinationS3BucketDestination(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestination
+ */
+export interface BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestination {
+  /**
+   * Analytics data export currently only supports an S3 bucket destination (documented below).
+   *
+   * @schema BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestination#s3BucketDestination
+   */
+  readonly s3BucketDestination?: BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestinationS3BucketDestination[];
+
+}
+
+/**
+ * Converts an object of type 'BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestination(obj: BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    's3BucketDestination': obj.s3BucketDestination?.map(y => toJson_BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestinationS3BucketDestination(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3669,6 +3753,49 @@ export function toJson_BucketAnalyticsConfigurationSpecForProviderStorageClassAn
     'bucketArn': obj.bucketArn,
     'bucketArnRef': toJson_BucketAnalyticsConfigurationSpecForProviderStorageClassAnalysisDataExportDestinationS3BucketDestinationBucketArnRef(obj.bucketArnRef),
     'bucketArnSelector': toJson_BucketAnalyticsConfigurationSpecForProviderStorageClassAnalysisDataExportDestinationS3BucketDestinationBucketArnSelector(obj.bucketArnSelector),
+    'format': obj.format,
+    'prefix': obj.prefix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestinationS3BucketDestination
+ */
+export interface BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestinationS3BucketDestination {
+  /**
+   * Account ID that owns the destination bucket.
+   *
+   * @schema BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestinationS3BucketDestination#bucketAccountId
+   */
+  readonly bucketAccountId?: string;
+
+  /**
+   * Output format of exported analytics data. Allowed values: CSV. Default value: CSV.
+   *
+   * @schema BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestinationS3BucketDestination#format
+   */
+  readonly format?: string;
+
+  /**
+   * Object prefix for filtering.
+   *
+   * @schema BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestinationS3BucketDestination#prefix
+   */
+  readonly prefix?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestinationS3BucketDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestinationS3BucketDestination(obj: BucketAnalyticsConfigurationSpecInitProviderStorageClassAnalysisDataExportDestinationS3BucketDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketAccountId': obj.bucketAccountId,
     'format': obj.format,
     'prefix': obj.prefix,
   };
@@ -3978,7 +4105,7 @@ export function toJson_BucketCorsConfigurationProps(obj: BucketCorsConfiguration
  */
 export interface BucketCorsConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketCorsConfigurationSpec#deletionPolicy
    */
@@ -3990,11 +4117,18 @@ export interface BucketCorsConfigurationSpec {
   readonly forProvider: BucketCorsConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketCorsConfigurationSpec#managementPolicy
+   * @schema BucketCorsConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: BucketCorsConfigurationSpecManagementPolicy;
+  readonly initProvider?: BucketCorsConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketCorsConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketCorsConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4002,13 +4136,6 @@ export interface BucketCorsConfigurationSpec {
    * @schema BucketCorsConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketCorsConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketCorsConfigurationSpec#providerRef
-   */
-  readonly providerRef?: BucketCorsConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -4035,9 +4162,9 @@ export function toJson_BucketCorsConfigurationSpec(obj: BucketCorsConfigurationS
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketCorsConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketCorsConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketCorsConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketCorsConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketCorsConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketCorsConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -4047,7 +4174,7 @@ export function toJson_BucketCorsConfigurationSpec(obj: BucketCorsConfigurationS
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketCorsConfigurationSpecDeletionPolicy
  */
@@ -4126,17 +4253,60 @@ export function toJson_BucketCorsConfigurationSpecForProvider(obj: BucketCorsCon
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketCorsConfigurationSpecManagementPolicy
+ * @schema BucketCorsConfigurationSpecInitProvider
  */
-export enum BucketCorsConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketCorsConfigurationSpecInitProvider {
+  /**
+   * Set of origins and methods (cross-origin access that you want to allow). See below. You can configure up to 100 rules.
+   *
+   * @schema BucketCorsConfigurationSpecInitProvider#corsRule
+   */
+  readonly corsRule?: BucketCorsConfigurationSpecInitProviderCorsRule[];
+
+  /**
+   * Account ID of the expected bucket owner.
+   *
+   * @schema BucketCorsConfigurationSpecInitProvider#expectedBucketOwner
+   */
+  readonly expectedBucketOwner?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketCorsConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketCorsConfigurationSpecInitProvider(obj: BucketCorsConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'corsRule': obj.corsRule?.map(y => toJson_BucketCorsConfigurationSpecInitProviderCorsRule(y)),
+    'expectedBucketOwner': obj.expectedBucketOwner,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketCorsConfigurationSpecManagementPolicies
+ */
+export enum BucketCorsConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4170,43 +4340,6 @@ export function toJson_BucketCorsConfigurationSpecProviderConfigRef(obj: BucketC
   const result = {
     'name': obj.name,
     'policy': toJson_BucketCorsConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketCorsConfigurationSpecProviderRef
- */
-export interface BucketCorsConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketCorsConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketCorsConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: BucketCorsConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketCorsConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketCorsConfigurationSpecProviderRef(obj: BucketCorsConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketCorsConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4393,14 +4526,14 @@ export interface BucketCorsConfigurationSpecForProviderCorsRule {
    *
    * @schema BucketCorsConfigurationSpecForProviderCorsRule#allowedMethods
    */
-  readonly allowedMethods: string[];
+  readonly allowedMethods?: string[];
 
   /**
    * Set of origins you want customers to be able to access the bucket from.
    *
    * @schema BucketCorsConfigurationSpecForProviderCorsRule#allowedOrigins
    */
-  readonly allowedOrigins: string[];
+  readonly allowedOrigins?: string[];
 
   /**
    * Set of headers in the response that you want customers to be able to access from their applications (for example, from a JavaScript XMLHttpRequest object).
@@ -4445,6 +4578,73 @@ export function toJson_BucketCorsConfigurationSpecForProviderCorsRule(obj: Bucke
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BucketCorsConfigurationSpecInitProviderCorsRule
+ */
+export interface BucketCorsConfigurationSpecInitProviderCorsRule {
+  /**
+   * Set of Headers that are specified in the Access-Control-Request-Headers header.
+   *
+   * @schema BucketCorsConfigurationSpecInitProviderCorsRule#allowedHeaders
+   */
+  readonly allowedHeaders?: string[];
+
+  /**
+   * Set of HTTP methods that you allow the origin to execute. Valid values are GET, PUT, HEAD, POST, and DELETE.
+   *
+   * @schema BucketCorsConfigurationSpecInitProviderCorsRule#allowedMethods
+   */
+  readonly allowedMethods?: string[];
+
+  /**
+   * Set of origins you want customers to be able to access the bucket from.
+   *
+   * @schema BucketCorsConfigurationSpecInitProviderCorsRule#allowedOrigins
+   */
+  readonly allowedOrigins?: string[];
+
+  /**
+   * Set of headers in the response that you want customers to be able to access from their applications (for example, from a JavaScript XMLHttpRequest object).
+   *
+   * @schema BucketCorsConfigurationSpecInitProviderCorsRule#exposeHeaders
+   */
+  readonly exposeHeaders?: string[];
+
+  /**
+   * Unique identifier for the rule. The value cannot be longer than 255 characters.
+   *
+   * @schema BucketCorsConfigurationSpecInitProviderCorsRule#id
+   */
+  readonly id?: string;
+
+  /**
+   * Time in seconds that your browser is to cache the preflight response for the specified resource.
+   *
+   * @schema BucketCorsConfigurationSpecInitProviderCorsRule#maxAgeSeconds
+   */
+  readonly maxAgeSeconds?: number;
+
+}
+
+/**
+ * Converts an object of type 'BucketCorsConfigurationSpecInitProviderCorsRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketCorsConfigurationSpecInitProviderCorsRule(obj: BucketCorsConfigurationSpecInitProviderCorsRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowedHeaders': obj.allowedHeaders?.map(y => y),
+    'allowedMethods': obj.allowedMethods?.map(y => y),
+    'allowedOrigins': obj.allowedOrigins?.map(y => y),
+    'exposeHeaders': obj.exposeHeaders?.map(y => y),
+    'id': obj.id,
+    'maxAgeSeconds': obj.maxAgeSeconds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema BucketCorsConfigurationSpecProviderConfigRefPolicy
@@ -4471,43 +4671,6 @@ export interface BucketCorsConfigurationSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketCorsConfigurationSpecProviderConfigRefPolicy(obj: BucketCorsConfigurationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BucketCorsConfigurationSpecProviderRefPolicy
- */
-export interface BucketCorsConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketCorsConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketCorsConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketCorsConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketCorsConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketCorsConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketCorsConfigurationSpecProviderRefPolicy(obj: BucketCorsConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -4692,30 +4855,6 @@ export enum BucketCorsConfigurationSpecProviderConfigRefPolicyResolution {
  * @schema BucketCorsConfigurationSpecProviderConfigRefPolicyResolve
  */
 export enum BucketCorsConfigurationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketCorsConfigurationSpecProviderRefPolicyResolution
- */
-export enum BucketCorsConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketCorsConfigurationSpecProviderRefPolicyResolve
- */
-export enum BucketCorsConfigurationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -4928,7 +5067,7 @@ export function toJson_BucketIntelligentTieringConfigurationProps(obj: BucketInt
  */
 export interface BucketIntelligentTieringConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketIntelligentTieringConfigurationSpec#deletionPolicy
    */
@@ -4940,11 +5079,18 @@ export interface BucketIntelligentTieringConfigurationSpec {
   readonly forProvider: BucketIntelligentTieringConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketIntelligentTieringConfigurationSpec#managementPolicy
+   * @schema BucketIntelligentTieringConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: BucketIntelligentTieringConfigurationSpecManagementPolicy;
+  readonly initProvider?: BucketIntelligentTieringConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketIntelligentTieringConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketIntelligentTieringConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4952,13 +5098,6 @@ export interface BucketIntelligentTieringConfigurationSpec {
    * @schema BucketIntelligentTieringConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketIntelligentTieringConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketIntelligentTieringConfigurationSpec#providerRef
-   */
-  readonly providerRef?: BucketIntelligentTieringConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -4985,9 +5124,9 @@ export function toJson_BucketIntelligentTieringConfigurationSpec(obj: BucketInte
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketIntelligentTieringConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketIntelligentTieringConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketIntelligentTieringConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketIntelligentTieringConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketIntelligentTieringConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketIntelligentTieringConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -4997,7 +5136,7 @@ export function toJson_BucketIntelligentTieringConfigurationSpec(obj: BucketInte
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketIntelligentTieringConfigurationSpecDeletionPolicy
  */
@@ -5092,17 +5231,76 @@ export function toJson_BucketIntelligentTieringConfigurationSpecForProvider(obj:
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketIntelligentTieringConfigurationSpecManagementPolicy
+ * @schema BucketIntelligentTieringConfigurationSpecInitProvider
  */
-export enum BucketIntelligentTieringConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketIntelligentTieringConfigurationSpecInitProvider {
+  /**
+   * Bucket filter. The configuration only includes objects that meet the filter's criteria (documented below).
+   *
+   * @schema BucketIntelligentTieringConfigurationSpecInitProvider#filter
+   */
+  readonly filter?: BucketIntelligentTieringConfigurationSpecInitProviderFilter[];
+
+  /**
+   * Unique name used to identify the S3 Intelligent-Tiering configuration for the bucket.
+   *
+   * @schema BucketIntelligentTieringConfigurationSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Specifies the status of the configuration. Valid values: Enabled, Disabled.
+   *
+   * @schema BucketIntelligentTieringConfigurationSpecInitProvider#status
+   */
+  readonly status?: string;
+
+  /**
+   * S3 Intelligent-Tiering storage class tiers of the configuration (documented below).
+   *
+   * @schema BucketIntelligentTieringConfigurationSpecInitProvider#tiering
+   */
+  readonly tiering?: BucketIntelligentTieringConfigurationSpecInitProviderTiering[];
+
+}
+
+/**
+ * Converts an object of type 'BucketIntelligentTieringConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketIntelligentTieringConfigurationSpecInitProvider(obj: BucketIntelligentTieringConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'filter': obj.filter?.map(y => toJson_BucketIntelligentTieringConfigurationSpecInitProviderFilter(y)),
+    'name': obj.name,
+    'status': obj.status,
+    'tiering': obj.tiering?.map(y => toJson_BucketIntelligentTieringConfigurationSpecInitProviderTiering(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketIntelligentTieringConfigurationSpecManagementPolicies
+ */
+export enum BucketIntelligentTieringConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -5136,43 +5334,6 @@ export function toJson_BucketIntelligentTieringConfigurationSpecProviderConfigRe
   const result = {
     'name': obj.name,
     'policy': toJson_BucketIntelligentTieringConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketIntelligentTieringConfigurationSpecProviderRef
- */
-export interface BucketIntelligentTieringConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketIntelligentTieringConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketIntelligentTieringConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: BucketIntelligentTieringConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketIntelligentTieringConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketIntelligentTieringConfigurationSpecProviderRef(obj: BucketIntelligentTieringConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketIntelligentTieringConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5387,14 +5548,14 @@ export interface BucketIntelligentTieringConfigurationSpecForProviderTiering {
    *
    * @schema BucketIntelligentTieringConfigurationSpecForProviderTiering#accessTier
    */
-  readonly accessTier: string;
+  readonly accessTier?: string;
 
   /**
    * Number of consecutive days of no access after which an object will be eligible to be transitioned to the corresponding tier.
    *
    * @schema BucketIntelligentTieringConfigurationSpecForProviderTiering#days
    */
-  readonly days: number;
+  readonly days?: number;
 
 }
 
@@ -5403,6 +5564,76 @@ export interface BucketIntelligentTieringConfigurationSpecForProviderTiering {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketIntelligentTieringConfigurationSpecForProviderTiering(obj: BucketIntelligentTieringConfigurationSpecForProviderTiering | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessTier': obj.accessTier,
+    'days': obj.days,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketIntelligentTieringConfigurationSpecInitProviderFilter
+ */
+export interface BucketIntelligentTieringConfigurationSpecInitProviderFilter {
+  /**
+   * Object key name prefix that identifies the subset of objects to which the configuration applies.
+   *
+   * @schema BucketIntelligentTieringConfigurationSpecInitProviderFilter#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema BucketIntelligentTieringConfigurationSpecInitProviderFilter#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'BucketIntelligentTieringConfigurationSpecInitProviderFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketIntelligentTieringConfigurationSpecInitProviderFilter(obj: BucketIntelligentTieringConfigurationSpecInitProviderFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'prefix': obj.prefix,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketIntelligentTieringConfigurationSpecInitProviderTiering
+ */
+export interface BucketIntelligentTieringConfigurationSpecInitProviderTiering {
+  /**
+   * S3 Intelligent-Tiering access tier. Valid values: ARCHIVE_ACCESS, DEEP_ARCHIVE_ACCESS.
+   *
+   * @schema BucketIntelligentTieringConfigurationSpecInitProviderTiering#accessTier
+   */
+  readonly accessTier?: string;
+
+  /**
+   * Number of consecutive days of no access after which an object will be eligible to be transitioned to the corresponding tier.
+   *
+   * @schema BucketIntelligentTieringConfigurationSpecInitProviderTiering#days
+   */
+  readonly days?: number;
+
+}
+
+/**
+ * Converts an object of type 'BucketIntelligentTieringConfigurationSpecInitProviderTiering' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketIntelligentTieringConfigurationSpecInitProviderTiering(obj: BucketIntelligentTieringConfigurationSpecInitProviderTiering | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'accessTier': obj.accessTier,
@@ -5440,43 +5671,6 @@ export interface BucketIntelligentTieringConfigurationSpecProviderConfigRefPolic
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketIntelligentTieringConfigurationSpecProviderConfigRefPolicy(obj: BucketIntelligentTieringConfigurationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BucketIntelligentTieringConfigurationSpecProviderRefPolicy
- */
-export interface BucketIntelligentTieringConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketIntelligentTieringConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketIntelligentTieringConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketIntelligentTieringConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketIntelligentTieringConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketIntelligentTieringConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketIntelligentTieringConfigurationSpecProviderRefPolicy(obj: BucketIntelligentTieringConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -5661,30 +5855,6 @@ export enum BucketIntelligentTieringConfigurationSpecProviderConfigRefPolicyReso
  * @schema BucketIntelligentTieringConfigurationSpecProviderConfigRefPolicyResolve
  */
 export enum BucketIntelligentTieringConfigurationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketIntelligentTieringConfigurationSpecProviderRefPolicyResolution
- */
-export enum BucketIntelligentTieringConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketIntelligentTieringConfigurationSpecProviderRefPolicyResolve
- */
-export enum BucketIntelligentTieringConfigurationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -5897,7 +6067,7 @@ export function toJson_BucketInventoryProps(obj: BucketInventoryProps | undefine
  */
 export interface BucketInventorySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketInventorySpec#deletionPolicy
    */
@@ -5909,11 +6079,18 @@ export interface BucketInventorySpec {
   readonly forProvider: BucketInventorySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketInventorySpec#managementPolicy
+   * @schema BucketInventorySpec#initProvider
    */
-  readonly managementPolicy?: BucketInventorySpecManagementPolicy;
+  readonly initProvider?: BucketInventorySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketInventorySpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketInventorySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5921,13 +6098,6 @@ export interface BucketInventorySpec {
    * @schema BucketInventorySpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketInventorySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketInventorySpec#providerRef
-   */
-  readonly providerRef?: BucketInventorySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -5954,9 +6124,9 @@ export function toJson_BucketInventorySpec(obj: BucketInventorySpec | undefined)
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketInventorySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketInventorySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketInventorySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketInventorySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketInventorySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketInventorySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -5966,7 +6136,7 @@ export function toJson_BucketInventorySpec(obj: BucketInventorySpec | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketInventorySpecDeletionPolicy
  */
@@ -6085,17 +6255,100 @@ export function toJson_BucketInventorySpecForProvider(obj: BucketInventorySpecFo
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketInventorySpecManagementPolicy
+ * @schema BucketInventorySpecInitProvider
  */
-export enum BucketInventorySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketInventorySpecInitProvider {
+  /**
+   * Contains information about where to publish the inventory results (documented below).
+   *
+   * @schema BucketInventorySpecInitProvider#destination
+   */
+  readonly destination?: BucketInventorySpecInitProviderDestination[];
+
+  /**
+   * Specifies whether the inventory is enabled or disabled.
+   *
+   * @schema BucketInventorySpecInitProvider#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Specifies an inventory filter. The inventory only includes objects that meet the filter's criteria (documented below).
+   *
+   * @schema BucketInventorySpecInitProvider#filter
+   */
+  readonly filter?: BucketInventorySpecInitProviderFilter[];
+
+  /**
+   * Object versions to include in the inventory list. Valid values: All, Current.
+   *
+   * @schema BucketInventorySpecInitProvider#includedObjectVersions
+   */
+  readonly includedObjectVersions?: string;
+
+  /**
+   * Unique identifier of the inventory configuration for the bucket.
+   *
+   * @schema BucketInventorySpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * List of optional fields that are included in the inventory results. Please refer to the S3 documentation for more details.
+   *
+   * @schema BucketInventorySpecInitProvider#optionalFields
+   */
+  readonly optionalFields?: string[];
+
+  /**
+   * Specifies the schedule for generating inventory results (documented below).
+   *
+   * @schema BucketInventorySpecInitProvider#schedule
+   */
+  readonly schedule?: BucketInventorySpecInitProviderSchedule[];
+
+}
+
+/**
+ * Converts an object of type 'BucketInventorySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketInventorySpecInitProvider(obj: BucketInventorySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destination': obj.destination?.map(y => toJson_BucketInventorySpecInitProviderDestination(y)),
+    'enabled': obj.enabled,
+    'filter': obj.filter?.map(y => toJson_BucketInventorySpecInitProviderFilter(y)),
+    'includedObjectVersions': obj.includedObjectVersions,
+    'name': obj.name,
+    'optionalFields': obj.optionalFields?.map(y => y),
+    'schedule': obj.schedule?.map(y => toJson_BucketInventorySpecInitProviderSchedule(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketInventorySpecManagementPolicies
+ */
+export enum BucketInventorySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -6129,43 +6382,6 @@ export function toJson_BucketInventorySpecProviderConfigRef(obj: BucketInventory
   const result = {
     'name': obj.name,
     'policy': toJson_BucketInventorySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketInventorySpecProviderRef
- */
-export interface BucketInventorySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketInventorySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketInventorySpecProviderRef#policy
-   */
-  readonly policy?: BucketInventorySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketInventorySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketInventorySpecProviderRef(obj: BucketInventorySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketInventorySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6345,7 +6561,7 @@ export interface BucketInventorySpecForProviderDestination {
    *
    * @schema BucketInventorySpecForProviderDestination#bucket
    */
-  readonly bucket: BucketInventorySpecForProviderDestinationBucket[];
+  readonly bucket?: BucketInventorySpecForProviderDestinationBucket[];
 
 }
 
@@ -6399,7 +6615,7 @@ export interface BucketInventorySpecForProviderSchedule {
    *
    * @schema BucketInventorySpecForProviderSchedule#frequency
    */
-  readonly frequency: string;
+  readonly frequency?: string;
 
 }
 
@@ -6408,6 +6624,87 @@ export interface BucketInventorySpecForProviderSchedule {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketInventorySpecForProviderSchedule(obj: BucketInventorySpecForProviderSchedule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'frequency': obj.frequency,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketInventorySpecInitProviderDestination
+ */
+export interface BucketInventorySpecInitProviderDestination {
+  /**
+   * Name of the source bucket that inventory lists the objects for.
+   *
+   * @schema BucketInventorySpecInitProviderDestination#bucket
+   */
+  readonly bucket?: BucketInventorySpecInitProviderDestinationBucket[];
+
+}
+
+/**
+ * Converts an object of type 'BucketInventorySpecInitProviderDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketInventorySpecInitProviderDestination(obj: BucketInventorySpecInitProviderDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket?.map(y => toJson_BucketInventorySpecInitProviderDestinationBucket(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketInventorySpecInitProviderFilter
+ */
+export interface BucketInventorySpecInitProviderFilter {
+  /**
+   * Prefix that an object must have to be included in the inventory results.
+   *
+   * @schema BucketInventorySpecInitProviderFilter#prefix
+   */
+  readonly prefix?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketInventorySpecInitProviderFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketInventorySpecInitProviderFilter(obj: BucketInventorySpecInitProviderFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'prefix': obj.prefix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketInventorySpecInitProviderSchedule
+ */
+export interface BucketInventorySpecInitProviderSchedule {
+  /**
+   * Specifies how frequently inventory results are produced. Valid values: Daily, Weekly.
+   *
+   * @schema BucketInventorySpecInitProviderSchedule#frequency
+   */
+  readonly frequency?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketInventorySpecInitProviderSchedule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketInventorySpecInitProviderSchedule(obj: BucketInventorySpecInitProviderSchedule | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'frequency': obj.frequency,
@@ -6444,43 +6741,6 @@ export interface BucketInventorySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketInventorySpecProviderConfigRefPolicy(obj: BucketInventorySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BucketInventorySpecProviderRefPolicy
- */
-export interface BucketInventorySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketInventorySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketInventorySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketInventorySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketInventorySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketInventorySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketInventorySpecProviderRefPolicy(obj: BucketInventorySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -6691,7 +6951,7 @@ export interface BucketInventorySpecForProviderDestinationBucket {
    *
    * @schema BucketInventorySpecForProviderDestinationBucket#format
    */
-  readonly format: string;
+  readonly format?: string;
 
   /**
    * Prefix that an object must have to be included in the inventory results.
@@ -6723,6 +6983,57 @@ export function toJson_BucketInventorySpecForProviderDestinationBucket(obj: Buck
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BucketInventorySpecInitProviderDestinationBucket
+ */
+export interface BucketInventorySpecInitProviderDestinationBucket {
+  /**
+   * ID of the account that owns the destination bucket. Recommended to be set to prevent problems if the destination bucket ownership changes.
+   *
+   * @schema BucketInventorySpecInitProviderDestinationBucket#accountId
+   */
+  readonly accountId?: string;
+
+  /**
+   * Contains the type of server-side encryption to use to encrypt the inventory (documented below).
+   *
+   * @schema BucketInventorySpecInitProviderDestinationBucket#encryption
+   */
+  readonly encryption?: BucketInventorySpecInitProviderDestinationBucketEncryption[];
+
+  /**
+   * Specifies the output format of the inventory results. Can be CSV, ORC or Parquet.
+   *
+   * @schema BucketInventorySpecInitProviderDestinationBucket#format
+   */
+  readonly format?: string;
+
+  /**
+   * Prefix that an object must have to be included in the inventory results.
+   *
+   * @schema BucketInventorySpecInitProviderDestinationBucket#prefix
+   */
+  readonly prefix?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketInventorySpecInitProviderDestinationBucket' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketInventorySpecInitProviderDestinationBucket(obj: BucketInventorySpecInitProviderDestinationBucket | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountId': obj.accountId,
+    'encryption': obj.encryption?.map(y => toJson_BucketInventorySpecInitProviderDestinationBucketEncryption(y)),
+    'format': obj.format,
+    'prefix': obj.prefix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema BucketInventorySpecProviderConfigRefPolicyResolution
@@ -6740,30 +7051,6 @@ export enum BucketInventorySpecProviderConfigRefPolicyResolution {
  * @schema BucketInventorySpecProviderConfigRefPolicyResolve
  */
 export enum BucketInventorySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketInventorySpecProviderRefPolicyResolution
- */
-export enum BucketInventorySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketInventorySpecProviderRefPolicyResolve
- */
-export enum BucketInventorySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -6973,6 +7260,41 @@ export function toJson_BucketInventorySpecForProviderDestinationBucketEncryption
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BucketInventorySpecInitProviderDestinationBucketEncryption
+ */
+export interface BucketInventorySpecInitProviderDestinationBucketEncryption {
+  /**
+   * Specifies to use server-side encryption with AWS KMS-managed keys to encrypt the inventory file (documented below).
+   *
+   * @schema BucketInventorySpecInitProviderDestinationBucketEncryption#sseKms
+   */
+  readonly sseKms?: BucketInventorySpecInitProviderDestinationBucketEncryptionSseKms[];
+
+  /**
+   * Specifies to use server-side encryption with Amazon S3-managed keys (SSE-S3) to encrypt the inventory file.
+   *
+   * @schema BucketInventorySpecInitProviderDestinationBucketEncryption#sseS3
+   */
+  readonly sseS3?: any[];
+
+}
+
+/**
+ * Converts an object of type 'BucketInventorySpecInitProviderDestinationBucketEncryption' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketInventorySpecInitProviderDestinationBucketEncryption(obj: BucketInventorySpecInitProviderDestinationBucketEncryption | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sseKms': obj.sseKms?.map(y => toJson_BucketInventorySpecInitProviderDestinationBucketEncryptionSseKms(y)),
+    'sseS3': obj.sseS3?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema BucketInventorySpecPublishConnectionDetailsToConfigRefPolicyResolution
@@ -7079,7 +7401,7 @@ export interface BucketInventorySpecForProviderDestinationBucketEncryptionSseKms
    *
    * @schema BucketInventorySpecForProviderDestinationBucketEncryptionSseKms#keyId
    */
-  readonly keyId: string;
+  readonly keyId?: string;
 
 }
 
@@ -7088,6 +7410,33 @@ export interface BucketInventorySpecForProviderDestinationBucketEncryptionSseKms
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketInventorySpecForProviderDestinationBucketEncryptionSseKms(obj: BucketInventorySpecForProviderDestinationBucketEncryptionSseKms | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'keyId': obj.keyId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketInventorySpecInitProviderDestinationBucketEncryptionSseKms
+ */
+export interface BucketInventorySpecInitProviderDestinationBucketEncryptionSseKms {
+  /**
+   * ARN of the KMS customer master key (CMK) used to encrypt the inventory file.
+   *
+   * @schema BucketInventorySpecInitProviderDestinationBucketEncryptionSseKms#keyId
+   */
+  readonly keyId?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketInventorySpecInitProviderDestinationBucketEncryptionSseKms' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketInventorySpecInitProviderDestinationBucketEncryptionSseKms(obj: BucketInventorySpecInitProviderDestinationBucketEncryptionSseKms | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'keyId': obj.keyId,
@@ -7242,7 +7591,7 @@ export function toJson_BucketLifecycleConfigurationProps(obj: BucketLifecycleCon
  */
 export interface BucketLifecycleConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketLifecycleConfigurationSpec#deletionPolicy
    */
@@ -7254,11 +7603,18 @@ export interface BucketLifecycleConfigurationSpec {
   readonly forProvider: BucketLifecycleConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketLifecycleConfigurationSpec#managementPolicy
+   * @schema BucketLifecycleConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: BucketLifecycleConfigurationSpecManagementPolicy;
+  readonly initProvider?: BucketLifecycleConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketLifecycleConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketLifecycleConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7266,13 +7622,6 @@ export interface BucketLifecycleConfigurationSpec {
    * @schema BucketLifecycleConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketLifecycleConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketLifecycleConfigurationSpec#providerRef
-   */
-  readonly providerRef?: BucketLifecycleConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -7299,9 +7648,9 @@ export function toJson_BucketLifecycleConfigurationSpec(obj: BucketLifecycleConf
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketLifecycleConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketLifecycleConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketLifecycleConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketLifecycleConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketLifecycleConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketLifecycleConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -7311,7 +7660,7 @@ export function toJson_BucketLifecycleConfigurationSpec(obj: BucketLifecycleConf
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketLifecycleConfigurationSpecDeletionPolicy
  */
@@ -7390,17 +7739,60 @@ export function toJson_BucketLifecycleConfigurationSpecForProvider(obj: BucketLi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketLifecycleConfigurationSpecManagementPolicy
+ * @schema BucketLifecycleConfigurationSpecInitProvider
  */
-export enum BucketLifecycleConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketLifecycleConfigurationSpecInitProvider {
+  /**
+   * Account ID of the expected bucket owner. If the bucket is owned by a different account, the request will fail with an HTTP 403 (Access Denied) error.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProvider#expectedBucketOwner
+   */
+  readonly expectedBucketOwner?: string;
+
+  /**
+   * List of configuration blocks describing the rules managing the replication. See below.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProvider#rule
+   */
+  readonly rule?: BucketLifecycleConfigurationSpecInitProviderRule[];
+
+}
+
+/**
+ * Converts an object of type 'BucketLifecycleConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketLifecycleConfigurationSpecInitProvider(obj: BucketLifecycleConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'expectedBucketOwner': obj.expectedBucketOwner,
+    'rule': obj.rule?.map(y => toJson_BucketLifecycleConfigurationSpecInitProviderRule(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketLifecycleConfigurationSpecManagementPolicies
+ */
+export enum BucketLifecycleConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -7434,43 +7826,6 @@ export function toJson_BucketLifecycleConfigurationSpecProviderConfigRef(obj: Bu
   const result = {
     'name': obj.name,
     'policy': toJson_BucketLifecycleConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketLifecycleConfigurationSpecProviderRef
- */
-export interface BucketLifecycleConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketLifecycleConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketLifecycleConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: BucketLifecycleConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketLifecycleConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketLifecycleConfigurationSpecProviderRef(obj: BucketLifecycleConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketLifecycleConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7671,7 +8026,7 @@ export interface BucketLifecycleConfigurationSpecForProviderRule {
    *
    * @schema BucketLifecycleConfigurationSpecForProviderRule#id
    */
-  readonly id: string;
+  readonly id?: string;
 
   /**
    * Configuration block that specifies when noncurrent object versions expire. See below.
@@ -7700,7 +8055,7 @@ export interface BucketLifecycleConfigurationSpecForProviderRule {
    *
    * @schema BucketLifecycleConfigurationSpecForProviderRule#status
    */
-  readonly status: string;
+  readonly status?: string;
 
   /**
    * Set of configuration blocks that specify when an Amazon S3 object transitions to a specified storage class. See below.
@@ -7734,6 +8089,98 @@ export function toJson_BucketLifecycleConfigurationSpecForProviderRule(obj: Buck
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BucketLifecycleConfigurationSpecInitProviderRule
+ */
+export interface BucketLifecycleConfigurationSpecInitProviderRule {
+  /**
+   * Configuration block that specifies the days since the initiation of an incomplete multipart upload that Amazon S3 will wait before permanently removing all parts of the upload. See below.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRule#abortIncompleteMultipartUpload
+   */
+  readonly abortIncompleteMultipartUpload?: BucketLifecycleConfigurationSpecInitProviderRuleAbortIncompleteMultipartUpload[];
+
+  /**
+   * Configuration block that specifies the expiration for the lifecycle of the object in the form of date, days and, whether the object has a delete marker. See below.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRule#expiration
+   */
+  readonly expiration?: BucketLifecycleConfigurationSpecInitProviderRuleExpiration[];
+
+  /**
+   * Configuration block used to identify objects that a Lifecycle Rule applies to. See below. If not specified, the rule will default to using prefix.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRule#filter
+   */
+  readonly filter?: BucketLifecycleConfigurationSpecInitProviderRuleFilter[];
+
+  /**
+   * Unique identifier for the rule. The value cannot be longer than 255 characters.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRule#id
+   */
+  readonly id?: string;
+
+  /**
+   * Configuration block that specifies when noncurrent object versions expire. See below.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRule#noncurrentVersionExpiration
+   */
+  readonly noncurrentVersionExpiration?: BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionExpiration[];
+
+  /**
+   * Set of configuration blocks that specify the transition rule for the lifecycle rule that describes when noncurrent objects transition to a specific storage class. See below.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRule#noncurrentVersionTransition
+   */
+  readonly noncurrentVersionTransition?: BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionTransition[];
+
+  /**
+   * DEPRECATED Use filter instead. This has been deprecated by Amazon S3. Prefix identifying one or more objects to which the rule applies. Defaults to an empty string ("") if filter is not specified.
+   *
+   * @default an empty string ("") if filter is not specified.
+   * @schema BucketLifecycleConfigurationSpecInitProviderRule#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Whether the rule is currently being applied. Valid values: Enabled or Disabled.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRule#status
+   */
+  readonly status?: string;
+
+  /**
+   * Set of configuration blocks that specify when an Amazon S3 object transitions to a specified storage class. See below.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRule#transition
+   */
+  readonly transition?: BucketLifecycleConfigurationSpecInitProviderRuleTransition[];
+
+}
+
+/**
+ * Converts an object of type 'BucketLifecycleConfigurationSpecInitProviderRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketLifecycleConfigurationSpecInitProviderRule(obj: BucketLifecycleConfigurationSpecInitProviderRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'abortIncompleteMultipartUpload': obj.abortIncompleteMultipartUpload?.map(y => toJson_BucketLifecycleConfigurationSpecInitProviderRuleAbortIncompleteMultipartUpload(y)),
+    'expiration': obj.expiration?.map(y => toJson_BucketLifecycleConfigurationSpecInitProviderRuleExpiration(y)),
+    'filter': obj.filter?.map(y => toJson_BucketLifecycleConfigurationSpecInitProviderRuleFilter(y)),
+    'id': obj.id,
+    'noncurrentVersionExpiration': obj.noncurrentVersionExpiration?.map(y => toJson_BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionExpiration(y)),
+    'noncurrentVersionTransition': obj.noncurrentVersionTransition?.map(y => toJson_BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionTransition(y)),
+    'prefix': obj.prefix,
+    'status': obj.status,
+    'transition': obj.transition?.map(y => toJson_BucketLifecycleConfigurationSpecInitProviderRuleTransition(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema BucketLifecycleConfigurationSpecProviderConfigRefPolicy
@@ -7760,43 +8207,6 @@ export interface BucketLifecycleConfigurationSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketLifecycleConfigurationSpecProviderConfigRefPolicy(obj: BucketLifecycleConfigurationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BucketLifecycleConfigurationSpecProviderRefPolicy
- */
-export interface BucketLifecycleConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketLifecycleConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketLifecycleConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketLifecycleConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketLifecycleConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketLifecycleConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketLifecycleConfigurationSpecProviderRefPolicy(obj: BucketLifecycleConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -8151,7 +8561,7 @@ export interface BucketLifecycleConfigurationSpecForProviderRuleNoncurrentVersio
    *
    * @schema BucketLifecycleConfigurationSpecForProviderRuleNoncurrentVersionTransition#storageClass
    */
-  readonly storageClass: string;
+  readonly storageClass?: string;
 
 }
 
@@ -8194,7 +8604,7 @@ export interface BucketLifecycleConfigurationSpecForProviderRuleTransition {
    *
    * @schema BucketLifecycleConfigurationSpecForProviderRuleTransition#storageClass
    */
-  readonly storageClass: string;
+  readonly storageClass?: string;
 
 }
 
@@ -8203,6 +8613,257 @@ export interface BucketLifecycleConfigurationSpecForProviderRuleTransition {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketLifecycleConfigurationSpecForProviderRuleTransition(obj: BucketLifecycleConfigurationSpecForProviderRuleTransition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'date': obj.date,
+    'days': obj.days,
+    'storageClass': obj.storageClass,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketLifecycleConfigurationSpecInitProviderRuleAbortIncompleteMultipartUpload
+ */
+export interface BucketLifecycleConfigurationSpecInitProviderRuleAbortIncompleteMultipartUpload {
+  /**
+   * Number of days after which Amazon S3 aborts an incomplete multipart upload.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleAbortIncompleteMultipartUpload#daysAfterInitiation
+   */
+  readonly daysAfterInitiation?: number;
+
+}
+
+/**
+ * Converts an object of type 'BucketLifecycleConfigurationSpecInitProviderRuleAbortIncompleteMultipartUpload' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketLifecycleConfigurationSpecInitProviderRuleAbortIncompleteMultipartUpload(obj: BucketLifecycleConfigurationSpecInitProviderRuleAbortIncompleteMultipartUpload | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'daysAfterInitiation': obj.daysAfterInitiation,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketLifecycleConfigurationSpecInitProviderRuleExpiration
+ */
+export interface BucketLifecycleConfigurationSpecInitProviderRuleExpiration {
+  /**
+   * Date objects are transitioned to the specified storage class. The date value must be in RFC3339 format and set to midnight UTC e.g. 2023-01-13T00:00:00Z.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleExpiration#date
+   */
+  readonly date?: string;
+
+  /**
+   * Number of days after creation when objects are transitioned to the specified storage class. The value must be a positive integer. If both days and date are not specified, defaults to 0. Valid values depend on storage_class, see Transition objects using Amazon S3 Lifecycle for more details.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleExpiration#days
+   */
+  readonly days?: number;
+
+  /**
+   * Indicates whether Amazon S3 will remove a delete marker with no noncurrent versions. If set to true, the delete marker will be expired; if set to false the policy takes no action.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleExpiration#expiredObjectDeleteMarker
+   */
+  readonly expiredObjectDeleteMarker?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'BucketLifecycleConfigurationSpecInitProviderRuleExpiration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketLifecycleConfigurationSpecInitProviderRuleExpiration(obj: BucketLifecycleConfigurationSpecInitProviderRuleExpiration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'date': obj.date,
+    'days': obj.days,
+    'expiredObjectDeleteMarker': obj.expiredObjectDeleteMarker,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketLifecycleConfigurationSpecInitProviderRuleFilter
+ */
+export interface BucketLifecycleConfigurationSpecInitProviderRuleFilter {
+  /**
+   * Configuration block used to apply a logical AND to two or more predicates. See below. The Lifecycle Rule will apply to any object matching all the predicates configured inside the and block.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleFilter#and
+   */
+  readonly and?: BucketLifecycleConfigurationSpecInitProviderRuleFilterAnd[];
+
+  /**
+   * Minimum object size (in bytes) to which the rule applies.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleFilter#objectSizeGreaterThan
+   */
+  readonly objectSizeGreaterThan?: string;
+
+  /**
+   * Maximum object size (in bytes) to which the rule applies.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleFilter#objectSizeLessThan
+   */
+  readonly objectSizeLessThan?: string;
+
+  /**
+   * DEPRECATED Use filter instead. This has been deprecated by Amazon S3. Prefix identifying one or more objects to which the rule applies. Defaults to an empty string ("") if filter is not specified.
+   *
+   * @default an empty string ("") if filter is not specified.
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleFilter#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Configuration block for specifying a tag key and value. See below.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleFilter#tag
+   */
+  readonly tag?: BucketLifecycleConfigurationSpecInitProviderRuleFilterTag[];
+
+}
+
+/**
+ * Converts an object of type 'BucketLifecycleConfigurationSpecInitProviderRuleFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketLifecycleConfigurationSpecInitProviderRuleFilter(obj: BucketLifecycleConfigurationSpecInitProviderRuleFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'and': obj.and?.map(y => toJson_BucketLifecycleConfigurationSpecInitProviderRuleFilterAnd(y)),
+    'objectSizeGreaterThan': obj.objectSizeGreaterThan,
+    'objectSizeLessThan': obj.objectSizeLessThan,
+    'prefix': obj.prefix,
+    'tag': obj.tag?.map(y => toJson_BucketLifecycleConfigurationSpecInitProviderRuleFilterTag(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionExpiration
+ */
+export interface BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionExpiration {
+  /**
+   * Number of noncurrent versions Amazon S3 will retain. Must be a non-zero positive integer.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionExpiration#newerNoncurrentVersions
+   */
+  readonly newerNoncurrentVersions?: string;
+
+  /**
+   * Number of days an object is noncurrent before Amazon S3 can perform the associated action.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionExpiration#noncurrentDays
+   */
+  readonly noncurrentDays?: number;
+
+}
+
+/**
+ * Converts an object of type 'BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionExpiration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionExpiration(obj: BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionExpiration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'newerNoncurrentVersions': obj.newerNoncurrentVersions,
+    'noncurrentDays': obj.noncurrentDays,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionTransition
+ */
+export interface BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionTransition {
+  /**
+   * Number of noncurrent versions Amazon S3 will retain. Must be a non-zero positive integer.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionTransition#newerNoncurrentVersions
+   */
+  readonly newerNoncurrentVersions?: string;
+
+  /**
+   * Number of days an object is noncurrent before Amazon S3 can perform the associated action.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionTransition#noncurrentDays
+   */
+  readonly noncurrentDays?: number;
+
+  /**
+   * Class of storage used to store the object. Valid Values: GLACIER, STANDARD_IA, ONEZONE_IA, INTELLIGENT_TIERING, DEEP_ARCHIVE, GLACIER_IR.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionTransition#storageClass
+   */
+  readonly storageClass?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionTransition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionTransition(obj: BucketLifecycleConfigurationSpecInitProviderRuleNoncurrentVersionTransition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'newerNoncurrentVersions': obj.newerNoncurrentVersions,
+    'noncurrentDays': obj.noncurrentDays,
+    'storageClass': obj.storageClass,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketLifecycleConfigurationSpecInitProviderRuleTransition
+ */
+export interface BucketLifecycleConfigurationSpecInitProviderRuleTransition {
+  /**
+   * Date objects are transitioned to the specified storage class. The date value must be in RFC3339 format and set to midnight UTC e.g. 2023-01-13T00:00:00Z.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleTransition#date
+   */
+  readonly date?: string;
+
+  /**
+   * Number of days after creation when objects are transitioned to the specified storage class. The value must be a positive integer. If both days and date are not specified, defaults to 0. Valid values depend on storage_class, see Transition objects using Amazon S3 Lifecycle for more details.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleTransition#days
+   */
+  readonly days?: number;
+
+  /**
+   * Class of storage used to store the object. Valid Values: GLACIER, STANDARD_IA, ONEZONE_IA, INTELLIGENT_TIERING, DEEP_ARCHIVE, GLACIER_IR.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleTransition#storageClass
+   */
+  readonly storageClass?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketLifecycleConfigurationSpecInitProviderRuleTransition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketLifecycleConfigurationSpecInitProviderRuleTransition(obj: BucketLifecycleConfigurationSpecInitProviderRuleTransition | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'date': obj.date,
@@ -8232,30 +8893,6 @@ export enum BucketLifecycleConfigurationSpecProviderConfigRefPolicyResolution {
  * @schema BucketLifecycleConfigurationSpecProviderConfigRefPolicyResolve
  */
 export enum BucketLifecycleConfigurationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketLifecycleConfigurationSpecProviderRefPolicyResolution
- */
-export enum BucketLifecycleConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketLifecycleConfigurationSpecProviderRefPolicyResolve
- */
-export enum BucketLifecycleConfigurationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -8408,14 +9045,14 @@ export interface BucketLifecycleConfigurationSpecForProviderRuleFilterTag {
    *
    * @schema BucketLifecycleConfigurationSpecForProviderRuleFilterTag#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * Value of the tag.
    *
    * @schema BucketLifecycleConfigurationSpecForProviderRuleFilterTag#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -8424,6 +9061,93 @@ export interface BucketLifecycleConfigurationSpecForProviderRuleFilterTag {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketLifecycleConfigurationSpecForProviderRuleFilterTag(obj: BucketLifecycleConfigurationSpecForProviderRuleFilterTag | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketLifecycleConfigurationSpecInitProviderRuleFilterAnd
+ */
+export interface BucketLifecycleConfigurationSpecInitProviderRuleFilterAnd {
+  /**
+   * Minimum object size (in bytes) to which the rule applies.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleFilterAnd#objectSizeGreaterThan
+   */
+  readonly objectSizeGreaterThan?: number;
+
+  /**
+   * Maximum object size (in bytes) to which the rule applies.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleFilterAnd#objectSizeLessThan
+   */
+  readonly objectSizeLessThan?: number;
+
+  /**
+   * DEPRECATED Use filter instead. This has been deprecated by Amazon S3. Prefix identifying one or more objects to which the rule applies. Defaults to an empty string ("") if filter is not specified.
+   *
+   * @default an empty string ("") if filter is not specified.
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleFilterAnd#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Key-value map of resource tags. All of these tags must exist in the object's tag set in order for the rule to apply.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleFilterAnd#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'BucketLifecycleConfigurationSpecInitProviderRuleFilterAnd' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketLifecycleConfigurationSpecInitProviderRuleFilterAnd(obj: BucketLifecycleConfigurationSpecInitProviderRuleFilterAnd | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'objectSizeGreaterThan': obj.objectSizeGreaterThan,
+    'objectSizeLessThan': obj.objectSizeLessThan,
+    'prefix': obj.prefix,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketLifecycleConfigurationSpecInitProviderRuleFilterTag
+ */
+export interface BucketLifecycleConfigurationSpecInitProviderRuleFilterTag {
+  /**
+   * Name of the object key.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleFilterTag#key
+   */
+  readonly key?: string;
+
+  /**
+   * Value of the tag.
+   *
+   * @schema BucketLifecycleConfigurationSpecInitProviderRuleFilterTag#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketLifecycleConfigurationSpecInitProviderRuleFilterTag' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketLifecycleConfigurationSpecInitProviderRuleFilterTag(obj: BucketLifecycleConfigurationSpecInitProviderRuleFilterTag | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'key': obj.key,
@@ -8555,7 +9279,7 @@ export function toJson_BucketLoggingProps(obj: BucketLoggingProps | undefined): 
  */
 export interface BucketLoggingSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketLoggingSpec#deletionPolicy
    */
@@ -8567,11 +9291,18 @@ export interface BucketLoggingSpec {
   readonly forProvider: BucketLoggingSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketLoggingSpec#managementPolicy
+   * @schema BucketLoggingSpec#initProvider
    */
-  readonly managementPolicy?: BucketLoggingSpecManagementPolicy;
+  readonly initProvider?: BucketLoggingSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketLoggingSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketLoggingSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -8579,13 +9310,6 @@ export interface BucketLoggingSpec {
    * @schema BucketLoggingSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketLoggingSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketLoggingSpec#providerRef
-   */
-  readonly providerRef?: BucketLoggingSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -8612,9 +9336,9 @@ export function toJson_BucketLoggingSpec(obj: BucketLoggingSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketLoggingSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketLoggingSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketLoggingSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketLoggingSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketLoggingSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketLoggingSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -8624,7 +9348,7 @@ export function toJson_BucketLoggingSpec(obj: BucketLoggingSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketLoggingSpecDeletionPolicy
  */
@@ -8735,17 +9459,68 @@ export function toJson_BucketLoggingSpecForProvider(obj: BucketLoggingSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketLoggingSpecManagementPolicy
+ * @schema BucketLoggingSpecInitProvider
  */
-export enum BucketLoggingSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketLoggingSpecInitProvider {
+  /**
+   * Account ID of the expected bucket owner.
+   *
+   * @schema BucketLoggingSpecInitProvider#expectedBucketOwner
+   */
+  readonly expectedBucketOwner?: string;
+
+  /**
+   * Set of configuration blocks with information for granting permissions. See below.
+   *
+   * @schema BucketLoggingSpecInitProvider#targetGrant
+   */
+  readonly targetGrant?: BucketLoggingSpecInitProviderTargetGrant[];
+
+  /**
+   * Prefix for all log object keys.
+   *
+   * @schema BucketLoggingSpecInitProvider#targetPrefix
+   */
+  readonly targetPrefix?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketLoggingSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketLoggingSpecInitProvider(obj: BucketLoggingSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'expectedBucketOwner': obj.expectedBucketOwner,
+    'targetGrant': obj.targetGrant?.map(y => toJson_BucketLoggingSpecInitProviderTargetGrant(y)),
+    'targetPrefix': obj.targetPrefix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketLoggingSpecManagementPolicies
+ */
+export enum BucketLoggingSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -8779,43 +9554,6 @@ export function toJson_BucketLoggingSpecProviderConfigRef(obj: BucketLoggingSpec
   const result = {
     'name': obj.name,
     'policy': toJson_BucketLoggingSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketLoggingSpecProviderRef
- */
-export interface BucketLoggingSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketLoggingSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketLoggingSpecProviderRef#policy
-   */
-  readonly policy?: BucketLoggingSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketLoggingSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketLoggingSpecProviderRef(obj: BucketLoggingSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketLoggingSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -9077,14 +9815,14 @@ export interface BucketLoggingSpecForProviderTargetGrant {
    *
    * @schema BucketLoggingSpecForProviderTargetGrant#grantee
    */
-  readonly grantee: BucketLoggingSpecForProviderTargetGrantGrantee[];
+  readonly grantee?: BucketLoggingSpecForProviderTargetGrantGrantee[];
 
   /**
    * Logging permissions assigned to the grantee for the bucket. Valid values: FULL_CONTROL, READ, WRITE.
    *
    * @schema BucketLoggingSpecForProviderTargetGrant#permission
    */
-  readonly permission: string;
+  readonly permission?: string;
 
 }
 
@@ -9096,6 +9834,41 @@ export function toJson_BucketLoggingSpecForProviderTargetGrant(obj: BucketLoggin
   if (obj === undefined) { return undefined; }
   const result = {
     'grantee': obj.grantee?.map(y => toJson_BucketLoggingSpecForProviderTargetGrantGrantee(y)),
+    'permission': obj.permission,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketLoggingSpecInitProviderTargetGrant
+ */
+export interface BucketLoggingSpecInitProviderTargetGrant {
+  /**
+   * Configuration block for the person being granted permissions. See below.
+   *
+   * @schema BucketLoggingSpecInitProviderTargetGrant#grantee
+   */
+  readonly grantee?: BucketLoggingSpecInitProviderTargetGrantGrantee[];
+
+  /**
+   * Logging permissions assigned to the grantee for the bucket. Valid values: FULL_CONTROL, READ, WRITE.
+   *
+   * @schema BucketLoggingSpecInitProviderTargetGrant#permission
+   */
+  readonly permission?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketLoggingSpecInitProviderTargetGrant' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketLoggingSpecInitProviderTargetGrant(obj: BucketLoggingSpecInitProviderTargetGrant | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'grantee': obj.grantee?.map(y => toJson_BucketLoggingSpecInitProviderTargetGrantGrantee(y)),
     'permission': obj.permission,
   };
   // filter undefined values
@@ -9130,43 +9903,6 @@ export interface BucketLoggingSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketLoggingSpecProviderConfigRefPolicy(obj: BucketLoggingSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BucketLoggingSpecProviderRefPolicy
- */
-export interface BucketLoggingSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketLoggingSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketLoggingSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketLoggingSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketLoggingSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketLoggingSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketLoggingSpecProviderRefPolicy(obj: BucketLoggingSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -9430,7 +10166,7 @@ export interface BucketLoggingSpecForProviderTargetGrantGrantee {
    *
    * @schema BucketLoggingSpecForProviderTargetGrantGrantee#type
    */
-  readonly type: string;
+  readonly type?: string;
 
   /**
    * URI of the grantee group.
@@ -9446,6 +10182,57 @@ export interface BucketLoggingSpecForProviderTargetGrantGrantee {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketLoggingSpecForProviderTargetGrantGrantee(obj: BucketLoggingSpecForProviderTargetGrantGrantee | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'emailAddress': obj.emailAddress,
+    'id': obj.id,
+    'type': obj.type,
+    'uri': obj.uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketLoggingSpecInitProviderTargetGrantGrantee
+ */
+export interface BucketLoggingSpecInitProviderTargetGrantGrantee {
+  /**
+   * Email address of the grantee. See Regions and Endpoints for supported AWS regions where this argument can be specified.
+   *
+   * @schema BucketLoggingSpecInitProviderTargetGrantGrantee#emailAddress
+   */
+  readonly emailAddress?: string;
+
+  /**
+   * Canonical user ID of the grantee.
+   *
+   * @schema BucketLoggingSpecInitProviderTargetGrantGrantee#id
+   */
+  readonly id?: string;
+
+  /**
+   * Type of grantee. Valid values: CanonicalUser, AmazonCustomerByEmail, Group.
+   *
+   * @schema BucketLoggingSpecInitProviderTargetGrantGrantee#type
+   */
+  readonly type?: string;
+
+  /**
+   * URI of the grantee group.
+   *
+   * @schema BucketLoggingSpecInitProviderTargetGrantGrantee#uri
+   */
+  readonly uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketLoggingSpecInitProviderTargetGrantGrantee' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketLoggingSpecInitProviderTargetGrantGrantee(obj: BucketLoggingSpecInitProviderTargetGrantGrantee | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'emailAddress': obj.emailAddress,
@@ -9476,30 +10263,6 @@ export enum BucketLoggingSpecProviderConfigRefPolicyResolution {
  * @schema BucketLoggingSpecProviderConfigRefPolicyResolve
  */
 export enum BucketLoggingSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketLoggingSpecProviderRefPolicyResolution
- */
-export enum BucketLoggingSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketLoggingSpecProviderRefPolicyResolve
- */
-export enum BucketLoggingSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -9760,7 +10523,7 @@ export function toJson_BucketMetricProps(obj: BucketMetricProps | undefined): Re
  */
 export interface BucketMetricSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketMetricSpec#deletionPolicy
    */
@@ -9772,11 +10535,18 @@ export interface BucketMetricSpec {
   readonly forProvider: BucketMetricSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketMetricSpec#managementPolicy
+   * @schema BucketMetricSpec#initProvider
    */
-  readonly managementPolicy?: BucketMetricSpecManagementPolicy;
+  readonly initProvider?: BucketMetricSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketMetricSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketMetricSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -9784,13 +10554,6 @@ export interface BucketMetricSpec {
    * @schema BucketMetricSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketMetricSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketMetricSpec#providerRef
-   */
-  readonly providerRef?: BucketMetricSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -9817,9 +10580,9 @@ export function toJson_BucketMetricSpec(obj: BucketMetricSpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketMetricSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketMetricSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketMetricSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketMetricSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketMetricSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketMetricSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -9829,7 +10592,7 @@ export function toJson_BucketMetricSpec(obj: BucketMetricSpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketMetricSpecDeletionPolicy
  */
@@ -9908,17 +10671,60 @@ export function toJson_BucketMetricSpecForProvider(obj: BucketMetricSpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketMetricSpecManagementPolicy
+ * @schema BucketMetricSpecInitProvider
  */
-export enum BucketMetricSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketMetricSpecInitProvider {
+  /**
+   * Object filtering that accepts a prefix, tags, or a logical AND of prefix and tags (documented below).
+   *
+   * @schema BucketMetricSpecInitProvider#filter
+   */
+  readonly filter?: BucketMetricSpecInitProviderFilter[];
+
+  /**
+   * Unique identifier of the metrics configuration for the bucket. Must be less than or equal to 64 characters in length.
+   *
+   * @schema BucketMetricSpecInitProvider#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketMetricSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketMetricSpecInitProvider(obj: BucketMetricSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'filter': obj.filter?.map(y => toJson_BucketMetricSpecInitProviderFilter(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketMetricSpecManagementPolicies
+ */
+export enum BucketMetricSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -9952,43 +10758,6 @@ export function toJson_BucketMetricSpecProviderConfigRef(obj: BucketMetricSpecPr
   const result = {
     'name': obj.name,
     'policy': toJson_BucketMetricSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketMetricSpecProviderRef
- */
-export interface BucketMetricSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketMetricSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketMetricSpecProviderRef#policy
-   */
-  readonly policy?: BucketMetricSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketMetricSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketMetricSpecProviderRef(obj: BucketMetricSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketMetricSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -10195,6 +10964,41 @@ export function toJson_BucketMetricSpecForProviderFilter(obj: BucketMetricSpecFo
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BucketMetricSpecInitProviderFilter
+ */
+export interface BucketMetricSpecInitProviderFilter {
+  /**
+   * Object prefix for filtering (singular).
+   *
+   * @schema BucketMetricSpecInitProviderFilter#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema BucketMetricSpecInitProviderFilter#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'BucketMetricSpecInitProviderFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketMetricSpecInitProviderFilter(obj: BucketMetricSpecInitProviderFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'prefix': obj.prefix,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema BucketMetricSpecProviderConfigRefPolicy
@@ -10221,43 +11025,6 @@ export interface BucketMetricSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketMetricSpecProviderConfigRefPolicy(obj: BucketMetricSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BucketMetricSpecProviderRefPolicy
- */
-export interface BucketMetricSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketMetricSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketMetricSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketMetricSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketMetricSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketMetricSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketMetricSpecProviderRefPolicy(obj: BucketMetricSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -10442,30 +11209,6 @@ export enum BucketMetricSpecProviderConfigRefPolicyResolution {
  * @schema BucketMetricSpecProviderConfigRefPolicyResolve
  */
 export enum BucketMetricSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketMetricSpecProviderRefPolicyResolution
- */
-export enum BucketMetricSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketMetricSpecProviderRefPolicyResolve
- */
-export enum BucketMetricSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -10678,7 +11421,7 @@ export function toJson_BucketNotificationProps(obj: BucketNotificationProps | un
  */
 export interface BucketNotificationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketNotificationSpec#deletionPolicy
    */
@@ -10690,11 +11433,18 @@ export interface BucketNotificationSpec {
   readonly forProvider: BucketNotificationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketNotificationSpec#managementPolicy
+   * @schema BucketNotificationSpec#initProvider
    */
-  readonly managementPolicy?: BucketNotificationSpecManagementPolicy;
+  readonly initProvider?: BucketNotificationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketNotificationSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketNotificationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -10702,13 +11452,6 @@ export interface BucketNotificationSpec {
    * @schema BucketNotificationSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketNotificationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketNotificationSpec#providerRef
-   */
-  readonly providerRef?: BucketNotificationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -10735,9 +11478,9 @@ export function toJson_BucketNotificationSpec(obj: BucketNotificationSpec | unde
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketNotificationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketNotificationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketNotificationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketNotificationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketNotificationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketNotificationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -10747,7 +11490,7 @@ export function toJson_BucketNotificationSpec(obj: BucketNotificationSpec | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketNotificationSpecDeletionPolicy
  */
@@ -10842,17 +11585,76 @@ export function toJson_BucketNotificationSpecForProvider(obj: BucketNotification
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketNotificationSpecManagementPolicy
+ * @schema BucketNotificationSpecInitProvider
  */
-export enum BucketNotificationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketNotificationSpecInitProvider {
+  /**
+   * Whether to enable Amazon EventBridge notifications.
+   *
+   * @schema BucketNotificationSpecInitProvider#eventbridge
+   */
+  readonly eventbridge?: boolean;
+
+  /**
+   * Used to configure notifications to a Lambda Function. See below.
+   *
+   * @schema BucketNotificationSpecInitProvider#lambdaFunction
+   */
+  readonly lambdaFunction?: BucketNotificationSpecInitProviderLambdaFunction[];
+
+  /**
+   * Notification configuration to SQS Queue. See below.
+   *
+   * @schema BucketNotificationSpecInitProvider#queue
+   */
+  readonly queue?: BucketNotificationSpecInitProviderQueue[];
+
+  /**
+   * Notification configuration to SNS Topic. See below.
+   *
+   * @schema BucketNotificationSpecInitProvider#topic
+   */
+  readonly topic?: BucketNotificationSpecInitProviderTopic[];
+
+}
+
+/**
+ * Converts an object of type 'BucketNotificationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketNotificationSpecInitProvider(obj: BucketNotificationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eventbridge': obj.eventbridge,
+    'lambdaFunction': obj.lambdaFunction?.map(y => toJson_BucketNotificationSpecInitProviderLambdaFunction(y)),
+    'queue': obj.queue?.map(y => toJson_BucketNotificationSpecInitProviderQueue(y)),
+    'topic': obj.topic?.map(y => toJson_BucketNotificationSpecInitProviderTopic(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketNotificationSpecManagementPolicies
+ */
+export enum BucketNotificationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -10886,43 +11688,6 @@ export function toJson_BucketNotificationSpecProviderConfigRef(obj: BucketNotifi
   const result = {
     'name': obj.name,
     'policy': toJson_BucketNotificationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketNotificationSpecProviderRef
- */
-export interface BucketNotificationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketNotificationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketNotificationSpecProviderRef#policy
-   */
-  readonly policy?: BucketNotificationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketNotificationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketNotificationSpecProviderRef(obj: BucketNotificationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketNotificationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -11102,7 +11867,7 @@ export interface BucketNotificationSpecForProviderLambdaFunction {
    *
    * @schema BucketNotificationSpecForProviderLambdaFunction#events
    */
-  readonly events: string[];
+  readonly events?: string[];
 
   /**
    * Object key name prefix.
@@ -11161,7 +11926,7 @@ export interface BucketNotificationSpecForProviderQueue {
    *
    * @schema BucketNotificationSpecForProviderQueue#events
    */
-  readonly events: string[];
+  readonly events?: string[];
 
   /**
    * Object key name prefix.
@@ -11236,7 +12001,7 @@ export interface BucketNotificationSpecForProviderTopic {
    *
    * @schema BucketNotificationSpecForProviderTopic#events
    */
-  readonly events: string[];
+  readonly events?: string[];
 
   /**
    * Object key name prefix.
@@ -11303,6 +12068,167 @@ export function toJson_BucketNotificationSpecForProviderTopic(obj: BucketNotific
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BucketNotificationSpecInitProviderLambdaFunction
+ */
+export interface BucketNotificationSpecInitProviderLambdaFunction {
+  /**
+   * Event for which to send notifications.
+   *
+   * @schema BucketNotificationSpecInitProviderLambdaFunction#events
+   */
+  readonly events?: string[];
+
+  /**
+   * Object key name prefix.
+   *
+   * @schema BucketNotificationSpecInitProviderLambdaFunction#filterPrefix
+   */
+  readonly filterPrefix?: string;
+
+  /**
+   * Object key name suffix.
+   *
+   * @schema BucketNotificationSpecInitProviderLambdaFunction#filterSuffix
+   */
+  readonly filterSuffix?: string;
+
+  /**
+   * Unique identifier for each of the notification configurations.
+   *
+   * @schema BucketNotificationSpecInitProviderLambdaFunction#id
+   */
+  readonly id?: string;
+
+  /**
+   * Lambda function ARN.
+   *
+   * @schema BucketNotificationSpecInitProviderLambdaFunction#lambdaFunctionArn
+   */
+  readonly lambdaFunctionArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketNotificationSpecInitProviderLambdaFunction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketNotificationSpecInitProviderLambdaFunction(obj: BucketNotificationSpecInitProviderLambdaFunction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'events': obj.events?.map(y => y),
+    'filterPrefix': obj.filterPrefix,
+    'filterSuffix': obj.filterSuffix,
+    'id': obj.id,
+    'lambdaFunctionArn': obj.lambdaFunctionArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketNotificationSpecInitProviderQueue
+ */
+export interface BucketNotificationSpecInitProviderQueue {
+  /**
+   * Specifies event for which to send notifications.
+   *
+   * @schema BucketNotificationSpecInitProviderQueue#events
+   */
+  readonly events?: string[];
+
+  /**
+   * Object key name prefix.
+   *
+   * @schema BucketNotificationSpecInitProviderQueue#filterPrefix
+   */
+  readonly filterPrefix?: string;
+
+  /**
+   * Object key name suffix.
+   *
+   * @schema BucketNotificationSpecInitProviderQueue#filterSuffix
+   */
+  readonly filterSuffix?: string;
+
+  /**
+   * Unique identifier for each of the notification configurations.
+   *
+   * @schema BucketNotificationSpecInitProviderQueue#id
+   */
+  readonly id?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketNotificationSpecInitProviderQueue' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketNotificationSpecInitProviderQueue(obj: BucketNotificationSpecInitProviderQueue | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'events': obj.events?.map(y => y),
+    'filterPrefix': obj.filterPrefix,
+    'filterSuffix': obj.filterSuffix,
+    'id': obj.id,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketNotificationSpecInitProviderTopic
+ */
+export interface BucketNotificationSpecInitProviderTopic {
+  /**
+   * Event for which to send notifications.
+   *
+   * @schema BucketNotificationSpecInitProviderTopic#events
+   */
+  readonly events?: string[];
+
+  /**
+   * Object key name prefix.
+   *
+   * @schema BucketNotificationSpecInitProviderTopic#filterPrefix
+   */
+  readonly filterPrefix?: string;
+
+  /**
+   * Object key name suffix.
+   *
+   * @schema BucketNotificationSpecInitProviderTopic#filterSuffix
+   */
+  readonly filterSuffix?: string;
+
+  /**
+   * Unique identifier for each of the notification configurations.
+   *
+   * @schema BucketNotificationSpecInitProviderTopic#id
+   */
+  readonly id?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketNotificationSpecInitProviderTopic' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketNotificationSpecInitProviderTopic(obj: BucketNotificationSpecInitProviderTopic | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'events': obj.events?.map(y => y),
+    'filterPrefix': obj.filterPrefix,
+    'filterSuffix': obj.filterSuffix,
+    'id': obj.id,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema BucketNotificationSpecProviderConfigRefPolicy
@@ -11329,43 +12255,6 @@ export interface BucketNotificationSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketNotificationSpecProviderConfigRefPolicy(obj: BucketNotificationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BucketNotificationSpecProviderRefPolicy
- */
-export interface BucketNotificationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketNotificationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketNotificationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketNotificationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketNotificationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketNotificationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketNotificationSpecProviderRefPolicy(obj: BucketNotificationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -11714,30 +12603,6 @@ export enum BucketNotificationSpecProviderConfigRefPolicyResolution {
  * @schema BucketNotificationSpecProviderConfigRefPolicyResolve
  */
 export enum BucketNotificationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketNotificationSpecProviderRefPolicyResolution
- */
-export enum BucketNotificationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketNotificationSpecProviderRefPolicyResolve
- */
-export enum BucketNotificationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -12194,7 +13059,7 @@ export function toJson_BucketObjectProps(obj: BucketObjectProps | undefined): Re
  */
 export interface BucketObjectSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketObjectSpec#deletionPolicy
    */
@@ -12206,11 +13071,18 @@ export interface BucketObjectSpec {
   readonly forProvider: BucketObjectSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketObjectSpec#managementPolicy
+   * @schema BucketObjectSpec#initProvider
    */
-  readonly managementPolicy?: BucketObjectSpecManagementPolicy;
+  readonly initProvider?: BucketObjectSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketObjectSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketObjectSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -12218,13 +13090,6 @@ export interface BucketObjectSpec {
    * @schema BucketObjectSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketObjectSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketObjectSpec#providerRef
-   */
-  readonly providerRef?: BucketObjectSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -12251,9 +13116,9 @@ export function toJson_BucketObjectSpec(obj: BucketObjectSpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketObjectSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketObjectSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketObjectSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketObjectSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketObjectSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketObjectSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -12263,7 +13128,7 @@ export function toJson_BucketObjectSpec(obj: BucketObjectSpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketObjectSpecDeletionPolicy
  */
@@ -12529,17 +13394,223 @@ export function toJson_BucketObjectSpecForProvider(obj: BucketObjectSpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketObjectSpecManagementPolicy
+ * @schema BucketObjectSpecInitProvider
  */
-export enum BucketObjectSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketObjectSpecInitProvider {
+  /**
+   * Canned ACL to apply. Valid values are private, public-read, public-read-write, aws-exec-read, authenticated-read, bucket-owner-read, and bucket-owner-full-control. Defaults to private.
+   *
+   * @default private.
+   * @schema BucketObjectSpecInitProvider#acl
+   */
+  readonly acl?: string;
+
+  /**
+   * Whether or not to use Amazon S3 Bucket Keys for SSE-KMS.
+   *
+   * @schema BucketObjectSpecInitProvider#bucketKeyEnabled
+   */
+  readonly bucketKeyEnabled?: boolean;
+
+  /**
+   * Caching behavior along the request/reply chain Read w3c cache_control for further details.
+   *
+   * @schema BucketObjectSpecInitProvider#cacheControl
+   */
+  readonly cacheControl?: string;
+
+  /**
+   * Literal string value to use as the object content, which will be uploaded as UTF-8-encoded text.
+   *
+   * @schema BucketObjectSpecInitProvider#content
+   */
+  readonly content?: string;
+
+  /**
+   * Base64-encoded data that will be decoded and uploaded as raw bytes for the object content. This allows safely uploading non-UTF8 binary data, but is recommended only for small content such as the result of the gzipbase64 function with small text strings. For larger objects, use source to stream the content from a disk file.
+   *
+   * @schema BucketObjectSpecInitProvider#contentBase64
+   */
+  readonly contentBase64?: string;
+
+  /**
+   * Presentational information for the object. Read w3c content_disposition for further information.
+   *
+   * @schema BucketObjectSpecInitProvider#contentDisposition
+   */
+  readonly contentDisposition?: string;
+
+  /**
+   * Content encodings that have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field. Read w3c content encoding for further information.
+   *
+   * @schema BucketObjectSpecInitProvider#contentEncoding
+   */
+  readonly contentEncoding?: string;
+
+  /**
+   * Language the content is in e.g., en-US or en-GB.
+   *
+   * @schema BucketObjectSpecInitProvider#contentLanguage
+   */
+  readonly contentLanguage?: string;
+
+  /**
+   * Standard MIME type describing the format of the object data, e.g., application/octet-stream. All Valid MIME Types are valid for this input.
+   *
+   * @schema BucketObjectSpecInitProvider#contentType
+   */
+  readonly contentType?: string;
+
+  /**
+   * Triggers updates when the value changes.11.11.11 or earlier). This attribute is not compatible with KMS encryption, kms_key_id or server_side_encryption = "aws:kms" (see source_hash instead).
+   *
+   * @schema BucketObjectSpecInitProvider#etag
+   */
+  readonly etag?: string;
+
+  /**
+   * Whether to allow the object to be deleted by removing any legal hold on any object version. Default is false. This value should be set to true only if the bucket has S3 object lock enabled.
+   *
+   * @default false. This value should be set to true only if the bucket has S3 object lock enabled.
+   * @schema BucketObjectSpecInitProvider#forceDestroy
+   */
+  readonly forceDestroy?: boolean;
+
+  /**
+   * Name of the object once it is in the bucket.
+   *
+   * @schema BucketObjectSpecInitProvider#key
+   */
+  readonly key?: string;
+
+  /**
+   * Map of keys/values to provision metadata (will be automatically prefixed by x-amz-meta-, note that only lowercase label are currently supported by the AWS Go API).
+   *
+   * @schema BucketObjectSpecInitProvider#metadata
+   */
+  readonly metadata?: { [key: string]: string };
+
+  /**
+   * Legal hold status that you want to apply to the specified object. Valid values are ON and OFF.
+   *
+   * @schema BucketObjectSpecInitProvider#objectLockLegalHoldStatus
+   */
+  readonly objectLockLegalHoldStatus?: string;
+
+  /**
+   * Object lock retention mode that you want to apply to this object. Valid values are GOVERNANCE and COMPLIANCE.
+   *
+   * @schema BucketObjectSpecInitProvider#objectLockMode
+   */
+  readonly objectLockMode?: string;
+
+  /**
+   * Date and time, in RFC3339 format, when this object's object lock will expire.
+   *
+   * @schema BucketObjectSpecInitProvider#objectLockRetainUntilDate
+   */
+  readonly objectLockRetainUntilDate?: string;
+
+  /**
+   * Server-side encryption of the object in S3. Valid values are "AES256" and "aws:kms".
+   *
+   * @schema BucketObjectSpecInitProvider#serverSideEncryption
+   */
+  readonly serverSideEncryption?: string;
+
+  /**
+   * Path to a file that will be read and uploaded as raw bytes for the object content.
+   *
+   * @schema BucketObjectSpecInitProvider#source
+   */
+  readonly source?: string;
+
+  /**
+   * Triggers updates like etag but useful to address etag encryption limitations.11.12 or later). (The value is only stored in state and not saved by AWS.)
+   *
+   * @schema BucketObjectSpecInitProvider#sourceHash
+   */
+  readonly sourceHash?: string;
+
+  /**
+   * Storage Class for the object. Defaults to "STANDARD".
+   *
+   * @default STANDARD".
+   * @schema BucketObjectSpecInitProvider#storageClass
+   */
+  readonly storageClass?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema BucketObjectSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Target URL for website redirect.
+   *
+   * @schema BucketObjectSpecInitProvider#websiteRedirect
+   */
+  readonly websiteRedirect?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketObjectSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketObjectSpecInitProvider(obj: BucketObjectSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acl': obj.acl,
+    'bucketKeyEnabled': obj.bucketKeyEnabled,
+    'cacheControl': obj.cacheControl,
+    'content': obj.content,
+    'contentBase64': obj.contentBase64,
+    'contentDisposition': obj.contentDisposition,
+    'contentEncoding': obj.contentEncoding,
+    'contentLanguage': obj.contentLanguage,
+    'contentType': obj.contentType,
+    'etag': obj.etag,
+    'forceDestroy': obj.forceDestroy,
+    'key': obj.key,
+    'metadata': ((obj.metadata) === undefined) ? undefined : (Object.entries(obj.metadata).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'objectLockLegalHoldStatus': obj.objectLockLegalHoldStatus,
+    'objectLockMode': obj.objectLockMode,
+    'objectLockRetainUntilDate': obj.objectLockRetainUntilDate,
+    'serverSideEncryption': obj.serverSideEncryption,
+    'source': obj.source,
+    'sourceHash': obj.sourceHash,
+    'storageClass': obj.storageClass,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'websiteRedirect': obj.websiteRedirect,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketObjectSpecManagementPolicies
+ */
+export enum BucketObjectSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -12573,43 +13644,6 @@ export function toJson_BucketObjectSpecProviderConfigRef(obj: BucketObjectSpecPr
   const result = {
     'name': obj.name,
     'policy': toJson_BucketObjectSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketObjectSpecProviderRef
- */
-export interface BucketObjectSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketObjectSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketObjectSpecProviderRef#policy
-   */
-  readonly policy?: BucketObjectSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketObjectSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketObjectSpecProviderRef(obj: BucketObjectSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketObjectSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -12900,43 +13934,6 @@ export function toJson_BucketObjectSpecProviderConfigRefPolicy(obj: BucketObject
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema BucketObjectSpecProviderRefPolicy
- */
-export interface BucketObjectSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketObjectSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketObjectSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketObjectSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketObjectSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketObjectSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketObjectSpecProviderRefPolicy(obj: BucketObjectSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema BucketObjectSpecPublishConnectionDetailsToConfigRef
@@ -13184,30 +14181,6 @@ export enum BucketObjectSpecProviderConfigRefPolicyResolution {
  * @schema BucketObjectSpecProviderConfigRefPolicyResolve
  */
 export enum BucketObjectSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketObjectSpecProviderRefPolicyResolution
- */
-export enum BucketObjectSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketObjectSpecProviderRefPolicyResolve
- */
-export enum BucketObjectSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -13468,7 +14441,7 @@ export function toJson_BucketObjectLockConfigurationProps(obj: BucketObjectLockC
  */
 export interface BucketObjectLockConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketObjectLockConfigurationSpec#deletionPolicy
    */
@@ -13480,11 +14453,18 @@ export interface BucketObjectLockConfigurationSpec {
   readonly forProvider: BucketObjectLockConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketObjectLockConfigurationSpec#managementPolicy
+   * @schema BucketObjectLockConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: BucketObjectLockConfigurationSpecManagementPolicy;
+  readonly initProvider?: BucketObjectLockConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketObjectLockConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketObjectLockConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -13492,13 +14472,6 @@ export interface BucketObjectLockConfigurationSpec {
    * @schema BucketObjectLockConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketObjectLockConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketObjectLockConfigurationSpec#providerRef
-   */
-  readonly providerRef?: BucketObjectLockConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -13525,9 +14498,9 @@ export function toJson_BucketObjectLockConfigurationSpec(obj: BucketObjectLockCo
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketObjectLockConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketObjectLockConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketObjectLockConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketObjectLockConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketObjectLockConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketObjectLockConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -13537,7 +14510,7 @@ export function toJson_BucketObjectLockConfigurationSpec(obj: BucketObjectLockCo
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketObjectLockConfigurationSpecDeletionPolicy
  */
@@ -13633,17 +14606,69 @@ export function toJson_BucketObjectLockConfigurationSpecForProvider(obj: BucketO
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketObjectLockConfigurationSpecManagementPolicy
+ * @schema BucketObjectLockConfigurationSpecInitProvider
  */
-export enum BucketObjectLockConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketObjectLockConfigurationSpecInitProvider {
+  /**
+   * Account ID of the expected bucket owner.
+   *
+   * @schema BucketObjectLockConfigurationSpecInitProvider#expectedBucketOwner
+   */
+  readonly expectedBucketOwner?: string;
+
+  /**
+   * Indicates whether this bucket has an Object Lock configuration enabled. Defaults to Enabled. Valid values: Enabled.
+   *
+   * @default Enabled. Valid values: Enabled.
+   * @schema BucketObjectLockConfigurationSpecInitProvider#objectLockEnabled
+   */
+  readonly objectLockEnabled?: string;
+
+  /**
+   * Configuration block for specifying the Object Lock rule for the specified object. See below.
+   *
+   * @schema BucketObjectLockConfigurationSpecInitProvider#rule
+   */
+  readonly rule?: BucketObjectLockConfigurationSpecInitProviderRule[];
+
+}
+
+/**
+ * Converts an object of type 'BucketObjectLockConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketObjectLockConfigurationSpecInitProvider(obj: BucketObjectLockConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'expectedBucketOwner': obj.expectedBucketOwner,
+    'objectLockEnabled': obj.objectLockEnabled,
+    'rule': obj.rule?.map(y => toJson_BucketObjectLockConfigurationSpecInitProviderRule(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketObjectLockConfigurationSpecManagementPolicies
+ */
+export enum BucketObjectLockConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -13677,43 +14702,6 @@ export function toJson_BucketObjectLockConfigurationSpecProviderConfigRef(obj: B
   const result = {
     'name': obj.name,
     'policy': toJson_BucketObjectLockConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketObjectLockConfigurationSpecProviderRef
- */
-export interface BucketObjectLockConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketObjectLockConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketObjectLockConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: BucketObjectLockConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketObjectLockConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketObjectLockConfigurationSpecProviderRef(obj: BucketObjectLockConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketObjectLockConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -13893,7 +14881,7 @@ export interface BucketObjectLockConfigurationSpecForProviderRule {
    *
    * @schema BucketObjectLockConfigurationSpecForProviderRule#defaultRetention
    */
-  readonly defaultRetention: BucketObjectLockConfigurationSpecForProviderRuleDefaultRetention[];
+  readonly defaultRetention?: BucketObjectLockConfigurationSpecForProviderRuleDefaultRetention[];
 
 }
 
@@ -13957,6 +14945,33 @@ export function toJson_BucketObjectLockConfigurationSpecForProviderTokenSecretRe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BucketObjectLockConfigurationSpecInitProviderRule
+ */
+export interface BucketObjectLockConfigurationSpecInitProviderRule {
+  /**
+   * Configuration block for specifying the default Object Lock retention settings for new objects placed in the specified bucket. See below.
+   *
+   * @schema BucketObjectLockConfigurationSpecInitProviderRule#defaultRetention
+   */
+  readonly defaultRetention?: BucketObjectLockConfigurationSpecInitProviderRuleDefaultRetention[];
+
+}
+
+/**
+ * Converts an object of type 'BucketObjectLockConfigurationSpecInitProviderRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketObjectLockConfigurationSpecInitProviderRule(obj: BucketObjectLockConfigurationSpecInitProviderRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultRetention': obj.defaultRetention?.map(y => toJson_BucketObjectLockConfigurationSpecInitProviderRuleDefaultRetention(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema BucketObjectLockConfigurationSpecProviderConfigRefPolicy
@@ -13983,43 +14998,6 @@ export interface BucketObjectLockConfigurationSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketObjectLockConfigurationSpecProviderConfigRefPolicy(obj: BucketObjectLockConfigurationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BucketObjectLockConfigurationSpecProviderRefPolicy
- */
-export interface BucketObjectLockConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketObjectLockConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketObjectLockConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketObjectLockConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketObjectLockConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketObjectLockConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketObjectLockConfigurationSpecProviderRefPolicy(obj: BucketObjectLockConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -14230,6 +15208,49 @@ export function toJson_BucketObjectLockConfigurationSpecForProviderRuleDefaultRe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BucketObjectLockConfigurationSpecInitProviderRuleDefaultRetention
+ */
+export interface BucketObjectLockConfigurationSpecInitProviderRuleDefaultRetention {
+  /**
+   * Number of days that you want to specify for the default retention period.
+   *
+   * @schema BucketObjectLockConfigurationSpecInitProviderRuleDefaultRetention#days
+   */
+  readonly days?: number;
+
+  /**
+   * Default Object Lock retention mode you want to apply to new objects placed in the specified bucket. Valid values: COMPLIANCE, GOVERNANCE.
+   *
+   * @schema BucketObjectLockConfigurationSpecInitProviderRuleDefaultRetention#mode
+   */
+  readonly mode?: string;
+
+  /**
+   * Number of years that you want to specify for the default retention period.
+   *
+   * @schema BucketObjectLockConfigurationSpecInitProviderRuleDefaultRetention#years
+   */
+  readonly years?: number;
+
+}
+
+/**
+ * Converts an object of type 'BucketObjectLockConfigurationSpecInitProviderRuleDefaultRetention' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketObjectLockConfigurationSpecInitProviderRuleDefaultRetention(obj: BucketObjectLockConfigurationSpecInitProviderRuleDefaultRetention | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'days': obj.days,
+    'mode': obj.mode,
+    'years': obj.years,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema BucketObjectLockConfigurationSpecProviderConfigRefPolicyResolution
@@ -14247,30 +15268,6 @@ export enum BucketObjectLockConfigurationSpecProviderConfigRefPolicyResolution {
  * @schema BucketObjectLockConfigurationSpecProviderConfigRefPolicyResolve
  */
 export enum BucketObjectLockConfigurationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketObjectLockConfigurationSpecProviderRefPolicyResolution
- */
-export enum BucketObjectLockConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketObjectLockConfigurationSpecProviderRefPolicyResolve
- */
-export enum BucketObjectLockConfigurationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -14483,7 +15480,7 @@ export function toJson_BucketOwnershipControlsProps(obj: BucketOwnershipControls
  */
 export interface BucketOwnershipControlsSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketOwnershipControlsSpec#deletionPolicy
    */
@@ -14495,11 +15492,18 @@ export interface BucketOwnershipControlsSpec {
   readonly forProvider: BucketOwnershipControlsSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketOwnershipControlsSpec#managementPolicy
+   * @schema BucketOwnershipControlsSpec#initProvider
    */
-  readonly managementPolicy?: BucketOwnershipControlsSpecManagementPolicy;
+  readonly initProvider?: BucketOwnershipControlsSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketOwnershipControlsSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketOwnershipControlsSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -14507,13 +15511,6 @@ export interface BucketOwnershipControlsSpec {
    * @schema BucketOwnershipControlsSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketOwnershipControlsSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketOwnershipControlsSpec#providerRef
-   */
-  readonly providerRef?: BucketOwnershipControlsSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -14540,9 +15537,9 @@ export function toJson_BucketOwnershipControlsSpec(obj: BucketOwnershipControlsS
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketOwnershipControlsSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketOwnershipControlsSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketOwnershipControlsSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketOwnershipControlsSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketOwnershipControlsSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketOwnershipControlsSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -14552,7 +15549,7 @@ export function toJson_BucketOwnershipControlsSpec(obj: BucketOwnershipControlsS
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketOwnershipControlsSpecDeletionPolicy
  */
@@ -14623,17 +15620,52 @@ export function toJson_BucketOwnershipControlsSpecForProvider(obj: BucketOwnersh
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketOwnershipControlsSpecManagementPolicy
+ * @schema BucketOwnershipControlsSpecInitProvider
  */
-export enum BucketOwnershipControlsSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketOwnershipControlsSpecInitProvider {
+  /**
+   * Configuration block(s) with Ownership Controls rules. Detailed below.
+   *
+   * @schema BucketOwnershipControlsSpecInitProvider#rule
+   */
+  readonly rule?: BucketOwnershipControlsSpecInitProviderRule[];
+
+}
+
+/**
+ * Converts an object of type 'BucketOwnershipControlsSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketOwnershipControlsSpecInitProvider(obj: BucketOwnershipControlsSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'rule': obj.rule?.map(y => toJson_BucketOwnershipControlsSpecInitProviderRule(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketOwnershipControlsSpecManagementPolicies
+ */
+export enum BucketOwnershipControlsSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -14667,43 +15699,6 @@ export function toJson_BucketOwnershipControlsSpecProviderConfigRef(obj: BucketO
   const result = {
     'name': obj.name,
     'policy': toJson_BucketOwnershipControlsSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketOwnershipControlsSpecProviderRef
- */
-export interface BucketOwnershipControlsSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketOwnershipControlsSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketOwnershipControlsSpecProviderRef#policy
-   */
-  readonly policy?: BucketOwnershipControlsSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketOwnershipControlsSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketOwnershipControlsSpecProviderRef(obj: BucketOwnershipControlsSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketOwnershipControlsSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -14883,7 +15878,7 @@ export interface BucketOwnershipControlsSpecForProviderRule {
    *
    * @schema BucketOwnershipControlsSpecForProviderRule#objectOwnership
    */
-  readonly objectOwnership: string;
+  readonly objectOwnership?: string;
 
 }
 
@@ -14892,6 +15887,33 @@ export interface BucketOwnershipControlsSpecForProviderRule {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketOwnershipControlsSpecForProviderRule(obj: BucketOwnershipControlsSpecForProviderRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'objectOwnership': obj.objectOwnership,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketOwnershipControlsSpecInitProviderRule
+ */
+export interface BucketOwnershipControlsSpecInitProviderRule {
+  /**
+   * Object ownership. Valid values: BucketOwnerPreferred, ObjectWriter or BucketOwnerEnforced
+   *
+   * @schema BucketOwnershipControlsSpecInitProviderRule#objectOwnership
+   */
+  readonly objectOwnership?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketOwnershipControlsSpecInitProviderRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketOwnershipControlsSpecInitProviderRule(obj: BucketOwnershipControlsSpecInitProviderRule | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'objectOwnership': obj.objectOwnership,
@@ -14928,43 +15950,6 @@ export interface BucketOwnershipControlsSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketOwnershipControlsSpecProviderConfigRefPolicy(obj: BucketOwnershipControlsSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BucketOwnershipControlsSpecProviderRefPolicy
- */
-export interface BucketOwnershipControlsSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketOwnershipControlsSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketOwnershipControlsSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketOwnershipControlsSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketOwnershipControlsSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketOwnershipControlsSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketOwnershipControlsSpecProviderRefPolicy(obj: BucketOwnershipControlsSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -15149,30 +16134,6 @@ export enum BucketOwnershipControlsSpecProviderConfigRefPolicyResolution {
  * @schema BucketOwnershipControlsSpecProviderConfigRefPolicyResolve
  */
 export enum BucketOwnershipControlsSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketOwnershipControlsSpecProviderRefPolicyResolution
- */
-export enum BucketOwnershipControlsSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketOwnershipControlsSpecProviderRefPolicyResolve
- */
-export enum BucketOwnershipControlsSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -15385,7 +16346,7 @@ export function toJson_BucketPolicyProps(obj: BucketPolicyProps | undefined): Re
  */
 export interface BucketPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketPolicySpec#deletionPolicy
    */
@@ -15397,11 +16358,18 @@ export interface BucketPolicySpec {
   readonly forProvider: BucketPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketPolicySpec#managementPolicy
+   * @schema BucketPolicySpec#initProvider
    */
-  readonly managementPolicy?: BucketPolicySpecManagementPolicy;
+  readonly initProvider?: BucketPolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -15409,13 +16377,6 @@ export interface BucketPolicySpec {
    * @schema BucketPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketPolicySpec#providerRef
-   */
-  readonly providerRef?: BucketPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -15442,9 +16403,9 @@ export function toJson_BucketPolicySpec(obj: BucketPolicySpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -15454,7 +16415,7 @@ export function toJson_BucketPolicySpec(obj: BucketPolicySpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketPolicySpecDeletionPolicy
  */
@@ -15525,17 +16486,52 @@ export function toJson_BucketPolicySpecForProvider(obj: BucketPolicySpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketPolicySpecManagementPolicy
+ * @schema BucketPolicySpecInitProvider
  */
-export enum BucketPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketPolicySpecInitProvider {
+  /**
+   * Text of the policy. Although this is a bucket policy rather than an IAM policy, the aws_iam_policy_document data source may be used, so long as it specifies a principal. Note: Bucket policies are limited to 20 KB in size.
+   *
+   * @schema BucketPolicySpecInitProvider#policy
+   */
+  readonly policy?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketPolicySpecInitProvider(obj: BucketPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'policy': obj.policy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketPolicySpecManagementPolicies
+ */
+export enum BucketPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -15569,43 +16565,6 @@ export function toJson_BucketPolicySpecProviderConfigRef(obj: BucketPolicySpecPr
   const result = {
     'name': obj.name,
     'policy': toJson_BucketPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketPolicySpecProviderRef
- */
-export interface BucketPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketPolicySpecProviderRef#policy
-   */
-  readonly policy?: BucketPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketPolicySpecProviderRef(obj: BucketPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -15814,43 +16773,6 @@ export function toJson_BucketPolicySpecProviderConfigRefPolicy(obj: BucketPolicy
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema BucketPolicySpecProviderRefPolicy
- */
-export interface BucketPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketPolicySpecProviderRefPolicy(obj: BucketPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema BucketPolicySpecPublishConnectionDetailsToConfigRef
@@ -16024,30 +16946,6 @@ export enum BucketPolicySpecProviderConfigRefPolicyResolution {
  * @schema BucketPolicySpecProviderConfigRefPolicyResolve
  */
 export enum BucketPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketPolicySpecProviderRefPolicyResolution
- */
-export enum BucketPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketPolicySpecProviderRefPolicyResolve
- */
-export enum BucketPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -16260,7 +17158,7 @@ export function toJson_BucketPublicAccessBlockProps(obj: BucketPublicAccessBlock
  */
 export interface BucketPublicAccessBlockSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketPublicAccessBlockSpec#deletionPolicy
    */
@@ -16272,11 +17170,18 @@ export interface BucketPublicAccessBlockSpec {
   readonly forProvider: BucketPublicAccessBlockSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketPublicAccessBlockSpec#managementPolicy
+   * @schema BucketPublicAccessBlockSpec#initProvider
    */
-  readonly managementPolicy?: BucketPublicAccessBlockSpecManagementPolicy;
+  readonly initProvider?: BucketPublicAccessBlockSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketPublicAccessBlockSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketPublicAccessBlockSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -16284,13 +17189,6 @@ export interface BucketPublicAccessBlockSpec {
    * @schema BucketPublicAccessBlockSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketPublicAccessBlockSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketPublicAccessBlockSpec#providerRef
-   */
-  readonly providerRef?: BucketPublicAccessBlockSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -16317,9 +17215,9 @@ export function toJson_BucketPublicAccessBlockSpec(obj: BucketPublicAccessBlockS
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketPublicAccessBlockSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketPublicAccessBlockSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketPublicAccessBlockSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketPublicAccessBlockSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketPublicAccessBlockSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketPublicAccessBlockSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -16329,7 +17227,7 @@ export function toJson_BucketPublicAccessBlockSpec(obj: BucketPublicAccessBlockS
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketPublicAccessBlockSpecDeletionPolicy
  */
@@ -16428,17 +17326,80 @@ export function toJson_BucketPublicAccessBlockSpecForProvider(obj: BucketPublicA
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketPublicAccessBlockSpecManagementPolicy
+ * @schema BucketPublicAccessBlockSpecInitProvider
  */
-export enum BucketPublicAccessBlockSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketPublicAccessBlockSpecInitProvider {
+  /**
+   * Whether Amazon S3 should block public ACLs for this bucket. Defaults to false. Enabling this setting does not affect existing policies or ACLs. When set to true causes the following behavior:
+   *
+   * @default false. Enabling this setting does not affect existing policies or ACLs. When set to true causes the following behavior:
+   * @schema BucketPublicAccessBlockSpecInitProvider#blockPublicAcls
+   */
+  readonly blockPublicAcls?: boolean;
+
+  /**
+   * Whether Amazon S3 should block public bucket policies for this bucket. Defaults to false. Enabling this setting does not affect the existing bucket policy. When set to true causes Amazon S3 to:
+   *
+   * @default false. Enabling this setting does not affect the existing bucket policy. When set to true causes Amazon S3 to:
+   * @schema BucketPublicAccessBlockSpecInitProvider#blockPublicPolicy
+   */
+  readonly blockPublicPolicy?: boolean;
+
+  /**
+   * Whether Amazon S3 should ignore public ACLs for this bucket. Defaults to false. Enabling this setting does not affect the persistence of any existing ACLs and doesn't prevent new public ACLs from being set. When set to true causes Amazon S3 to:
+   *
+   * @default false. Enabling this setting does not affect the persistence of any existing ACLs and doesn't prevent new public ACLs from being set. When set to true causes Amazon S3 to:
+   * @schema BucketPublicAccessBlockSpecInitProvider#ignorePublicAcls
+   */
+  readonly ignorePublicAcls?: boolean;
+
+  /**
+   * Whether Amazon S3 should restrict public bucket policies for this bucket. Defaults to false. Enabling this setting does not affect the previously stored bucket policy, except that public and cross-account access within the public bucket policy, including non-public delegation to specific accounts, is blocked. When set to true:
+   *
+   * @default false. Enabling this setting does not affect the previously stored bucket policy, except that public and cross-account access within the public bucket policy, including non-public delegation to specific accounts, is blocked. When set to true:
+   * @schema BucketPublicAccessBlockSpecInitProvider#restrictPublicBuckets
+   */
+  readonly restrictPublicBuckets?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'BucketPublicAccessBlockSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketPublicAccessBlockSpecInitProvider(obj: BucketPublicAccessBlockSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'blockPublicAcls': obj.blockPublicAcls,
+    'blockPublicPolicy': obj.blockPublicPolicy,
+    'ignorePublicAcls': obj.ignorePublicAcls,
+    'restrictPublicBuckets': obj.restrictPublicBuckets,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketPublicAccessBlockSpecManagementPolicies
+ */
+export enum BucketPublicAccessBlockSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -16472,43 +17433,6 @@ export function toJson_BucketPublicAccessBlockSpecProviderConfigRef(obj: BucketP
   const result = {
     'name': obj.name,
     'policy': toJson_BucketPublicAccessBlockSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketPublicAccessBlockSpecProviderRef
- */
-export interface BucketPublicAccessBlockSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketPublicAccessBlockSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketPublicAccessBlockSpecProviderRef#policy
-   */
-  readonly policy?: BucketPublicAccessBlockSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketPublicAccessBlockSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketPublicAccessBlockSpecProviderRef(obj: BucketPublicAccessBlockSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketPublicAccessBlockSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -16717,43 +17641,6 @@ export function toJson_BucketPublicAccessBlockSpecProviderConfigRefPolicy(obj: B
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema BucketPublicAccessBlockSpecProviderRefPolicy
- */
-export interface BucketPublicAccessBlockSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketPublicAccessBlockSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketPublicAccessBlockSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketPublicAccessBlockSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketPublicAccessBlockSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketPublicAccessBlockSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketPublicAccessBlockSpecProviderRefPolicy(obj: BucketPublicAccessBlockSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema BucketPublicAccessBlockSpecPublishConnectionDetailsToConfigRef
@@ -16927,30 +17814,6 @@ export enum BucketPublicAccessBlockSpecProviderConfigRefPolicyResolution {
  * @schema BucketPublicAccessBlockSpecProviderConfigRefPolicyResolve
  */
 export enum BucketPublicAccessBlockSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketPublicAccessBlockSpecProviderRefPolicyResolution
- */
-export enum BucketPublicAccessBlockSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketPublicAccessBlockSpecProviderRefPolicyResolve
- */
-export enum BucketPublicAccessBlockSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -17163,7 +18026,7 @@ export function toJson_BucketReplicationConfigurationProps(obj: BucketReplicatio
  */
 export interface BucketReplicationConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketReplicationConfigurationSpec#deletionPolicy
    */
@@ -17175,11 +18038,18 @@ export interface BucketReplicationConfigurationSpec {
   readonly forProvider: BucketReplicationConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketReplicationConfigurationSpec#managementPolicy
+   * @schema BucketReplicationConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: BucketReplicationConfigurationSpecManagementPolicy;
+  readonly initProvider?: BucketReplicationConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketReplicationConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketReplicationConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -17187,13 +18057,6 @@ export interface BucketReplicationConfigurationSpec {
    * @schema BucketReplicationConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketReplicationConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketReplicationConfigurationSpec#providerRef
-   */
-  readonly providerRef?: BucketReplicationConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -17220,9 +18083,9 @@ export function toJson_BucketReplicationConfigurationSpec(obj: BucketReplication
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketReplicationConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketReplicationConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketReplicationConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketReplicationConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketReplicationConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketReplicationConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -17232,7 +18095,7 @@ export function toJson_BucketReplicationConfigurationSpec(obj: BucketReplication
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketReplicationConfigurationSpecDeletionPolicy
  */
@@ -17335,17 +18198,52 @@ export function toJson_BucketReplicationConfigurationSpecForProvider(obj: Bucket
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketReplicationConfigurationSpecManagementPolicy
+ * @schema BucketReplicationConfigurationSpecInitProvider
  */
-export enum BucketReplicationConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketReplicationConfigurationSpecInitProvider {
+  /**
+   * List of configuration blocks describing the rules managing the replication. See below.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProvider#rule
+   */
+  readonly rule?: BucketReplicationConfigurationSpecInitProviderRule[];
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProvider(obj: BucketReplicationConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'rule': obj.rule?.map(y => toJson_BucketReplicationConfigurationSpecInitProviderRule(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketReplicationConfigurationSpecManagementPolicies
+ */
+export enum BucketReplicationConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -17379,43 +18277,6 @@ export function toJson_BucketReplicationConfigurationSpecProviderConfigRef(obj: 
   const result = {
     'name': obj.name,
     'policy': toJson_BucketReplicationConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketReplicationConfigurationSpecProviderRef
- */
-export interface BucketReplicationConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketReplicationConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketReplicationConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: BucketReplicationConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketReplicationConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketReplicationConfigurationSpecProviderRef(obj: BucketReplicationConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketReplicationConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -17684,7 +18545,7 @@ export interface BucketReplicationConfigurationSpecForProviderRule {
    *
    * @schema BucketReplicationConfigurationSpecForProviderRule#destination
    */
-  readonly destination: BucketReplicationConfigurationSpecForProviderRuleDestination[];
+  readonly destination?: BucketReplicationConfigurationSpecForProviderRuleDestination[];
 
   /**
    * Replicate existing objects in the source bucket according to the rule configurations. See below.
@@ -17734,7 +18595,7 @@ export interface BucketReplicationConfigurationSpecForProviderRule {
    *
    * @schema BucketReplicationConfigurationSpecForProviderRule#status
    */
-  readonly status: string;
+  readonly status?: string;
 
 }
 
@@ -17806,6 +18667,98 @@ export function toJson_BucketReplicationConfigurationSpecForProviderTokenSecretR
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BucketReplicationConfigurationSpecInitProviderRule
+ */
+export interface BucketReplicationConfigurationSpecInitProviderRule {
+  /**
+   * Whether delete markers are replicated. This argument is only valid with V2 replication configurations (i.e., when filter is used)documented below.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRule#deleteMarkerReplication
+   */
+  readonly deleteMarkerReplication?: BucketReplicationConfigurationSpecInitProviderRuleDeleteMarkerReplication[];
+
+  /**
+   * Specifies the destination for the rule. See below.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRule#destination
+   */
+  readonly destination?: BucketReplicationConfigurationSpecInitProviderRuleDestination[];
+
+  /**
+   * Replicate existing objects in the source bucket according to the rule configurations. See below.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRule#existingObjectReplication
+   */
+  readonly existingObjectReplication?: BucketReplicationConfigurationSpecInitProviderRuleExistingObjectReplication[];
+
+  /**
+   * Filter that identifies subset of objects to which the replication rule applies. See below. If not specified, the rule will default to using prefix.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRule#filter
+   */
+  readonly filter?: BucketReplicationConfigurationSpecInitProviderRuleFilter[];
+
+  /**
+   * Unique identifier for the rule. Must be less than or equal to 255 characters in length.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRule#id
+   */
+  readonly id?: string;
+
+  /**
+   * Object key name prefix identifying one or more objects to which the rule applies. Must be less than or equal to 1024 characters in length. Defaults to an empty string ("") if filter is not specified.
+   *
+   * @default an empty string ("") if filter is not specified.
+   * @schema BucketReplicationConfigurationSpecInitProviderRule#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Priority associated with the rule. Priority should only be set if filter is configured. If not provided, defaults to 0. Priority must be unique between multiple rules.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRule#priority
+   */
+  readonly priority?: number;
+
+  /**
+   * Specifies special object selection criteria. See below.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRule#sourceSelectionCriteria
+   */
+  readonly sourceSelectionCriteria?: BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteria[];
+
+  /**
+   * Status of the rule. Either "Enabled" or "Disabled". The rule is ignored if status is not "Enabled".
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRule#status
+   */
+  readonly status?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProviderRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProviderRule(obj: BucketReplicationConfigurationSpecInitProviderRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deleteMarkerReplication': obj.deleteMarkerReplication?.map(y => toJson_BucketReplicationConfigurationSpecInitProviderRuleDeleteMarkerReplication(y)),
+    'destination': obj.destination?.map(y => toJson_BucketReplicationConfigurationSpecInitProviderRuleDestination(y)),
+    'existingObjectReplication': obj.existingObjectReplication?.map(y => toJson_BucketReplicationConfigurationSpecInitProviderRuleExistingObjectReplication(y)),
+    'filter': obj.filter?.map(y => toJson_BucketReplicationConfigurationSpecInitProviderRuleFilter(y)),
+    'id': obj.id,
+    'prefix': obj.prefix,
+    'priority': obj.priority,
+    'sourceSelectionCriteria': obj.sourceSelectionCriteria?.map(y => toJson_BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteria(y)),
+    'status': obj.status,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema BucketReplicationConfigurationSpecProviderConfigRefPolicy
@@ -17832,43 +18785,6 @@ export interface BucketReplicationConfigurationSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketReplicationConfigurationSpecProviderConfigRefPolicy(obj: BucketReplicationConfigurationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BucketReplicationConfigurationSpecProviderRefPolicy
- */
-export interface BucketReplicationConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketReplicationConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketReplicationConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketReplicationConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketReplicationConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketReplicationConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketReplicationConfigurationSpecProviderRefPolicy(obj: BucketReplicationConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -18118,7 +19034,7 @@ export interface BucketReplicationConfigurationSpecForProviderRuleDeleteMarkerRe
    *
    * @schema BucketReplicationConfigurationSpecForProviderRuleDeleteMarkerReplication#status
    */
-  readonly status: string;
+  readonly status?: string;
 
 }
 
@@ -18236,7 +19152,7 @@ export interface BucketReplicationConfigurationSpecForProviderRuleExistingObject
    *
    * @schema BucketReplicationConfigurationSpecForProviderRuleExistingObjectReplication#status
    */
-  readonly status: string;
+  readonly status?: string;
 
 }
 
@@ -18334,6 +19250,206 @@ export function toJson_BucketReplicationConfigurationSpecForProviderRuleSourceSe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BucketReplicationConfigurationSpecInitProviderRuleDeleteMarkerReplication
+ */
+export interface BucketReplicationConfigurationSpecInitProviderRuleDeleteMarkerReplication {
+  /**
+   * Whether delete markers should be replicated. Either "Enabled" or "Disabled".
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleDeleteMarkerReplication#status
+   */
+  readonly status?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProviderRuleDeleteMarkerReplication' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProviderRuleDeleteMarkerReplication(obj: BucketReplicationConfigurationSpecInitProviderRuleDeleteMarkerReplication | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'status': obj.status,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketReplicationConfigurationSpecInitProviderRuleDestination
+ */
+export interface BucketReplicationConfigurationSpecInitProviderRuleDestination {
+  /**
+   * Configuration block that specifies the overrides to use for object owners on replication. See below. Specify this only in a cross-account scenario (where source and destination bucket owners are not the same), and you want to change replica ownership to the AWS account that owns the destination bucket. If this is not specified in the replication configuration, the replicas are owned by same AWS account that owns the source object. Must be used in conjunction with account owner override configuration.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleDestination#accessControlTranslation
+   */
+  readonly accessControlTranslation?: BucketReplicationConfigurationSpecInitProviderRuleDestinationAccessControlTranslation[];
+
+  /**
+   * Account ID to specify the replica ownership. Must be used in conjunction with access_control_translation override configuration.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleDestination#account
+   */
+  readonly account?: string;
+
+  /**
+   * Configuration block that provides information about encryption. See below. If source_selection_criteria is specified, you must specify this element.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleDestination#encryptionConfiguration
+   */
+  readonly encryptionConfiguration?: BucketReplicationConfigurationSpecInitProviderRuleDestinationEncryptionConfiguration[];
+
+  /**
+   * Configuration block that specifies replication metrics-related settings enabling replication metrics and events. See below.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleDestination#metrics
+   */
+  readonly metrics?: BucketReplicationConfigurationSpecInitProviderRuleDestinationMetrics[];
+
+  /**
+   * Configuration block that specifies S3 Replication Time Control (S3 RTC), including whether S3 RTC is enabled and the time when all objects and operations on objects must be replicated. See below. Replication Time Control must be used in conjunction with metrics.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleDestination#replicationTime
+   */
+  readonly replicationTime?: BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTime[];
+
+  /**
+   * The storage class used to store the object. By default, Amazon S3 uses the storage class of the source object to create the object replica.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleDestination#storageClass
+   */
+  readonly storageClass?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProviderRuleDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProviderRuleDestination(obj: BucketReplicationConfigurationSpecInitProviderRuleDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessControlTranslation': obj.accessControlTranslation?.map(y => toJson_BucketReplicationConfigurationSpecInitProviderRuleDestinationAccessControlTranslation(y)),
+    'account': obj.account,
+    'encryptionConfiguration': obj.encryptionConfiguration?.map(y => toJson_BucketReplicationConfigurationSpecInitProviderRuleDestinationEncryptionConfiguration(y)),
+    'metrics': obj.metrics?.map(y => toJson_BucketReplicationConfigurationSpecInitProviderRuleDestinationMetrics(y)),
+    'replicationTime': obj.replicationTime?.map(y => toJson_BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTime(y)),
+    'storageClass': obj.storageClass,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketReplicationConfigurationSpecInitProviderRuleExistingObjectReplication
+ */
+export interface BucketReplicationConfigurationSpecInitProviderRuleExistingObjectReplication {
+  /**
+   * Whether the existing objects should be replicated. Either "Enabled" or "Disabled".
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleExistingObjectReplication#status
+   */
+  readonly status?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProviderRuleExistingObjectReplication' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProviderRuleExistingObjectReplication(obj: BucketReplicationConfigurationSpecInitProviderRuleExistingObjectReplication | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'status': obj.status,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketReplicationConfigurationSpecInitProviderRuleFilter
+ */
+export interface BucketReplicationConfigurationSpecInitProviderRuleFilter {
+  /**
+   * Configuration block for specifying rule filters. This element is required only if you specify more than one filter. See and below for more details.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleFilter#and
+   */
+  readonly and?: BucketReplicationConfigurationSpecInitProviderRuleFilterAnd[];
+
+  /**
+   * Object key name prefix identifying one or more objects to which the rule applies. Must be less than or equal to 1024 characters in length. Defaults to an empty string ("") if filter is not specified.
+   *
+   * @default an empty string ("") if filter is not specified.
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleFilter#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Configuration block for specifying a tag key and value. See below.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleFilter#tag
+   */
+  readonly tag?: BucketReplicationConfigurationSpecInitProviderRuleFilterTag[];
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProviderRuleFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProviderRuleFilter(obj: BucketReplicationConfigurationSpecInitProviderRuleFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'and': obj.and?.map(y => toJson_BucketReplicationConfigurationSpecInitProviderRuleFilterAnd(y)),
+    'prefix': obj.prefix,
+    'tag': obj.tag?.map(y => toJson_BucketReplicationConfigurationSpecInitProviderRuleFilterTag(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteria
+ */
+export interface BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteria {
+  /**
+   * Configuration block that you can specify for selections for modifications on replicas. Amazon S3 doesn't replicate replica modifications by default. In the latest version of replication configuration (when filter is specified), you can specify this element and set the status to Enabled to replicate modifications on replicas.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteria#replicaModifications
+   */
+  readonly replicaModifications?: BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteriaReplicaModifications[];
+
+  /**
+   * Configuration block for filter information for the selection of Amazon S3 objects encrypted with AWS KMS. If specified, replica_kms_key_id in destination encryption_configuration must be specified as well.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteria#sseKmsEncryptedObjects
+   */
+  readonly sseKmsEncryptedObjects?: BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteriaSseKmsEncryptedObjects[];
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteria' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteria(obj: BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteria | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'replicaModifications': obj.replicaModifications?.map(y => toJson_BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteriaReplicaModifications(y)),
+    'sseKmsEncryptedObjects': obj.sseKmsEncryptedObjects?.map(y => toJson_BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteriaSseKmsEncryptedObjects(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema BucketReplicationConfigurationSpecProviderConfigRefPolicyResolution
@@ -18351,30 +19467,6 @@ export enum BucketReplicationConfigurationSpecProviderConfigRefPolicyResolution 
  * @schema BucketReplicationConfigurationSpecProviderConfigRefPolicyResolve
  */
 export enum BucketReplicationConfigurationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketReplicationConfigurationSpecProviderRefPolicyResolution
- */
-export enum BucketReplicationConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketReplicationConfigurationSpecProviderRefPolicyResolve
- */
-export enum BucketReplicationConfigurationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -18523,7 +19615,7 @@ export interface BucketReplicationConfigurationSpecForProviderRuleDestinationAcc
    *
    * @schema BucketReplicationConfigurationSpecForProviderRuleDestinationAccessControlTranslation#owner
    */
-  readonly owner: string;
+  readonly owner?: string;
 
 }
 
@@ -18632,7 +19724,7 @@ export interface BucketReplicationConfigurationSpecForProviderRuleDestinationEnc
    *
    * @schema BucketReplicationConfigurationSpecForProviderRuleDestinationEncryptionConfiguration#replicaKmsKeyId
    */
-  readonly replicaKmsKeyId: string;
+  readonly replicaKmsKeyId?: string;
 
 }
 
@@ -18666,7 +19758,7 @@ export interface BucketReplicationConfigurationSpecForProviderRuleDestinationMet
    *
    * @schema BucketReplicationConfigurationSpecForProviderRuleDestinationMetrics#status
    */
-  readonly status: string;
+  readonly status?: string;
 
 }
 
@@ -18694,14 +19786,14 @@ export interface BucketReplicationConfigurationSpecForProviderRuleDestinationRep
    *
    * @schema BucketReplicationConfigurationSpecForProviderRuleDestinationReplicationTime#status
    */
-  readonly status: string;
+  readonly status?: string;
 
   /**
    * Configuration block specifying the time by which replication should be complete for all objects and operations on objects. See below.
    *
    * @schema BucketReplicationConfigurationSpecForProviderRuleDestinationReplicationTime#time
    */
-  readonly time: BucketReplicationConfigurationSpecForProviderRuleDestinationReplicationTimeTime[];
+  readonly time?: BucketReplicationConfigurationSpecForProviderRuleDestinationReplicationTimeTime[];
 
 }
 
@@ -18765,14 +19857,14 @@ export interface BucketReplicationConfigurationSpecForProviderRuleFilterTag {
    *
    * @schema BucketReplicationConfigurationSpecForProviderRuleFilterTag#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * Value of the tag.
    *
    * @schema BucketReplicationConfigurationSpecForProviderRuleFilterTag#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -18800,7 +19892,7 @@ export interface BucketReplicationConfigurationSpecForProviderRuleSourceSelectio
    *
    * @schema BucketReplicationConfigurationSpecForProviderRuleSourceSelectionCriteriaReplicaModifications#status
    */
-  readonly status: string;
+  readonly status?: string;
 
 }
 
@@ -18827,7 +19919,7 @@ export interface BucketReplicationConfigurationSpecForProviderRuleSourceSelectio
    *
    * @schema BucketReplicationConfigurationSpecForProviderRuleSourceSelectionCriteriaSseKmsEncryptedObjects#status
    */
-  readonly status: string;
+  readonly status?: string;
 
 }
 
@@ -18836,6 +19928,255 @@ export interface BucketReplicationConfigurationSpecForProviderRuleSourceSelectio
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketReplicationConfigurationSpecForProviderRuleSourceSelectionCriteriaSseKmsEncryptedObjects(obj: BucketReplicationConfigurationSpecForProviderRuleSourceSelectionCriteriaSseKmsEncryptedObjects | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'status': obj.status,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketReplicationConfigurationSpecInitProviderRuleDestinationAccessControlTranslation
+ */
+export interface BucketReplicationConfigurationSpecInitProviderRuleDestinationAccessControlTranslation {
+  /**
+   * Specifies the replica ownership. For default and valid values, see PUT bucket replication in the Amazon S3 API Reference. Valid values: Destination.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleDestinationAccessControlTranslation#owner
+   */
+  readonly owner?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProviderRuleDestinationAccessControlTranslation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProviderRuleDestinationAccessControlTranslation(obj: BucketReplicationConfigurationSpecInitProviderRuleDestinationAccessControlTranslation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'owner': obj.owner,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketReplicationConfigurationSpecInitProviderRuleDestinationEncryptionConfiguration
+ */
+export interface BucketReplicationConfigurationSpecInitProviderRuleDestinationEncryptionConfiguration {
+  /**
+   * ID (Key ARN or Alias ARN) of the customer managed AWS KMS key stored in AWS Key Management Service (KMS) for the destination bucket.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleDestinationEncryptionConfiguration#replicaKmsKeyId
+   */
+  readonly replicaKmsKeyId?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProviderRuleDestinationEncryptionConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProviderRuleDestinationEncryptionConfiguration(obj: BucketReplicationConfigurationSpecInitProviderRuleDestinationEncryptionConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'replicaKmsKeyId': obj.replicaKmsKeyId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketReplicationConfigurationSpecInitProviderRuleDestinationMetrics
+ */
+export interface BucketReplicationConfigurationSpecInitProviderRuleDestinationMetrics {
+  /**
+   * Configuration block that specifies the time threshold for emitting the s3:Replication:OperationMissedThreshold event. See below.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleDestinationMetrics#eventThreshold
+   */
+  readonly eventThreshold?: BucketReplicationConfigurationSpecInitProviderRuleDestinationMetricsEventThreshold[];
+
+  /**
+   * Whether the existing objects should be replicated. Either "Enabled" or "Disabled".
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleDestinationMetrics#status
+   */
+  readonly status?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProviderRuleDestinationMetrics' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProviderRuleDestinationMetrics(obj: BucketReplicationConfigurationSpecInitProviderRuleDestinationMetrics | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eventThreshold': obj.eventThreshold?.map(y => toJson_BucketReplicationConfigurationSpecInitProviderRuleDestinationMetricsEventThreshold(y)),
+    'status': obj.status,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTime
+ */
+export interface BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTime {
+  /**
+   * Whether the existing objects should be replicated. Either "Enabled" or "Disabled".
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTime#status
+   */
+  readonly status?: string;
+
+  /**
+   * Configuration block specifying the time by which replication should be complete for all objects and operations on objects. See below.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTime#time
+   */
+  readonly time?: BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTimeTime[];
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTime' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTime(obj: BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTime | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'status': obj.status,
+    'time': obj.time?.map(y => toJson_BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTimeTime(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketReplicationConfigurationSpecInitProviderRuleFilterAnd
+ */
+export interface BucketReplicationConfigurationSpecInitProviderRuleFilterAnd {
+  /**
+   * Object key name prefix identifying one or more objects to which the rule applies. Must be less than or equal to 1024 characters in length. Defaults to an empty string ("") if filter is not specified.
+   *
+   * @default an empty string ("") if filter is not specified.
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleFilterAnd#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Map of tags (key and value pairs) that identifies a subset of objects to which the rule applies. The rule applies only to objects having all the tags in its tagset.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleFilterAnd#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProviderRuleFilterAnd' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProviderRuleFilterAnd(obj: BucketReplicationConfigurationSpecInitProviderRuleFilterAnd | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'prefix': obj.prefix,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketReplicationConfigurationSpecInitProviderRuleFilterTag
+ */
+export interface BucketReplicationConfigurationSpecInitProviderRuleFilterTag {
+  /**
+   * Name of the object key.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleFilterTag#key
+   */
+  readonly key?: string;
+
+  /**
+   * Value of the tag.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleFilterTag#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProviderRuleFilterTag' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProviderRuleFilterTag(obj: BucketReplicationConfigurationSpecInitProviderRuleFilterTag | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteriaReplicaModifications
+ */
+export interface BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteriaReplicaModifications {
+  /**
+   * Whether the existing objects should be replicated. Either "Enabled" or "Disabled".
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteriaReplicaModifications#status
+   */
+  readonly status?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteriaReplicaModifications' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteriaReplicaModifications(obj: BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteriaReplicaModifications | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'status': obj.status,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteriaSseKmsEncryptedObjects
+ */
+export interface BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteriaSseKmsEncryptedObjects {
+  /**
+   * Whether the existing objects should be replicated. Either "Enabled" or "Disabled".
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteriaSseKmsEncryptedObjects#status
+   */
+  readonly status?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteriaSseKmsEncryptedObjects' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteriaSseKmsEncryptedObjects(obj: BucketReplicationConfigurationSpecInitProviderRuleSourceSelectionCriteriaSseKmsEncryptedObjects | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'status': obj.status,
@@ -18952,7 +20293,7 @@ export interface BucketReplicationConfigurationSpecForProviderRuleDestinationMet
    *
    * @schema BucketReplicationConfigurationSpecForProviderRuleDestinationMetricsEventThreshold#minutes
    */
-  readonly minutes: number;
+  readonly minutes?: number;
 
 }
 
@@ -18979,7 +20320,7 @@ export interface BucketReplicationConfigurationSpecForProviderRuleDestinationRep
    *
    * @schema BucketReplicationConfigurationSpecForProviderRuleDestinationReplicationTimeTime#minutes
    */
-  readonly minutes: number;
+  readonly minutes?: number;
 
 }
 
@@ -18988,6 +20329,60 @@ export interface BucketReplicationConfigurationSpecForProviderRuleDestinationRep
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketReplicationConfigurationSpecForProviderRuleDestinationReplicationTimeTime(obj: BucketReplicationConfigurationSpecForProviderRuleDestinationReplicationTimeTime | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'minutes': obj.minutes,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketReplicationConfigurationSpecInitProviderRuleDestinationMetricsEventThreshold
+ */
+export interface BucketReplicationConfigurationSpecInitProviderRuleDestinationMetricsEventThreshold {
+  /**
+   * Time in minutes. Valid values: 15.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleDestinationMetricsEventThreshold#minutes
+   */
+  readonly minutes?: number;
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProviderRuleDestinationMetricsEventThreshold' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProviderRuleDestinationMetricsEventThreshold(obj: BucketReplicationConfigurationSpecInitProviderRuleDestinationMetricsEventThreshold | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'minutes': obj.minutes,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTimeTime
+ */
+export interface BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTimeTime {
+  /**
+   * Time in minutes. Valid values: 15.
+   *
+   * @schema BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTimeTime#minutes
+   */
+  readonly minutes?: number;
+
+}
+
+/**
+ * Converts an object of type 'BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTimeTime' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTimeTime(obj: BucketReplicationConfigurationSpecInitProviderRuleDestinationReplicationTimeTime | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'minutes': obj.minutes,
@@ -19142,7 +20537,7 @@ export function toJson_BucketRequestPaymentConfigurationProps(obj: BucketRequest
  */
 export interface BucketRequestPaymentConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketRequestPaymentConfigurationSpec#deletionPolicy
    */
@@ -19154,11 +20549,18 @@ export interface BucketRequestPaymentConfigurationSpec {
   readonly forProvider: BucketRequestPaymentConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketRequestPaymentConfigurationSpec#managementPolicy
+   * @schema BucketRequestPaymentConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: BucketRequestPaymentConfigurationSpecManagementPolicy;
+  readonly initProvider?: BucketRequestPaymentConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketRequestPaymentConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketRequestPaymentConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -19166,13 +20568,6 @@ export interface BucketRequestPaymentConfigurationSpec {
    * @schema BucketRequestPaymentConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketRequestPaymentConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketRequestPaymentConfigurationSpec#providerRef
-   */
-  readonly providerRef?: BucketRequestPaymentConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -19199,9 +20594,9 @@ export function toJson_BucketRequestPaymentConfigurationSpec(obj: BucketRequestP
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketRequestPaymentConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketRequestPaymentConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketRequestPaymentConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketRequestPaymentConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketRequestPaymentConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketRequestPaymentConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -19211,7 +20606,7 @@ export function toJson_BucketRequestPaymentConfigurationSpec(obj: BucketRequestP
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketRequestPaymentConfigurationSpecDeletionPolicy
  */
@@ -19290,17 +20685,60 @@ export function toJson_BucketRequestPaymentConfigurationSpecForProvider(obj: Buc
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketRequestPaymentConfigurationSpecManagementPolicy
+ * @schema BucketRequestPaymentConfigurationSpecInitProvider
  */
-export enum BucketRequestPaymentConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketRequestPaymentConfigurationSpecInitProvider {
+  /**
+   * Account ID of the expected bucket owner.
+   *
+   * @schema BucketRequestPaymentConfigurationSpecInitProvider#expectedBucketOwner
+   */
+  readonly expectedBucketOwner?: string;
+
+  /**
+   * Specifies who pays for the download and request fees. Valid values: BucketOwner, Requester.
+   *
+   * @schema BucketRequestPaymentConfigurationSpecInitProvider#payer
+   */
+  readonly payer?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketRequestPaymentConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketRequestPaymentConfigurationSpecInitProvider(obj: BucketRequestPaymentConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'expectedBucketOwner': obj.expectedBucketOwner,
+    'payer': obj.payer,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketRequestPaymentConfigurationSpecManagementPolicies
+ */
+export enum BucketRequestPaymentConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -19334,43 +20772,6 @@ export function toJson_BucketRequestPaymentConfigurationSpecProviderConfigRef(ob
   const result = {
     'name': obj.name,
     'policy': toJson_BucketRequestPaymentConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketRequestPaymentConfigurationSpecProviderRef
- */
-export interface BucketRequestPaymentConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketRequestPaymentConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketRequestPaymentConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: BucketRequestPaymentConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketRequestPaymentConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketRequestPaymentConfigurationSpecProviderRef(obj: BucketRequestPaymentConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketRequestPaymentConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -19579,43 +20980,6 @@ export function toJson_BucketRequestPaymentConfigurationSpecProviderConfigRefPol
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema BucketRequestPaymentConfigurationSpecProviderRefPolicy
- */
-export interface BucketRequestPaymentConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketRequestPaymentConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketRequestPaymentConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketRequestPaymentConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketRequestPaymentConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketRequestPaymentConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketRequestPaymentConfigurationSpecProviderRefPolicy(obj: BucketRequestPaymentConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema BucketRequestPaymentConfigurationSpecPublishConnectionDetailsToConfigRef
@@ -19789,30 +21153,6 @@ export enum BucketRequestPaymentConfigurationSpecProviderConfigRefPolicyResoluti
  * @schema BucketRequestPaymentConfigurationSpecProviderConfigRefPolicyResolve
  */
 export enum BucketRequestPaymentConfigurationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketRequestPaymentConfigurationSpecProviderRefPolicyResolution
- */
-export enum BucketRequestPaymentConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketRequestPaymentConfigurationSpecProviderRefPolicyResolve
- */
-export enum BucketRequestPaymentConfigurationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -20025,7 +21365,7 @@ export function toJson_BucketServerSideEncryptionConfigurationProps(obj: BucketS
  */
 export interface BucketServerSideEncryptionConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketServerSideEncryptionConfigurationSpec#deletionPolicy
    */
@@ -20037,11 +21377,18 @@ export interface BucketServerSideEncryptionConfigurationSpec {
   readonly forProvider: BucketServerSideEncryptionConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketServerSideEncryptionConfigurationSpec#managementPolicy
+   * @schema BucketServerSideEncryptionConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: BucketServerSideEncryptionConfigurationSpecManagementPolicy;
+  readonly initProvider?: BucketServerSideEncryptionConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketServerSideEncryptionConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketServerSideEncryptionConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -20049,13 +21396,6 @@ export interface BucketServerSideEncryptionConfigurationSpec {
    * @schema BucketServerSideEncryptionConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketServerSideEncryptionConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketServerSideEncryptionConfigurationSpec#providerRef
-   */
-  readonly providerRef?: BucketServerSideEncryptionConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -20082,9 +21422,9 @@ export function toJson_BucketServerSideEncryptionConfigurationSpec(obj: BucketSe
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketServerSideEncryptionConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketServerSideEncryptionConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketServerSideEncryptionConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketServerSideEncryptionConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketServerSideEncryptionConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketServerSideEncryptionConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -20094,7 +21434,7 @@ export function toJson_BucketServerSideEncryptionConfigurationSpec(obj: BucketSe
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketServerSideEncryptionConfigurationSpecDeletionPolicy
  */
@@ -20173,17 +21513,60 @@ export function toJson_BucketServerSideEncryptionConfigurationSpecForProvider(ob
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketServerSideEncryptionConfigurationSpecManagementPolicy
+ * @schema BucketServerSideEncryptionConfigurationSpecInitProvider
  */
-export enum BucketServerSideEncryptionConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketServerSideEncryptionConfigurationSpecInitProvider {
+  /**
+   * Account ID of the expected bucket owner.
+   *
+   * @schema BucketServerSideEncryptionConfigurationSpecInitProvider#expectedBucketOwner
+   */
+  readonly expectedBucketOwner?: string;
+
+  /**
+   * Set of server-side encryption configuration rules. See below. Currently, only a single rule is supported.
+   *
+   * @schema BucketServerSideEncryptionConfigurationSpecInitProvider#rule
+   */
+  readonly rule?: BucketServerSideEncryptionConfigurationSpecInitProviderRule[];
+
+}
+
+/**
+ * Converts an object of type 'BucketServerSideEncryptionConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketServerSideEncryptionConfigurationSpecInitProvider(obj: BucketServerSideEncryptionConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'expectedBucketOwner': obj.expectedBucketOwner,
+    'rule': obj.rule?.map(y => toJson_BucketServerSideEncryptionConfigurationSpecInitProviderRule(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketServerSideEncryptionConfigurationSpecManagementPolicies
+ */
+export enum BucketServerSideEncryptionConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -20217,43 +21600,6 @@ export function toJson_BucketServerSideEncryptionConfigurationSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_BucketServerSideEncryptionConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketServerSideEncryptionConfigurationSpecProviderRef
- */
-export interface BucketServerSideEncryptionConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketServerSideEncryptionConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketServerSideEncryptionConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: BucketServerSideEncryptionConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketServerSideEncryptionConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketServerSideEncryptionConfigurationSpecProviderRef(obj: BucketServerSideEncryptionConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketServerSideEncryptionConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -20460,6 +21806,41 @@ export function toJson_BucketServerSideEncryptionConfigurationSpecForProviderRul
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BucketServerSideEncryptionConfigurationSpecInitProviderRule
+ */
+export interface BucketServerSideEncryptionConfigurationSpecInitProviderRule {
+  /**
+   * Single object for setting server-side encryption by default. See below.
+   *
+   * @schema BucketServerSideEncryptionConfigurationSpecInitProviderRule#applyServerSideEncryptionByDefault
+   */
+  readonly applyServerSideEncryptionByDefault?: BucketServerSideEncryptionConfigurationSpecInitProviderRuleApplyServerSideEncryptionByDefault[];
+
+  /**
+   * Whether or not to use Amazon S3 Bucket Keys for SSE-KMS.
+   *
+   * @schema BucketServerSideEncryptionConfigurationSpecInitProviderRule#bucketKeyEnabled
+   */
+  readonly bucketKeyEnabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'BucketServerSideEncryptionConfigurationSpecInitProviderRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketServerSideEncryptionConfigurationSpecInitProviderRule(obj: BucketServerSideEncryptionConfigurationSpecInitProviderRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'applyServerSideEncryptionByDefault': obj.applyServerSideEncryptionByDefault?.map(y => toJson_BucketServerSideEncryptionConfigurationSpecInitProviderRuleApplyServerSideEncryptionByDefault(y)),
+    'bucketKeyEnabled': obj.bucketKeyEnabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema BucketServerSideEncryptionConfigurationSpecProviderConfigRefPolicy
@@ -20486,43 +21867,6 @@ export interface BucketServerSideEncryptionConfigurationSpecProviderConfigRefPol
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketServerSideEncryptionConfigurationSpecProviderConfigRefPolicy(obj: BucketServerSideEncryptionConfigurationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BucketServerSideEncryptionConfigurationSpecProviderRefPolicy
- */
-export interface BucketServerSideEncryptionConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketServerSideEncryptionConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketServerSideEncryptionConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketServerSideEncryptionConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketServerSideEncryptionConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketServerSideEncryptionConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketServerSideEncryptionConfigurationSpecProviderRefPolicy(obj: BucketServerSideEncryptionConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -20719,7 +22063,7 @@ export interface BucketServerSideEncryptionConfigurationSpecForProviderRuleApply
    *
    * @schema BucketServerSideEncryptionConfigurationSpecForProviderRuleApplyServerSideEncryptionByDefault#sseAlgorithm
    */
-  readonly sseAlgorithm: string;
+  readonly sseAlgorithm?: string;
 
 }
 
@@ -20733,6 +22077,33 @@ export function toJson_BucketServerSideEncryptionConfigurationSpecForProviderRul
     'kmsMasterKeyId': obj.kmsMasterKeyId,
     'kmsMasterKeyIdRef': toJson_BucketServerSideEncryptionConfigurationSpecForProviderRuleApplyServerSideEncryptionByDefaultKmsMasterKeyIdRef(obj.kmsMasterKeyIdRef),
     'kmsMasterKeyIdSelector': toJson_BucketServerSideEncryptionConfigurationSpecForProviderRuleApplyServerSideEncryptionByDefaultKmsMasterKeyIdSelector(obj.kmsMasterKeyIdSelector),
+    'sseAlgorithm': obj.sseAlgorithm,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketServerSideEncryptionConfigurationSpecInitProviderRuleApplyServerSideEncryptionByDefault
+ */
+export interface BucketServerSideEncryptionConfigurationSpecInitProviderRuleApplyServerSideEncryptionByDefault {
+  /**
+   * Server-side encryption algorithm to use. Valid values are AES256 and aws:kms
+   *
+   * @schema BucketServerSideEncryptionConfigurationSpecInitProviderRuleApplyServerSideEncryptionByDefault#sseAlgorithm
+   */
+  readonly sseAlgorithm?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketServerSideEncryptionConfigurationSpecInitProviderRuleApplyServerSideEncryptionByDefault' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketServerSideEncryptionConfigurationSpecInitProviderRuleApplyServerSideEncryptionByDefault(obj: BucketServerSideEncryptionConfigurationSpecInitProviderRuleApplyServerSideEncryptionByDefault | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
     'sseAlgorithm': obj.sseAlgorithm,
   };
   // filter undefined values
@@ -20758,30 +22129,6 @@ export enum BucketServerSideEncryptionConfigurationSpecProviderConfigRefPolicyRe
  * @schema BucketServerSideEncryptionConfigurationSpecProviderConfigRefPolicyResolve
  */
 export enum BucketServerSideEncryptionConfigurationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketServerSideEncryptionConfigurationSpecProviderRefPolicyResolution
- */
-export enum BucketServerSideEncryptionConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketServerSideEncryptionConfigurationSpecProviderRefPolicyResolve
- */
-export enum BucketServerSideEncryptionConfigurationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -21198,7 +22545,7 @@ export function toJson_BucketVersioningProps(obj: BucketVersioningProps | undefi
  */
 export interface BucketVersioningSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketVersioningSpec#deletionPolicy
    */
@@ -21210,11 +22557,18 @@ export interface BucketVersioningSpec {
   readonly forProvider: BucketVersioningSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketVersioningSpec#managementPolicy
+   * @schema BucketVersioningSpec#initProvider
    */
-  readonly managementPolicy?: BucketVersioningSpecManagementPolicy;
+  readonly initProvider?: BucketVersioningSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketVersioningSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketVersioningSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -21222,13 +22576,6 @@ export interface BucketVersioningSpec {
    * @schema BucketVersioningSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketVersioningSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketVersioningSpec#providerRef
-   */
-  readonly providerRef?: BucketVersioningSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -21255,9 +22602,9 @@ export function toJson_BucketVersioningSpec(obj: BucketVersioningSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketVersioningSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketVersioningSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketVersioningSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketVersioningSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketVersioningSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketVersioningSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -21267,7 +22614,7 @@ export function toJson_BucketVersioningSpec(obj: BucketVersioningSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketVersioningSpecDeletionPolicy
  */
@@ -21354,17 +22701,68 @@ export function toJson_BucketVersioningSpecForProvider(obj: BucketVersioningSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketVersioningSpecManagementPolicy
+ * @schema BucketVersioningSpecInitProvider
  */
-export enum BucketVersioningSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketVersioningSpecInitProvider {
+  /**
+   * Account ID of the expected bucket owner.
+   *
+   * @schema BucketVersioningSpecInitProvider#expectedBucketOwner
+   */
+  readonly expectedBucketOwner?: string;
+
+  /**
+   * Concatenation of the authentication device's serial number, a space, and the value that is displayed on your authentication device.
+   *
+   * @schema BucketVersioningSpecInitProvider#mfa
+   */
+  readonly mfa?: string;
+
+  /**
+   * Configuration block for the versioning parameters. See below.
+   *
+   * @schema BucketVersioningSpecInitProvider#versioningConfiguration
+   */
+  readonly versioningConfiguration?: BucketVersioningSpecInitProviderVersioningConfiguration[];
+
+}
+
+/**
+ * Converts an object of type 'BucketVersioningSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketVersioningSpecInitProvider(obj: BucketVersioningSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'expectedBucketOwner': obj.expectedBucketOwner,
+    'mfa': obj.mfa,
+    'versioningConfiguration': obj.versioningConfiguration?.map(y => toJson_BucketVersioningSpecInitProviderVersioningConfiguration(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketVersioningSpecManagementPolicies
+ */
+export enum BucketVersioningSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -21398,43 +22796,6 @@ export function toJson_BucketVersioningSpecProviderConfigRef(obj: BucketVersioni
   const result = {
     'name': obj.name,
     'policy': toJson_BucketVersioningSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketVersioningSpecProviderRef
- */
-export interface BucketVersioningSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketVersioningSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketVersioningSpecProviderRef#policy
-   */
-  readonly policy?: BucketVersioningSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketVersioningSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketVersioningSpecProviderRef(obj: BucketVersioningSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketVersioningSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -21621,7 +22982,7 @@ export interface BucketVersioningSpecForProviderVersioningConfiguration {
    *
    * @schema BucketVersioningSpecForProviderVersioningConfiguration#status
    */
-  readonly status: string;
+  readonly status?: string;
 
 }
 
@@ -21630,6 +22991,41 @@ export interface BucketVersioningSpecForProviderVersioningConfiguration {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketVersioningSpecForProviderVersioningConfiguration(obj: BucketVersioningSpecForProviderVersioningConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mfaDelete': obj.mfaDelete,
+    'status': obj.status,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketVersioningSpecInitProviderVersioningConfiguration
+ */
+export interface BucketVersioningSpecInitProviderVersioningConfiguration {
+  /**
+   * Specifies whether MFA delete is enabled in the bucket versioning configuration. Valid values: Enabled or Disabled.
+   *
+   * @schema BucketVersioningSpecInitProviderVersioningConfiguration#mfaDelete
+   */
+  readonly mfaDelete?: string;
+
+  /**
+   * Versioning state of the bucket. Valid values: Enabled, Suspended, or Disabled. Disabled should only be used when creating or importing resources that correspond to unversioned S3 buckets.
+   *
+   * @schema BucketVersioningSpecInitProviderVersioningConfiguration#status
+   */
+  readonly status?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketVersioningSpecInitProviderVersioningConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketVersioningSpecInitProviderVersioningConfiguration(obj: BucketVersioningSpecInitProviderVersioningConfiguration | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'mfaDelete': obj.mfaDelete,
@@ -21667,43 +23063,6 @@ export interface BucketVersioningSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketVersioningSpecProviderConfigRefPolicy(obj: BucketVersioningSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BucketVersioningSpecProviderRefPolicy
- */
-export interface BucketVersioningSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketVersioningSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketVersioningSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketVersioningSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketVersioningSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketVersioningSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketVersioningSpecProviderRefPolicy(obj: BucketVersioningSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -21888,30 +23247,6 @@ export enum BucketVersioningSpecProviderConfigRefPolicyResolution {
  * @schema BucketVersioningSpecProviderConfigRefPolicyResolve
  */
 export enum BucketVersioningSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketVersioningSpecProviderRefPolicyResolution
- */
-export enum BucketVersioningSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketVersioningSpecProviderRefPolicyResolve
- */
-export enum BucketVersioningSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -22124,7 +23459,7 @@ export function toJson_BucketWebsiteConfigurationProps(obj: BucketWebsiteConfigu
  */
 export interface BucketWebsiteConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BucketWebsiteConfigurationSpec#deletionPolicy
    */
@@ -22136,11 +23471,18 @@ export interface BucketWebsiteConfigurationSpec {
   readonly forProvider: BucketWebsiteConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BucketWebsiteConfigurationSpec#managementPolicy
+   * @schema BucketWebsiteConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: BucketWebsiteConfigurationSpecManagementPolicy;
+  readonly initProvider?: BucketWebsiteConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BucketWebsiteConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: BucketWebsiteConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -22148,13 +23490,6 @@ export interface BucketWebsiteConfigurationSpec {
    * @schema BucketWebsiteConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: BucketWebsiteConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BucketWebsiteConfigurationSpec#providerRef
-   */
-  readonly providerRef?: BucketWebsiteConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -22181,9 +23516,9 @@ export function toJson_BucketWebsiteConfigurationSpec(obj: BucketWebsiteConfigur
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BucketWebsiteConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BucketWebsiteConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BucketWebsiteConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BucketWebsiteConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BucketWebsiteConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BucketWebsiteConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -22193,7 +23528,7 @@ export function toJson_BucketWebsiteConfigurationSpec(obj: BucketWebsiteConfigur
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BucketWebsiteConfigurationSpecDeletionPolicy
  */
@@ -22304,17 +23639,92 @@ export function toJson_BucketWebsiteConfigurationSpecForProvider(obj: BucketWebs
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BucketWebsiteConfigurationSpecManagementPolicy
+ * @schema BucketWebsiteConfigurationSpecInitProvider
  */
-export enum BucketWebsiteConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BucketWebsiteConfigurationSpecInitProvider {
+  /**
+   * Name of the error document for the website. See below.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProvider#errorDocument
+   */
+  readonly errorDocument?: BucketWebsiteConfigurationSpecInitProviderErrorDocument[];
+
+  /**
+   * Account ID of the expected bucket owner.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProvider#expectedBucketOwner
+   */
+  readonly expectedBucketOwner?: string;
+
+  /**
+   * Name of the index document for the website. See below.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProvider#indexDocument
+   */
+  readonly indexDocument?: BucketWebsiteConfigurationSpecInitProviderIndexDocument[];
+
+  /**
+   * Redirect behavior for every request to this bucket's website endpoint. See below. Conflicts with error_document, index_document, and routing_rule.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProvider#redirectAllRequestsTo
+   */
+  readonly redirectAllRequestsTo?: BucketWebsiteConfigurationSpecInitProviderRedirectAllRequestsTo[];
+
+  /**
+   * List of rules that define when a redirect is applied and the redirect behavior. See below.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProvider#routingRule
+   */
+  readonly routingRule?: BucketWebsiteConfigurationSpecInitProviderRoutingRule[];
+
+  /**
+   * JSON array containing routing rules describing redirect behavior and when redirects are applied. Use this parameter when your routing rules contain empty String values ("") as seen in the example above.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProvider#routingRules
+   */
+  readonly routingRules?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketWebsiteConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketWebsiteConfigurationSpecInitProvider(obj: BucketWebsiteConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'errorDocument': obj.errorDocument?.map(y => toJson_BucketWebsiteConfigurationSpecInitProviderErrorDocument(y)),
+    'expectedBucketOwner': obj.expectedBucketOwner,
+    'indexDocument': obj.indexDocument?.map(y => toJson_BucketWebsiteConfigurationSpecInitProviderIndexDocument(y)),
+    'redirectAllRequestsTo': obj.redirectAllRequestsTo?.map(y => toJson_BucketWebsiteConfigurationSpecInitProviderRedirectAllRequestsTo(y)),
+    'routingRule': obj.routingRule?.map(y => toJson_BucketWebsiteConfigurationSpecInitProviderRoutingRule(y)),
+    'routingRules': obj.routingRules,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BucketWebsiteConfigurationSpecManagementPolicies
+ */
+export enum BucketWebsiteConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -22348,43 +23758,6 @@ export function toJson_BucketWebsiteConfigurationSpecProviderConfigRef(obj: Buck
   const result = {
     'name': obj.name,
     'policy': toJson_BucketWebsiteConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BucketWebsiteConfigurationSpecProviderRef
- */
-export interface BucketWebsiteConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BucketWebsiteConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BucketWebsiteConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: BucketWebsiteConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BucketWebsiteConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketWebsiteConfigurationSpecProviderRef(obj: BucketWebsiteConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BucketWebsiteConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -22564,7 +23937,7 @@ export interface BucketWebsiteConfigurationSpecForProviderErrorDocument {
    *
    * @schema BucketWebsiteConfigurationSpecForProviderErrorDocument#key
    */
-  readonly key: string;
+  readonly key?: string;
 
 }
 
@@ -22591,7 +23964,7 @@ export interface BucketWebsiteConfigurationSpecForProviderIndexDocument {
    *
    * @schema BucketWebsiteConfigurationSpecForProviderIndexDocument#suffix
    */
-  readonly suffix: string;
+  readonly suffix?: string;
 
 }
 
@@ -22618,7 +23991,7 @@ export interface BucketWebsiteConfigurationSpecForProviderRedirectAllRequestsTo 
    *
    * @schema BucketWebsiteConfigurationSpecForProviderRedirectAllRequestsTo#hostName
    */
-  readonly hostName: string;
+  readonly hostName?: string;
 
   /**
    * Protocol to use when redirecting requests. The default is the protocol that is used in the original request. Valid values: http, https.
@@ -22660,7 +24033,7 @@ export interface BucketWebsiteConfigurationSpecForProviderRoutingRule {
    *
    * @schema BucketWebsiteConfigurationSpecForProviderRoutingRule#redirect
    */
-  readonly redirect: BucketWebsiteConfigurationSpecForProviderRoutingRuleRedirect[];
+  readonly redirect?: BucketWebsiteConfigurationSpecForProviderRoutingRuleRedirect[];
 
 }
 
@@ -22673,6 +24046,130 @@ export function toJson_BucketWebsiteConfigurationSpecForProviderRoutingRule(obj:
   const result = {
     'condition': obj.condition?.map(y => toJson_BucketWebsiteConfigurationSpecForProviderRoutingRuleCondition(y)),
     'redirect': obj.redirect?.map(y => toJson_BucketWebsiteConfigurationSpecForProviderRoutingRuleRedirect(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketWebsiteConfigurationSpecInitProviderErrorDocument
+ */
+export interface BucketWebsiteConfigurationSpecInitProviderErrorDocument {
+  /**
+   * Object key name to use when a 4XX class error occurs.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProviderErrorDocument#key
+   */
+  readonly key?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketWebsiteConfigurationSpecInitProviderErrorDocument' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketWebsiteConfigurationSpecInitProviderErrorDocument(obj: BucketWebsiteConfigurationSpecInitProviderErrorDocument | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketWebsiteConfigurationSpecInitProviderIndexDocument
+ */
+export interface BucketWebsiteConfigurationSpecInitProviderIndexDocument {
+  /**
+   * Suffix that is appended to a request that is for a directory on the website endpoint. For example, if the suffix is index.html and you make a request to samplebucket/images/, the data that is returned will be for the object with the key name images/index.html. The suffix must not be empty and must not include a slash character.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProviderIndexDocument#suffix
+   */
+  readonly suffix?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketWebsiteConfigurationSpecInitProviderIndexDocument' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketWebsiteConfigurationSpecInitProviderIndexDocument(obj: BucketWebsiteConfigurationSpecInitProviderIndexDocument | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'suffix': obj.suffix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketWebsiteConfigurationSpecInitProviderRedirectAllRequestsTo
+ */
+export interface BucketWebsiteConfigurationSpecInitProviderRedirectAllRequestsTo {
+  /**
+   * Name of the host where requests are redirected.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProviderRedirectAllRequestsTo#hostName
+   */
+  readonly hostName?: string;
+
+  /**
+   * Protocol to use when redirecting requests. The default is the protocol that is used in the original request. Valid values: http, https.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProviderRedirectAllRequestsTo#protocol
+   */
+  readonly protocol?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketWebsiteConfigurationSpecInitProviderRedirectAllRequestsTo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketWebsiteConfigurationSpecInitProviderRedirectAllRequestsTo(obj: BucketWebsiteConfigurationSpecInitProviderRedirectAllRequestsTo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hostName': obj.hostName,
+    'protocol': obj.protocol,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketWebsiteConfigurationSpecInitProviderRoutingRule
+ */
+export interface BucketWebsiteConfigurationSpecInitProviderRoutingRule {
+  /**
+   * Configuration block for describing a condition that must be met for the specified redirect to apply. See below.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProviderRoutingRule#condition
+   */
+  readonly condition?: BucketWebsiteConfigurationSpecInitProviderRoutingRuleCondition[];
+
+  /**
+   * Configuration block for redirect information. See below.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProviderRoutingRule#redirect
+   */
+  readonly redirect?: BucketWebsiteConfigurationSpecInitProviderRoutingRuleRedirect[];
+
+}
+
+/**
+ * Converts an object of type 'BucketWebsiteConfigurationSpecInitProviderRoutingRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketWebsiteConfigurationSpecInitProviderRoutingRule(obj: BucketWebsiteConfigurationSpecInitProviderRoutingRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'condition': obj.condition?.map(y => toJson_BucketWebsiteConfigurationSpecInitProviderRoutingRuleCondition(y)),
+    'redirect': obj.redirect?.map(y => toJson_BucketWebsiteConfigurationSpecInitProviderRoutingRuleRedirect(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -22706,43 +24203,6 @@ export interface BucketWebsiteConfigurationSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BucketWebsiteConfigurationSpecProviderConfigRefPolicy(obj: BucketWebsiteConfigurationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BucketWebsiteConfigurationSpecProviderRefPolicy
- */
-export interface BucketWebsiteConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BucketWebsiteConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BucketWebsiteConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BucketWebsiteConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BucketWebsiteConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BucketWebsiteConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BucketWebsiteConfigurationSpecProviderRefPolicy(obj: BucketWebsiteConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -23004,6 +24464,100 @@ export function toJson_BucketWebsiteConfigurationSpecForProviderRoutingRuleRedir
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BucketWebsiteConfigurationSpecInitProviderRoutingRuleCondition
+ */
+export interface BucketWebsiteConfigurationSpecInitProviderRoutingRuleCondition {
+  /**
+   * HTTP error code when the redirect is applied. If specified with key_prefix_equals, then both must be true for the redirect to be applied.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProviderRoutingRuleCondition#httpErrorCodeReturnedEquals
+   */
+  readonly httpErrorCodeReturnedEquals?: string;
+
+  /**
+   * Object key name prefix when the redirect is applied. If specified with http_error_code_returned_equals, then both must be true for the redirect to be applied.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProviderRoutingRuleCondition#keyPrefixEquals
+   */
+  readonly keyPrefixEquals?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketWebsiteConfigurationSpecInitProviderRoutingRuleCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketWebsiteConfigurationSpecInitProviderRoutingRuleCondition(obj: BucketWebsiteConfigurationSpecInitProviderRoutingRuleCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'httpErrorCodeReturnedEquals': obj.httpErrorCodeReturnedEquals,
+    'keyPrefixEquals': obj.keyPrefixEquals,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BucketWebsiteConfigurationSpecInitProviderRoutingRuleRedirect
+ */
+export interface BucketWebsiteConfigurationSpecInitProviderRoutingRuleRedirect {
+  /**
+   * Name of the host where requests are redirected.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProviderRoutingRuleRedirect#hostName
+   */
+  readonly hostName?: string;
+
+  /**
+   * HTTP redirect code to use on the response.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProviderRoutingRuleRedirect#httpRedirectCode
+   */
+  readonly httpRedirectCode?: string;
+
+  /**
+   * Protocol to use when redirecting requests. The default is the protocol that is used in the original request. Valid values: http, https.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProviderRoutingRuleRedirect#protocol
+   */
+  readonly protocol?: string;
+
+  /**
+   * Object key prefix to use in the redirect request. For example, to redirect requests for all pages with prefix docs/ (objects in the docs/ folder) to documents/, you can set a condition block with key_prefix_equals set to docs/ and in the redirect set replace_key_prefix_with to /documents.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProviderRoutingRuleRedirect#replaceKeyPrefixWith
+   */
+  readonly replaceKeyPrefixWith?: string;
+
+  /**
+   * Specific object key to use in the redirect request. For example, redirect request to error.html.
+   *
+   * @schema BucketWebsiteConfigurationSpecInitProviderRoutingRuleRedirect#replaceKeyWith
+   */
+  readonly replaceKeyWith?: string;
+
+}
+
+/**
+ * Converts an object of type 'BucketWebsiteConfigurationSpecInitProviderRoutingRuleRedirect' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BucketWebsiteConfigurationSpecInitProviderRoutingRuleRedirect(obj: BucketWebsiteConfigurationSpecInitProviderRoutingRuleRedirect | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hostName': obj.hostName,
+    'httpRedirectCode': obj.httpRedirectCode,
+    'protocol': obj.protocol,
+    'replaceKeyPrefixWith': obj.replaceKeyPrefixWith,
+    'replaceKeyWith': obj.replaceKeyWith,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema BucketWebsiteConfigurationSpecProviderConfigRefPolicyResolution
@@ -23021,30 +24575,6 @@ export enum BucketWebsiteConfigurationSpecProviderConfigRefPolicyResolution {
  * @schema BucketWebsiteConfigurationSpecProviderConfigRefPolicyResolve
  */
 export enum BucketWebsiteConfigurationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BucketWebsiteConfigurationSpecProviderRefPolicyResolution
- */
-export enum BucketWebsiteConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BucketWebsiteConfigurationSpecProviderRefPolicyResolve
- */
-export enum BucketWebsiteConfigurationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -23257,7 +24787,7 @@ export function toJson_ObjectProps(obj: ObjectProps | undefined): Record<string,
  */
 export interface ObjectSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ObjectSpec#deletionPolicy
    */
@@ -23269,11 +24799,18 @@ export interface ObjectSpec {
   readonly forProvider: ObjectSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ObjectSpec#managementPolicy
+   * @schema ObjectSpec#initProvider
    */
-  readonly managementPolicy?: ObjectSpecManagementPolicy;
+  readonly initProvider?: ObjectSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ObjectSpec#managementPolicies
+   */
+  readonly managementPolicies?: ObjectSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -23281,13 +24818,6 @@ export interface ObjectSpec {
    * @schema ObjectSpec#providerConfigRef
    */
   readonly providerConfigRef?: ObjectSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ObjectSpec#providerRef
-   */
-  readonly providerRef?: ObjectSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -23314,9 +24844,9 @@ export function toJson_ObjectSpec(obj: ObjectSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ObjectSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ObjectSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ObjectSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ObjectSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ObjectSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ObjectSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -23326,7 +24856,7 @@ export function toJson_ObjectSpec(obj: ObjectSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ObjectSpecDeletionPolicy
  */
@@ -23592,17 +25122,223 @@ export function toJson_ObjectSpecForProvider(obj: ObjectSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ObjectSpecManagementPolicy
+ * @schema ObjectSpecInitProvider
  */
-export enum ObjectSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ObjectSpecInitProvider {
+  /**
+   * Canned ACL to apply. Valid values are private, public-read, public-read-write, aws-exec-read, authenticated-read, bucket-owner-read, and bucket-owner-full-control. Defaults to private.
+   *
+   * @default private.
+   * @schema ObjectSpecInitProvider#acl
+   */
+  readonly acl?: string;
+
+  /**
+   * Whether or not to use Amazon S3 Bucket Keys for SSE-KMS.
+   *
+   * @schema ObjectSpecInitProvider#bucketKeyEnabled
+   */
+  readonly bucketKeyEnabled?: boolean;
+
+  /**
+   * Caching behavior along the request/reply chain Read w3c cache_control for further details.
+   *
+   * @schema ObjectSpecInitProvider#cacheControl
+   */
+  readonly cacheControl?: string;
+
+  /**
+   * Literal string value to use as the object content, which will be uploaded as UTF-8-encoded text.
+   *
+   * @schema ObjectSpecInitProvider#content
+   */
+  readonly content?: string;
+
+  /**
+   * Base64-encoded data that will be decoded and uploaded as raw bytes for the object content. This allows safely uploading non-UTF8 binary data, but is recommended only for small content such as the result of the gzipbase64 function with small text strings. For larger objects, use source to stream the content from a disk file.
+   *
+   * @schema ObjectSpecInitProvider#contentBase64
+   */
+  readonly contentBase64?: string;
+
+  /**
+   * Presentational information for the object. Read w3c content_disposition for further information.
+   *
+   * @schema ObjectSpecInitProvider#contentDisposition
+   */
+  readonly contentDisposition?: string;
+
+  /**
+   * Content encodings that have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field. Read w3c content encoding for further information.
+   *
+   * @schema ObjectSpecInitProvider#contentEncoding
+   */
+  readonly contentEncoding?: string;
+
+  /**
+   * Language the content is in e.g., en-US or en-GB.
+   *
+   * @schema ObjectSpecInitProvider#contentLanguage
+   */
+  readonly contentLanguage?: string;
+
+  /**
+   * Standard MIME type describing the format of the object data, e.g., application/octet-stream. All Valid MIME Types are valid for this input.
+   *
+   * @schema ObjectSpecInitProvider#contentType
+   */
+  readonly contentType?: string;
+
+  /**
+   * Triggers updates when the value changes.11.11.11 or earlier). This attribute is not compatible with KMS encryption, kms_key_id or server_side_encryption = "aws:kms", also if an object is larger than 16 MB, the AWS Management Console will upload or copy that object as a Multipart Upload, and therefore the ETag will not be an MD5 digest (see source_hash instead).
+   *
+   * @schema ObjectSpecInitProvider#etag
+   */
+  readonly etag?: string;
+
+  /**
+   * Whether to allow the object to be deleted by removing any legal hold on any object version. Default is false. This value should be set to true only if the bucket has S3 object lock enabled.
+   *
+   * @default false. This value should be set to true only if the bucket has S3 object lock enabled.
+   * @schema ObjectSpecInitProvider#forceDestroy
+   */
+  readonly forceDestroy?: boolean;
+
+  /**
+   * Name of the object once it is in the bucket.
+   *
+   * @schema ObjectSpecInitProvider#key
+   */
+  readonly key?: string;
+
+  /**
+   * Map of keys/values to provision metadata (will be automatically prefixed by x-amz-meta-, note that only lowercase label are currently supported by the AWS Go API).
+   *
+   * @schema ObjectSpecInitProvider#metadata
+   */
+  readonly metadata?: { [key: string]: string };
+
+  /**
+   * Legal hold status that you want to apply to the specified object. Valid values are ON and OFF.
+   *
+   * @schema ObjectSpecInitProvider#objectLockLegalHoldStatus
+   */
+  readonly objectLockLegalHoldStatus?: string;
+
+  /**
+   * Object lock retention mode that you want to apply to this object. Valid values are GOVERNANCE and COMPLIANCE.
+   *
+   * @schema ObjectSpecInitProvider#objectLockMode
+   */
+  readonly objectLockMode?: string;
+
+  /**
+   * Date and time, in RFC3339 format, when this object's object lock will expire.
+   *
+   * @schema ObjectSpecInitProvider#objectLockRetainUntilDate
+   */
+  readonly objectLockRetainUntilDate?: string;
+
+  /**
+   * Server-side encryption of the object in S3. Valid values are "AES256" and "aws:kms".
+   *
+   * @schema ObjectSpecInitProvider#serverSideEncryption
+   */
+  readonly serverSideEncryption?: string;
+
+  /**
+   * Path to a file that will be read and uploaded as raw bytes for the object content.
+   *
+   * @schema ObjectSpecInitProvider#source
+   */
+  readonly source?: string;
+
+  /**
+   * Triggers updates like etag but useful to address etag encryption limitations.11.12 or later). (The value is only stored in state and not saved by AWS.)
+   *
+   * @schema ObjectSpecInitProvider#sourceHash
+   */
+  readonly sourceHash?: string;
+
+  /**
+   * Storage Class for the object. Defaults to "STANDARD".
+   *
+   * @default STANDARD".
+   * @schema ObjectSpecInitProvider#storageClass
+   */
+  readonly storageClass?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ObjectSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Target URL for website redirect.
+   *
+   * @schema ObjectSpecInitProvider#websiteRedirect
+   */
+  readonly websiteRedirect?: string;
+
+}
+
+/**
+ * Converts an object of type 'ObjectSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ObjectSpecInitProvider(obj: ObjectSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acl': obj.acl,
+    'bucketKeyEnabled': obj.bucketKeyEnabled,
+    'cacheControl': obj.cacheControl,
+    'content': obj.content,
+    'contentBase64': obj.contentBase64,
+    'contentDisposition': obj.contentDisposition,
+    'contentEncoding': obj.contentEncoding,
+    'contentLanguage': obj.contentLanguage,
+    'contentType': obj.contentType,
+    'etag': obj.etag,
+    'forceDestroy': obj.forceDestroy,
+    'key': obj.key,
+    'metadata': ((obj.metadata) === undefined) ? undefined : (Object.entries(obj.metadata).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'objectLockLegalHoldStatus': obj.objectLockLegalHoldStatus,
+    'objectLockMode': obj.objectLockMode,
+    'objectLockRetainUntilDate': obj.objectLockRetainUntilDate,
+    'serverSideEncryption': obj.serverSideEncryption,
+    'source': obj.source,
+    'sourceHash': obj.sourceHash,
+    'storageClass': obj.storageClass,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'websiteRedirect': obj.websiteRedirect,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ObjectSpecManagementPolicies
+ */
+export enum ObjectSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -23636,43 +25372,6 @@ export function toJson_ObjectSpecProviderConfigRef(obj: ObjectSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_ObjectSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ObjectSpecProviderRef
- */
-export interface ObjectSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ObjectSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ObjectSpecProviderRef#policy
-   */
-  readonly policy?: ObjectSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ObjectSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ObjectSpecProviderRef(obj: ObjectSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ObjectSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -23963,43 +25662,6 @@ export function toJson_ObjectSpecProviderConfigRefPolicy(obj: ObjectSpecProvider
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ObjectSpecProviderRefPolicy
- */
-export interface ObjectSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ObjectSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ObjectSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ObjectSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ObjectSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ObjectSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ObjectSpecProviderRefPolicy(obj: ObjectSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ObjectSpecPublishConnectionDetailsToConfigRef
@@ -24247,30 +25909,6 @@ export enum ObjectSpecProviderConfigRefPolicyResolution {
  * @schema ObjectSpecProviderConfigRefPolicyResolve
  */
 export enum ObjectSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ObjectSpecProviderRefPolicyResolution
- */
-export enum ObjectSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ObjectSpecProviderRefPolicyResolve
- */
-export enum ObjectSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -24531,7 +26169,7 @@ export function toJson_ObjectCopyProps(obj: ObjectCopyProps | undefined): Record
  */
 export interface ObjectCopySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ObjectCopySpec#deletionPolicy
    */
@@ -24543,11 +26181,18 @@ export interface ObjectCopySpec {
   readonly forProvider: ObjectCopySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ObjectCopySpec#managementPolicy
+   * @schema ObjectCopySpec#initProvider
    */
-  readonly managementPolicy?: ObjectCopySpecManagementPolicy;
+  readonly initProvider?: ObjectCopySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ObjectCopySpec#managementPolicies
+   */
+  readonly managementPolicies?: ObjectCopySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -24555,13 +26200,6 @@ export interface ObjectCopySpec {
    * @schema ObjectCopySpec#providerConfigRef
    */
   readonly providerConfigRef?: ObjectCopySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ObjectCopySpec#providerRef
-   */
-  readonly providerRef?: ObjectCopySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -24588,9 +26226,9 @@ export function toJson_ObjectCopySpec(obj: ObjectCopySpec | undefined): Record<s
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ObjectCopySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ObjectCopySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ObjectCopySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ObjectCopySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ObjectCopySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ObjectCopySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -24600,7 +26238,7 @@ export function toJson_ObjectCopySpec(obj: ObjectCopySpec | undefined): Record<s
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ObjectCopySpecDeletionPolicy
  */
@@ -24944,17 +26582,317 @@ export function toJson_ObjectCopySpecForProvider(obj: ObjectCopySpecForProvider 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ObjectCopySpecManagementPolicy
+ * @schema ObjectCopySpecInitProvider
  */
-export enum ObjectCopySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ObjectCopySpecInitProvider {
+  /**
+   * Canned ACL to apply. Defaults to private. Valid values are private, public-read, public-read-write, authenticated-read, aws-exec-read, bucket-owner-read, and bucket-owner-full-control. Conflicts with grant.
+   *
+   * @default private. Valid values are private, public-read, public-read-write, authenticated-read, aws-exec-read, bucket-owner-read, and bucket-owner-full-control. Conflicts with grant.
+   * @schema ObjectCopySpecInitProvider#acl
+   */
+  readonly acl?: string;
+
+  /**
+   * Name of the bucket to put the file in.
+   *
+   * @schema ObjectCopySpecInitProvider#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * @schema ObjectCopySpecInitProvider#bucketKeyEnabled
+   */
+  readonly bucketKeyEnabled?: boolean;
+
+  /**
+   * Specifies caching behavior along the request/reply chain Read w3c cache_control for further details.
+   *
+   * @schema ObjectCopySpecInitProvider#cacheControl
+   */
+  readonly cacheControl?: string;
+
+  /**
+   * Specifies presentational information for the object. Read w3c content_disposition for further information.
+   *
+   * @schema ObjectCopySpecInitProvider#contentDisposition
+   */
+  readonly contentDisposition?: string;
+
+  /**
+   * Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field. Read w3c content encoding for further information.
+   *
+   * @schema ObjectCopySpecInitProvider#contentEncoding
+   */
+  readonly contentEncoding?: string;
+
+  /**
+   * Language the content is in e.g., en-US or en-GB.
+   *
+   * @schema ObjectCopySpecInitProvider#contentLanguage
+   */
+  readonly contentLanguage?: string;
+
+  /**
+   * Standard MIME type describing the format of the object data, e.g., application/octet-stream. All Valid MIME Types are valid for this input.
+   *
+   * @schema ObjectCopySpecInitProvider#contentType
+   */
+  readonly contentType?: string;
+
+  /**
+   * Copies the object if its entity tag (ETag) matches the specified tag.
+   *
+   * @schema ObjectCopySpecInitProvider#copyIfMatch
+   */
+  readonly copyIfMatch?: string;
+
+  /**
+   * Copies the object if it has been modified since the specified time, in RFC3339 format.
+   *
+   * @schema ObjectCopySpecInitProvider#copyIfModifiedSince
+   */
+  readonly copyIfModifiedSince?: string;
+
+  /**
+   * Copies the object if its entity tag (ETag) is different than the specified ETag.
+   *
+   * @schema ObjectCopySpecInitProvider#copyIfNoneMatch
+   */
+  readonly copyIfNoneMatch?: string;
+
+  /**
+   * Copies the object if it hasn't been modified since the specified time, in RFC3339 format.
+   *
+   * @schema ObjectCopySpecInitProvider#copyIfUnmodifiedSince
+   */
+  readonly copyIfUnmodifiedSince?: string;
+
+  /**
+   * Specifies the algorithm to use to when encrypting the object (for example, AES256).
+   *
+   * @schema ObjectCopySpecInitProvider#customerAlgorithm
+   */
+  readonly customerAlgorithm?: string;
+
+  /**
+   * Specifies the 128-bit MD5 digest of the encryption key according to RFC 1321. Amazon S3 uses this header for a message integrity check to ensure that the encryption key was transmitted without error.
+   *
+   * @schema ObjectCopySpecInitProvider#customerKeyMd5
+   */
+  readonly customerKeyMd5?: string;
+
+  /**
+   * Account id of the expected destination bucket owner. If the destination bucket is owned by a different account, the request will fail with an HTTP 403 (Access Denied) error.
+   *
+   * @schema ObjectCopySpecInitProvider#expectedBucketOwner
+   */
+  readonly expectedBucketOwner?: string;
+
+  /**
+   * Account id of the expected source bucket owner. If the source bucket is owned by a different account, the request will fail with an HTTP 403 (Access Denied) error.
+   *
+   * @schema ObjectCopySpecInitProvider#expectedSourceBucketOwner
+   */
+  readonly expectedSourceBucketOwner?: string;
+
+  /**
+   * Date and time at which the object is no longer cacheable, in RFC3339 format.
+   *
+   * @schema ObjectCopySpecInitProvider#expires
+   */
+  readonly expires?: string;
+
+  /**
+   * Allow the object to be deleted by removing any legal hold on any object version. Default is false. This value should be set to true only if the bucket has S3 object lock enabled.
+   *
+   * @default false. This value should be set to true only if the bucket has S3 object lock enabled.
+   * @schema ObjectCopySpecInitProvider#forceDestroy
+   */
+  readonly forceDestroy?: boolean;
+
+  /**
+   * Configuration block for header grants. Documented below. Conflicts with acl.
+   *
+   * @schema ObjectCopySpecInitProvider#grant
+   */
+  readonly grant?: ObjectCopySpecInitProviderGrant[];
+
+  /**
+   * Name of the object once it is in the bucket.
+   *
+   * @schema ObjectCopySpecInitProvider#key
+   */
+  readonly key?: string;
+
+  /**
+   * Map of keys/values to provision metadata (will be automatically prefixed by x-amz-meta-, note that only lowercase label are currently supported by the AWS Go API).
+   *
+   * @schema ObjectCopySpecInitProvider#metadata
+   */
+  readonly metadata?: { [key: string]: string };
+
+  /**
+   * Specifies whether the metadata is copied from the source object or replaced with metadata provided in the request. Valid values are COPY and REPLACE.
+   *
+   * @schema ObjectCopySpecInitProvider#metadataDirective
+   */
+  readonly metadataDirective?: string;
+
+  /**
+   * The legal hold status that you want to apply to the specified object. Valid values are ON and OFF.
+   *
+   * @schema ObjectCopySpecInitProvider#objectLockLegalHoldStatus
+   */
+  readonly objectLockLegalHoldStatus?: string;
+
+  /**
+   * Object lock retention mode that you want to apply to this object. Valid values are GOVERNANCE and COMPLIANCE.
+   *
+   * @schema ObjectCopySpecInitProvider#objectLockMode
+   */
+  readonly objectLockMode?: string;
+
+  /**
+   * Date and time, in RFC3339 format, when this object's object lock will expire.
+   *
+   * @schema ObjectCopySpecInitProvider#objectLockRetainUntilDate
+   */
+  readonly objectLockRetainUntilDate?: string;
+
+  /**
+   * Confirms that the requester knows that they will be charged for the request. Bucket owners need not specify this parameter in their requests. For information about downloading objects from requester pays buckets, see Downloading Objects in Requestor Pays Buckets (https://docs.aws.amazon.com/AmazonS3/latest/dev/ObjectsinRequesterPaysBuckets.html) in the Amazon S3 Developer Guide. If included, the only valid value is requester.
+   *
+   * @schema ObjectCopySpecInitProvider#requestPayer
+   */
+  readonly requestPayer?: string;
+
+  /**
+   * Specifies server-side encryption of the object in S3. Valid values are AES256 and aws:kms.
+   *
+   * @schema ObjectCopySpecInitProvider#serverSideEncryption
+   */
+  readonly serverSideEncryption?: string;
+
+  /**
+   * Specifies the source object for the copy operation. You specify the value in one of two formats. For objects not accessed through an access point, specify the name of the source bucket and the key of the source object, separated by a slash (/). For example, testbucket/test1.json. For objects accessed through access points, specify the ARN of the object as accessed through the access point, in the format arn:aws:s3:<Region>:<account-id>:accesspoint/<access-point-name>/object/<key>. For example, arn:aws:s3:us-west-2:9999912999:accesspoint/my-access-point/object/testbucket/test1.json.
+   *
+   * @schema ObjectCopySpecInitProvider#source
+   */
+  readonly source?: string;
+
+  /**
+   * Specifies the algorithm to use when decrypting the source object (for example, AES256).
+   *
+   * @schema ObjectCopySpecInitProvider#sourceCustomerAlgorithm
+   */
+  readonly sourceCustomerAlgorithm?: string;
+
+  /**
+   * Specifies the 128-bit MD5 digest of the encryption key according to RFC 1321. Amazon S3 uses this header for a message integrity check to ensure that the encryption key was transmitted without error.
+   *
+   * @schema ObjectCopySpecInitProvider#sourceCustomerKeyMd5
+   */
+  readonly sourceCustomerKeyMd5?: string;
+
+  /**
+   * Specifies the desired storage class for the object. Defaults to STANDARD.
+   *
+   * @default STANDARD.
+   * @schema ObjectCopySpecInitProvider#storageClass
+   */
+  readonly storageClass?: string;
+
+  /**
+   * Specifies whether the object tag-set are copied from the source object or replaced with tag-set provided in the request. Valid values are COPY and REPLACE.
+   *
+   * @schema ObjectCopySpecInitProvider#taggingDirective
+   */
+  readonly taggingDirective?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ObjectCopySpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Specifies a target URL for website redirect.
+   *
+   * @schema ObjectCopySpecInitProvider#websiteRedirect
+   */
+  readonly websiteRedirect?: string;
+
+}
+
+/**
+ * Converts an object of type 'ObjectCopySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ObjectCopySpecInitProvider(obj: ObjectCopySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acl': obj.acl,
+    'bucket': obj.bucket,
+    'bucketKeyEnabled': obj.bucketKeyEnabled,
+    'cacheControl': obj.cacheControl,
+    'contentDisposition': obj.contentDisposition,
+    'contentEncoding': obj.contentEncoding,
+    'contentLanguage': obj.contentLanguage,
+    'contentType': obj.contentType,
+    'copyIfMatch': obj.copyIfMatch,
+    'copyIfModifiedSince': obj.copyIfModifiedSince,
+    'copyIfNoneMatch': obj.copyIfNoneMatch,
+    'copyIfUnmodifiedSince': obj.copyIfUnmodifiedSince,
+    'customerAlgorithm': obj.customerAlgorithm,
+    'customerKeyMd5': obj.customerKeyMd5,
+    'expectedBucketOwner': obj.expectedBucketOwner,
+    'expectedSourceBucketOwner': obj.expectedSourceBucketOwner,
+    'expires': obj.expires,
+    'forceDestroy': obj.forceDestroy,
+    'grant': obj.grant?.map(y => toJson_ObjectCopySpecInitProviderGrant(y)),
+    'key': obj.key,
+    'metadata': ((obj.metadata) === undefined) ? undefined : (Object.entries(obj.metadata).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'metadataDirective': obj.metadataDirective,
+    'objectLockLegalHoldStatus': obj.objectLockLegalHoldStatus,
+    'objectLockMode': obj.objectLockMode,
+    'objectLockRetainUntilDate': obj.objectLockRetainUntilDate,
+    'requestPayer': obj.requestPayer,
+    'serverSideEncryption': obj.serverSideEncryption,
+    'source': obj.source,
+    'sourceCustomerAlgorithm': obj.sourceCustomerAlgorithm,
+    'sourceCustomerKeyMd5': obj.sourceCustomerKeyMd5,
+    'storageClass': obj.storageClass,
+    'taggingDirective': obj.taggingDirective,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'websiteRedirect': obj.websiteRedirect,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ObjectCopySpecManagementPolicies
+ */
+export enum ObjectCopySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -24988,43 +26926,6 @@ export function toJson_ObjectCopySpecProviderConfigRef(obj: ObjectCopySpecProvid
   const result = {
     'name': obj.name,
     'policy': toJson_ObjectCopySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ObjectCopySpecProviderRef
- */
-export interface ObjectCopySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ObjectCopySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ObjectCopySpecProviderRef#policy
-   */
-  readonly policy?: ObjectCopySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ObjectCopySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ObjectCopySpecProviderRef(obj: ObjectCopySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ObjectCopySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -25181,14 +27082,14 @@ export interface ObjectCopySpecForProviderGrant {
    *
    * @schema ObjectCopySpecForProviderGrant#permissions
    */
-  readonly permissions: string[];
+  readonly permissions?: string[];
 
   /**
    * - Type of grantee. Valid values are CanonicalUser, Group, and AmazonCustomerByEmail.
    *
    * @schema ObjectCopySpecForProviderGrant#type
    */
-  readonly type: string;
+  readonly type?: string;
 
   /**
    * URI of the grantee group. Used only when type is Group.
@@ -25353,6 +27254,65 @@ export function toJson_ObjectCopySpecForProviderSourceCustomerKeySecretRef(obj: 
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ObjectCopySpecInitProviderGrant
+ */
+export interface ObjectCopySpecInitProviderGrant {
+  /**
+   * Email address of the grantee. Used only when type is AmazonCustomerByEmail.
+   *
+   * @schema ObjectCopySpecInitProviderGrant#email
+   */
+  readonly email?: string;
+
+  /**
+   * Canonical user ID of the grantee. Used only when type is CanonicalUser.
+   *
+   * @schema ObjectCopySpecInitProviderGrant#id
+   */
+  readonly id?: string;
+
+  /**
+   * List of permissions to grant to grantee. Valid values are READ, READ_ACP, WRITE_ACP, FULL_CONTROL.
+   *
+   * @schema ObjectCopySpecInitProviderGrant#permissions
+   */
+  readonly permissions?: string[];
+
+  /**
+   * - Type of grantee. Valid values are CanonicalUser, Group, and AmazonCustomerByEmail.
+   *
+   * @schema ObjectCopySpecInitProviderGrant#type
+   */
+  readonly type?: string;
+
+  /**
+   * URI of the grantee group. Used only when type is Group.
+   *
+   * @schema ObjectCopySpecInitProviderGrant#uri
+   */
+  readonly uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'ObjectCopySpecInitProviderGrant' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ObjectCopySpecInitProviderGrant(obj: ObjectCopySpecInitProviderGrant | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'email': obj.email,
+    'id': obj.id,
+    'permissions': obj.permissions?.map(y => y),
+    'type': obj.type,
+    'uri': obj.uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ObjectCopySpecProviderConfigRefPolicy
@@ -25379,43 +27339,6 @@ export interface ObjectCopySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ObjectCopySpecProviderConfigRefPolicy(obj: ObjectCopySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ObjectCopySpecProviderRefPolicy
- */
-export interface ObjectCopySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ObjectCopySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ObjectCopySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ObjectCopySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ObjectCopySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ObjectCopySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ObjectCopySpecProviderRefPolicy(obj: ObjectCopySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -25526,30 +27449,6 @@ export enum ObjectCopySpecProviderConfigRefPolicyResolution {
  * @schema ObjectCopySpecProviderConfigRefPolicyResolve
  */
 export enum ObjectCopySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ObjectCopySpecProviderRefPolicyResolution
- */
-export enum ObjectCopySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ObjectCopySpecProviderRefPolicyResolve
- */
-export enum ObjectCopySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

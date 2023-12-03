@@ -8,6 +8,7 @@ includes:
   crossplane: ./platform/crossplane
   kubevela: ./platform/kubevela
   gcloud: ./platform/gcloud
+  prometheus: ./platform/prometheus
   argocd: ./platform/gitops/argocd
   fluxcd: ./platform/gitops/fluxcd
   # compose: ./platform/scriptscompose
@@ -43,8 +44,9 @@ tasks:
     deps:
       - task: argocd:install
       - task: crossplane:setup
-#      - echo starting cluster deps
+      - task: prometheus:install # lens metrics do not show when installing via argo-cd helm chart
 #      - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
+#      - echo starting cluster deps
 #      - helm upgrade --install k8s-watcher komodorio/k8s-watcher --set apiKey=4b11ca71-2163-45d8-88a8-bd0c0d450657 --set watcher.clusterName=master-cluster  --wait --timeout=90s && open https://app.komodor.com/main/services
 #      - task: kubevela:install
     cmds:
@@ -119,5 +121,6 @@ tasks:
     deps:
       - task: tilt:down
     cmds:
+      - sleep 10
       - task: cluster:delete
 #      - task: cluster:kind-local-cluster:down

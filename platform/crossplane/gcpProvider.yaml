@@ -10,70 +10,105 @@ kind: Provider
 metadata:
   name: provider-gcp-sql
 spec:
-  package: xpkg.upbound.io/upbound/provider-gcp-sql:v0.38.1
+  package: xpkg.upbound.io/upbound/provider-gcp-sql:v0.39.0
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
   name: provider-gcp-artifact
 spec:
-  package: xpkg.upbound.io/upbound/provider-gcp-artifact:v0.38.0
+  package: xpkg.upbound.io/upbound/provider-gcp-artifact:v0.39.0
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
   name: provider-gcp-cloudrun
 spec:
-  package: xpkg.upbound.io/upbound/provider-gcp-cloudrun:v0.38.1
+  package: xpkg.upbound.io/upbound/provider-gcp-cloudrun:v0.39.0
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-gcp-redis
+spec:
+  package: xpkg.upbound.io/upbound/provider-gcp-redis:v0.39.0
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-gcp-sql
+spec:
+  package: xpkg.upbound.io/upbound/provider-gcp-sql:v0.39.0
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-gcp-pubsub
+spec:
+  package: xpkg.upbound.io/upbound/provider-gcp-pubsub:v0.39.0
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-gcp-cloudbuild
+spec:
+  package: xpkg.upbound.io/upbound/provider-gcp-cloudbuild:v0.39.0
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-gcp-iam
+spec:
+  package: xpkg.upbound.io/upbound/provider-gcp-iam:v0.39.0
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
   name: provider-gcp-cloudplatform
 spec:
-  package: xpkg.upbound.io/upbound/provider-gcp-cloudplatform:v0.38.1
+  package: xpkg.upbound.io/upbound/provider-gcp-cloudplatform:v0.39.0
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
   name: provider-gcp-compute
 spec:
-  package: xpkg.upbound.io/upbound/provider-gcp-compute:v0.38.1
+  package: xpkg.upbound.io/upbound/provider-gcp-compute:v0.39.0
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
   name: provider-gcp-container
 spec:
-  package: xpkg.upbound.io/upbound/provider-gcp-container:v0.38.1
+  package: xpkg.upbound.io/upbound/provider-gcp-container:v0.39.0
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
   name: provider-gcp-storage
 spec:
-  package: xpkg.upbound.io/upbound/provider-gcp-storage:v0.38.1
+  package: xpkg.upbound.io/upbound/provider-gcp-storage:v0.39.0
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
   name: provider-aws-ecr
 spec:
-  package: xpkg.upbound.io/upbound/provider-aws-ecr:v0.44.0
+  package: xpkg.upbound.io/upbound/provider-aws-ecr:v0.45.0
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
   name: provider-aws-s3
 spec:
-  package: xpkg.upbound.io/upbound/provider-aws-s3:v0.44.0
+  package: xpkg.upbound.io/upbound/provider-aws-s3:v0.45.0
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
   name: provider-aws-ec2
 spec:
-  package: xpkg.upbound.io/upbound/provider-aws-ec2:v0.44.0
+  package: xpkg.upbound.io/upbound/provider-aws-ec2:v0.45.0
 ---
 
 #apiVersion: pkg.crossplane.io/v1

@@ -14,7 +14,7 @@
 # k8s_yaml('k8s/base/core/core1.yaml')
 # k8s_yaml(["platform/crossplane/storage/compositeResourceDefinition.yaml", "platform/crossplane/storage/composition.yaml"])
 # Local dev resources
-# include('./libs/cdk8s/Tiltfile')
+include('./libs/cdk8s/Tiltfile')
 
 # include('./apps/rust/master_operator/Tiltfile')
 # k8s_yaml(kustomize('_proto/'))

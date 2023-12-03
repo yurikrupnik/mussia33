@@ -99,7 +99,7 @@ export function toJson_CognitoIdentityPoolProviderPrincipalTagProps(obj: Cognito
  */
 export interface CognitoIdentityPoolProviderPrincipalTagSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CognitoIdentityPoolProviderPrincipalTagSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface CognitoIdentityPoolProviderPrincipalTagSpec {
   readonly forProvider: CognitoIdentityPoolProviderPrincipalTagSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema CognitoIdentityPoolProviderPrincipalTagSpec#managementPolicy
+   * @schema CognitoIdentityPoolProviderPrincipalTagSpec#initProvider
    */
-  readonly managementPolicy?: CognitoIdentityPoolProviderPrincipalTagSpecManagementPolicy;
+  readonly initProvider?: CognitoIdentityPoolProviderPrincipalTagSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema CognitoIdentityPoolProviderPrincipalTagSpec#managementPolicies
+   */
+  readonly managementPolicies?: CognitoIdentityPoolProviderPrincipalTagSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface CognitoIdentityPoolProviderPrincipalTagSpec {
    * @schema CognitoIdentityPoolProviderPrincipalTagSpec#providerConfigRef
    */
   readonly providerConfigRef?: CognitoIdentityPoolProviderPrincipalTagSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema CognitoIdentityPoolProviderPrincipalTagSpec#providerRef
-   */
-  readonly providerRef?: CognitoIdentityPoolProviderPrincipalTagSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_CognitoIdentityPoolProviderPrincipalTagSpec(obj: CognitoI
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CognitoIdentityPoolProviderPrincipalTagSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_CognitoIdentityPoolProviderPrincipalTagSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_CognitoIdentityPoolProviderPrincipalTagSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_CognitoIdentityPoolProviderPrincipalTagSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CognitoIdentityPoolProviderPrincipalTagSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_CognitoIdentityPoolProviderPrincipalTagSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_CognitoIdentityPoolProviderPrincipalTagSpec(obj: CognitoI
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CognitoIdentityPoolProviderPrincipalTagSpecDeletionPolicy
  */
@@ -271,17 +271,60 @@ export function toJson_CognitoIdentityPoolProviderPrincipalTagSpecForProvider(ob
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema CognitoIdentityPoolProviderPrincipalTagSpecManagementPolicy
+ * @schema CognitoIdentityPoolProviderPrincipalTagSpecInitProvider
  */
-export enum CognitoIdentityPoolProviderPrincipalTagSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface CognitoIdentityPoolProviderPrincipalTagSpecInitProvider {
+  /**
+   * String to string map of variables.
+   *
+   * @schema CognitoIdentityPoolProviderPrincipalTagSpecInitProvider#principalTags
+   */
+  readonly principalTags?: { [key: string]: string };
+
+  /**
+   * :  use default (username and clientID) attribute mappings.
+   *
+   * @schema CognitoIdentityPoolProviderPrincipalTagSpecInitProvider#useDefaults
+   */
+  readonly useDefaults?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'CognitoIdentityPoolProviderPrincipalTagSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CognitoIdentityPoolProviderPrincipalTagSpecInitProvider(obj: CognitoIdentityPoolProviderPrincipalTagSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'principalTags': ((obj.principalTags) === undefined) ? undefined : (Object.entries(obj.principalTags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'useDefaults': obj.useDefaults,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema CognitoIdentityPoolProviderPrincipalTagSpecManagementPolicies
+ */
+export enum CognitoIdentityPoolProviderPrincipalTagSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -315,43 +358,6 @@ export function toJson_CognitoIdentityPoolProviderPrincipalTagSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_CognitoIdentityPoolProviderPrincipalTagSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema CognitoIdentityPoolProviderPrincipalTagSpecProviderRef
- */
-export interface CognitoIdentityPoolProviderPrincipalTagSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema CognitoIdentityPoolProviderPrincipalTagSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema CognitoIdentityPoolProviderPrincipalTagSpecProviderRef#policy
-   */
-  readonly policy?: CognitoIdentityPoolProviderPrincipalTagSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'CognitoIdentityPoolProviderPrincipalTagSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CognitoIdentityPoolProviderPrincipalTagSpecProviderRef(obj: CognitoIdentityPoolProviderPrincipalTagSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_CognitoIdentityPoolProviderPrincipalTagSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -642,43 +648,6 @@ export function toJson_CognitoIdentityPoolProviderPrincipalTagSpecProviderConfig
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema CognitoIdentityPoolProviderPrincipalTagSpecProviderRefPolicy
- */
-export interface CognitoIdentityPoolProviderPrincipalTagSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema CognitoIdentityPoolProviderPrincipalTagSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: CognitoIdentityPoolProviderPrincipalTagSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema CognitoIdentityPoolProviderPrincipalTagSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: CognitoIdentityPoolProviderPrincipalTagSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'CognitoIdentityPoolProviderPrincipalTagSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CognitoIdentityPoolProviderPrincipalTagSpecProviderRefPolicy(obj: CognitoIdentityPoolProviderPrincipalTagSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema CognitoIdentityPoolProviderPrincipalTagSpecPublishConnectionDetailsToConfigRef
@@ -926,30 +895,6 @@ export enum CognitoIdentityPoolProviderPrincipalTagSpecProviderConfigRefPolicyRe
  * @schema CognitoIdentityPoolProviderPrincipalTagSpecProviderConfigRefPolicyResolve
  */
 export enum CognitoIdentityPoolProviderPrincipalTagSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema CognitoIdentityPoolProviderPrincipalTagSpecProviderRefPolicyResolution
- */
-export enum CognitoIdentityPoolProviderPrincipalTagSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema CognitoIdentityPoolProviderPrincipalTagSpecProviderRefPolicyResolve
- */
-export enum CognitoIdentityPoolProviderPrincipalTagSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1210,7 +1155,7 @@ export function toJson_PoolProps(obj: PoolProps | undefined): Record<string, any
  */
 export interface PoolSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PoolSpec#deletionPolicy
    */
@@ -1222,11 +1167,18 @@ export interface PoolSpec {
   readonly forProvider: PoolSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema PoolSpec#managementPolicy
+   * @schema PoolSpec#initProvider
    */
-  readonly managementPolicy?: PoolSpecManagementPolicy;
+  readonly initProvider?: PoolSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema PoolSpec#managementPolicies
+   */
+  readonly managementPolicies?: PoolSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1234,13 +1186,6 @@ export interface PoolSpec {
    * @schema PoolSpec#providerConfigRef
    */
   readonly providerConfigRef?: PoolSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema PoolSpec#providerRef
-   */
-  readonly providerRef?: PoolSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1267,9 +1212,9 @@ export function toJson_PoolSpec(obj: PoolSpec | undefined): Record<string, any> 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PoolSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_PoolSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_PoolSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_PoolSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PoolSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_PoolSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1279,7 +1224,7 @@ export function toJson_PoolSpec(obj: PoolSpec | undefined): Record<string, any> 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PoolSpecDeletionPolicy
  */
@@ -1407,17 +1352,109 @@ export function toJson_PoolSpecForProvider(obj: PoolSpecForProvider | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema PoolSpecManagementPolicy
+ * @schema PoolSpecInitProvider
  */
-export enum PoolSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface PoolSpecInitProvider {
+  /**
+   * Enables or disables the classic / basic authentication flow. Default is false.
+   *
+   * @default false.
+   * @schema PoolSpecInitProvider#allowClassicFlow
+   */
+  readonly allowClassicFlow?: boolean;
+
+  /**
+   * Whether the identity pool supports unauthenticated logins or not.
+   *
+   * @schema PoolSpecInitProvider#allowUnauthenticatedIdentities
+   */
+  readonly allowUnauthenticatedIdentities?: boolean;
+
+  /**
+   * An array of Amazon Cognito Identity user pools and their client IDs.
+   *
+   * @schema PoolSpecInitProvider#cognitoIdentityProviders
+   */
+  readonly cognitoIdentityProviders?: PoolSpecInitProviderCognitoIdentityProviders[];
+
+  /**
+   * The "domain" by which Cognito will refer to your users. This name acts as a placeholder that allows your backend and the Cognito service to communicate about the developer provider.
+   *
+   * @schema PoolSpecInitProvider#developerProviderName
+   */
+  readonly developerProviderName?: string;
+
+  /**
+   * The Cognito Identity Pool name.
+   *
+   * @schema PoolSpecInitProvider#identityPoolName
+   */
+  readonly identityPoolName?: string;
+
+  /**
+   * Set of OpendID Connect provider ARNs.
+   *
+   * @schema PoolSpecInitProvider#openidConnectProviderArns
+   */
+  readonly openidConnectProviderArns?: string[];
+
+  /**
+   * Key-Value pairs mapping provider names to provider app IDs.
+   *
+   * @schema PoolSpecInitProvider#supportedLoginProviders
+   */
+  readonly supportedLoginProviders?: { [key: string]: string };
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema PoolSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'PoolSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PoolSpecInitProvider(obj: PoolSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowClassicFlow': obj.allowClassicFlow,
+    'allowUnauthenticatedIdentities': obj.allowUnauthenticatedIdentities,
+    'cognitoIdentityProviders': obj.cognitoIdentityProviders?.map(y => toJson_PoolSpecInitProviderCognitoIdentityProviders(y)),
+    'developerProviderName': obj.developerProviderName,
+    'identityPoolName': obj.identityPoolName,
+    'openidConnectProviderArns': obj.openidConnectProviderArns?.map(y => y),
+    'supportedLoginProviders': ((obj.supportedLoginProviders) === undefined) ? undefined : (Object.entries(obj.supportedLoginProviders).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema PoolSpecManagementPolicies
+ */
+export enum PoolSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1451,43 +1488,6 @@ export function toJson_PoolSpecProviderConfigRef(obj: PoolSpecProviderConfigRef 
   const result = {
     'name': obj.name,
     'policy': toJson_PoolSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema PoolSpecProviderRef
- */
-export interface PoolSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema PoolSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema PoolSpecProviderRef#policy
-   */
-  readonly policy?: PoolSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'PoolSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PoolSpecProviderRef(obj: PoolSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_PoolSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1718,6 +1718,41 @@ export function toJson_PoolSpecForProviderSamlProviderArnsSelector(obj: PoolSpec
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema PoolSpecInitProviderCognitoIdentityProviders
+ */
+export interface PoolSpecInitProviderCognitoIdentityProviders {
+  /**
+   * The provider name for an Amazon Cognito Identity User Pool.
+   *
+   * @schema PoolSpecInitProviderCognitoIdentityProviders#providerName
+   */
+  readonly providerName?: string;
+
+  /**
+   * Whether server-side token validation is enabled for the identity provider’s token or not.
+   *
+   * @schema PoolSpecInitProviderCognitoIdentityProviders#serverSideTokenCheck
+   */
+  readonly serverSideTokenCheck?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'PoolSpecInitProviderCognitoIdentityProviders' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PoolSpecInitProviderCognitoIdentityProviders(obj: PoolSpecInitProviderCognitoIdentityProviders | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'providerName': obj.providerName,
+    'serverSideTokenCheck': obj.serverSideTokenCheck,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema PoolSpecProviderConfigRefPolicy
@@ -1744,43 +1779,6 @@ export interface PoolSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_PoolSpecProviderConfigRefPolicy(obj: PoolSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema PoolSpecProviderRefPolicy
- */
-export interface PoolSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema PoolSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: PoolSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema PoolSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: PoolSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'PoolSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PoolSpecProviderRefPolicy(obj: PoolSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2047,30 +2045,6 @@ export enum PoolSpecProviderConfigRefPolicyResolution {
  * @schema PoolSpecProviderConfigRefPolicyResolve
  */
 export enum PoolSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema PoolSpecProviderRefPolicyResolution
- */
-export enum PoolSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema PoolSpecProviderRefPolicyResolve
- */
-export enum PoolSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2405,7 +2379,7 @@ export function toJson_PoolRolesAttachmentProps(obj: PoolRolesAttachmentProps | 
  */
 export interface PoolRolesAttachmentSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PoolRolesAttachmentSpec#deletionPolicy
    */
@@ -2417,11 +2391,18 @@ export interface PoolRolesAttachmentSpec {
   readonly forProvider: PoolRolesAttachmentSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema PoolRolesAttachmentSpec#managementPolicy
+   * @schema PoolRolesAttachmentSpec#initProvider
    */
-  readonly managementPolicy?: PoolRolesAttachmentSpecManagementPolicy;
+  readonly initProvider?: PoolRolesAttachmentSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema PoolRolesAttachmentSpec#managementPolicies
+   */
+  readonly managementPolicies?: PoolRolesAttachmentSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2429,13 +2410,6 @@ export interface PoolRolesAttachmentSpec {
    * @schema PoolRolesAttachmentSpec#providerConfigRef
    */
   readonly providerConfigRef?: PoolRolesAttachmentSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema PoolRolesAttachmentSpec#providerRef
-   */
-  readonly providerRef?: PoolRolesAttachmentSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2462,9 +2436,9 @@ export function toJson_PoolRolesAttachmentSpec(obj: PoolRolesAttachmentSpec | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PoolRolesAttachmentSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_PoolRolesAttachmentSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_PoolRolesAttachmentSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_PoolRolesAttachmentSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PoolRolesAttachmentSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_PoolRolesAttachmentSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2474,7 +2448,7 @@ export function toJson_PoolRolesAttachmentSpec(obj: PoolRolesAttachmentSpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PoolRolesAttachmentSpecDeletionPolicy
  */
@@ -2553,17 +2527,60 @@ export function toJson_PoolRolesAttachmentSpecForProvider(obj: PoolRolesAttachme
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema PoolRolesAttachmentSpecManagementPolicy
+ * @schema PoolRolesAttachmentSpecInitProvider
  */
-export enum PoolRolesAttachmentSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface PoolRolesAttachmentSpecInitProvider {
+  /**
+   * A List of Role Mapping.
+   *
+   * @schema PoolRolesAttachmentSpecInitProvider#roleMapping
+   */
+  readonly roleMapping?: PoolRolesAttachmentSpecInitProviderRoleMapping[];
+
+  /**
+   * The map of roles associated with this pool. For a given role, the key will be either "authenticated" or "unauthenticated" and the value will be the Role ARN.
+   *
+   * @schema PoolRolesAttachmentSpecInitProvider#roles
+   */
+  readonly roles?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'PoolRolesAttachmentSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PoolRolesAttachmentSpecInitProvider(obj: PoolRolesAttachmentSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'roleMapping': obj.roleMapping?.map(y => toJson_PoolRolesAttachmentSpecInitProviderRoleMapping(y)),
+    'roles': ((obj.roles) === undefined) ? undefined : (Object.entries(obj.roles).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema PoolRolesAttachmentSpecManagementPolicies
+ */
+export enum PoolRolesAttachmentSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2597,43 +2614,6 @@ export function toJson_PoolRolesAttachmentSpecProviderConfigRef(obj: PoolRolesAt
   const result = {
     'name': obj.name,
     'policy': toJson_PoolRolesAttachmentSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema PoolRolesAttachmentSpecProviderRef
- */
-export interface PoolRolesAttachmentSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema PoolRolesAttachmentSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema PoolRolesAttachmentSpecProviderRef#policy
-   */
-  readonly policy?: PoolRolesAttachmentSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'PoolRolesAttachmentSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PoolRolesAttachmentSpecProviderRef(obj: PoolRolesAttachmentSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_PoolRolesAttachmentSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2820,7 +2800,7 @@ export interface PoolRolesAttachmentSpecForProviderRoleMapping {
    *
    * @schema PoolRolesAttachmentSpecForProviderRoleMapping#identityProvider
    */
-  readonly identityProvider: string;
+  readonly identityProvider?: string;
 
   /**
    * The Rules Configuration to be used for mapping users to roles. You can specify up to 25 rules per identity provider. Rules are evaluated in order. The first one to match specifies the role.
@@ -2834,7 +2814,7 @@ export interface PoolRolesAttachmentSpecForProviderRoleMapping {
    *
    * @schema PoolRolesAttachmentSpecForProviderRoleMapping#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -2848,6 +2828,57 @@ export function toJson_PoolRolesAttachmentSpecForProviderRoleMapping(obj: PoolRo
     'ambiguousRoleResolution': obj.ambiguousRoleResolution,
     'identityProvider': obj.identityProvider,
     'mappingRule': obj.mappingRule?.map(y => toJson_PoolRolesAttachmentSpecForProviderRoleMappingMappingRule(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PoolRolesAttachmentSpecInitProviderRoleMapping
+ */
+export interface PoolRolesAttachmentSpecInitProviderRoleMapping {
+  /**
+   * Specifies the action to be taken if either no rules match the claim value for the Rules type, or there is no cognito:preferred_role claim and there are multiple cognito:roles matches for the Token type. Required if you specify Token or Rules as the Type.
+   *
+   * @schema PoolRolesAttachmentSpecInitProviderRoleMapping#ambiguousRoleResolution
+   */
+  readonly ambiguousRoleResolution?: string;
+
+  /**
+   * A string identifying the identity provider, for example, "graph.facebook.com" or "cognito-idp.us-east-1.amazonaws.com/us-east-1_abcdefghi:app_client_id". Depends on cognito_identity_providers set on aws_cognito_identity_pool resource or a aws_cognito_identity_provider resource.
+   *
+   * @schema PoolRolesAttachmentSpecInitProviderRoleMapping#identityProvider
+   */
+  readonly identityProvider?: string;
+
+  /**
+   * The Rules Configuration to be used for mapping users to roles. You can specify up to 25 rules per identity provider. Rules are evaluated in order. The first one to match specifies the role.
+   *
+   * @schema PoolRolesAttachmentSpecInitProviderRoleMapping#mappingRule
+   */
+  readonly mappingRule?: PoolRolesAttachmentSpecInitProviderRoleMappingMappingRule[];
+
+  /**
+   * The role mapping type.
+   *
+   * @schema PoolRolesAttachmentSpecInitProviderRoleMapping#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'PoolRolesAttachmentSpecInitProviderRoleMapping' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PoolRolesAttachmentSpecInitProviderRoleMapping(obj: PoolRolesAttachmentSpecInitProviderRoleMapping | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ambiguousRoleResolution': obj.ambiguousRoleResolution,
+    'identityProvider': obj.identityProvider,
+    'mappingRule': obj.mappingRule?.map(y => toJson_PoolRolesAttachmentSpecInitProviderRoleMappingMappingRule(y)),
     'type': obj.type,
   };
   // filter undefined values
@@ -2882,43 +2913,6 @@ export interface PoolRolesAttachmentSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_PoolRolesAttachmentSpecProviderConfigRefPolicy(obj: PoolRolesAttachmentSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema PoolRolesAttachmentSpecProviderRefPolicy
- */
-export interface PoolRolesAttachmentSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema PoolRolesAttachmentSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: PoolRolesAttachmentSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema PoolRolesAttachmentSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: PoolRolesAttachmentSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'PoolRolesAttachmentSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PoolRolesAttachmentSpecProviderRefPolicy(obj: PoolRolesAttachmentSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3094,14 +3088,14 @@ export interface PoolRolesAttachmentSpecForProviderRoleMappingMappingRule {
    *
    * @schema PoolRolesAttachmentSpecForProviderRoleMappingMappingRule#claim
    */
-  readonly claim: string;
+  readonly claim?: string;
 
   /**
    * The match condition that specifies how closely the claim value in the IdP token must match Value.
    *
    * @schema PoolRolesAttachmentSpecForProviderRoleMappingMappingRule#matchType
    */
-  readonly matchType: string;
+  readonly matchType?: string;
 
   /**
    * The role ARN.
@@ -3129,7 +3123,7 @@ export interface PoolRolesAttachmentSpecForProviderRoleMappingMappingRule {
    *
    * @schema PoolRolesAttachmentSpecForProviderRoleMappingMappingRule#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -3145,6 +3139,49 @@ export function toJson_PoolRolesAttachmentSpecForProviderRoleMappingMappingRule(
     'roleArn': obj.roleArn,
     'roleArnRef': toJson_PoolRolesAttachmentSpecForProviderRoleMappingMappingRuleRoleArnRef(obj.roleArnRef),
     'roleArnSelector': toJson_PoolRolesAttachmentSpecForProviderRoleMappingMappingRuleRoleArnSelector(obj.roleArnSelector),
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PoolRolesAttachmentSpecInitProviderRoleMappingMappingRule
+ */
+export interface PoolRolesAttachmentSpecInitProviderRoleMappingMappingRule {
+  /**
+   * The claim name that must be present in the token, for example, "isAdmin" or "paid".
+   *
+   * @schema PoolRolesAttachmentSpecInitProviderRoleMappingMappingRule#claim
+   */
+  readonly claim?: string;
+
+  /**
+   * The match condition that specifies how closely the claim value in the IdP token must match Value.
+   *
+   * @schema PoolRolesAttachmentSpecInitProviderRoleMappingMappingRule#matchType
+   */
+  readonly matchType?: string;
+
+  /**
+   * A brief string that the claim must match, for example, "paid" or "yes".
+   *
+   * @schema PoolRolesAttachmentSpecInitProviderRoleMappingMappingRule#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'PoolRolesAttachmentSpecInitProviderRoleMappingMappingRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PoolRolesAttachmentSpecInitProviderRoleMappingMappingRule(obj: PoolRolesAttachmentSpecInitProviderRoleMappingMappingRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'claim': obj.claim,
+    'matchType': obj.matchType,
     'value': obj.value,
   };
   // filter undefined values
@@ -3170,30 +3207,6 @@ export enum PoolRolesAttachmentSpecProviderConfigRefPolicyResolution {
  * @schema PoolRolesAttachmentSpecProviderConfigRefPolicyResolve
  */
 export enum PoolRolesAttachmentSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema PoolRolesAttachmentSpecProviderRefPolicyResolution
- */
-export enum PoolRolesAttachmentSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema PoolRolesAttachmentSpecProviderRefPolicyResolve
- */
-export enum PoolRolesAttachmentSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

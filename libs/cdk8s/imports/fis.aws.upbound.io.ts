@@ -99,7 +99,7 @@ export function toJson_ExperimentTemplateProps(obj: ExperimentTemplateProps | un
  */
 export interface ExperimentTemplateSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ExperimentTemplateSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface ExperimentTemplateSpec {
   readonly forProvider: ExperimentTemplateSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ExperimentTemplateSpec#managementPolicy
+   * @schema ExperimentTemplateSpec#initProvider
    */
-  readonly managementPolicy?: ExperimentTemplateSpecManagementPolicy;
+  readonly initProvider?: ExperimentTemplateSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ExperimentTemplateSpec#managementPolicies
+   */
+  readonly managementPolicies?: ExperimentTemplateSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface ExperimentTemplateSpec {
    * @schema ExperimentTemplateSpec#providerConfigRef
    */
   readonly providerConfigRef?: ExperimentTemplateSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ExperimentTemplateSpec#providerRef
-   */
-  readonly providerRef?: ExperimentTemplateSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_ExperimentTemplateSpec(obj: ExperimentTemplateSpec | unde
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ExperimentTemplateSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ExperimentTemplateSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ExperimentTemplateSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ExperimentTemplateSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ExperimentTemplateSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ExperimentTemplateSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_ExperimentTemplateSpec(obj: ExperimentTemplateSpec | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ExperimentTemplateSpecDeletionPolicy
  */
@@ -271,17 +271,84 @@ export function toJson_ExperimentTemplateSpecForProvider(obj: ExperimentTemplate
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ExperimentTemplateSpecManagementPolicy
+ * @schema ExperimentTemplateSpecInitProvider
  */
-export enum ExperimentTemplateSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ExperimentTemplateSpecInitProvider {
+  /**
+   * Action to be performed during an experiment. See below.
+   *
+   * @schema ExperimentTemplateSpecInitProvider#action
+   */
+  readonly action?: ExperimentTemplateSpecInitProviderAction[];
+
+  /**
+   * Description for the experiment template.
+   *
+   * @schema ExperimentTemplateSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * When an ongoing experiment should be stopped. See below.
+   *
+   * @schema ExperimentTemplateSpecInitProvider#stopCondition
+   */
+  readonly stopCondition?: ExperimentTemplateSpecInitProviderStopCondition[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ExperimentTemplateSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Target of an action. See below.
+   *
+   * @schema ExperimentTemplateSpecInitProvider#target
+   */
+  readonly target?: ExperimentTemplateSpecInitProviderTarget[];
+
+}
+
+/**
+ * Converts an object of type 'ExperimentTemplateSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ExperimentTemplateSpecInitProvider(obj: ExperimentTemplateSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action?.map(y => toJson_ExperimentTemplateSpecInitProviderAction(y)),
+    'description': obj.description,
+    'stopCondition': obj.stopCondition?.map(y => toJson_ExperimentTemplateSpecInitProviderStopCondition(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'target': obj.target?.map(y => toJson_ExperimentTemplateSpecInitProviderTarget(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ExperimentTemplateSpecManagementPolicies
+ */
+export enum ExperimentTemplateSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -315,43 +382,6 @@ export function toJson_ExperimentTemplateSpecProviderConfigRef(obj: ExperimentTe
   const result = {
     'name': obj.name,
     'policy': toJson_ExperimentTemplateSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ExperimentTemplateSpecProviderRef
- */
-export interface ExperimentTemplateSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ExperimentTemplateSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ExperimentTemplateSpecProviderRef#policy
-   */
-  readonly policy?: ExperimentTemplateSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ExperimentTemplateSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ExperimentTemplateSpecProviderRef(obj: ExperimentTemplateSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ExperimentTemplateSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -449,7 +479,7 @@ export interface ExperimentTemplateSpecForProviderAction {
    *
    * @schema ExperimentTemplateSpecForProviderAction#actionId
    */
-  readonly actionId: string;
+  readonly actionId?: string;
 
   /**
    * Description of the action.
@@ -463,7 +493,7 @@ export interface ExperimentTemplateSpecForProviderAction {
    *
    * @schema ExperimentTemplateSpecForProviderAction#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Parameter(s) for the action, if applicable. See below.
@@ -598,7 +628,7 @@ export interface ExperimentTemplateSpecForProviderStopCondition {
    *
    * @schema ExperimentTemplateSpecForProviderStopCondition#source
    */
-  readonly source: string;
+  readonly source?: string;
 
   /**
    * ARN of the CloudWatch alarm. Required if the source is a CloudWatch alarm.
@@ -640,7 +670,7 @@ export interface ExperimentTemplateSpecForProviderTarget {
    *
    * @schema ExperimentTemplateSpecForProviderTarget#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Set of ARNs of the resources to target with an action. Conflicts with resource_tag.
@@ -661,14 +691,14 @@ export interface ExperimentTemplateSpecForProviderTarget {
    *
    * @schema ExperimentTemplateSpecForProviderTarget#resourceType
    */
-  readonly resourceType: string;
+  readonly resourceType?: string;
 
   /**
    * Scopes the identified resources. Valid values are ALL (all identified resources), COUNT(n) (randomly select n of the identified resources), PERCENT(n) (randomly select n percent of the identified resources).
    *
    * @schema ExperimentTemplateSpecForProviderTarget#selectionMode
    */
-  readonly selectionMode: string;
+  readonly selectionMode?: string;
 
 }
 
@@ -683,6 +713,175 @@ export function toJson_ExperimentTemplateSpecForProviderTarget(obj: ExperimentTe
     'name': obj.name,
     'resourceArns': obj.resourceArns?.map(y => y),
     'resourceTag': obj.resourceTag?.map(y => toJson_ExperimentTemplateSpecForProviderTargetResourceTag(y)),
+    'resourceType': obj.resourceType,
+    'selectionMode': obj.selectionMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ExperimentTemplateSpecInitProviderAction
+ */
+export interface ExperimentTemplateSpecInitProviderAction {
+  /**
+   * ID of the action. To find out what actions are supported see AWS FIS actions reference.
+   *
+   * @schema ExperimentTemplateSpecInitProviderAction#actionId
+   */
+  readonly actionId?: string;
+
+  /**
+   * Description of the action.
+   *
+   * @schema ExperimentTemplateSpecInitProviderAction#description
+   */
+  readonly description?: string;
+
+  /**
+   * Friendly name of the action.
+   *
+   * @schema ExperimentTemplateSpecInitProviderAction#name
+   */
+  readonly name?: string;
+
+  /**
+   * Parameter(s) for the action, if applicable. See below.
+   *
+   * @schema ExperimentTemplateSpecInitProviderAction#parameter
+   */
+  readonly parameter?: ExperimentTemplateSpecInitProviderActionParameter[];
+
+  /**
+   * Set of action names that must complete before this action can be executed.
+   *
+   * @schema ExperimentTemplateSpecInitProviderAction#startAfter
+   */
+  readonly startAfter?: string[];
+
+  /**
+   * Action's target, if applicable. See below.
+   *
+   * @schema ExperimentTemplateSpecInitProviderAction#target
+   */
+  readonly target?: ExperimentTemplateSpecInitProviderActionTarget[];
+
+}
+
+/**
+ * Converts an object of type 'ExperimentTemplateSpecInitProviderAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ExperimentTemplateSpecInitProviderAction(obj: ExperimentTemplateSpecInitProviderAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'actionId': obj.actionId,
+    'description': obj.description,
+    'name': obj.name,
+    'parameter': obj.parameter?.map(y => toJson_ExperimentTemplateSpecInitProviderActionParameter(y)),
+    'startAfter': obj.startAfter?.map(y => y),
+    'target': obj.target?.map(y => toJson_ExperimentTemplateSpecInitProviderActionTarget(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ExperimentTemplateSpecInitProviderStopCondition
+ */
+export interface ExperimentTemplateSpecInitProviderStopCondition {
+  /**
+   * Source of the condition. One of none, aws:cloudwatch:alarm.
+   *
+   * @schema ExperimentTemplateSpecInitProviderStopCondition#source
+   */
+  readonly source?: string;
+
+  /**
+   * ARN of the CloudWatch alarm. Required if the source is a CloudWatch alarm.
+   *
+   * @schema ExperimentTemplateSpecInitProviderStopCondition#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ExperimentTemplateSpecInitProviderStopCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ExperimentTemplateSpecInitProviderStopCondition(obj: ExperimentTemplateSpecInitProviderStopCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'source': obj.source,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ExperimentTemplateSpecInitProviderTarget
+ */
+export interface ExperimentTemplateSpecInitProviderTarget {
+  /**
+   * Filter(s) for the target. Filters can be used to select resources based on specific attributes returned by the respective describe action of the resource type. For more information, see Targets for AWS FIS. See below.
+   *
+   * @schema ExperimentTemplateSpecInitProviderTarget#filter
+   */
+  readonly filter?: ExperimentTemplateSpecInitProviderTargetFilter[];
+
+  /**
+   * Friendly name given to the target.
+   *
+   * @schema ExperimentTemplateSpecInitProviderTarget#name
+   */
+  readonly name?: string;
+
+  /**
+   * Set of ARNs of the resources to target with an action. Conflicts with resource_tag.
+   *
+   * @schema ExperimentTemplateSpecInitProviderTarget#resourceArns
+   */
+  readonly resourceArns?: string[];
+
+  /**
+   * Tag(s) the resources need to have to be considered a valid target for an action. Conflicts with resource_arns. See below.
+   *
+   * @schema ExperimentTemplateSpecInitProviderTarget#resourceTag
+   */
+  readonly resourceTag?: ExperimentTemplateSpecInitProviderTargetResourceTag[];
+
+  /**
+   * AWS resource type. The resource type must be supported for the specified action. To find out what resource types are supported, see Targets for AWS FIS.
+   *
+   * @schema ExperimentTemplateSpecInitProviderTarget#resourceType
+   */
+  readonly resourceType?: string;
+
+  /**
+   * Scopes the identified resources. Valid values are ALL (all identified resources), COUNT(n) (randomly select n of the identified resources), PERCENT(n) (randomly select n percent of the identified resources).
+   *
+   * @schema ExperimentTemplateSpecInitProviderTarget#selectionMode
+   */
+  readonly selectionMode?: string;
+
+}
+
+/**
+ * Converts an object of type 'ExperimentTemplateSpecInitProviderTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ExperimentTemplateSpecInitProviderTarget(obj: ExperimentTemplateSpecInitProviderTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'filter': obj.filter?.map(y => toJson_ExperimentTemplateSpecInitProviderTargetFilter(y)),
+    'name': obj.name,
+    'resourceArns': obj.resourceArns?.map(y => y),
+    'resourceTag': obj.resourceTag?.map(y => toJson_ExperimentTemplateSpecInitProviderTargetResourceTag(y)),
     'resourceType': obj.resourceType,
     'selectionMode': obj.selectionMode,
   };
@@ -718,43 +917,6 @@ export interface ExperimentTemplateSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ExperimentTemplateSpecProviderConfigRefPolicy(obj: ExperimentTemplateSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ExperimentTemplateSpecProviderRefPolicy
- */
-export interface ExperimentTemplateSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ExperimentTemplateSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ExperimentTemplateSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ExperimentTemplateSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ExperimentTemplateSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ExperimentTemplateSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ExperimentTemplateSpecProviderRefPolicy(obj: ExperimentTemplateSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -856,14 +1018,14 @@ export interface ExperimentTemplateSpecForProviderActionParameter {
    *
    * @schema ExperimentTemplateSpecForProviderActionParameter#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * Parameter value.
    *
    * @schema ExperimentTemplateSpecForProviderActionParameter#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -891,14 +1053,14 @@ export interface ExperimentTemplateSpecForProviderActionTarget {
    *
    * @schema ExperimentTemplateSpecForProviderActionTarget#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * Target name, referencing a corresponding target.
    *
    * @schema ExperimentTemplateSpecForProviderActionTarget#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -1000,14 +1162,14 @@ export interface ExperimentTemplateSpecForProviderTargetFilter {
    *
    * @schema ExperimentTemplateSpecForProviderTargetFilter#path
    */
-  readonly path: string;
+  readonly path?: string;
 
   /**
    * Set of attribute values for the filter.
    *
    * @schema ExperimentTemplateSpecForProviderTargetFilter#values
    */
-  readonly values: string[];
+  readonly values?: string[];
 
 }
 
@@ -1035,14 +1197,14 @@ export interface ExperimentTemplateSpecForProviderTargetResourceTag {
    *
    * @schema ExperimentTemplateSpecForProviderTargetResourceTag#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * Tag value.
    *
    * @schema ExperimentTemplateSpecForProviderTargetResourceTag#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -1051,6 +1213,146 @@ export interface ExperimentTemplateSpecForProviderTargetResourceTag {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ExperimentTemplateSpecForProviderTargetResourceTag(obj: ExperimentTemplateSpecForProviderTargetResourceTag | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ExperimentTemplateSpecInitProviderActionParameter
+ */
+export interface ExperimentTemplateSpecInitProviderActionParameter {
+  /**
+   * Parameter name.
+   *
+   * @schema ExperimentTemplateSpecInitProviderActionParameter#key
+   */
+  readonly key?: string;
+
+  /**
+   * Parameter value.
+   *
+   * @schema ExperimentTemplateSpecInitProviderActionParameter#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ExperimentTemplateSpecInitProviderActionParameter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ExperimentTemplateSpecInitProviderActionParameter(obj: ExperimentTemplateSpecInitProviderActionParameter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ExperimentTemplateSpecInitProviderActionTarget
+ */
+export interface ExperimentTemplateSpecInitProviderActionTarget {
+  /**
+   * Tag key.
+   *
+   * @schema ExperimentTemplateSpecInitProviderActionTarget#key
+   */
+  readonly key?: string;
+
+  /**
+   * Target name, referencing a corresponding target.
+   *
+   * @schema ExperimentTemplateSpecInitProviderActionTarget#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ExperimentTemplateSpecInitProviderActionTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ExperimentTemplateSpecInitProviderActionTarget(obj: ExperimentTemplateSpecInitProviderActionTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ExperimentTemplateSpecInitProviderTargetFilter
+ */
+export interface ExperimentTemplateSpecInitProviderTargetFilter {
+  /**
+   * Attribute path for the filter.
+   *
+   * @schema ExperimentTemplateSpecInitProviderTargetFilter#path
+   */
+  readonly path?: string;
+
+  /**
+   * Set of attribute values for the filter.
+   *
+   * @schema ExperimentTemplateSpecInitProviderTargetFilter#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ExperimentTemplateSpecInitProviderTargetFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ExperimentTemplateSpecInitProviderTargetFilter(obj: ExperimentTemplateSpecInitProviderTargetFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'path': obj.path,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ExperimentTemplateSpecInitProviderTargetResourceTag
+ */
+export interface ExperimentTemplateSpecInitProviderTargetResourceTag {
+  /**
+   * Tag key.
+   *
+   * @schema ExperimentTemplateSpecInitProviderTargetResourceTag#key
+   */
+  readonly key?: string;
+
+  /**
+   * Tag value.
+   *
+   * @schema ExperimentTemplateSpecInitProviderTargetResourceTag#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ExperimentTemplateSpecInitProviderTargetResourceTag' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ExperimentTemplateSpecInitProviderTargetResourceTag(obj: ExperimentTemplateSpecInitProviderTargetResourceTag | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'key': obj.key,
@@ -1079,30 +1381,6 @@ export enum ExperimentTemplateSpecProviderConfigRefPolicyResolution {
  * @schema ExperimentTemplateSpecProviderConfigRefPolicyResolve
  */
 export enum ExperimentTemplateSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ExperimentTemplateSpecProviderRefPolicyResolution
- */
-export enum ExperimentTemplateSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ExperimentTemplateSpecProviderRefPolicyResolve
- */
-export enum ExperimentTemplateSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

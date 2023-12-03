@@ -11,6 +11,26 @@ tasks:
       - echo "{{.GREETING}}"
       - up xpkg build --ignore "examples/*"
     silent: true
+  test-install-multicloud:
+    cmds:
+      - kubectl apply -f https://raw.githubusercontent.com/upbound/platform-ref-multi-k8s/main/network/definition.yaml
+      - kubectl apply -f https://raw.githubusercontent.com/upbound/platform-ref-multi-k8s/main/network/composition-aws.yaml
+      - kubectl apply -f https://raw.githubusercontent.com/upbound/platform-ref-multi-k8s/main/network/composition-gcp.yaml
+      - kubectl apply -f https://raw.githubusercontent.com/upbound/platform-ref-multi-k8s/main/cluster/definition.yaml
+      - kubectl apply -f https://raw.githubusercontent.com/upbound/platform-ref-multi-k8s/main/cluster/composition-gcp.yaml
+      - kubectl apply -f https://raw.githubusercontent.com/upbound/platform-ref-multi-k8s/main/cluster/composition-aws.yaml
+      - kubectl apply -f https://raw.githubusercontent.com/upbound/platform-ref-multi-k8s/main/cluster/services/definition.yaml
+      - kubectl apply -f https://raw.githubusercontent.com/upbound/platform-ref-multi-k8s/main/cluster/services/composition.yaml
+      - kubectl apply -f https://raw.githubusercontent.com/upbound/platform-ref-multi-k8s/main/cluster/eks/definition.yaml
+      - kubectl apply -f https://raw.githubusercontent.com/upbound/platform-ref-multi-k8s/main/cluster/eks/composition.yaml
+      - kubectl apply -f https://raw.githubusercontent.com/upbound/platform-ref-multi-k8s/main/cluster/gke/definition.yaml
+      - kubectl apply -f https://raw.githubusercontent.com/upbound/platform-ref-multi-k8s/main/cluster/gke/composition.yaml
+
+#      - kubectl apply -f https://raw.githubusercontent.com/upbound/platform-ref-multi-k8s/main/hack/crossplane-cluster-admin-rolebinding.yaml
+#      install network
+      - kubectl apply -f https://raw.githubusercontent.com/upbound/platform-ref-multi-k8s/main/examples/network-gcp.yaml
+#  install cluster
+      - kubectl apply -f https://raw.githubusercontent.com/upbound/platform-ref-multi-k8s/main/examples/cluster-gcp.yaml
   setup:
     dir: platform/crossplane
     cmds:
@@ -33,6 +53,7 @@ tasks:
     cmds:
       - kubectl create secret generic aws-secret -n crossplane-system --from-file=creds=./tmp/aws_creds.txt
       - kubectl create secret generic gcp-secret -n crossplane-system --from-file=creds=./tmp/gcp-credentials.json
+      - kubectl create secret generic gcp-secret1 -n crossplane-system --from-file=creds=./tmp/gcp-credentials1.json
       - kubectl create secret generic azure-secret -n crossplane-system --from-file=creds=./tmp/azure.json
 
   create-gcp-provider:
@@ -75,6 +96,18 @@ tasks:
       - kubectl apply -f network/definition.yaml
       - kubectl apply -f network/composition-aws.yaml
       - kubectl apply -f network/composition-gcp.yaml
+
+      - kubectl apply -f redis/definition.yaml
+      - kubectl apply -f redis/composition-aws.yaml
+      - kubectl apply -f redis/composition-gcp.yaml
+
+      - kubectl apply -f sql/definition.yaml
+      - kubectl apply -f sql/composition-aws.yaml
+      - kubectl apply -f sql/composition-gcp.yaml
+
+      - kubectl apply -f cluster/definition.yaml
+#      - kubectl apply -f sql/composition-aws.yaml
+      - kubectl apply -f cluster/composition-gcp.yaml
 
       - kubectl apply -f storage/definition.yaml
       - kubectl apply -f storage/composition-aws.yaml

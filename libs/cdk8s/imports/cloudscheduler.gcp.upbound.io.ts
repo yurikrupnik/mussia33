@@ -99,7 +99,7 @@ export function toJson_JobProps(obj: JobProps | undefined): Record<string, any> 
  */
 export interface JobSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema JobSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface JobSpec {
   readonly forProvider: JobSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema JobSpec#managementPolicy
+   * @schema JobSpec#initProvider
    */
-  readonly managementPolicy?: JobSpecManagementPolicy;
+  readonly initProvider?: JobSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema JobSpec#managementPolicies
+   */
+  readonly managementPolicies?: JobSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface JobSpec {
    * @schema JobSpec#providerConfigRef
    */
   readonly providerConfigRef?: JobSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema JobSpec#providerRef
-   */
-  readonly providerRef?: JobSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_JobSpec(obj: JobSpec | undefined): Record<string, any> | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_JobSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_JobSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_JobSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_JobSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_JobSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_JobSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_JobSpec(obj: JobSpec | undefined): Record<string, any> | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema JobSpecDeletionPolicy
  */
@@ -287,17 +287,124 @@ export function toJson_JobSpecForProvider(obj: JobSpecForProvider | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema JobSpecManagementPolicy
+ * @schema JobSpecInitProvider
  */
-export enum JobSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface JobSpecInitProvider {
+  /**
+   * App Engine HTTP target. If the job providers a App Engine HTTP target the cron will send a request to the service instance Structure is documented below.
+   *
+   * @schema JobSpecInitProvider#appEngineHttpTarget
+   */
+  readonly appEngineHttpTarget?: JobSpecInitProviderAppEngineHttpTarget[];
+
+  /**
+   * The deadline for job attempts. If the request handler does not respond by this deadline then the request is cancelled and the attempt is marked as a DEADLINE_EXCEEDED failure. The failed attempt can be viewed in execution logs. Cloud Scheduler will retry the job according to the RetryConfig. The allowed duration for this deadline is:
+   *
+   * @schema JobSpecInitProvider#attemptDeadline
+   */
+  readonly attemptDeadline?: string;
+
+  /**
+   * A human-readable description for the job. This string must not contain more than 500 characters.
+   *
+   * @schema JobSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * HTTP target. If the job providers a http_target the cron will send a request to the targeted url Structure is documented below.
+   *
+   * @schema JobSpecInitProvider#httpTarget
+   */
+  readonly httpTarget?: JobSpecInitProviderHttpTarget[];
+
+  /**
+   * Sets the job to a paused state. Jobs default to being enabled when this property is not set.
+   *
+   * @schema JobSpecInitProvider#paused
+   */
+  readonly paused?: boolean;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema JobSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * Pub/Sub target If the job providers a Pub/Sub target the cron will publish a message to the provided topic Structure is documented below.
+   *
+   * @schema JobSpecInitProvider#pubsubTarget
+   */
+  readonly pubsubTarget?: JobSpecInitProviderPubsubTarget[];
+
+  /**
+   * By default, if a job does not complete successfully, meaning that an acknowledgement is not received from the handler, then it will be retried with exponential backoff according to the settings Structure is documented below.
+   *
+   * @schema JobSpecInitProvider#retryConfig
+   */
+  readonly retryConfig?: JobSpecInitProviderRetryConfig[];
+
+  /**
+   * Describes the schedule on which the job will be executed.
+   *
+   * @schema JobSpecInitProvider#schedule
+   */
+  readonly schedule?: string;
+
+  /**
+   * Specifies the time zone to be used in interpreting schedule. The value of this field must be a time zone name from the tz database.
+   *
+   * @schema JobSpecInitProvider#timeZone
+   */
+  readonly timeZone?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProvider(obj: JobSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'appEngineHttpTarget': obj.appEngineHttpTarget?.map(y => toJson_JobSpecInitProviderAppEngineHttpTarget(y)),
+    'attemptDeadline': obj.attemptDeadline,
+    'description': obj.description,
+    'httpTarget': obj.httpTarget?.map(y => toJson_JobSpecInitProviderHttpTarget(y)),
+    'paused': obj.paused,
+    'project': obj.project,
+    'pubsubTarget': obj.pubsubTarget?.map(y => toJson_JobSpecInitProviderPubsubTarget(y)),
+    'retryConfig': obj.retryConfig?.map(y => toJson_JobSpecInitProviderRetryConfig(y)),
+    'schedule': obj.schedule,
+    'timeZone': obj.timeZone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema JobSpecManagementPolicies
+ */
+export enum JobSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -331,43 +438,6 @@ export function toJson_JobSpecProviderConfigRef(obj: JobSpecProviderConfigRef | 
   const result = {
     'name': obj.name,
     'policy': toJson_JobSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema JobSpecProviderRef
- */
-export interface JobSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema JobSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema JobSpecProviderRef#policy
-   */
-  readonly policy?: JobSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'JobSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_JobSpecProviderRef(obj: JobSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_JobSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -493,7 +563,7 @@ export interface JobSpecForProviderAppEngineHttpTarget {
    *
    * @schema JobSpecForProviderAppEngineHttpTarget#relativeUri
    */
-  readonly relativeUri: string;
+  readonly relativeUri?: string;
 
 }
 
@@ -559,7 +629,7 @@ export interface JobSpecForProviderHttpTarget {
    *
    * @schema JobSpecForProviderHttpTarget#uri
    */
-  readonly uri: string;
+  readonly uri?: string;
 
 }
 
@@ -701,6 +771,226 @@ export function toJson_JobSpecForProviderRetryConfig(obj: JobSpecForProviderRetr
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema JobSpecInitProviderAppEngineHttpTarget
+ */
+export interface JobSpecInitProviderAppEngineHttpTarget {
+  /**
+   * App Engine Routing setting for the job. Structure is documented below.
+   *
+   * @schema JobSpecInitProviderAppEngineHttpTarget#appEngineRouting
+   */
+  readonly appEngineRouting?: JobSpecInitProviderAppEngineHttpTargetAppEngineRouting[];
+
+  /**
+   * HTTP request body. A request body is allowed only if the HTTP method is POST or PUT. It will result in invalid argument error to set a body on a job with an incompatible HttpMethod. A base64-encoded string.
+   *
+   * @schema JobSpecInitProviderAppEngineHttpTarget#body
+   */
+  readonly body?: string;
+
+  /**
+   * HTTP request headers. This map contains the header field names and values. Headers can be set when the job is created.
+   *
+   * @schema JobSpecInitProviderAppEngineHttpTarget#headers
+   */
+  readonly headers?: { [key: string]: string };
+
+  /**
+   * Which HTTP method to use for the request.
+   *
+   * @schema JobSpecInitProviderAppEngineHttpTarget#httpMethod
+   */
+  readonly httpMethod?: string;
+
+  /**
+   * The relative URI. The relative URL must begin with "/" and must be a valid HTTP relative URL. It can contain a path, query string arguments, and # fragments. If the relative URL is empty, then the root path "/" will be used. No spaces are allowed, and the maximum length allowed is 2083 characters
+   *
+   * @schema JobSpecInitProviderAppEngineHttpTarget#relativeUri
+   */
+  readonly relativeUri?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderAppEngineHttpTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderAppEngineHttpTarget(obj: JobSpecInitProviderAppEngineHttpTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'appEngineRouting': obj.appEngineRouting?.map(y => toJson_JobSpecInitProviderAppEngineHttpTargetAppEngineRouting(y)),
+    'body': obj.body,
+    'headers': ((obj.headers) === undefined) ? undefined : (Object.entries(obj.headers).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'httpMethod': obj.httpMethod,
+    'relativeUri': obj.relativeUri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderHttpTarget
+ */
+export interface JobSpecInitProviderHttpTarget {
+  /**
+   * HTTP request body. A request body is allowed only if the HTTP method is POST, PUT, or PATCH. It is an error to set body on a job with an incompatible HttpMethod. A base64-encoded string.
+   *
+   * @schema JobSpecInitProviderHttpTarget#body
+   */
+  readonly body?: string;
+
+  /**
+   * This map contains the header field names and values. Repeated headers are not supported, but a header value can contain commas.
+   *
+   * @schema JobSpecInitProviderHttpTarget#headers
+   */
+  readonly headers?: { [key: string]: string };
+
+  /**
+   * Which HTTP method to use for the request.
+   *
+   * @schema JobSpecInitProviderHttpTarget#httpMethod
+   */
+  readonly httpMethod?: string;
+
+  /**
+   * Contains information needed for generating an OAuth token. This type of authorization should be used when sending requests to a GCP endpoint. Structure is documented below.
+   *
+   * @schema JobSpecInitProviderHttpTarget#oauthToken
+   */
+  readonly oauthToken?: JobSpecInitProviderHttpTargetOauthToken[];
+
+  /**
+   * Contains information needed for generating an OpenID Connect token. This type of authorization should be used when sending requests to third party endpoints or Cloud Run. Structure is documented below.
+   *
+   * @schema JobSpecInitProviderHttpTarget#oidcToken
+   */
+  readonly oidcToken?: JobSpecInitProviderHttpTargetOidcToken[];
+
+  /**
+   * The full URI path that the request will be sent to.
+   *
+   * @schema JobSpecInitProviderHttpTarget#uri
+   */
+  readonly uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderHttpTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderHttpTarget(obj: JobSpecInitProviderHttpTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'body': obj.body,
+    'headers': ((obj.headers) === undefined) ? undefined : (Object.entries(obj.headers).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'httpMethod': obj.httpMethod,
+    'oauthToken': obj.oauthToken?.map(y => toJson_JobSpecInitProviderHttpTargetOauthToken(y)),
+    'oidcToken': obj.oidcToken?.map(y => toJson_JobSpecInitProviderHttpTargetOidcToken(y)),
+    'uri': obj.uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderPubsubTarget
+ */
+export interface JobSpecInitProviderPubsubTarget {
+  /**
+   * Attributes for PubsubMessage. Pubsub message must contain either non-empty data, or at least one attribute.
+   *
+   * @schema JobSpecInitProviderPubsubTarget#attributes
+   */
+  readonly attributes?: { [key: string]: string };
+
+  /**
+   * The message payload for PubsubMessage. Pubsub message must contain either non-empty data, or at least one attribute. A base64-encoded string.
+   *
+   * @schema JobSpecInitProviderPubsubTarget#data
+   */
+  readonly data?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderPubsubTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderPubsubTarget(obj: JobSpecInitProviderPubsubTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'attributes': ((obj.attributes) === undefined) ? undefined : (Object.entries(obj.attributes).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'data': obj.data,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderRetryConfig
+ */
+export interface JobSpecInitProviderRetryConfig {
+  /**
+   * The maximum amount of time to wait before retrying a job after it fails. A duration in seconds with up to nine fractional digits, terminated by 's'.
+   *
+   * @schema JobSpecInitProviderRetryConfig#maxBackoffDuration
+   */
+  readonly maxBackoffDuration?: string;
+
+  /**
+   * The time between retries will double maxDoublings times. A job's retry interval starts at minBackoffDuration, then doubles maxDoublings times, then increases linearly, and finally retries retries at intervals of maxBackoffDuration up to retryCount times.
+   *
+   * @schema JobSpecInitProviderRetryConfig#maxDoublings
+   */
+  readonly maxDoublings?: number;
+
+  /**
+   * The time limit for retrying a failed job, measured from time when an execution was first attempted. If specified with retryCount, the job will be retried until both limits are reached. A duration in seconds with up to nine fractional digits, terminated by 's'.
+   *
+   * @schema JobSpecInitProviderRetryConfig#maxRetryDuration
+   */
+  readonly maxRetryDuration?: string;
+
+  /**
+   * The minimum amount of time to wait before retrying a job after it fails. A duration in seconds with up to nine fractional digits, terminated by 's'.
+   *
+   * @schema JobSpecInitProviderRetryConfig#minBackoffDuration
+   */
+  readonly minBackoffDuration?: string;
+
+  /**
+   * The number of attempts that the system will make to run a job using the exponential backoff procedure described by maxDoublings. Values greater than 5 and negative values are not allowed.
+   *
+   * @schema JobSpecInitProviderRetryConfig#retryCount
+   */
+  readonly retryCount?: number;
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderRetryConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderRetryConfig(obj: JobSpecInitProviderRetryConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxBackoffDuration': obj.maxBackoffDuration,
+    'maxDoublings': obj.maxDoublings,
+    'maxRetryDuration': obj.maxRetryDuration,
+    'minBackoffDuration': obj.minBackoffDuration,
+    'retryCount': obj.retryCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema JobSpecProviderConfigRefPolicy
@@ -727,43 +1017,6 @@ export interface JobSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_JobSpecProviderConfigRefPolicy(obj: JobSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema JobSpecProviderRefPolicy
- */
-export interface JobSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema JobSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: JobSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema JobSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: JobSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'JobSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_JobSpecProviderRefPolicy(obj: JobSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -915,7 +1168,7 @@ export interface JobSpecForProviderHttpTargetOauthToken {
    *
    * @schema JobSpecForProviderHttpTargetOauthToken#serviceAccountEmail
    */
-  readonly serviceAccountEmail: string;
+  readonly serviceAccountEmail?: string;
 
 }
 
@@ -950,7 +1203,7 @@ export interface JobSpecForProviderHttpTargetOidcToken {
    *
    * @schema JobSpecForProviderHttpTargetOidcToken#serviceAccountEmail
    */
-  readonly serviceAccountEmail: string;
+  readonly serviceAccountEmail?: string;
 
 }
 
@@ -1052,6 +1305,119 @@ export function toJson_JobSpecForProviderPubsubTargetTopicNameSelector(obj: JobS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema JobSpecInitProviderAppEngineHttpTargetAppEngineRouting
+ */
+export interface JobSpecInitProviderAppEngineHttpTargetAppEngineRouting {
+  /**
+   * App instance. By default, the job is sent to an instance which is available when the job is attempted.
+   *
+   * @schema JobSpecInitProviderAppEngineHttpTargetAppEngineRouting#instance
+   */
+  readonly instance?: string;
+
+  /**
+   * App service. By default, the job is sent to the service which is the default service when the job is attempted.
+   *
+   * @schema JobSpecInitProviderAppEngineHttpTargetAppEngineRouting#service
+   */
+  readonly service?: string;
+
+  /**
+   * App version. By default, the job is sent to the version which is the default version when the job is attempted.
+   *
+   * @schema JobSpecInitProviderAppEngineHttpTargetAppEngineRouting#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderAppEngineHttpTargetAppEngineRouting' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderAppEngineHttpTargetAppEngineRouting(obj: JobSpecInitProviderAppEngineHttpTargetAppEngineRouting | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instance': obj.instance,
+    'service': obj.service,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderHttpTargetOauthToken
+ */
+export interface JobSpecInitProviderHttpTargetOauthToken {
+  /**
+   * OAuth scope to be used for generating OAuth access token. If not specified, "https://www.googleapis.com/auth/cloud-platform" will be used.
+   *
+   * @schema JobSpecInitProviderHttpTargetOauthToken#scope
+   */
+  readonly scope?: string;
+
+  /**
+   * Service account email to be used for generating OAuth token. The service account must be within the same project as the job.
+   *
+   * @schema JobSpecInitProviderHttpTargetOauthToken#serviceAccountEmail
+   */
+  readonly serviceAccountEmail?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderHttpTargetOauthToken' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderHttpTargetOauthToken(obj: JobSpecInitProviderHttpTargetOauthToken | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'scope': obj.scope,
+    'serviceAccountEmail': obj.serviceAccountEmail,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderHttpTargetOidcToken
+ */
+export interface JobSpecInitProviderHttpTargetOidcToken {
+  /**
+   * Audience to be used when generating OIDC token. If not specified, the URI specified in target will be used.
+   *
+   * @schema JobSpecInitProviderHttpTargetOidcToken#audience
+   */
+  readonly audience?: string;
+
+  /**
+   * Service account email to be used for generating OAuth token. The service account must be within the same project as the job.
+   *
+   * @schema JobSpecInitProviderHttpTargetOidcToken#serviceAccountEmail
+   */
+  readonly serviceAccountEmail?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderHttpTargetOidcToken' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderHttpTargetOidcToken(obj: JobSpecInitProviderHttpTargetOidcToken | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audience': obj.audience,
+    'serviceAccountEmail': obj.serviceAccountEmail,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema JobSpecProviderConfigRefPolicyResolution
@@ -1069,30 +1435,6 @@ export enum JobSpecProviderConfigRefPolicyResolution {
  * @schema JobSpecProviderConfigRefPolicyResolve
  */
 export enum JobSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema JobSpecProviderRefPolicyResolution
- */
-export enum JobSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema JobSpecProviderRefPolicyResolve
- */
-export enum JobSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

@@ -99,7 +99,7 @@ export function toJson_DeliveryStreamProps(obj: DeliveryStreamProps | undefined)
  */
 export interface DeliveryStreamSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DeliveryStreamSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface DeliveryStreamSpec {
   readonly forProvider: DeliveryStreamSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DeliveryStreamSpec#managementPolicy
+   * @schema DeliveryStreamSpec#initProvider
    */
-  readonly managementPolicy?: DeliveryStreamSpecManagementPolicy;
+  readonly initProvider?: DeliveryStreamSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DeliveryStreamSpec#managementPolicies
+   */
+  readonly managementPolicies?: DeliveryStreamSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface DeliveryStreamSpec {
    * @schema DeliveryStreamSpec#providerConfigRef
    */
   readonly providerConfigRef?: DeliveryStreamSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DeliveryStreamSpec#providerRef
-   */
-  readonly providerRef?: DeliveryStreamSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_DeliveryStreamSpec(obj: DeliveryStreamSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DeliveryStreamSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DeliveryStreamSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DeliveryStreamSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DeliveryStreamSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DeliveryStreamSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DeliveryStreamSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_DeliveryStreamSpec(obj: DeliveryStreamSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DeliveryStreamSpecDeletionPolicy
  */
@@ -326,17 +326,163 @@ export function toJson_DeliveryStreamSpecForProvider(obj: DeliveryStreamSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DeliveryStreamSpecManagementPolicy
+ * @schema DeliveryStreamSpecInitProvider
  */
-export enum DeliveryStreamSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DeliveryStreamSpecInitProvider {
+  /**
+   * The Amazon Resource Name (ARN) specifying the Stream
+   *
+   * @schema DeliveryStreamSpecInitProvider#arn
+   */
+  readonly arn?: string;
+
+  /**
+   * –  This is the destination to where the data is delivered. The only options are s3 (Deprecated, use extended_s3 instead), extended_s3, redshift, elasticsearch, splunk, http_endpoint and opensearch.
+   *
+   * @schema DeliveryStreamSpecInitProvider#destination
+   */
+  readonly destination?: string;
+
+  /**
+   * @schema DeliveryStreamSpecInitProvider#destinationId
+   */
+  readonly destinationId?: string;
+
+  /**
+   * Configuration options if elasticsearch is the destination. More details are given below.
+   *
+   * @schema DeliveryStreamSpecInitProvider#elasticsearchConfiguration
+   */
+  readonly elasticsearchConfiguration?: DeliveryStreamSpecInitProviderElasticsearchConfiguration[];
+
+  /**
+   * Enhanced configuration options for the s3 destination. More details are given below.
+   *
+   * @schema DeliveryStreamSpecInitProvider#extendedS3Configuration
+   */
+  readonly extendedS3Configuration?: DeliveryStreamSpecInitProviderExtendedS3Configuration[];
+
+  /**
+   * Configuration options if http_endpoint is the destination. requires the user to also specify a s3_configuration block.  More details are given below.
+   *
+   * @schema DeliveryStreamSpecInitProvider#httpEndpointConfiguration
+   */
+  readonly httpEndpointConfiguration?: DeliveryStreamSpecInitProviderHttpEndpointConfiguration[];
+
+  /**
+   * Allows the ability to specify the kinesis stream that is used as the source of the firehose delivery stream.
+   *
+   * @schema DeliveryStreamSpecInitProvider#kinesisSourceConfiguration
+   */
+  readonly kinesisSourceConfiguration?: DeliveryStreamSpecInitProviderKinesisSourceConfiguration[];
+
+  /**
+   * A name to identify the stream. This is unique to the AWS account and region the Stream is created in. When using for WAF logging, name must be prefixed with aws-waf-logs-. See AWS Documentation for more details.
+   *
+   * @schema DeliveryStreamSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Configuration options if opensearch is the destination. More details are given below.
+   *
+   * @schema DeliveryStreamSpecInitProvider#opensearchConfiguration
+   */
+  readonly opensearchConfiguration?: DeliveryStreamSpecInitProviderOpensearchConfiguration[];
+
+  /**
+   * Configuration options if redshift is the destination. Using redshift_configuration requires the user to also specify a s3_configuration block. More details are given below.
+   *
+   * @schema DeliveryStreamSpecInitProvider#redshiftConfiguration
+   */
+  readonly redshiftConfiguration?: DeliveryStreamSpecInitProviderRedshiftConfiguration[];
+
+  /**
+   * Required for non-S3 destinations. For S3 destination, use extended_s3_configuration instead. Configuration options for the s3 destination (or the intermediate bucket if the destination is redshift). More details are given below.
+   *
+   * @schema DeliveryStreamSpecInitProvider#s3Configuration
+   */
+  readonly s3Configuration?: DeliveryStreamSpecInitProviderS3Configuration[];
+
+  /**
+   * Encrypt at rest options. Server-side encryption should not be enabled when a kinesis stream is configured as the source of the firehose delivery stream.
+   *
+   * @schema DeliveryStreamSpecInitProvider#serverSideEncryption
+   */
+  readonly serverSideEncryption?: DeliveryStreamSpecInitProviderServerSideEncryption[];
+
+  /**
+   * Configuration options if splunk is the destination. More details are given below.
+   *
+   * @schema DeliveryStreamSpecInitProvider#splunkConfiguration
+   */
+  readonly splunkConfiguration?: DeliveryStreamSpecInitProviderSplunkConfiguration[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema DeliveryStreamSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Specifies the table version for the output data schema. Defaults to LATEST.
+   *
+   * @default LATEST.
+   * @schema DeliveryStreamSpecInitProvider#versionId
+   */
+  readonly versionId?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProvider(obj: DeliveryStreamSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'arn': obj.arn,
+    'destination': obj.destination,
+    'destinationId': obj.destinationId,
+    'elasticsearchConfiguration': obj.elasticsearchConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderElasticsearchConfiguration(y)),
+    'extendedS3Configuration': obj.extendedS3Configuration?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3Configuration(y)),
+    'httpEndpointConfiguration': obj.httpEndpointConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderHttpEndpointConfiguration(y)),
+    'kinesisSourceConfiguration': obj.kinesisSourceConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderKinesisSourceConfiguration(y)),
+    'name': obj.name,
+    'opensearchConfiguration': obj.opensearchConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderOpensearchConfiguration(y)),
+    'redshiftConfiguration': obj.redshiftConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderRedshiftConfiguration(y)),
+    's3Configuration': obj.s3Configuration?.map(y => toJson_DeliveryStreamSpecInitProviderS3Configuration(y)),
+    'serverSideEncryption': obj.serverSideEncryption?.map(y => toJson_DeliveryStreamSpecInitProviderServerSideEncryption(y)),
+    'splunkConfiguration': obj.splunkConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderSplunkConfiguration(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'versionId': obj.versionId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DeliveryStreamSpecManagementPolicies
+ */
+export enum DeliveryStreamSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -370,43 +516,6 @@ export function toJson_DeliveryStreamSpecProviderConfigRef(obj: DeliveryStreamSp
   const result = {
     'name': obj.name,
     'policy': toJson_DeliveryStreamSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DeliveryStreamSpecProviderRef
- */
-export interface DeliveryStreamSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DeliveryStreamSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DeliveryStreamSpecProviderRef#policy
-   */
-  readonly policy?: DeliveryStreamSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DeliveryStreamSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DeliveryStreamSpecProviderRef(obj: DeliveryStreamSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DeliveryStreamSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -553,7 +662,7 @@ export interface DeliveryStreamSpecForProviderElasticsearchConfiguration {
    *
    * @schema DeliveryStreamSpecForProviderElasticsearchConfiguration#indexName
    */
-  readonly indexName: string;
+  readonly indexName?: string;
 
   /**
    * The Elasticsearch index rotation period.  Index rotation appends a timestamp to the IndexName to facilitate expiration of old data.  Valid values are NoRotation, OneHour, OneDay, OneWeek, and OneMonth.  The default value is OneDay.
@@ -906,7 +1015,7 @@ export interface DeliveryStreamSpecForProviderHttpEndpointConfiguration {
    *
    * @schema DeliveryStreamSpecForProviderHttpEndpointConfiguration#url
    */
-  readonly url: string;
+  readonly url?: string;
 
 }
 
@@ -945,14 +1054,14 @@ export interface DeliveryStreamSpecForProviderKinesisSourceConfiguration {
    *
    * @schema DeliveryStreamSpecForProviderKinesisSourceConfiguration#kinesisStreamArn
    */
-  readonly kinesisStreamArn: string;
+  readonly kinesisStreamArn?: string;
 
   /**
    * The ARN of the AWS credentials.
    *
    * @schema DeliveryStreamSpecForProviderKinesisSourceConfiguration#roleArn
    */
-  readonly roleArn: string;
+  readonly roleArn?: string;
 
 }
 
@@ -1029,7 +1138,7 @@ export interface DeliveryStreamSpecForProviderOpensearchConfiguration {
    *
    * @schema DeliveryStreamSpecForProviderOpensearchConfiguration#indexName
    */
-  readonly indexName: string;
+  readonly indexName?: string;
 
   /**
    * The Elasticsearch index rotation period.  Index rotation appends a timestamp to the IndexName to facilitate expiration of old data.  Valid values are NoRotation, OneHour, OneDay, OneWeek, and OneMonth.  The default value is OneDay.
@@ -1142,7 +1251,7 @@ export interface DeliveryStreamSpecForProviderRedshiftConfiguration {
    *
    * @schema DeliveryStreamSpecForProviderRedshiftConfiguration#clusterJdbcurl
    */
-  readonly clusterJdbcurl: string;
+  readonly clusterJdbcurl?: string;
 
   /**
    * Copy options for copying the data from the s3 intermediate bucket into redshift, for example to change the default delimiter. For valid values, see the AWS documentation
@@ -1163,7 +1272,7 @@ export interface DeliveryStreamSpecForProviderRedshiftConfiguration {
    *
    * @schema DeliveryStreamSpecForProviderRedshiftConfiguration#dataTableName
    */
-  readonly dataTableName: string;
+  readonly dataTableName?: string;
 
   /**
    * The password for the username above.
@@ -1226,7 +1335,7 @@ export interface DeliveryStreamSpecForProviderRedshiftConfiguration {
    *
    * @schema DeliveryStreamSpecForProviderRedshiftConfiguration#username
    */
-  readonly username: string;
+  readonly username?: string;
 
 }
 
@@ -1448,7 +1557,7 @@ export interface DeliveryStreamSpecForProviderSplunkConfiguration {
    *
    * @schema DeliveryStreamSpecForProviderSplunkConfiguration#hecEndpoint
    */
-  readonly hecEndpoint: string;
+  readonly hecEndpoint?: string;
 
   /**
    * The HEC endpoint type. Valid values are Raw or Event. The default value is Raw.
@@ -1509,6 +1618,755 @@ export function toJson_DeliveryStreamSpecForProviderSplunkConfiguration(obj: Del
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DeliveryStreamSpecInitProviderElasticsearchConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderElasticsearchConfiguration {
+  /**
+   * Buffer incoming data for the specified period of time, in seconds between 60 to 900, before delivering it to the destination.  The default value is 300s.
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfiguration#bufferingInterval
+   */
+  readonly bufferingInterval?: number;
+
+  /**
+   * Buffer incoming data to the specified size, in MBs between 1 to 100, before delivering it to the destination.  The default value is 5MB.
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfiguration#bufferingSize
+   */
+  readonly bufferingSize?: number;
+
+  /**
+   * The CloudWatch Logging Options for the delivery stream. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfiguration#cloudwatchLoggingOptions
+   */
+  readonly cloudwatchLoggingOptions?: DeliveryStreamSpecInitProviderElasticsearchConfigurationCloudwatchLoggingOptions[];
+
+  /**
+   * The endpoint to use when communicating with the cluster. Conflicts with domain_arn.
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfiguration#clusterEndpoint
+   */
+  readonly clusterEndpoint?: string;
+
+  /**
+   * The Elasticsearch index name.
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfiguration#indexName
+   */
+  readonly indexName?: string;
+
+  /**
+   * The Elasticsearch index rotation period.  Index rotation appends a timestamp to the IndexName to facilitate expiration of old data.  Valid values are NoRotation, OneHour, OneDay, OneWeek, and OneMonth.  The default value is OneDay.
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfiguration#indexRotationPeriod
+   */
+  readonly indexRotationPeriod?: string;
+
+  /**
+   * The data processing configuration.  More details are given below.
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfiguration#processingConfiguration
+   */
+  readonly processingConfiguration?: DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfiguration[];
+
+  /**
+   * The length of time during which Firehose retries delivery after a failure, starting from the initial request and including the first attempt. The default value is 3600 seconds (60 minutes). Firehose does not retry if the value of DurationInSeconds is 0 (zero) or if the first delivery attempt takes longer than the current value.
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfiguration#retryDuration
+   */
+  readonly retryDuration?: number;
+
+  /**
+   * The Amazon S3 backup mode.  Valid values are Disabled and Enabled.  Default value is Disabled.
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfiguration#s3BackupMode
+   */
+  readonly s3BackupMode?: string;
+
+  /**
+   * The Elasticsearch type name with maximum length of 100 characters.
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfiguration#typeName
+   */
+  readonly typeName?: string;
+
+  /**
+   * The VPC configuration for the delivery stream to connect to Elastic Search associated with the VPC. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfiguration#vpcConfig
+   */
+  readonly vpcConfig?: DeliveryStreamSpecInitProviderElasticsearchConfigurationVpcConfig[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderElasticsearchConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderElasticsearchConfiguration(obj: DeliveryStreamSpecInitProviderElasticsearchConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bufferingInterval': obj.bufferingInterval,
+    'bufferingSize': obj.bufferingSize,
+    'cloudwatchLoggingOptions': obj.cloudwatchLoggingOptions?.map(y => toJson_DeliveryStreamSpecInitProviderElasticsearchConfigurationCloudwatchLoggingOptions(y)),
+    'clusterEndpoint': obj.clusterEndpoint,
+    'indexName': obj.indexName,
+    'indexRotationPeriod': obj.indexRotationPeriod,
+    'processingConfiguration': obj.processingConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfiguration(y)),
+    'retryDuration': obj.retryDuration,
+    's3BackupMode': obj.s3BackupMode,
+    'typeName': obj.typeName,
+    'vpcConfig': obj.vpcConfig?.map(y => toJson_DeliveryStreamSpecInitProviderElasticsearchConfigurationVpcConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3Configuration
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3Configuration {
+  /**
+   * Buffer incoming data for the specified period of time, in seconds, before delivering it to the destination. The default value is 300.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3Configuration#bufferInterval
+   */
+  readonly bufferInterval?: number;
+
+  /**
+   * Buffer incoming data to the specified size, in MBs, before delivering it to the destination. The default value is 5. We recommend setting SizeInMBs to a value greater than the amount of data you typically ingest into the delivery stream in 10 seconds. For example, if you typically ingest data at 1 MB/sec set SizeInMBs to be 10 MB or higher.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3Configuration#bufferSize
+   */
+  readonly bufferSize?: number;
+
+  /**
+   * The CloudWatch Logging Options for the delivery stream. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3Configuration#cloudwatchLoggingOptions
+   */
+  readonly cloudwatchLoggingOptions?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationCloudwatchLoggingOptions[];
+
+  /**
+   * The compression format. If no value is specified, the default is UNCOMPRESSED. Other supported values are GZIP, ZIP, Snappy, & HADOOP_SNAPPY.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3Configuration#compressionFormat
+   */
+  readonly compressionFormat?: string;
+
+  /**
+   * Nested argument for the serializer, deserializer, and schema for converting data from the JSON format to the Parquet or ORC format before writing it to Amazon S3. More details given below.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3Configuration#dataFormatConversionConfiguration
+   */
+  readonly dataFormatConversionConfiguration?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfiguration[];
+
+  /**
+   * The configuration for dynamic partitioning. See Dynamic Partitioning Configuration below for more details. Required when using dynamic partitioning.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3Configuration#dynamicPartitioningConfiguration
+   */
+  readonly dynamicPartitioningConfiguration?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDynamicPartitioningConfiguration[];
+
+  /**
+   * Prefix added to failed records before writing them to S3. Not currently supported for redshift destination. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see Custom Prefixes for Amazon S3 Objects.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3Configuration#errorOutputPrefix
+   */
+  readonly errorOutputPrefix?: string;
+
+  /**
+   * Specifies the KMS key ARN the stream will use to encrypt data. If not set, no encryption will be used.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3Configuration#kmsKeyArn
+   */
+  readonly kmsKeyArn?: string;
+
+  /**
+   * The "YYYY/MM/DD/HH" time format prefix is automatically used for delivered S3 files. You can specify an extra prefix to be added in front of the time format prefix. Note that if the prefix ends with a slash, it appears as a folder in the S3 bucket
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3Configuration#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * The data processing configuration.  More details are given below.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3Configuration#processingConfiguration
+   */
+  readonly processingConfiguration?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfiguration[];
+
+  /**
+   * The configuration for backup in Amazon S3. Required if s3_backup_mode is Enabled. Supports the same fields as s3_configuration object.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3Configuration#s3BackupConfiguration
+   */
+  readonly s3BackupConfiguration?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfiguration[];
+
+  /**
+   * The Amazon S3 backup mode.  Valid values are Disabled and Enabled.  Default value is Disabled.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3Configuration#s3BackupMode
+   */
+  readonly s3BackupMode?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3Configuration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3Configuration(obj: DeliveryStreamSpecInitProviderExtendedS3Configuration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bufferInterval': obj.bufferInterval,
+    'bufferSize': obj.bufferSize,
+    'cloudwatchLoggingOptions': obj.cloudwatchLoggingOptions?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationCloudwatchLoggingOptions(y)),
+    'compressionFormat': obj.compressionFormat,
+    'dataFormatConversionConfiguration': obj.dataFormatConversionConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfiguration(y)),
+    'dynamicPartitioningConfiguration': obj.dynamicPartitioningConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDynamicPartitioningConfiguration(y)),
+    'errorOutputPrefix': obj.errorOutputPrefix,
+    'kmsKeyArn': obj.kmsKeyArn,
+    'prefix': obj.prefix,
+    'processingConfiguration': obj.processingConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfiguration(y)),
+    's3BackupConfiguration': obj.s3BackupConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfiguration(y)),
+    's3BackupMode': obj.s3BackupMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderHttpEndpointConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderHttpEndpointConfiguration {
+  /**
+   * Buffer incoming data for the specified period of time, in seconds between 60 to 900, before delivering it to the destination.  The default value is 300s.
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfiguration#bufferingInterval
+   */
+  readonly bufferingInterval?: number;
+
+  /**
+   * Buffer incoming data to the specified size, in MBs between 1 to 100, before delivering it to the destination.  The default value is 5MB.
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfiguration#bufferingSize
+   */
+  readonly bufferingSize?: number;
+
+  /**
+   * The CloudWatch Logging Options for the delivery stream. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfiguration#cloudwatchLoggingOptions
+   */
+  readonly cloudwatchLoggingOptions?: DeliveryStreamSpecInitProviderHttpEndpointConfigurationCloudwatchLoggingOptions[];
+
+  /**
+   * The HTTP endpoint name.
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfiguration#name
+   */
+  readonly name?: string;
+
+  /**
+   * The data processing configuration.  More details are given below.
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfiguration#processingConfiguration
+   */
+  readonly processingConfiguration?: DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfiguration[];
+
+  /**
+   * The request configuration.  More details are given below.
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfiguration#requestConfiguration
+   */
+  readonly requestConfiguration?: DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfiguration[];
+
+  /**
+   * The length of time during which Firehose retries delivery after a failure, starting from the initial request and including the first attempt. The default value is 3600 seconds (60 minutes). Firehose does not retry if the value of DurationInSeconds is 0 (zero) or if the first delivery attempt takes longer than the current value.
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfiguration#retryDuration
+   */
+  readonly retryDuration?: number;
+
+  /**
+   * The Amazon S3 backup mode.  Valid values are Disabled and Enabled.  Default value is Disabled.
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfiguration#s3BackupMode
+   */
+  readonly s3BackupMode?: string;
+
+  /**
+   * The HTTP endpoint URL to which Kinesis Firehose sends your data.
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfiguration#url
+   */
+  readonly url?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderHttpEndpointConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderHttpEndpointConfiguration(obj: DeliveryStreamSpecInitProviderHttpEndpointConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bufferingInterval': obj.bufferingInterval,
+    'bufferingSize': obj.bufferingSize,
+    'cloudwatchLoggingOptions': obj.cloudwatchLoggingOptions?.map(y => toJson_DeliveryStreamSpecInitProviderHttpEndpointConfigurationCloudwatchLoggingOptions(y)),
+    'name': obj.name,
+    'processingConfiguration': obj.processingConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfiguration(y)),
+    'requestConfiguration': obj.requestConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfiguration(y)),
+    'retryDuration': obj.retryDuration,
+    's3BackupMode': obj.s3BackupMode,
+    'url': obj.url,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderKinesisSourceConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderKinesisSourceConfiguration {
+  /**
+   * The kinesis stream used as the source of the firehose delivery stream.
+   *
+   * @schema DeliveryStreamSpecInitProviderKinesisSourceConfiguration#kinesisStreamArn
+   */
+  readonly kinesisStreamArn?: string;
+
+  /**
+   * The ARN of the AWS credentials.
+   *
+   * @schema DeliveryStreamSpecInitProviderKinesisSourceConfiguration#roleArn
+   */
+  readonly roleArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderKinesisSourceConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderKinesisSourceConfiguration(obj: DeliveryStreamSpecInitProviderKinesisSourceConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kinesisStreamArn': obj.kinesisStreamArn,
+    'roleArn': obj.roleArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderOpensearchConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderOpensearchConfiguration {
+  /**
+   * Buffer incoming data for the specified period of time, in seconds between 60 to 900, before delivering it to the destination.  The default value is 300s.
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfiguration#bufferingInterval
+   */
+  readonly bufferingInterval?: number;
+
+  /**
+   * Buffer incoming data to the specified size, in MBs between 1 to 100, before delivering it to the destination.  The default value is 5MB.
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfiguration#bufferingSize
+   */
+  readonly bufferingSize?: number;
+
+  /**
+   * The CloudWatch Logging Options for the delivery stream. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfiguration#cloudwatchLoggingOptions
+   */
+  readonly cloudwatchLoggingOptions?: DeliveryStreamSpecInitProviderOpensearchConfigurationCloudwatchLoggingOptions[];
+
+  /**
+   * The endpoint to use when communicating with the cluster. Conflicts with domain_arn.
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfiguration#clusterEndpoint
+   */
+  readonly clusterEndpoint?: string;
+
+  /**
+   * The Elasticsearch index name.
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfiguration#indexName
+   */
+  readonly indexName?: string;
+
+  /**
+   * The Elasticsearch index rotation period.  Index rotation appends a timestamp to the IndexName to facilitate expiration of old data.  Valid values are NoRotation, OneHour, OneDay, OneWeek, and OneMonth.  The default value is OneDay.
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfiguration#indexRotationPeriod
+   */
+  readonly indexRotationPeriod?: string;
+
+  /**
+   * The data processing configuration.  More details are given below.
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfiguration#processingConfiguration
+   */
+  readonly processingConfiguration?: DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfiguration[];
+
+  /**
+   * The length of time during which Firehose retries delivery after a failure, starting from the initial request and including the first attempt. The default value is 3600 seconds (60 minutes). Firehose does not retry if the value of DurationInSeconds is 0 (zero) or if the first delivery attempt takes longer than the current value.
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfiguration#retryDuration
+   */
+  readonly retryDuration?: number;
+
+  /**
+   * The Amazon S3 backup mode.  Valid values are Disabled and Enabled.  Default value is Disabled.
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfiguration#s3BackupMode
+   */
+  readonly s3BackupMode?: string;
+
+  /**
+   * The Elasticsearch type name with maximum length of 100 characters.
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfiguration#typeName
+   */
+  readonly typeName?: string;
+
+  /**
+   * The VPC configuration for the delivery stream to connect to Elastic Search associated with the VPC. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfiguration#vpcConfig
+   */
+  readonly vpcConfig?: DeliveryStreamSpecInitProviderOpensearchConfigurationVpcConfig[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderOpensearchConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderOpensearchConfiguration(obj: DeliveryStreamSpecInitProviderOpensearchConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bufferingInterval': obj.bufferingInterval,
+    'bufferingSize': obj.bufferingSize,
+    'cloudwatchLoggingOptions': obj.cloudwatchLoggingOptions?.map(y => toJson_DeliveryStreamSpecInitProviderOpensearchConfigurationCloudwatchLoggingOptions(y)),
+    'clusterEndpoint': obj.clusterEndpoint,
+    'indexName': obj.indexName,
+    'indexRotationPeriod': obj.indexRotationPeriod,
+    'processingConfiguration': obj.processingConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfiguration(y)),
+    'retryDuration': obj.retryDuration,
+    's3BackupMode': obj.s3BackupMode,
+    'typeName': obj.typeName,
+    'vpcConfig': obj.vpcConfig?.map(y => toJson_DeliveryStreamSpecInitProviderOpensearchConfigurationVpcConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderRedshiftConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderRedshiftConfiguration {
+  /**
+   * The CloudWatch Logging Options for the delivery stream. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfiguration#cloudwatchLoggingOptions
+   */
+  readonly cloudwatchLoggingOptions?: DeliveryStreamSpecInitProviderRedshiftConfigurationCloudwatchLoggingOptions[];
+
+  /**
+   * The jdbcurl of the redshift cluster.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfiguration#clusterJdbcurl
+   */
+  readonly clusterJdbcurl?: string;
+
+  /**
+   * Copy options for copying the data from the s3 intermediate bucket into redshift, for example to change the default delimiter. For valid values, see the AWS documentation
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfiguration#copyOptions
+   */
+  readonly copyOptions?: string;
+
+  /**
+   * The data table columns that will be targeted by the copy command.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfiguration#dataTableColumns
+   */
+  readonly dataTableColumns?: string;
+
+  /**
+   * The name of the table in the redshift cluster that the s3 bucket will copy to.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfiguration#dataTableName
+   */
+  readonly dataTableName?: string;
+
+  /**
+   * The data processing configuration.  More details are given below.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfiguration#processingConfiguration
+   */
+  readonly processingConfiguration?: DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfiguration[];
+
+  /**
+   * The length of time during which Firehose retries delivery after a failure, starting from the initial request and including the first attempt. The default value is 3600 seconds (60 minutes). Firehose does not retry if the value of DurationInSeconds is 0 (zero) or if the first delivery attempt takes longer than the current value.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfiguration#retryDuration
+   */
+  readonly retryDuration?: number;
+
+  /**
+   * The configuration for backup in Amazon S3. Required if s3_backup_mode is Enabled. Supports the same fields as s3_configuration object.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfiguration#s3BackupConfiguration
+   */
+  readonly s3BackupConfiguration?: DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfiguration[];
+
+  /**
+   * The Amazon S3 backup mode.  Valid values are Disabled and Enabled.  Default value is Disabled.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfiguration#s3BackupMode
+   */
+  readonly s3BackupMode?: string;
+
+  /**
+   * The username that the firehose delivery stream will assume. It is strongly recommended that the username and password provided is used exclusively for Amazon Kinesis Firehose purposes, and that the permissions for the account are restricted for Amazon Redshift INSERT permissions.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfiguration#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderRedshiftConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderRedshiftConfiguration(obj: DeliveryStreamSpecInitProviderRedshiftConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cloudwatchLoggingOptions': obj.cloudwatchLoggingOptions?.map(y => toJson_DeliveryStreamSpecInitProviderRedshiftConfigurationCloudwatchLoggingOptions(y)),
+    'clusterJdbcurl': obj.clusterJdbcurl,
+    'copyOptions': obj.copyOptions,
+    'dataTableColumns': obj.dataTableColumns,
+    'dataTableName': obj.dataTableName,
+    'processingConfiguration': obj.processingConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfiguration(y)),
+    'retryDuration': obj.retryDuration,
+    's3BackupConfiguration': obj.s3BackupConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfiguration(y)),
+    's3BackupMode': obj.s3BackupMode,
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderS3Configuration
+ */
+export interface DeliveryStreamSpecInitProviderS3Configuration {
+  /**
+   * Buffer incoming data for the specified period of time, in seconds, before delivering it to the destination. The default value is 300.
+   *
+   * @schema DeliveryStreamSpecInitProviderS3Configuration#bufferInterval
+   */
+  readonly bufferInterval?: number;
+
+  /**
+   * Buffer incoming data to the specified size, in MBs, before delivering it to the destination. The default value is 5. We recommend setting SizeInMBs to a value greater than the amount of data you typically ingest into the delivery stream in 10 seconds. For example, if you typically ingest data at 1 MB/sec set SizeInMBs to be 10 MB or higher.
+   *
+   * @schema DeliveryStreamSpecInitProviderS3Configuration#bufferSize
+   */
+  readonly bufferSize?: number;
+
+  /**
+   * The CloudWatch Logging Options for the delivery stream. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderS3Configuration#cloudwatchLoggingOptions
+   */
+  readonly cloudwatchLoggingOptions?: DeliveryStreamSpecInitProviderS3ConfigurationCloudwatchLoggingOptions[];
+
+  /**
+   * The compression format. If no value is specified, the default is UNCOMPRESSED. Other supported values are GZIP, ZIP, Snappy, & HADOOP_SNAPPY.
+   *
+   * @schema DeliveryStreamSpecInitProviderS3Configuration#compressionFormat
+   */
+  readonly compressionFormat?: string;
+
+  /**
+   * Prefix added to failed records before writing them to S3. Not currently supported for redshift destination. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see Custom Prefixes for Amazon S3 Objects.
+   *
+   * @schema DeliveryStreamSpecInitProviderS3Configuration#errorOutputPrefix
+   */
+  readonly errorOutputPrefix?: string;
+
+  /**
+   * Specifies the KMS key ARN the stream will use to encrypt data. If not set, no encryption will be used.
+   *
+   * @schema DeliveryStreamSpecInitProviderS3Configuration#kmsKeyArn
+   */
+  readonly kmsKeyArn?: string;
+
+  /**
+   * The "YYYY/MM/DD/HH" time format prefix is automatically used for delivered S3 files. You can specify an extra prefix to be added in front of the time format prefix. Note that if the prefix ends with a slash, it appears as a folder in the S3 bucket
+   *
+   * @schema DeliveryStreamSpecInitProviderS3Configuration#prefix
+   */
+  readonly prefix?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderS3Configuration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderS3Configuration(obj: DeliveryStreamSpecInitProviderS3Configuration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bufferInterval': obj.bufferInterval,
+    'bufferSize': obj.bufferSize,
+    'cloudwatchLoggingOptions': obj.cloudwatchLoggingOptions?.map(y => toJson_DeliveryStreamSpecInitProviderS3ConfigurationCloudwatchLoggingOptions(y)),
+    'compressionFormat': obj.compressionFormat,
+    'errorOutputPrefix': obj.errorOutputPrefix,
+    'kmsKeyArn': obj.kmsKeyArn,
+    'prefix': obj.prefix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderServerSideEncryption
+ */
+export interface DeliveryStreamSpecInitProviderServerSideEncryption {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderServerSideEncryption#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Amazon Resource Name (ARN) of the encryption key. Required when key_type is CUSTOMER_MANAGED_CMK.
+   *
+   * @schema DeliveryStreamSpecInitProviderServerSideEncryption#keyArn
+   */
+  readonly keyArn?: string;
+
+  /**
+   * Type of encryption key. Default is AWS_OWNED_CMK. Valid values are AWS_OWNED_CMK and CUSTOMER_MANAGED_CMK
+   *
+   * @default AWS_OWNED_CMK. Valid values are AWS_OWNED_CMK and CUSTOMER_MANAGED_CMK
+   * @schema DeliveryStreamSpecInitProviderServerSideEncryption#keyType
+   */
+  readonly keyType?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderServerSideEncryption' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderServerSideEncryption(obj: DeliveryStreamSpecInitProviderServerSideEncryption | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'keyArn': obj.keyArn,
+    'keyType': obj.keyType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderSplunkConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderSplunkConfiguration {
+  /**
+   * The CloudWatch Logging Options for the delivery stream. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderSplunkConfiguration#cloudwatchLoggingOptions
+   */
+  readonly cloudwatchLoggingOptions?: DeliveryStreamSpecInitProviderSplunkConfigurationCloudwatchLoggingOptions[];
+
+  /**
+   * The amount of time, in seconds between 180 and 600, that Kinesis Firehose waits to receive an acknowledgment from Splunk after it sends it data.
+   *
+   * @schema DeliveryStreamSpecInitProviderSplunkConfiguration#hecAcknowledgmentTimeout
+   */
+  readonly hecAcknowledgmentTimeout?: number;
+
+  /**
+   * The HTTP Event Collector (HEC) endpoint to which Kinesis Firehose sends your data.
+   *
+   * @schema DeliveryStreamSpecInitProviderSplunkConfiguration#hecEndpoint
+   */
+  readonly hecEndpoint?: string;
+
+  /**
+   * The HEC endpoint type. Valid values are Raw or Event. The default value is Raw.
+   *
+   * @schema DeliveryStreamSpecInitProviderSplunkConfiguration#hecEndpointType
+   */
+  readonly hecEndpointType?: string;
+
+  /**
+   * The data processing configuration.  More details are given below.
+   *
+   * @schema DeliveryStreamSpecInitProviderSplunkConfiguration#processingConfiguration
+   */
+  readonly processingConfiguration?: DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfiguration[];
+
+  /**
+   * The length of time during which Firehose retries delivery after a failure, starting from the initial request and including the first attempt. The default value is 3600 seconds (60 minutes). Firehose does not retry if the value of DurationInSeconds is 0 (zero) or if the first delivery attempt takes longer than the current value.
+   *
+   * @schema DeliveryStreamSpecInitProviderSplunkConfiguration#retryDuration
+   */
+  readonly retryDuration?: number;
+
+  /**
+   * The Amazon S3 backup mode.  Valid values are Disabled and Enabled.  Default value is Disabled.
+   *
+   * @schema DeliveryStreamSpecInitProviderSplunkConfiguration#s3BackupMode
+   */
+  readonly s3BackupMode?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderSplunkConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderSplunkConfiguration(obj: DeliveryStreamSpecInitProviderSplunkConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cloudwatchLoggingOptions': obj.cloudwatchLoggingOptions?.map(y => toJson_DeliveryStreamSpecInitProviderSplunkConfigurationCloudwatchLoggingOptions(y)),
+    'hecAcknowledgmentTimeout': obj.hecAcknowledgmentTimeout,
+    'hecEndpoint': obj.hecEndpoint,
+    'hecEndpointType': obj.hecEndpointType,
+    'processingConfiguration': obj.processingConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfiguration(y)),
+    'retryDuration': obj.retryDuration,
+    's3BackupMode': obj.s3BackupMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema DeliveryStreamSpecProviderConfigRefPolicy
@@ -1535,43 +2393,6 @@ export interface DeliveryStreamSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DeliveryStreamSpecProviderConfigRefPolicy(obj: DeliveryStreamSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema DeliveryStreamSpecProviderRefPolicy
- */
-export interface DeliveryStreamSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DeliveryStreamSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DeliveryStreamSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DeliveryStreamSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DeliveryStreamSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DeliveryStreamSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DeliveryStreamSpecProviderRefPolicy(obj: DeliveryStreamSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1938,14 +2759,14 @@ export interface DeliveryStreamSpecForProviderElasticsearchConfigurationVpcConfi
    *
    * @schema DeliveryStreamSpecForProviderElasticsearchConfigurationVpcConfig#securityGroupIds
    */
-  readonly securityGroupIds: string[];
+  readonly securityGroupIds?: string[];
 
   /**
    * A list of subnet IDs to associate with Kinesis Firehose.
    *
    * @schema DeliveryStreamSpecForProviderElasticsearchConfigurationVpcConfig#subnetIds
    */
-  readonly subnetIds: string[];
+  readonly subnetIds?: string[];
 
 }
 
@@ -2110,21 +2931,21 @@ export interface DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatC
    *
    * @schema DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatConversionConfiguration#inputFormatConfiguration
    */
-  readonly inputFormatConfiguration: DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfiguration[];
+  readonly inputFormatConfiguration?: DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfiguration[];
 
   /**
    * Nested argument that specifies the serializer that you want Kinesis Data Firehose to use to convert the format of your data to the Parquet or ORC format. More details below.
    *
    * @schema DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatConversionConfiguration#outputFormatConfiguration
    */
-  readonly outputFormatConfiguration: DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfiguration[];
+  readonly outputFormatConfiguration?: DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfiguration[];
 
   /**
    * Nested argument that specifies the AWS Glue Data Catalog table that contains the column information. More details below.
    *
    * @schema DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatConversionConfiguration#schemaConfiguration
    */
-  readonly schemaConfiguration: DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatConversionConfigurationSchemaConfiguration[];
+  readonly schemaConfiguration?: DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatConversionConfigurationSchemaConfiguration[];
 
 }
 
@@ -2308,7 +3129,7 @@ export interface DeliveryStreamSpecForProviderExtendedS3ConfigurationS3BackupCon
    *
    * @schema DeliveryStreamSpecForProviderExtendedS3ConfigurationS3BackupConfiguration#bucketArn
    */
-  readonly bucketArn: string;
+  readonly bucketArn?: string;
 
   /**
    * Buffer incoming data for the specified period of time, in seconds, before delivering it to the destination. The default value is 300.
@@ -2364,7 +3185,7 @@ export interface DeliveryStreamSpecForProviderExtendedS3ConfigurationS3BackupCon
    *
    * @schema DeliveryStreamSpecForProviderExtendedS3ConfigurationS3BackupConfiguration#roleArn
    */
-  readonly roleArn: string;
+  readonly roleArn?: string;
 
 }
 
@@ -2906,14 +3727,14 @@ export interface DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfig {
    *
    * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfig#securityGroupIds
    */
-  readonly securityGroupIds: string[];
+  readonly securityGroupIds?: string[];
 
   /**
    * A list of subnet IDs to associate with Kinesis Firehose.
    *
    * @schema DeliveryStreamSpecForProviderOpensearchConfigurationVpcConfig#subnetIds
    */
-  readonly subnetIds: string[];
+  readonly subnetIds?: string[];
 
 }
 
@@ -3599,6 +4420,889 @@ export function toJson_DeliveryStreamSpecForProviderSplunkConfigurationProcessin
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DeliveryStreamSpecInitProviderElasticsearchConfigurationCloudwatchLoggingOptions
+ */
+export interface DeliveryStreamSpecInitProviderElasticsearchConfigurationCloudwatchLoggingOptions {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfigurationCloudwatchLoggingOptions#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The CloudWatch group name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfigurationCloudwatchLoggingOptions#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * The CloudWatch log stream name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfigurationCloudwatchLoggingOptions#logStreamName
+   */
+  readonly logStreamName?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderElasticsearchConfigurationCloudwatchLoggingOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderElasticsearchConfigurationCloudwatchLoggingOptions(obj: DeliveryStreamSpecInitProviderElasticsearchConfigurationCloudwatchLoggingOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logGroupName': obj.logGroupName,
+    'logStreamName': obj.logStreamName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfiguration {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Array of data processors. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfiguration#processors
+   */
+  readonly processors?: DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessors[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfiguration(obj: DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'processors': obj.processors?.map(y => toJson_DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessors(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderElasticsearchConfigurationVpcConfig
+ */
+export interface DeliveryStreamSpecInitProviderElasticsearchConfigurationVpcConfig {
+  /**
+   * A list of security group IDs to associate with Kinesis Firehose.
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfigurationVpcConfig#securityGroupIds
+   */
+  readonly securityGroupIds?: string[];
+
+  /**
+   * A list of subnet IDs to associate with Kinesis Firehose.
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfigurationVpcConfig#subnetIds
+   */
+  readonly subnetIds?: string[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderElasticsearchConfigurationVpcConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderElasticsearchConfigurationVpcConfig(obj: DeliveryStreamSpecInitProviderElasticsearchConfigurationVpcConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'securityGroupIds': obj.securityGroupIds?.map(y => y),
+    'subnetIds': obj.subnetIds?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationCloudwatchLoggingOptions
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationCloudwatchLoggingOptions {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationCloudwatchLoggingOptions#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The CloudWatch group name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationCloudwatchLoggingOptions#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * The CloudWatch log stream name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationCloudwatchLoggingOptions#logStreamName
+   */
+  readonly logStreamName?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationCloudwatchLoggingOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationCloudwatchLoggingOptions(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationCloudwatchLoggingOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logGroupName': obj.logGroupName,
+    'logStreamName': obj.logStreamName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfiguration {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Nested argument that specifies the deserializer that you want Kinesis Data Firehose to use to convert the format of your data from JSON. More details below.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfiguration#inputFormatConfiguration
+   */
+  readonly inputFormatConfiguration?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfiguration[];
+
+  /**
+   * Nested argument that specifies the serializer that you want Kinesis Data Firehose to use to convert the format of your data to the Parquet or ORC format. More details below.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfiguration#outputFormatConfiguration
+   */
+  readonly outputFormatConfiguration?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfiguration[];
+
+  /**
+   * Nested argument that specifies the AWS Glue Data Catalog table that contains the column information. More details below.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfiguration#schemaConfiguration
+   */
+  readonly schemaConfiguration?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationSchemaConfiguration[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfiguration(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'inputFormatConfiguration': obj.inputFormatConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfiguration(y)),
+    'outputFormatConfiguration': obj.outputFormatConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfiguration(y)),
+    'schemaConfiguration': obj.schemaConfiguration?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationSchemaConfiguration(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDynamicPartitioningConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationDynamicPartitioningConfiguration {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDynamicPartitioningConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The length of time during which Firehose retries delivery after a failure, starting from the initial request and including the first attempt. The default value is 3600 seconds (60 minutes). Firehose does not retry if the value of DurationInSeconds is 0 (zero) or if the first delivery attempt takes longer than the current value.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDynamicPartitioningConfiguration#retryDuration
+   */
+  readonly retryDuration?: number;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationDynamicPartitioningConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDynamicPartitioningConfiguration(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDynamicPartitioningConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'retryDuration': obj.retryDuration,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfiguration {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Array of data processors. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfiguration#processors
+   */
+  readonly processors?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessors[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfiguration(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'processors': obj.processors?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessors(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfiguration {
+  /**
+   * The ARN of the S3 bucket
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfiguration#bucketArn
+   */
+  readonly bucketArn?: string;
+
+  /**
+   * Buffer incoming data for the specified period of time, in seconds, before delivering it to the destination. The default value is 300.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfiguration#bufferInterval
+   */
+  readonly bufferInterval?: number;
+
+  /**
+   * Buffer incoming data to the specified size, in MBs, before delivering it to the destination. The default value is 5. We recommend setting SizeInMBs to a value greater than the amount of data you typically ingest into the delivery stream in 10 seconds. For example, if you typically ingest data at 1 MB/sec set SizeInMBs to be 10 MB or higher.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfiguration#bufferSize
+   */
+  readonly bufferSize?: number;
+
+  /**
+   * The CloudWatch Logging Options for the delivery stream. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfiguration#cloudwatchLoggingOptions
+   */
+  readonly cloudwatchLoggingOptions?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfigurationCloudwatchLoggingOptions[];
+
+  /**
+   * The compression format. If no value is specified, the default is UNCOMPRESSED. Other supported values are GZIP, ZIP, Snappy, & HADOOP_SNAPPY.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfiguration#compressionFormat
+   */
+  readonly compressionFormat?: string;
+
+  /**
+   * Prefix added to failed records before writing them to S3. Not currently supported for redshift destination. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see Custom Prefixes for Amazon S3 Objects.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfiguration#errorOutputPrefix
+   */
+  readonly errorOutputPrefix?: string;
+
+  /**
+   * Specifies the KMS key ARN the stream will use to encrypt data. If not set, no encryption will be used.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfiguration#kmsKeyArn
+   */
+  readonly kmsKeyArn?: string;
+
+  /**
+   * The "YYYY/MM/DD/HH" time format prefix is automatically used for delivered S3 files. You can specify an extra prefix to be added in front of the time format prefix. Note that if the prefix ends with a slash, it appears as a folder in the S3 bucket
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfiguration#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * The ARN of the AWS credentials.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfiguration#roleArn
+   */
+  readonly roleArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfiguration(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketArn': obj.bucketArn,
+    'bufferInterval': obj.bufferInterval,
+    'bufferSize': obj.bufferSize,
+    'cloudwatchLoggingOptions': obj.cloudwatchLoggingOptions?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfigurationCloudwatchLoggingOptions(y)),
+    'compressionFormat': obj.compressionFormat,
+    'errorOutputPrefix': obj.errorOutputPrefix,
+    'kmsKeyArn': obj.kmsKeyArn,
+    'prefix': obj.prefix,
+    'roleArn': obj.roleArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationCloudwatchLoggingOptions
+ */
+export interface DeliveryStreamSpecInitProviderHttpEndpointConfigurationCloudwatchLoggingOptions {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationCloudwatchLoggingOptions#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The CloudWatch group name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationCloudwatchLoggingOptions#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * The CloudWatch log stream name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationCloudwatchLoggingOptions#logStreamName
+   */
+  readonly logStreamName?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderHttpEndpointConfigurationCloudwatchLoggingOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderHttpEndpointConfigurationCloudwatchLoggingOptions(obj: DeliveryStreamSpecInitProviderHttpEndpointConfigurationCloudwatchLoggingOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logGroupName': obj.logGroupName,
+    'logStreamName': obj.logStreamName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfiguration {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Array of data processors. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfiguration#processors
+   */
+  readonly processors?: DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessors[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfiguration(obj: DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'processors': obj.processors?.map(y => toJson_DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessors(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfiguration {
+  /**
+   * Describes the metadata sent to the HTTP endpoint destination. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfiguration#commonAttributes
+   */
+  readonly commonAttributes?: DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfigurationCommonAttributes[];
+
+  /**
+   * Kinesis Data Firehose uses the content encoding to compress the body of a request before sending the request to the destination. Valid values are NONE and GZIP.  Default value is NONE.
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfiguration#contentEncoding
+   */
+  readonly contentEncoding?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfiguration(obj: DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'commonAttributes': obj.commonAttributes?.map(y => toJson_DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfigurationCommonAttributes(y)),
+    'contentEncoding': obj.contentEncoding,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderOpensearchConfigurationCloudwatchLoggingOptions
+ */
+export interface DeliveryStreamSpecInitProviderOpensearchConfigurationCloudwatchLoggingOptions {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfigurationCloudwatchLoggingOptions#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The CloudWatch group name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfigurationCloudwatchLoggingOptions#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * The CloudWatch log stream name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfigurationCloudwatchLoggingOptions#logStreamName
+   */
+  readonly logStreamName?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderOpensearchConfigurationCloudwatchLoggingOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderOpensearchConfigurationCloudwatchLoggingOptions(obj: DeliveryStreamSpecInitProviderOpensearchConfigurationCloudwatchLoggingOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logGroupName': obj.logGroupName,
+    'logStreamName': obj.logStreamName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfiguration {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Array of data processors. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfiguration#processors
+   */
+  readonly processors?: DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessors[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfiguration(obj: DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'processors': obj.processors?.map(y => toJson_DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessors(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderOpensearchConfigurationVpcConfig
+ */
+export interface DeliveryStreamSpecInitProviderOpensearchConfigurationVpcConfig {
+  /**
+   * A list of security group IDs to associate with Kinesis Firehose.
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfigurationVpcConfig#securityGroupIds
+   */
+  readonly securityGroupIds?: string[];
+
+  /**
+   * A list of subnet IDs to associate with Kinesis Firehose.
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfigurationVpcConfig#subnetIds
+   */
+  readonly subnetIds?: string[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderOpensearchConfigurationVpcConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderOpensearchConfigurationVpcConfig(obj: DeliveryStreamSpecInitProviderOpensearchConfigurationVpcConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'securityGroupIds': obj.securityGroupIds?.map(y => y),
+    'subnetIds': obj.subnetIds?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationCloudwatchLoggingOptions
+ */
+export interface DeliveryStreamSpecInitProviderRedshiftConfigurationCloudwatchLoggingOptions {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationCloudwatchLoggingOptions#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The CloudWatch group name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationCloudwatchLoggingOptions#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * The CloudWatch log stream name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationCloudwatchLoggingOptions#logStreamName
+   */
+  readonly logStreamName?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderRedshiftConfigurationCloudwatchLoggingOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderRedshiftConfigurationCloudwatchLoggingOptions(obj: DeliveryStreamSpecInitProviderRedshiftConfigurationCloudwatchLoggingOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logGroupName': obj.logGroupName,
+    'logStreamName': obj.logStreamName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfiguration {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Array of data processors. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfiguration#processors
+   */
+  readonly processors?: DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessors[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfiguration(obj: DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'processors': obj.processors?.map(y => toJson_DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessors(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfiguration {
+  /**
+   * Buffer incoming data for the specified period of time, in seconds, before delivering it to the destination. The default value is 300.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfiguration#bufferInterval
+   */
+  readonly bufferInterval?: number;
+
+  /**
+   * Buffer incoming data to the specified size, in MBs, before delivering it to the destination. The default value is 5. We recommend setting SizeInMBs to a value greater than the amount of data you typically ingest into the delivery stream in 10 seconds. For example, if you typically ingest data at 1 MB/sec set SizeInMBs to be 10 MB or higher.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfiguration#bufferSize
+   */
+  readonly bufferSize?: number;
+
+  /**
+   * The CloudWatch Logging Options for the delivery stream. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfiguration#cloudwatchLoggingOptions
+   */
+  readonly cloudwatchLoggingOptions?: DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfigurationCloudwatchLoggingOptions[];
+
+  /**
+   * The compression format. If no value is specified, the default is UNCOMPRESSED. Other supported values are GZIP, ZIP, Snappy, & HADOOP_SNAPPY.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfiguration#compressionFormat
+   */
+  readonly compressionFormat?: string;
+
+  /**
+   * Prefix added to failed records before writing them to S3. Not currently supported for redshift destination. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see Custom Prefixes for Amazon S3 Objects.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfiguration#errorOutputPrefix
+   */
+  readonly errorOutputPrefix?: string;
+
+  /**
+   * Specifies the KMS key ARN the stream will use to encrypt data. If not set, no encryption will be used.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfiguration#kmsKeyArn
+   */
+  readonly kmsKeyArn?: string;
+
+  /**
+   * The "YYYY/MM/DD/HH" time format prefix is automatically used for delivered S3 files. You can specify an extra prefix to be added in front of the time format prefix. Note that if the prefix ends with a slash, it appears as a folder in the S3 bucket
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfiguration#prefix
+   */
+  readonly prefix?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfiguration(obj: DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bufferInterval': obj.bufferInterval,
+    'bufferSize': obj.bufferSize,
+    'cloudwatchLoggingOptions': obj.cloudwatchLoggingOptions?.map(y => toJson_DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfigurationCloudwatchLoggingOptions(y)),
+    'compressionFormat': obj.compressionFormat,
+    'errorOutputPrefix': obj.errorOutputPrefix,
+    'kmsKeyArn': obj.kmsKeyArn,
+    'prefix': obj.prefix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderS3ConfigurationCloudwatchLoggingOptions
+ */
+export interface DeliveryStreamSpecInitProviderS3ConfigurationCloudwatchLoggingOptions {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderS3ConfigurationCloudwatchLoggingOptions#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The CloudWatch group name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderS3ConfigurationCloudwatchLoggingOptions#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * The CloudWatch log stream name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderS3ConfigurationCloudwatchLoggingOptions#logStreamName
+   */
+  readonly logStreamName?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderS3ConfigurationCloudwatchLoggingOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderS3ConfigurationCloudwatchLoggingOptions(obj: DeliveryStreamSpecInitProviderS3ConfigurationCloudwatchLoggingOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logGroupName': obj.logGroupName,
+    'logStreamName': obj.logStreamName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderSplunkConfigurationCloudwatchLoggingOptions
+ */
+export interface DeliveryStreamSpecInitProviderSplunkConfigurationCloudwatchLoggingOptions {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderSplunkConfigurationCloudwatchLoggingOptions#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The CloudWatch group name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderSplunkConfigurationCloudwatchLoggingOptions#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * The CloudWatch log stream name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderSplunkConfigurationCloudwatchLoggingOptions#logStreamName
+   */
+  readonly logStreamName?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderSplunkConfigurationCloudwatchLoggingOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderSplunkConfigurationCloudwatchLoggingOptions(obj: DeliveryStreamSpecInitProviderSplunkConfigurationCloudwatchLoggingOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logGroupName': obj.logGroupName,
+    'logStreamName': obj.logStreamName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfiguration {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Array of data processors. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfiguration#processors
+   */
+  readonly processors?: DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessors[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfiguration(obj: DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'processors': obj.processors?.map(y => toJson_DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessors(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema DeliveryStreamSpecProviderConfigRefPolicyResolution
@@ -3616,30 +5320,6 @@ export enum DeliveryStreamSpecProviderConfigRefPolicyResolution {
  * @schema DeliveryStreamSpecProviderConfigRefPolicyResolve
  */
 export enum DeliveryStreamSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DeliveryStreamSpecProviderRefPolicyResolution
- */
-export enum DeliveryStreamSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DeliveryStreamSpecProviderRefPolicyResolve
- */
-export enum DeliveryStreamSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3773,7 +5453,7 @@ export interface DeliveryStreamSpecForProviderElasticsearchConfigurationProcessi
    *
    * @schema DeliveryStreamSpecForProviderElasticsearchConfigurationProcessingConfigurationProcessors#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -4031,7 +5711,7 @@ export interface DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatC
    *
    * @schema DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfiguration#deserializer
    */
-  readonly deserializer: DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializer[];
+  readonly deserializer?: DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializer[];
 
 }
 
@@ -4058,7 +5738,7 @@ export interface DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatC
    *
    * @schema DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfiguration#serializer
    */
-  readonly serializer: DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializer[];
+  readonly serializer?: DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializer[];
 
 }
 
@@ -4092,7 +5772,7 @@ export interface DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatC
    *
    * @schema DeliveryStreamSpecForProviderExtendedS3ConfigurationDataFormatConversionConfigurationSchemaConfiguration#databaseName
    */
-  readonly databaseName: string;
+  readonly databaseName?: string;
 
   /**
    * If you don't specify an AWS Region, the default is the current region.
@@ -4192,7 +5872,7 @@ export interface DeliveryStreamSpecForProviderExtendedS3ConfigurationProcessingC
    *
    * @schema DeliveryStreamSpecForProviderExtendedS3ConfigurationProcessingConfigurationProcessors#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -4345,7 +6025,7 @@ export interface DeliveryStreamSpecForProviderHttpEndpointConfigurationProcessin
    *
    * @schema DeliveryStreamSpecForProviderHttpEndpointConfigurationProcessingConfigurationProcessors#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -4373,14 +6053,14 @@ export interface DeliveryStreamSpecForProviderHttpEndpointConfigurationRequestCo
    *
    * @schema DeliveryStreamSpecForProviderHttpEndpointConfigurationRequestConfigurationCommonAttributes#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The value of the HTTP endpoint common attribute.
    *
    * @schema DeliveryStreamSpecForProviderHttpEndpointConfigurationRequestConfigurationCommonAttributes#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4563,7 +6243,7 @@ export interface DeliveryStreamSpecForProviderOpensearchConfigurationProcessingC
    *
    * @schema DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessors#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -4754,7 +6434,7 @@ export interface DeliveryStreamSpecForProviderRedshiftConfigurationProcessingCon
    *
    * @schema DeliveryStreamSpecForProviderRedshiftConfigurationProcessingConfigurationProcessors#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -5219,7 +6899,7 @@ export interface DeliveryStreamSpecForProviderSplunkConfigurationProcessingConfi
    *
    * @schema DeliveryStreamSpecForProviderSplunkConfigurationProcessingConfigurationProcessors#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -5231,6 +6911,437 @@ export function toJson_DeliveryStreamSpecForProviderSplunkConfigurationProcessin
   if (obj === undefined) { return undefined; }
   const result = {
     'parameters': obj.parameters?.map(y => toJson_DeliveryStreamSpecForProviderSplunkConfigurationProcessingConfigurationProcessorsParameters(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessors
+ */
+export interface DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessors {
+  /**
+   * Array of processor parameters. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessors#parameters
+   */
+  readonly parameters?: DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessorsParameters[];
+
+  /**
+   * The type of processor. Valid Values: RecordDeAggregation, Lambda, MetadataExtraction, AppendDelimiterToRecord. Validation is done against AWS SDK constants; so that values not explicitly listed may also work.
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessors#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessors' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessors(obj: DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessors | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'parameters': obj.parameters?.map(y => toJson_DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessorsParameters(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfiguration {
+  /**
+   * Nested argument that specifies which deserializer to use. You can choose either the Apache Hive JSON SerDe or the OpenX JSON SerDe. More details below.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfiguration#deserializer
+   */
+  readonly deserializer?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializer[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfiguration(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deserializer': obj.deserializer?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializer(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfiguration {
+  /**
+   * Nested argument that specifies which serializer to use. You can choose either the ORC SerDe or the Parquet SerDe. More details below.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfiguration#serializer
+   */
+  readonly serializer?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializer[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfiguration(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'serializer': obj.serializer?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializer(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationSchemaConfiguration
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationSchemaConfiguration {
+  /**
+   * The ID of the AWS Glue Data Catalog. If you don't supply this, the AWS account ID is used by default.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationSchemaConfiguration#catalogId
+   */
+  readonly catalogId?: string;
+
+  /**
+   * Specifies the name of the AWS Glue database that contains the schema for the output data.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationSchemaConfiguration#databaseName
+   */
+  readonly databaseName?: string;
+
+  /**
+   * Specifies the table version for the output data schema. Defaults to LATEST.
+   *
+   * @default LATEST.
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationSchemaConfiguration#versionId
+   */
+  readonly versionId?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationSchemaConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationSchemaConfiguration(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationSchemaConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'catalogId': obj.catalogId,
+    'databaseName': obj.databaseName,
+    'versionId': obj.versionId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessors
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessors {
+  /**
+   * Array of processor parameters. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessors#parameters
+   */
+  readonly parameters?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessorsParameters[];
+
+  /**
+   * The type of processor. Valid Values: RecordDeAggregation, Lambda, MetadataExtraction, AppendDelimiterToRecord. Validation is done against AWS SDK constants; so that values not explicitly listed may also work.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessors#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessors' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessors(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessors | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'parameters': obj.parameters?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessorsParameters(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfigurationCloudwatchLoggingOptions
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfigurationCloudwatchLoggingOptions {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfigurationCloudwatchLoggingOptions#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The CloudWatch group name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfigurationCloudwatchLoggingOptions#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * The CloudWatch log stream name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfigurationCloudwatchLoggingOptions#logStreamName
+   */
+  readonly logStreamName?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfigurationCloudwatchLoggingOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfigurationCloudwatchLoggingOptions(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationS3BackupConfigurationCloudwatchLoggingOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logGroupName': obj.logGroupName,
+    'logStreamName': obj.logStreamName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessors
+ */
+export interface DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessors {
+  /**
+   * Array of processor parameters. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessors#parameters
+   */
+  readonly parameters?: DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessorsParameters[];
+
+  /**
+   * The type of processor. Valid Values: RecordDeAggregation, Lambda, MetadataExtraction, AppendDelimiterToRecord. Validation is done against AWS SDK constants; so that values not explicitly listed may also work.
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessors#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessors' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessors(obj: DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessors | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'parameters': obj.parameters?.map(y => toJson_DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessorsParameters(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfigurationCommonAttributes
+ */
+export interface DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfigurationCommonAttributes {
+  /**
+   * The HTTP endpoint name.
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfigurationCommonAttributes#name
+   */
+  readonly name?: string;
+
+  /**
+   * The value of the HTTP endpoint common attribute.
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfigurationCommonAttributes#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfigurationCommonAttributes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfigurationCommonAttributes(obj: DeliveryStreamSpecInitProviderHttpEndpointConfigurationRequestConfigurationCommonAttributes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessors
+ */
+export interface DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessors {
+  /**
+   * Array of processor parameters. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessors#parameters
+   */
+  readonly parameters?: DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters[];
+
+  /**
+   * The type of processor. Valid Values: RecordDeAggregation, Lambda, MetadataExtraction, AppendDelimiterToRecord. Validation is done against AWS SDK constants; so that values not explicitly listed may also work.
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessors#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessors' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessors(obj: DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessors | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'parameters': obj.parameters?.map(y => toJson_DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessors
+ */
+export interface DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessors {
+  /**
+   * Array of processor parameters. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessors#parameters
+   */
+  readonly parameters?: DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessorsParameters[];
+
+  /**
+   * The type of processor. Valid Values: RecordDeAggregation, Lambda, MetadataExtraction, AppendDelimiterToRecord. Validation is done against AWS SDK constants; so that values not explicitly listed may also work.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessors#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessors' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessors(obj: DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessors | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'parameters': obj.parameters?.map(y => toJson_DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessorsParameters(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfigurationCloudwatchLoggingOptions
+ */
+export interface DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfigurationCloudwatchLoggingOptions {
+  /**
+   * Enables or disables the logging. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfigurationCloudwatchLoggingOptions#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The CloudWatch group name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfigurationCloudwatchLoggingOptions#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * The CloudWatch log stream name for logging. This value is required if enabled is true.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfigurationCloudwatchLoggingOptions#logStreamName
+   */
+  readonly logStreamName?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfigurationCloudwatchLoggingOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfigurationCloudwatchLoggingOptions(obj: DeliveryStreamSpecInitProviderRedshiftConfigurationS3BackupConfigurationCloudwatchLoggingOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logGroupName': obj.logGroupName,
+    'logStreamName': obj.logStreamName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessors
+ */
+export interface DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessors {
+  /**
+   * Array of processor parameters. More details are given below
+   *
+   * @schema DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessors#parameters
+   */
+  readonly parameters?: DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessorsParameters[];
+
+  /**
+   * The type of processor. Valid Values: RecordDeAggregation, Lambda, MetadataExtraction, AppendDelimiterToRecord. Validation is done against AWS SDK constants; so that values not explicitly listed may also work.
+   *
+   * @schema DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessors#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessors' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessors(obj: DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessors | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'parameters': obj.parameters?.map(y => toJson_DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessorsParameters(y)),
     'type': obj.type,
   };
   // filter undefined values
@@ -5319,14 +7430,14 @@ export interface DeliveryStreamSpecForProviderElasticsearchConfigurationProcessi
    *
    * @schema DeliveryStreamSpecForProviderElasticsearchConfigurationProcessingConfigurationProcessorsParameters#parameterName
    */
-  readonly parameterName: string;
+  readonly parameterName?: string;
 
   /**
    * Parameter value. Must be between 1 and 512 length (inclusive). When providing a Lambda ARN, you should specify the resource version as well.
    *
    * @schema DeliveryStreamSpecForProviderElasticsearchConfigurationProcessingConfigurationProcessorsParameters#parameterValue
    */
-  readonly parameterValue: string;
+  readonly parameterValue?: string;
 
 }
 
@@ -5758,14 +7869,14 @@ export interface DeliveryStreamSpecForProviderExtendedS3ConfigurationProcessingC
    *
    * @schema DeliveryStreamSpecForProviderExtendedS3ConfigurationProcessingConfigurationProcessorsParameters#parameterName
    */
-  readonly parameterName: string;
+  readonly parameterName?: string;
 
   /**
    * Parameter value. Must be between 1 and 512 length (inclusive). When providing a Lambda ARN, you should specify the resource version as well.
    *
    * @schema DeliveryStreamSpecForProviderExtendedS3ConfigurationProcessingConfigurationProcessorsParameters#parameterValue
    */
-  readonly parameterValue: string;
+  readonly parameterValue?: string;
 
 }
 
@@ -5841,14 +7952,14 @@ export interface DeliveryStreamSpecForProviderHttpEndpointConfigurationProcessin
    *
    * @schema DeliveryStreamSpecForProviderHttpEndpointConfigurationProcessingConfigurationProcessorsParameters#parameterName
    */
-  readonly parameterName: string;
+  readonly parameterName?: string;
 
   /**
    * Parameter value. Must be between 1 and 512 length (inclusive). When providing a Lambda ARN, you should specify the resource version as well.
    *
    * @schema DeliveryStreamSpecForProviderHttpEndpointConfigurationProcessingConfigurationProcessorsParameters#parameterValue
    */
-  readonly parameterValue: string;
+  readonly parameterValue?: string;
 
 }
 
@@ -5972,14 +8083,14 @@ export interface DeliveryStreamSpecForProviderOpensearchConfigurationProcessingC
    *
    * @schema DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters#parameterName
    */
-  readonly parameterName: string;
+  readonly parameterName?: string;
 
   /**
    * Parameter value. Must be between 1 and 512 length (inclusive). When providing a Lambda ARN, you should specify the resource version as well.
    *
    * @schema DeliveryStreamSpecForProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters#parameterValue
    */
-  readonly parameterValue: string;
+  readonly parameterValue?: string;
 
 }
 
@@ -6129,14 +8240,14 @@ export interface DeliveryStreamSpecForProviderRedshiftConfigurationProcessingCon
    *
    * @schema DeliveryStreamSpecForProviderRedshiftConfigurationProcessingConfigurationProcessorsParameters#parameterName
    */
-  readonly parameterName: string;
+  readonly parameterName?: string;
 
   /**
    * Parameter value. Must be between 1 and 512 length (inclusive). When providing a Lambda ARN, you should specify the resource version as well.
    *
    * @schema DeliveryStreamSpecForProviderRedshiftConfigurationProcessingConfigurationProcessorsParameters#parameterValue
    */
-  readonly parameterValue: string;
+  readonly parameterValue?: string;
 
 }
 
@@ -6456,14 +8567,14 @@ export interface DeliveryStreamSpecForProviderSplunkConfigurationProcessingConfi
    *
    * @schema DeliveryStreamSpecForProviderSplunkConfigurationProcessingConfigurationProcessorsParameters#parameterName
    */
-  readonly parameterName: string;
+  readonly parameterName?: string;
 
   /**
    * Parameter value. Must be between 1 and 512 length (inclusive). When providing a Lambda ARN, you should specify the resource version as well.
    *
    * @schema DeliveryStreamSpecForProviderSplunkConfigurationProcessingConfigurationProcessorsParameters#parameterValue
    */
-  readonly parameterValue: string;
+  readonly parameterValue?: string;
 
 }
 
@@ -6472,6 +8583,286 @@ export interface DeliveryStreamSpecForProviderSplunkConfigurationProcessingConfi
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DeliveryStreamSpecForProviderSplunkConfigurationProcessingConfigurationProcessorsParameters(obj: DeliveryStreamSpecForProviderSplunkConfigurationProcessingConfigurationProcessorsParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'parameterName': obj.parameterName,
+    'parameterValue': obj.parameterValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessorsParameters
+ */
+export interface DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessorsParameters {
+  /**
+   * Parameter name. Valid Values: LambdaArn, NumberOfRetries, MetadataExtractionQuery, JsonParsingEngine, RoleArn, BufferSizeInMBs, BufferIntervalInSeconds, SubRecordType, Delimiter. Validation is done against AWS SDK constants; so that values not explicitly listed may also work.
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessorsParameters#parameterName
+   */
+  readonly parameterName?: string;
+
+  /**
+   * Parameter value. Must be between 1 and 512 length (inclusive). When providing a Lambda ARN, you should specify the resource version as well.
+   *
+   * @schema DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessorsParameters#parameterValue
+   */
+  readonly parameterValue?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessorsParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessorsParameters(obj: DeliveryStreamSpecInitProviderElasticsearchConfigurationProcessingConfigurationProcessorsParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'parameterName': obj.parameterName,
+    'parameterValue': obj.parameterValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializer
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializer {
+  /**
+   * Nested argument that specifies the native Hive / HCatalog JsonSerDe. More details below.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializer#hiveJsonSerDe
+   */
+  readonly hiveJsonSerDe?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerHiveJsonSerDe[];
+
+  /**
+   * Nested argument that specifies the OpenX SerDe. More details below.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializer#openXJsonSerDe
+   */
+  readonly openXJsonSerDe?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerOpenXJsonSerDe[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializer' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializer(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializer | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hiveJsonSerDe': obj.hiveJsonSerDe?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerHiveJsonSerDe(y)),
+    'openXJsonSerDe': obj.openXJsonSerDe?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerOpenXJsonSerDe(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializer
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializer {
+  /**
+   * Nested argument that specifies converting data to the ORC format before storing it in Amazon S3. For more information, see Apache ORC. More details below.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializer#orcSerDe
+   */
+  readonly orcSerDe?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe[];
+
+  /**
+   * Nested argument that specifies converting data to the Parquet format before storing it in Amazon S3. For more information, see Apache Parquet. More details below.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializer#parquetSerDe
+   */
+  readonly parquetSerDe?: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerParquetSerDe[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializer' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializer(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializer | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'orcSerDe': obj.orcSerDe?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe(y)),
+    'parquetSerDe': obj.parquetSerDe?.map(y => toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerParquetSerDe(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessorsParameters
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessorsParameters {
+  /**
+   * Parameter name. Valid Values: LambdaArn, NumberOfRetries, MetadataExtractionQuery, JsonParsingEngine, RoleArn, BufferSizeInMBs, BufferIntervalInSeconds, SubRecordType, Delimiter. Validation is done against AWS SDK constants; so that values not explicitly listed may also work.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessorsParameters#parameterName
+   */
+  readonly parameterName?: string;
+
+  /**
+   * Parameter value. Must be between 1 and 512 length (inclusive). When providing a Lambda ARN, you should specify the resource version as well.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessorsParameters#parameterValue
+   */
+  readonly parameterValue?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessorsParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessorsParameters(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationProcessingConfigurationProcessorsParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'parameterName': obj.parameterName,
+    'parameterValue': obj.parameterValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessorsParameters
+ */
+export interface DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessorsParameters {
+  /**
+   * Parameter name. Valid Values: LambdaArn, NumberOfRetries, MetadataExtractionQuery, JsonParsingEngine, RoleArn, BufferSizeInMBs, BufferIntervalInSeconds, SubRecordType, Delimiter. Validation is done against AWS SDK constants; so that values not explicitly listed may also work.
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessorsParameters#parameterName
+   */
+  readonly parameterName?: string;
+
+  /**
+   * Parameter value. Must be between 1 and 512 length (inclusive). When providing a Lambda ARN, you should specify the resource version as well.
+   *
+   * @schema DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessorsParameters#parameterValue
+   */
+  readonly parameterValue?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessorsParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessorsParameters(obj: DeliveryStreamSpecInitProviderHttpEndpointConfigurationProcessingConfigurationProcessorsParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'parameterName': obj.parameterName,
+    'parameterValue': obj.parameterValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters
+ */
+export interface DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters {
+  /**
+   * Parameter name. Valid Values: LambdaArn, NumberOfRetries, MetadataExtractionQuery, JsonParsingEngine, RoleArn, BufferSizeInMBs, BufferIntervalInSeconds, SubRecordType, Delimiter. Validation is done against AWS SDK constants; so that values not explicitly listed may also work.
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters#parameterName
+   */
+  readonly parameterName?: string;
+
+  /**
+   * Parameter value. Must be between 1 and 512 length (inclusive). When providing a Lambda ARN, you should specify the resource version as well.
+   *
+   * @schema DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters#parameterValue
+   */
+  readonly parameterValue?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters(obj: DeliveryStreamSpecInitProviderOpensearchConfigurationProcessingConfigurationProcessorsParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'parameterName': obj.parameterName,
+    'parameterValue': obj.parameterValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessorsParameters
+ */
+export interface DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessorsParameters {
+  /**
+   * Parameter name. Valid Values: LambdaArn, NumberOfRetries, MetadataExtractionQuery, JsonParsingEngine, RoleArn, BufferSizeInMBs, BufferIntervalInSeconds, SubRecordType, Delimiter. Validation is done against AWS SDK constants; so that values not explicitly listed may also work.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessorsParameters#parameterName
+   */
+  readonly parameterName?: string;
+
+  /**
+   * Parameter value. Must be between 1 and 512 length (inclusive). When providing a Lambda ARN, you should specify the resource version as well.
+   *
+   * @schema DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessorsParameters#parameterValue
+   */
+  readonly parameterValue?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessorsParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessorsParameters(obj: DeliveryStreamSpecInitProviderRedshiftConfigurationProcessingConfigurationProcessorsParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'parameterName': obj.parameterName,
+    'parameterValue': obj.parameterValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessorsParameters
+ */
+export interface DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessorsParameters {
+  /**
+   * Parameter name. Valid Values: LambdaArn, NumberOfRetries, MetadataExtractionQuery, JsonParsingEngine, RoleArn, BufferSizeInMBs, BufferIntervalInSeconds, SubRecordType, Delimiter. Validation is done against AWS SDK constants; so that values not explicitly listed may also work.
+   *
+   * @schema DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessorsParameters#parameterName
+   */
+  readonly parameterName?: string;
+
+  /**
+   * Parameter value. Must be between 1 and 512 length (inclusive). When providing a Lambda ARN, you should specify the resource version as well.
+   *
+   * @schema DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessorsParameters#parameterValue
+   */
+  readonly parameterValue?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessorsParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessorsParameters(obj: DeliveryStreamSpecInitProviderSplunkConfigurationProcessingConfigurationProcessorsParameters | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'parameterName': obj.parameterName,
@@ -7058,6 +9449,243 @@ export enum DeliveryStreamSpecForProviderRedshiftConfigurationS3BackupConfigurat
   /** IfNotPresent */
   IF_NOT_PRESENT = "IfNotPresent",
 }
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerHiveJsonSerDe
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerHiveJsonSerDe {
+  /**
+   * A list of how you want Kinesis Data Firehose to parse the date and time stamps that may be present in your input data JSON. To specify these format strings, follow the pattern syntax of JodaTime's DateTimeFormat format strings. For more information, see Class DateTimeFormat. You can also use the special value millis to parse time stamps in epoch milliseconds. If you don't specify a format, Kinesis Data Firehose uses java.sql.Timestamp::valueOf by default.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerHiveJsonSerDe#timestampFormats
+   */
+  readonly timestampFormats?: string[];
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerHiveJsonSerDe' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerHiveJsonSerDe(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerHiveJsonSerDe | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'timestampFormats': obj.timestampFormats?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerOpenXJsonSerDe
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerOpenXJsonSerDe {
+  /**
+   * When set to true, which is the default, Kinesis Data Firehose converts JSON keys to lowercase before deserializing them.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerOpenXJsonSerDe#caseInsensitive
+   */
+  readonly caseInsensitive?: boolean;
+
+  /**
+   * A map of column names to JSON keys that aren't identical to the column names. This is useful when the JSON contains keys that are Hive keywords. For example, timestamp is a Hive keyword. If you have a JSON key named timestamp, set this parameter to { ts = "timestamp" } to map this key to a column named ts.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerOpenXJsonSerDe#columnToJsonKeyMappings
+   */
+  readonly columnToJsonKeyMappings?: { [key: string]: string };
+
+  /**
+   * When set to true, specifies that the names of the keys include dots and that you want Kinesis Data Firehose to replace them with underscores. This is useful because Apache Hive does not allow dots in column names. For example, if the JSON contains a key whose name is "a.b", you can define the column name to be "a_b" when using this option. Defaults to false.
+   *
+   * @default false.
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerOpenXJsonSerDe#convertDotsInJsonKeysToUnderscores
+   */
+  readonly convertDotsInJsonKeysToUnderscores?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerOpenXJsonSerDe' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerOpenXJsonSerDe(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationInputFormatConfigurationDeserializerOpenXJsonSerDe | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'caseInsensitive': obj.caseInsensitive,
+    'columnToJsonKeyMappings': ((obj.columnToJsonKeyMappings) === undefined) ? undefined : (Object.entries(obj.columnToJsonKeyMappings).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'convertDotsInJsonKeysToUnderscores': obj.convertDotsInJsonKeysToUnderscores,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe {
+  /**
+   * The Hadoop Distributed File System (HDFS) block size. This is useful if you intend to copy the data from Amazon S3 to HDFS before querying. The default is 256 MiB and the minimum is 64 MiB. Kinesis Data Firehose uses this value for padding calculations.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe#blockSizeBytes
+   */
+  readonly blockSizeBytes?: number;
+
+  /**
+   * A list of column names for which you want Kinesis Data Firehose to create bloom filters.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe#bloomFilterColumns
+   */
+  readonly bloomFilterColumns?: string[];
+
+  /**
+   * The Bloom filter false positive probability (FPP). The lower the FPP, the bigger the Bloom filter. The default value is 0.05, the minimum is 0, and the maximum is 1.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe#bloomFilterFalsePositiveProbability
+   */
+  readonly bloomFilterFalsePositiveProbability?: number;
+
+  /**
+   * The compression code to use over data blocks. The possible values are UNCOMPRESSED, SNAPPY, and GZIP, with the default being SNAPPY. Use SNAPPY for higher decompression speed. Use GZIP if the compression ratio is more important than speed.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe#compression
+   */
+  readonly compression?: string;
+
+  /**
+   * A float that represents the fraction of the total number of non-null rows. To turn off dictionary encoding, set this fraction to a number that is less than the number of distinct keys in a dictionary. To always use dictionary encoding, set this threshold to 1.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe#dictionaryKeyThreshold
+   */
+  readonly dictionaryKeyThreshold?: number;
+
+  /**
+   * Set this to true to indicate that you want stripes to be padded to the HDFS block boundaries. This is useful if you intend to copy the data from Amazon S3 to HDFS before querying. The default is false.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe#enablePadding
+   */
+  readonly enablePadding?: boolean;
+
+  /**
+   * The version of the file to write. The possible values are V0_11 and V0_12. The default is V0_12.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe#formatVersion
+   */
+  readonly formatVersion?: string;
+
+  /**
+   * A float between 0 and 1 that defines the tolerance for block padding as a decimal fraction of stripe size. The default value is 0.05, which means 5 percent of stripe size. For the default values of 64 MiB ORC stripes and 256 MiB HDFS blocks, the default block padding tolerance of 5 percent reserves a maximum of 3.2 MiB for padding within the 256 MiB block. In such a case, if the available size within the block is more than 3.2 MiB, a new, smaller stripe is inserted to fit within that space. This ensures that no stripe crosses block boundaries and causes remote reads within a node-local task. Kinesis Data Firehose ignores this parameter when enable_padding is false.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe#paddingTolerance
+   */
+  readonly paddingTolerance?: number;
+
+  /**
+   * The number of rows between index entries. The default is 10000 and the minimum is 1000.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe#rowIndexStride
+   */
+  readonly rowIndexStride?: number;
+
+  /**
+   * The number of bytes in each stripe. The default is 64 MiB and the minimum is 8 MiB.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe#stripeSizeBytes
+   */
+  readonly stripeSizeBytes?: number;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerOrcSerDe | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'blockSizeBytes': obj.blockSizeBytes,
+    'bloomFilterColumns': obj.bloomFilterColumns?.map(y => y),
+    'bloomFilterFalsePositiveProbability': obj.bloomFilterFalsePositiveProbability,
+    'compression': obj.compression,
+    'dictionaryKeyThreshold': obj.dictionaryKeyThreshold,
+    'enablePadding': obj.enablePadding,
+    'formatVersion': obj.formatVersion,
+    'paddingTolerance': obj.paddingTolerance,
+    'rowIndexStride': obj.rowIndexStride,
+    'stripeSizeBytes': obj.stripeSizeBytes,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerParquetSerDe
+ */
+export interface DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerParquetSerDe {
+  /**
+   * The Hadoop Distributed File System (HDFS) block size. This is useful if you intend to copy the data from Amazon S3 to HDFS before querying. The default is 256 MiB and the minimum is 64 MiB. Kinesis Data Firehose uses this value for padding calculations.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerParquetSerDe#blockSizeBytes
+   */
+  readonly blockSizeBytes?: number;
+
+  /**
+   * The compression code to use over data blocks. The possible values are UNCOMPRESSED, SNAPPY, and GZIP, with the default being SNAPPY. Use SNAPPY for higher decompression speed. Use GZIP if the compression ratio is more important than speed.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerParquetSerDe#compression
+   */
+  readonly compression?: string;
+
+  /**
+   * Indicates whether to enable dictionary compression.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerParquetSerDe#enableDictionaryCompression
+   */
+  readonly enableDictionaryCompression?: boolean;
+
+  /**
+   * The maximum amount of padding to apply. This is useful if you intend to copy the data from Amazon S3 to HDFS before querying. The default is 0.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerParquetSerDe#maxPaddingBytes
+   */
+  readonly maxPaddingBytes?: number;
+
+  /**
+   * The Parquet page size. Column chunks are divided into pages. A page is conceptually an indivisible unit (in terms of compression and encoding). The minimum value is 64 KiB and the default is 1 MiB.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerParquetSerDe#pageSizeBytes
+   */
+  readonly pageSizeBytes?: number;
+
+  /**
+   * Indicates the version of row format to output. The possible values are V1 and V2. The default is V1.
+   *
+   * @schema DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerParquetSerDe#writerVersion
+   */
+  readonly writerVersion?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerParquetSerDe' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerParquetSerDe(obj: DeliveryStreamSpecInitProviderExtendedS3ConfigurationDataFormatConversionConfigurationOutputFormatConfigurationSerializerParquetSerDe | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'blockSizeBytes': obj.blockSizeBytes,
+    'compression': obj.compression,
+    'enableDictionaryCompression': obj.enableDictionaryCompression,
+    'maxPaddingBytes': obj.maxPaddingBytes,
+    'pageSizeBytes': obj.pageSizeBytes,
+    'writerVersion': obj.writerVersion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.

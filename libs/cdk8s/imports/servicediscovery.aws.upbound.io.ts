@@ -99,7 +99,7 @@ export function toJson_HttpNamespaceProps(obj: HttpNamespaceProps | undefined): 
  */
 export interface HttpNamespaceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema HttpNamespaceSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface HttpNamespaceSpec {
   readonly forProvider: HttpNamespaceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema HttpNamespaceSpec#managementPolicy
+   * @schema HttpNamespaceSpec#initProvider
    */
-  readonly managementPolicy?: HttpNamespaceSpecManagementPolicy;
+  readonly initProvider?: HttpNamespaceSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema HttpNamespaceSpec#managementPolicies
+   */
+  readonly managementPolicies?: HttpNamespaceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface HttpNamespaceSpec {
    * @schema HttpNamespaceSpec#providerConfigRef
    */
   readonly providerConfigRef?: HttpNamespaceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema HttpNamespaceSpec#providerRef
-   */
-  readonly providerRef?: HttpNamespaceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_HttpNamespaceSpec(obj: HttpNamespaceSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_HttpNamespaceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_HttpNamespaceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_HttpNamespaceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_HttpNamespaceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_HttpNamespaceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_HttpNamespaceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_HttpNamespaceSpec(obj: HttpNamespaceSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema HttpNamespaceSpecDeletionPolicy
  */
@@ -231,17 +231,68 @@ export function toJson_HttpNamespaceSpecForProvider(obj: HttpNamespaceSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema HttpNamespaceSpecManagementPolicy
+ * @schema HttpNamespaceSpecInitProvider
  */
-export enum HttpNamespaceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface HttpNamespaceSpecInitProvider {
+  /**
+   * The description that you specify for the namespace when you create it.
+   *
+   * @schema HttpNamespaceSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * The name of the http namespace.
+   *
+   * @schema HttpNamespaceSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema HttpNamespaceSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'HttpNamespaceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_HttpNamespaceSpecInitProvider(obj: HttpNamespaceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'name': obj.name,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema HttpNamespaceSpecManagementPolicies
+ */
+export enum HttpNamespaceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -275,43 +326,6 @@ export function toJson_HttpNamespaceSpecProviderConfigRef(obj: HttpNamespaceSpec
   const result = {
     'name': obj.name,
     'policy': toJson_HttpNamespaceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema HttpNamespaceSpecProviderRef
- */
-export interface HttpNamespaceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema HttpNamespaceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema HttpNamespaceSpecProviderRef#policy
-   */
-  readonly policy?: HttpNamespaceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'HttpNamespaceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_HttpNamespaceSpecProviderRef(obj: HttpNamespaceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_HttpNamespaceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -438,43 +452,6 @@ export function toJson_HttpNamespaceSpecProviderConfigRefPolicy(obj: HttpNamespa
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema HttpNamespaceSpecProviderRefPolicy
- */
-export interface HttpNamespaceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema HttpNamespaceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: HttpNamespaceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema HttpNamespaceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: HttpNamespaceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'HttpNamespaceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_HttpNamespaceSpecProviderRefPolicy(obj: HttpNamespaceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema HttpNamespaceSpecPublishConnectionDetailsToConfigRef
@@ -574,30 +551,6 @@ export enum HttpNamespaceSpecProviderConfigRefPolicyResolution {
  * @schema HttpNamespaceSpecProviderConfigRefPolicyResolve
  */
 export enum HttpNamespaceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema HttpNamespaceSpecProviderRefPolicyResolution
- */
-export enum HttpNamespaceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema HttpNamespaceSpecProviderRefPolicyResolve
- */
-export enum HttpNamespaceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -762,7 +715,7 @@ export function toJson_PrivateDnsNamespaceProps(obj: PrivateDnsNamespaceProps | 
  */
 export interface PrivateDnsNamespaceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PrivateDnsNamespaceSpec#deletionPolicy
    */
@@ -774,11 +727,18 @@ export interface PrivateDnsNamespaceSpec {
   readonly forProvider: PrivateDnsNamespaceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema PrivateDnsNamespaceSpec#managementPolicy
+   * @schema PrivateDnsNamespaceSpec#initProvider
    */
-  readonly managementPolicy?: PrivateDnsNamespaceSpecManagementPolicy;
+  readonly initProvider?: PrivateDnsNamespaceSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema PrivateDnsNamespaceSpec#managementPolicies
+   */
+  readonly managementPolicies?: PrivateDnsNamespaceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -786,13 +746,6 @@ export interface PrivateDnsNamespaceSpec {
    * @schema PrivateDnsNamespaceSpec#providerConfigRef
    */
   readonly providerConfigRef?: PrivateDnsNamespaceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema PrivateDnsNamespaceSpec#providerRef
-   */
-  readonly providerRef?: PrivateDnsNamespaceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -819,9 +772,9 @@ export function toJson_PrivateDnsNamespaceSpec(obj: PrivateDnsNamespaceSpec | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PrivateDnsNamespaceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_PrivateDnsNamespaceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_PrivateDnsNamespaceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_PrivateDnsNamespaceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PrivateDnsNamespaceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_PrivateDnsNamespaceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -831,7 +784,7 @@ export function toJson_PrivateDnsNamespaceSpec(obj: PrivateDnsNamespaceSpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PrivateDnsNamespaceSpecDeletionPolicy
  */
@@ -918,17 +871,68 @@ export function toJson_PrivateDnsNamespaceSpecForProvider(obj: PrivateDnsNamespa
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema PrivateDnsNamespaceSpecManagementPolicy
+ * @schema PrivateDnsNamespaceSpecInitProvider
  */
-export enum PrivateDnsNamespaceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface PrivateDnsNamespaceSpecInitProvider {
+  /**
+   * The description that you specify for the namespace when you create it.
+   *
+   * @schema PrivateDnsNamespaceSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * The name of the namespace.
+   *
+   * @schema PrivateDnsNamespaceSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema PrivateDnsNamespaceSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'PrivateDnsNamespaceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PrivateDnsNamespaceSpecInitProvider(obj: PrivateDnsNamespaceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'name': obj.name,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema PrivateDnsNamespaceSpecManagementPolicies
+ */
+export enum PrivateDnsNamespaceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -962,43 +966,6 @@ export function toJson_PrivateDnsNamespaceSpecProviderConfigRef(obj: PrivateDnsN
   const result = {
     'name': obj.name,
     'policy': toJson_PrivateDnsNamespaceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema PrivateDnsNamespaceSpecProviderRef
- */
-export interface PrivateDnsNamespaceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema PrivateDnsNamespaceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema PrivateDnsNamespaceSpecProviderRef#policy
-   */
-  readonly policy?: PrivateDnsNamespaceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'PrivateDnsNamespaceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PrivateDnsNamespaceSpecProviderRef(obj: PrivateDnsNamespaceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_PrivateDnsNamespaceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1207,43 +1174,6 @@ export function toJson_PrivateDnsNamespaceSpecProviderConfigRefPolicy(obj: Priva
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema PrivateDnsNamespaceSpecProviderRefPolicy
- */
-export interface PrivateDnsNamespaceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema PrivateDnsNamespaceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: PrivateDnsNamespaceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema PrivateDnsNamespaceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: PrivateDnsNamespaceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'PrivateDnsNamespaceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PrivateDnsNamespaceSpecProviderRefPolicy(obj: PrivateDnsNamespaceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema PrivateDnsNamespaceSpecPublishConnectionDetailsToConfigRef
@@ -1417,30 +1347,6 @@ export enum PrivateDnsNamespaceSpecProviderConfigRefPolicyResolution {
  * @schema PrivateDnsNamespaceSpecProviderConfigRefPolicyResolve
  */
 export enum PrivateDnsNamespaceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema PrivateDnsNamespaceSpecProviderRefPolicyResolution
- */
-export enum PrivateDnsNamespaceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema PrivateDnsNamespaceSpecProviderRefPolicyResolve
- */
-export enum PrivateDnsNamespaceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1653,7 +1559,7 @@ export function toJson_PublicDnsNamespaceProps(obj: PublicDnsNamespaceProps | un
  */
 export interface PublicDnsNamespaceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PublicDnsNamespaceSpec#deletionPolicy
    */
@@ -1665,11 +1571,18 @@ export interface PublicDnsNamespaceSpec {
   readonly forProvider: PublicDnsNamespaceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema PublicDnsNamespaceSpec#managementPolicy
+   * @schema PublicDnsNamespaceSpec#initProvider
    */
-  readonly managementPolicy?: PublicDnsNamespaceSpecManagementPolicy;
+  readonly initProvider?: PublicDnsNamespaceSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema PublicDnsNamespaceSpec#managementPolicies
+   */
+  readonly managementPolicies?: PublicDnsNamespaceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1677,13 +1590,6 @@ export interface PublicDnsNamespaceSpec {
    * @schema PublicDnsNamespaceSpec#providerConfigRef
    */
   readonly providerConfigRef?: PublicDnsNamespaceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema PublicDnsNamespaceSpec#providerRef
-   */
-  readonly providerRef?: PublicDnsNamespaceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1710,9 +1616,9 @@ export function toJson_PublicDnsNamespaceSpec(obj: PublicDnsNamespaceSpec | unde
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PublicDnsNamespaceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_PublicDnsNamespaceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_PublicDnsNamespaceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_PublicDnsNamespaceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PublicDnsNamespaceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_PublicDnsNamespaceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1722,7 +1628,7 @@ export function toJson_PublicDnsNamespaceSpec(obj: PublicDnsNamespaceSpec | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PublicDnsNamespaceSpecDeletionPolicy
  */
@@ -1785,17 +1691,68 @@ export function toJson_PublicDnsNamespaceSpecForProvider(obj: PublicDnsNamespace
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema PublicDnsNamespaceSpecManagementPolicy
+ * @schema PublicDnsNamespaceSpecInitProvider
  */
-export enum PublicDnsNamespaceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface PublicDnsNamespaceSpecInitProvider {
+  /**
+   * The description that you specify for the namespace when you create it.
+   *
+   * @schema PublicDnsNamespaceSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * The name of the namespace.
+   *
+   * @schema PublicDnsNamespaceSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema PublicDnsNamespaceSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'PublicDnsNamespaceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PublicDnsNamespaceSpecInitProvider(obj: PublicDnsNamespaceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'name': obj.name,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema PublicDnsNamespaceSpecManagementPolicies
+ */
+export enum PublicDnsNamespaceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1829,43 +1786,6 @@ export function toJson_PublicDnsNamespaceSpecProviderConfigRef(obj: PublicDnsNam
   const result = {
     'name': obj.name,
     'policy': toJson_PublicDnsNamespaceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema PublicDnsNamespaceSpecProviderRef
- */
-export interface PublicDnsNamespaceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema PublicDnsNamespaceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema PublicDnsNamespaceSpecProviderRef#policy
-   */
-  readonly policy?: PublicDnsNamespaceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'PublicDnsNamespaceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PublicDnsNamespaceSpecProviderRef(obj: PublicDnsNamespaceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_PublicDnsNamespaceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1992,43 +1912,6 @@ export function toJson_PublicDnsNamespaceSpecProviderConfigRefPolicy(obj: Public
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema PublicDnsNamespaceSpecProviderRefPolicy
- */
-export interface PublicDnsNamespaceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema PublicDnsNamespaceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: PublicDnsNamespaceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema PublicDnsNamespaceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: PublicDnsNamespaceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'PublicDnsNamespaceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PublicDnsNamespaceSpecProviderRefPolicy(obj: PublicDnsNamespaceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema PublicDnsNamespaceSpecPublishConnectionDetailsToConfigRef
@@ -2128,30 +2011,6 @@ export enum PublicDnsNamespaceSpecProviderConfigRefPolicyResolution {
  * @schema PublicDnsNamespaceSpecProviderConfigRefPolicyResolve
  */
 export enum PublicDnsNamespaceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema PublicDnsNamespaceSpecProviderRefPolicyResolution
- */
-export enum PublicDnsNamespaceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema PublicDnsNamespaceSpecProviderRefPolicyResolve
- */
-export enum PublicDnsNamespaceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2316,7 +2175,7 @@ export function toJson_ServiceProps(obj: ServiceProps | undefined): Record<strin
  */
 export interface ServiceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ServiceSpec#deletionPolicy
    */
@@ -2328,11 +2187,18 @@ export interface ServiceSpec {
   readonly forProvider: ServiceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ServiceSpec#managementPolicy
+   * @schema ServiceSpec#initProvider
    */
-  readonly managementPolicy?: ServiceSpecManagementPolicy;
+  readonly initProvider?: ServiceSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ServiceSpec#managementPolicies
+   */
+  readonly managementPolicies?: ServiceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2340,13 +2206,6 @@ export interface ServiceSpec {
    * @schema ServiceSpec#providerConfigRef
    */
   readonly providerConfigRef?: ServiceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ServiceSpec#providerRef
-   */
-  readonly providerRef?: ServiceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2373,9 +2232,9 @@ export function toJson_ServiceSpec(obj: ServiceSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ServiceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ServiceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ServiceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ServiceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ServiceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ServiceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2385,7 +2244,7 @@ export function toJson_ServiceSpec(obj: ServiceSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ServiceSpecDeletionPolicy
  */
@@ -2496,17 +2355,116 @@ export function toJson_ServiceSpecForProvider(obj: ServiceSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ServiceSpecManagementPolicy
+ * @schema ServiceSpecInitProvider
  */
-export enum ServiceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ServiceSpecInitProvider {
+  /**
+   * The description of the service.
+   *
+   * @schema ServiceSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * A complex type that contains information about the resource record sets that you want Amazon Route 53 to create when you register an instance.
+   *
+   * @schema ServiceSpecInitProvider#dnsConfig
+   */
+  readonly dnsConfig?: ServiceSpecInitProviderDnsConfig[];
+
+  /**
+   * A boolean that indicates all instances should be deleted from the service so that the service can be destroyed without error. These instances are not recoverable.
+   *
+   * @schema ServiceSpecInitProvider#forceDestroy
+   */
+  readonly forceDestroy?: boolean;
+
+  /**
+   * A complex type that contains settings for an optional health check. Only for Public DNS namespaces.
+   *
+   * @schema ServiceSpecInitProvider#healthCheckConfig
+   */
+  readonly healthCheckConfig?: ServiceSpecInitProviderHealthCheckConfig[];
+
+  /**
+   * A complex type that contains settings for ECS managed health checks.
+   *
+   * @schema ServiceSpecInitProvider#healthCheckCustomConfig
+   */
+  readonly healthCheckCustomConfig?: ServiceSpecInitProviderHealthCheckCustomConfig[];
+
+  /**
+   * The name of the service.
+   *
+   * @schema ServiceSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The ID of the namespace that you want to use to create the service.
+   *
+   * @schema ServiceSpecInitProvider#namespaceId
+   */
+  readonly namespaceId?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ServiceSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * If present, specifies that the service instances are only discoverable using the DiscoverInstances API operation. No DNS records is registered for the service instances. The only valid value is HTTP.
+   *
+   * @schema ServiceSpecInitProvider#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProvider(obj: ServiceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'dnsConfig': obj.dnsConfig?.map(y => toJson_ServiceSpecInitProviderDnsConfig(y)),
+    'forceDestroy': obj.forceDestroy,
+    'healthCheckConfig': obj.healthCheckConfig?.map(y => toJson_ServiceSpecInitProviderHealthCheckConfig(y)),
+    'healthCheckCustomConfig': obj.healthCheckCustomConfig?.map(y => toJson_ServiceSpecInitProviderHealthCheckCustomConfig(y)),
+    'name': obj.name,
+    'namespaceId': obj.namespaceId,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ServiceSpecManagementPolicies
+ */
+export enum ServiceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2540,43 +2498,6 @@ export function toJson_ServiceSpecProviderConfigRef(obj: ServiceSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_ServiceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ServiceSpecProviderRef
- */
-export interface ServiceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ServiceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ServiceSpecProviderRef#policy
-   */
-  readonly policy?: ServiceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ServiceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ServiceSpecProviderRef(obj: ServiceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ServiceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2674,7 +2595,7 @@ export interface ServiceSpecForProviderDnsConfig {
    *
    * @schema ServiceSpecForProviderDnsConfig#dnsRecords
    */
-  readonly dnsRecords: ServiceSpecForProviderDnsConfigDnsRecords[];
+  readonly dnsRecords?: ServiceSpecForProviderDnsConfigDnsRecords[];
 
   /**
    * The ID of the namespace to use for DNS configuration.
@@ -2795,6 +2716,111 @@ export function toJson_ServiceSpecForProviderHealthCheckCustomConfig(obj: Servic
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ServiceSpecInitProviderDnsConfig
+ */
+export interface ServiceSpecInitProviderDnsConfig {
+  /**
+   * An array that contains one DnsRecord object for each resource record set.
+   *
+   * @schema ServiceSpecInitProviderDnsConfig#dnsRecords
+   */
+  readonly dnsRecords?: ServiceSpecInitProviderDnsConfigDnsRecords[];
+
+  /**
+   * The routing policy that you want to apply to all records that Route 53 creates when you register an instance and specify the service. Valid Values: MULTIVALUE, WEIGHTED
+   *
+   * @schema ServiceSpecInitProviderDnsConfig#routingPolicy
+   */
+  readonly routingPolicy?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderDnsConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderDnsConfig(obj: ServiceSpecInitProviderDnsConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dnsRecords': obj.dnsRecords?.map(y => toJson_ServiceSpecInitProviderDnsConfigDnsRecords(y)),
+    'routingPolicy': obj.routingPolicy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderHealthCheckConfig
+ */
+export interface ServiceSpecInitProviderHealthCheckConfig {
+  /**
+   * The number of consecutive health checks. Maximum value of 10.
+   *
+   * @schema ServiceSpecInitProviderHealthCheckConfig#failureThreshold
+   */
+  readonly failureThreshold?: number;
+
+  /**
+   * The path that you want Route 53 to request when performing health checks. Route 53 automatically adds the DNS name for the service. If you don't specify a value, the default value is /.
+   *
+   * @schema ServiceSpecInitProviderHealthCheckConfig#resourcePath
+   */
+  readonly resourcePath?: string;
+
+  /**
+   * The type of health check that you want to create, which indicates how Route 53 determines whether an endpoint is healthy. Valid Values: HTTP, HTTPS, TCP
+   *
+   * @schema ServiceSpecInitProviderHealthCheckConfig#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderHealthCheckConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderHealthCheckConfig(obj: ServiceSpecInitProviderHealthCheckConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'failureThreshold': obj.failureThreshold,
+    'resourcePath': obj.resourcePath,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderHealthCheckCustomConfig
+ */
+export interface ServiceSpecInitProviderHealthCheckCustomConfig {
+  /**
+   * The number of 30-second intervals that you want service discovery to wait before it changes the health status of a service instance.  Maximum value of 10.
+   *
+   * @schema ServiceSpecInitProviderHealthCheckCustomConfig#failureThreshold
+   */
+  readonly failureThreshold?: number;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderHealthCheckCustomConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderHealthCheckCustomConfig(obj: ServiceSpecInitProviderHealthCheckCustomConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'failureThreshold': obj.failureThreshold,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ServiceSpecProviderConfigRefPolicy
@@ -2821,43 +2847,6 @@ export interface ServiceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ServiceSpecProviderConfigRefPolicy(obj: ServiceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ServiceSpecProviderRefPolicy
- */
-export interface ServiceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ServiceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ServiceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ServiceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ServiceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ServiceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ServiceSpecProviderRefPolicy(obj: ServiceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2959,14 +2948,14 @@ export interface ServiceSpecForProviderDnsConfigDnsRecords {
    *
    * @schema ServiceSpecForProviderDnsConfigDnsRecords#ttl
    */
-  readonly ttl: number;
+  readonly ttl?: number;
 
   /**
    * The type of the resource, which indicates the value that Amazon Route 53 returns in response to DNS queries. Valid Values: A, AAAA, SRV, CNAME
    *
    * @schema ServiceSpecForProviderDnsConfigDnsRecords#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -3068,6 +3057,41 @@ export function toJson_ServiceSpecForProviderDnsConfigNamespaceIdSelector(obj: S
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ServiceSpecInitProviderDnsConfigDnsRecords
+ */
+export interface ServiceSpecInitProviderDnsConfigDnsRecords {
+  /**
+   * The amount of time, in seconds, that you want DNS resolvers to cache the settings for this resource record set.
+   *
+   * @schema ServiceSpecInitProviderDnsConfigDnsRecords#ttl
+   */
+  readonly ttl?: number;
+
+  /**
+   * The type of the resource, which indicates the value that Amazon Route 53 returns in response to DNS queries. Valid Values: A, AAAA, SRV, CNAME
+   *
+   * @schema ServiceSpecInitProviderDnsConfigDnsRecords#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderDnsConfigDnsRecords' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderDnsConfigDnsRecords(obj: ServiceSpecInitProviderDnsConfigDnsRecords | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ttl': obj.ttl,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema ServiceSpecProviderConfigRefPolicyResolution
@@ -3085,30 +3109,6 @@ export enum ServiceSpecProviderConfigRefPolicyResolution {
  * @schema ServiceSpecProviderConfigRefPolicyResolve
  */
 export enum ServiceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ServiceSpecProviderRefPolicyResolution
- */
-export enum ServiceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ServiceSpecProviderRefPolicyResolve
- */
-export enum ServiceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

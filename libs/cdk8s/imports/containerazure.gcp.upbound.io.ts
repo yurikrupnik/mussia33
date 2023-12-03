@@ -99,7 +99,7 @@ export function toJson_ClientProps(obj: ClientProps | undefined): Record<string,
  */
 export interface ClientSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ClientSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface ClientSpec {
   readonly forProvider: ClientSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ClientSpec#managementPolicy
+   * @schema ClientSpec#initProvider
    */
-  readonly managementPolicy?: ClientSpecManagementPolicy;
+  readonly initProvider?: ClientSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ClientSpec#managementPolicies
+   */
+  readonly managementPolicies?: ClientSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface ClientSpec {
    * @schema ClientSpec#providerConfigRef
    */
   readonly providerConfigRef?: ClientSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ClientSpec#providerRef
-   */
-  readonly providerRef?: ClientSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_ClientSpec(obj: ClientSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ClientSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ClientSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ClientSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ClientSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ClientSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ClientSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_ClientSpec(obj: ClientSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ClientSpecDeletionPolicy
  */
@@ -231,17 +231,68 @@ export function toJson_ClientSpecForProvider(obj: ClientSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ClientSpecManagementPolicy
+ * @schema ClientSpecInitProvider
  */
-export enum ClientSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ClientSpecInitProvider {
+  /**
+   * The Azure Active Directory Application ID.
+   *
+   * @schema ClientSpecInitProvider#applicationId
+   */
+  readonly applicationId?: string;
+
+  /**
+   * The project for the resource
+   *
+   * @schema ClientSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The Azure Active Directory Tenant ID.
+   *
+   * @schema ClientSpecInitProvider#tenantId
+   */
+  readonly tenantId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClientSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClientSpecInitProvider(obj: ClientSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'applicationId': obj.applicationId,
+    'project': obj.project,
+    'tenantId': obj.tenantId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ClientSpecManagementPolicies
+ */
+export enum ClientSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -275,43 +326,6 @@ export function toJson_ClientSpecProviderConfigRef(obj: ClientSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_ClientSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ClientSpecProviderRef
- */
-export interface ClientSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ClientSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ClientSpecProviderRef#policy
-   */
-  readonly policy?: ClientSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ClientSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ClientSpecProviderRef(obj: ClientSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ClientSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -438,43 +452,6 @@ export function toJson_ClientSpecProviderConfigRefPolicy(obj: ClientSpecProvider
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ClientSpecProviderRefPolicy
- */
-export interface ClientSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ClientSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ClientSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ClientSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ClientSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ClientSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ClientSpecProviderRefPolicy(obj: ClientSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ClientSpecPublishConnectionDetailsToConfigRef
@@ -574,30 +551,6 @@ export enum ClientSpecProviderConfigRefPolicyResolution {
  * @schema ClientSpecProviderConfigRefPolicyResolve
  */
 export enum ClientSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ClientSpecProviderRefPolicyResolution
- */
-export enum ClientSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ClientSpecProviderRefPolicyResolve
- */
-export enum ClientSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -762,7 +715,7 @@ export function toJson_ClusterProps(obj: ClusterProps | undefined): Record<strin
  */
 export interface ClusterSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ClusterSpec#deletionPolicy
    */
@@ -774,11 +727,18 @@ export interface ClusterSpec {
   readonly forProvider: ClusterSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ClusterSpec#managementPolicy
+   * @schema ClusterSpec#initProvider
    */
-  readonly managementPolicy?: ClusterSpecManagementPolicy;
+  readonly initProvider?: ClusterSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ClusterSpec#managementPolicies
+   */
+  readonly managementPolicies?: ClusterSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -786,13 +746,6 @@ export interface ClusterSpec {
    * @schema ClusterSpec#providerConfigRef
    */
   readonly providerConfigRef?: ClusterSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ClusterSpec#providerRef
-   */
-  readonly providerRef?: ClusterSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -819,9 +772,9 @@ export function toJson_ClusterSpec(obj: ClusterSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ClusterSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ClusterSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ClusterSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ClusterSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ClusterSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ClusterSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -831,7 +784,7 @@ export function toJson_ClusterSpec(obj: ClusterSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ClusterSpecDeletionPolicy
  */
@@ -958,17 +911,132 @@ export function toJson_ClusterSpecForProvider(obj: ClusterSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ClusterSpecManagementPolicy
+ * @schema ClusterSpecInitProvider
  */
-export enum ClusterSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ClusterSpecInitProvider {
+  /**
+   * Optional. Annotations on the cluster. This field has the same restrictions as Kubernetes annotations. The total size of all keys and values combined is limited to 256k. Keys can have 2 segments: prefix  and name , separated by a slash (/). Prefix must be a DNS subdomain. Name must be 63 characters or less, begin and end with alphanumerics, with dashes (-), underscores (_), dots (.), and alphanumerics between.
+   *
+   * @schema ClusterSpecInitProvider#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Configuration related to the cluster RBAC settings.
+   *
+   * @schema ClusterSpecInitProvider#authorization
+   */
+  readonly authorization?: ClusterSpecInitProviderAuthorization[];
+
+  /**
+   * The Azure region where the cluster runs. Each Google Cloud region supports a subset of nearby Azure regions. You can call to list all supported Azure regions within a given Google Cloud region.
+   *
+   * @schema ClusterSpecInitProvider#azureRegion
+   */
+  readonly azureRegion?: string;
+
+  /**
+   * Azure authentication configuration for management of Azure resources
+   *
+   * @schema ClusterSpecInitProvider#azureServicesAuthentication
+   */
+  readonly azureServicesAuthentication?: ClusterSpecInitProviderAzureServicesAuthentication[];
+
+  /**
+   * Name of the AzureClient. The AzureClient resource must reside on the same GCP project and region as the AzureCluster. AzureClient names are formatted as projects/<project-number>/locations/<region>/azureClients/<client-id>. See Resource Names (https:cloud.google.com/apis/design/resource_names) for more details on Google Cloud resource names.
+   *
+   * @schema ClusterSpecInitProvider#client
+   */
+  readonly client?: string;
+
+  /**
+   * Configuration related to the cluster control plane.
+   *
+   * @schema ClusterSpecInitProvider#controlPlane
+   */
+  readonly controlPlane?: ClusterSpecInitProviderControlPlane[];
+
+  /**
+   * Optional. A human readable description of this cluster. Cannot be longer than 255 UTF-8 encoded bytes.
+   *
+   * @schema ClusterSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Fleet configuration.
+   *
+   * @schema ClusterSpecInitProvider#fleet
+   */
+  readonly fleet?: ClusterSpecInitProviderFleet[];
+
+  /**
+   * Cluster-wide networking configuration.
+   *
+   * @schema ClusterSpecInitProvider#networking
+   */
+  readonly networking?: ClusterSpecInitProviderNetworking[];
+
+  /**
+   * The project for the resource
+   *
+   * @schema ClusterSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The ARM ID of the resource group where the cluster resources are deployed. For example: /subscriptions/_/resourceGroups/*
+   *
+   * @schema ClusterSpecInitProvider#resourceGroupId
+   */
+  readonly resourceGroupId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProvider(obj: ClusterSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'authorization': obj.authorization?.map(y => toJson_ClusterSpecInitProviderAuthorization(y)),
+    'azureRegion': obj.azureRegion,
+    'azureServicesAuthentication': obj.azureServicesAuthentication?.map(y => toJson_ClusterSpecInitProviderAzureServicesAuthentication(y)),
+    'client': obj.client,
+    'controlPlane': obj.controlPlane?.map(y => toJson_ClusterSpecInitProviderControlPlane(y)),
+    'description': obj.description,
+    'fleet': obj.fleet?.map(y => toJson_ClusterSpecInitProviderFleet(y)),
+    'networking': obj.networking?.map(y => toJson_ClusterSpecInitProviderNetworking(y)),
+    'project': obj.project,
+    'resourceGroupId': obj.resourceGroupId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ClusterSpecManagementPolicies
+ */
+export enum ClusterSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1002,43 +1070,6 @@ export function toJson_ClusterSpecProviderConfigRef(obj: ClusterSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_ClusterSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ClusterSpecProviderRef
- */
-export interface ClusterSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ClusterSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ClusterSpecProviderRef#policy
-   */
-  readonly policy?: ClusterSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ClusterSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ClusterSpecProviderRef(obj: ClusterSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ClusterSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1136,7 +1167,7 @@ export interface ClusterSpecForProviderAuthorization {
    *
    * @schema ClusterSpecForProviderAuthorization#adminUsers
    */
-  readonly adminUsers: ClusterSpecForProviderAuthorizationAdminUsers[];
+  readonly adminUsers?: ClusterSpecForProviderAuthorizationAdminUsers[];
 
 }
 
@@ -1163,14 +1194,14 @@ export interface ClusterSpecForProviderAzureServicesAuthentication {
    *
    * @schema ClusterSpecForProviderAzureServicesAuthentication#applicationId
    */
-  readonly applicationId: string;
+  readonly applicationId?: string;
 
   /**
    * The Azure Active Directory Tenant ID for Authentication configuration.
    *
    * @schema ClusterSpecForProviderAzureServicesAuthentication#tenantId
    */
-  readonly tenantId: string;
+  readonly tenantId?: string;
 
 }
 
@@ -1233,14 +1264,14 @@ export interface ClusterSpecForProviderControlPlane {
    *
    * @schema ClusterSpecForProviderControlPlane#sshConfig
    */
-  readonly sshConfig: ClusterSpecForProviderControlPlaneSshConfig[];
+  readonly sshConfig?: ClusterSpecForProviderControlPlaneSshConfig[];
 
   /**
    * The ARM ID of the subnet where the control plane VMs are deployed. Example: /subscriptions//resourceGroups//providers/Microsoft.Network/virtualNetworks//subnets/default.
    *
    * @schema ClusterSpecForProviderControlPlane#subnetId
    */
-  readonly subnetId: string;
+  readonly subnetId?: string;
 
   /**
    * Optional. A set of tags to apply to all underlying control plane Azure resources.
@@ -1254,7 +1285,7 @@ export interface ClusterSpecForProviderControlPlane {
    *
    * @schema ClusterSpecForProviderControlPlane#version
    */
-  readonly version: string;
+  readonly version?: string;
 
   /**
    * Optional. The Azure VM size name. Example: Standard_DS2_v2. For available VM sizes, see https://docs.microsoft.com/en-us/azure/virtual-machines/vm-naming-conventions. When unspecified, it defaults to Standard_DS2_v2.
@@ -1324,21 +1355,21 @@ export interface ClusterSpecForProviderNetworking {
    *
    * @schema ClusterSpecForProviderNetworking#podAddressCidrBlocks
    */
-  readonly podAddressCidrBlocks: string[];
+  readonly podAddressCidrBlocks?: string[];
 
   /**
    * The IP address range for services in this cluster, in CIDR notation (e.g. 10.96.0.0/14). All services in the cluster get assigned a unique RFC1918 IPv4 address from these ranges. Only a single range is supported. This field cannot be changed after creating a cluster.
    *
    * @schema ClusterSpecForProviderNetworking#serviceAddressCidrBlocks
    */
-  readonly serviceAddressCidrBlocks: string[];
+  readonly serviceAddressCidrBlocks?: string[];
 
   /**
    * The Azure Resource Manager (ARM) ID of the VNet associated with your cluster. All components in the cluster (i.e. control plane and node pools) run on a single VNet. Example: /subscriptions/_/resourceGroups/_/providers/Microsoft.Network/virtualNetworks/* This field cannot be changed after creation.
    *
    * @schema ClusterSpecForProviderNetworking#virtualNetworkId
    */
-  readonly virtualNetworkId: string;
+  readonly virtualNetworkId?: string;
 
 }
 
@@ -1347,6 +1378,237 @@ export interface ClusterSpecForProviderNetworking {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ClusterSpecForProviderNetworking(obj: ClusterSpecForProviderNetworking | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'podAddressCidrBlocks': obj.podAddressCidrBlocks?.map(y => y),
+    'serviceAddressCidrBlocks': obj.serviceAddressCidrBlocks?.map(y => y),
+    'virtualNetworkId': obj.virtualNetworkId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderAuthorization
+ */
+export interface ClusterSpecInitProviderAuthorization {
+  /**
+   * Users that can perform operations as a cluster admin. A new ClusterRoleBinding will be created to grant the cluster-admin ClusterRole to the users. Up to ten admin users can be provided. For more info on RBAC, see https://kubernetes.io/docs/reference/access-authn-authz/rbac/#user-facing-roles
+   *
+   * @schema ClusterSpecInitProviderAuthorization#adminUsers
+   */
+  readonly adminUsers?: ClusterSpecInitProviderAuthorizationAdminUsers[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderAuthorization' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderAuthorization(obj: ClusterSpecInitProviderAuthorization | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'adminUsers': obj.adminUsers?.map(y => toJson_ClusterSpecInitProviderAuthorizationAdminUsers(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderAzureServicesAuthentication
+ */
+export interface ClusterSpecInitProviderAzureServicesAuthentication {
+  /**
+   * The Azure Active Directory Application ID for Authentication configuration.
+   *
+   * @schema ClusterSpecInitProviderAzureServicesAuthentication#applicationId
+   */
+  readonly applicationId?: string;
+
+  /**
+   * The Azure Active Directory Tenant ID for Authentication configuration.
+   *
+   * @schema ClusterSpecInitProviderAzureServicesAuthentication#tenantId
+   */
+  readonly tenantId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderAzureServicesAuthentication' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderAzureServicesAuthentication(obj: ClusterSpecInitProviderAzureServicesAuthentication | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'applicationId': obj.applicationId,
+    'tenantId': obj.tenantId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderControlPlane
+ */
+export interface ClusterSpecInitProviderControlPlane {
+  /**
+   * Optional. Configuration related to application-layer secrets encryption.
+   *
+   * @schema ClusterSpecInitProviderControlPlane#databaseEncryption
+   */
+  readonly databaseEncryption?: ClusterSpecInitProviderControlPlaneDatabaseEncryption[];
+
+  /**
+   * Optional. Configuration related to the main volume provisioned for each control plane replica. The main volume is in charge of storing all of the cluster's etcd state. When unspecified, it defaults to a 8-GiB Azure Disk.
+   *
+   * @schema ClusterSpecInitProviderControlPlane#mainVolume
+   */
+  readonly mainVolume?: ClusterSpecInitProviderControlPlaneMainVolume[];
+
+  /**
+   * Proxy configuration for outbound HTTP(S) traffic.
+   *
+   * @schema ClusterSpecInitProviderControlPlane#proxyConfig
+   */
+  readonly proxyConfig?: ClusterSpecInitProviderControlPlaneProxyConfig[];
+
+  /**
+   * Configuration for where to place the control plane replicas. Up to three replica placement instances can be specified. If replica_placements is set, the replica placement instances will be applied to the three control plane replicas as evenly as possible.
+   *
+   * @schema ClusterSpecInitProviderControlPlane#replicaPlacements
+   */
+  readonly replicaPlacements?: ClusterSpecInitProviderControlPlaneReplicaPlacements[];
+
+  /**
+   * Optional. Configuration related to the root volume provisioned for each control plane replica. When unspecified, it defaults to 32-GiB Azure Disk.
+   *
+   * @schema ClusterSpecInitProviderControlPlane#rootVolume
+   */
+  readonly rootVolume?: ClusterSpecInitProviderControlPlaneRootVolume[];
+
+  /**
+   * SSH configuration for how to access the underlying control plane machines.
+   *
+   * @schema ClusterSpecInitProviderControlPlane#sshConfig
+   */
+  readonly sshConfig?: ClusterSpecInitProviderControlPlaneSshConfig[];
+
+  /**
+   * The ARM ID of the subnet where the control plane VMs are deployed. Example: /subscriptions//resourceGroups//providers/Microsoft.Network/virtualNetworks//subnets/default.
+   *
+   * @schema ClusterSpecInitProviderControlPlane#subnetId
+   */
+  readonly subnetId?: string;
+
+  /**
+   * Optional. A set of tags to apply to all underlying control plane Azure resources.
+   *
+   * @schema ClusterSpecInitProviderControlPlane#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * The Kubernetes version to run on control plane replicas (e.g. 1.19.10-gke.1000). You can list all supported versions on a given Google Cloud region by calling GetAzureServerConfig.
+   *
+   * @schema ClusterSpecInitProviderControlPlane#version
+   */
+  readonly version?: string;
+
+  /**
+   * Optional. The Azure VM size name. Example: Standard_DS2_v2. For available VM sizes, see https://docs.microsoft.com/en-us/azure/virtual-machines/vm-naming-conventions. When unspecified, it defaults to Standard_DS2_v2.
+   *
+   * @schema ClusterSpecInitProviderControlPlane#vmSize
+   */
+  readonly vmSize?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderControlPlane' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderControlPlane(obj: ClusterSpecInitProviderControlPlane | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'databaseEncryption': obj.databaseEncryption?.map(y => toJson_ClusterSpecInitProviderControlPlaneDatabaseEncryption(y)),
+    'mainVolume': obj.mainVolume?.map(y => toJson_ClusterSpecInitProviderControlPlaneMainVolume(y)),
+    'proxyConfig': obj.proxyConfig?.map(y => toJson_ClusterSpecInitProviderControlPlaneProxyConfig(y)),
+    'replicaPlacements': obj.replicaPlacements?.map(y => toJson_ClusterSpecInitProviderControlPlaneReplicaPlacements(y)),
+    'rootVolume': obj.rootVolume?.map(y => toJson_ClusterSpecInitProviderControlPlaneRootVolume(y)),
+    'sshConfig': obj.sshConfig?.map(y => toJson_ClusterSpecInitProviderControlPlaneSshConfig(y)),
+    'subnetId': obj.subnetId,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'version': obj.version,
+    'vmSize': obj.vmSize,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderFleet
+ */
+export interface ClusterSpecInitProviderFleet {
+  /**
+   * The number of the Fleet host project where this cluster will be registered.
+   *
+   * @schema ClusterSpecInitProviderFleet#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderFleet' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderFleet(obj: ClusterSpecInitProviderFleet | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNetworking
+ */
+export interface ClusterSpecInitProviderNetworking {
+  /**
+   * The IP address range of the pods in this cluster, in CIDR notation (e.g. 10.96.0.0/14). All pods in the cluster get assigned a unique RFC1918 IPv4 address from these ranges. Only a single range is supported. This field cannot be changed after creation.
+   *
+   * @schema ClusterSpecInitProviderNetworking#podAddressCidrBlocks
+   */
+  readonly podAddressCidrBlocks?: string[];
+
+  /**
+   * The IP address range for services in this cluster, in CIDR notation (e.g. 10.96.0.0/14). All services in the cluster get assigned a unique RFC1918 IPv4 address from these ranges. Only a single range is supported. This field cannot be changed after creating a cluster.
+   *
+   * @schema ClusterSpecInitProviderNetworking#serviceAddressCidrBlocks
+   */
+  readonly serviceAddressCidrBlocks?: string[];
+
+  /**
+   * The Azure Resource Manager (ARM) ID of the VNet associated with your cluster. All components in the cluster (i.e. control plane and node pools) run on a single VNet. Example: /subscriptions/_/resourceGroups/_/providers/Microsoft.Network/virtualNetworks/* This field cannot be changed after creation.
+   *
+   * @schema ClusterSpecInitProviderNetworking#virtualNetworkId
+   */
+  readonly virtualNetworkId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNetworking' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNetworking(obj: ClusterSpecInitProviderNetworking | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'podAddressCidrBlocks': obj.podAddressCidrBlocks?.map(y => y),
@@ -1385,43 +1647,6 @@ export interface ClusterSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ClusterSpecProviderConfigRefPolicy(obj: ClusterSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ClusterSpecProviderRefPolicy
- */
-export interface ClusterSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ClusterSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ClusterSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ClusterSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ClusterSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ClusterSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ClusterSpecProviderRefPolicy(obj: ClusterSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1523,7 +1748,7 @@ export interface ClusterSpecForProviderAuthorizationAdminUsers {
    *
    * @schema ClusterSpecForProviderAuthorizationAdminUsers#username
    */
-  readonly username: string;
+  readonly username?: string;
 
 }
 
@@ -1550,7 +1775,7 @@ export interface ClusterSpecForProviderControlPlaneDatabaseEncryption {
    *
    * @schema ClusterSpecForProviderControlPlaneDatabaseEncryption#keyId
    */
-  readonly keyId: string;
+  readonly keyId?: string;
 
 }
 
@@ -1604,14 +1829,14 @@ export interface ClusterSpecForProviderControlPlaneProxyConfig {
    *
    * @schema ClusterSpecForProviderControlPlaneProxyConfig#resourceGroupId
    */
-  readonly resourceGroupId: string;
+  readonly resourceGroupId?: string;
 
   /**
    * The URL the of the proxy setting secret with its version. Secret ids are formatted as https:<key-vault-name>.vault.azure.net/secrets/<secret-name>/<secret-version>.
    *
    * @schema ClusterSpecForProviderControlPlaneProxyConfig#secretId
    */
-  readonly secretId: string;
+  readonly secretId?: string;
 
 }
 
@@ -1639,14 +1864,14 @@ export interface ClusterSpecForProviderControlPlaneReplicaPlacements {
    *
    * @schema ClusterSpecForProviderControlPlaneReplicaPlacements#azureAvailabilityZone
    */
-  readonly azureAvailabilityZone: string;
+  readonly azureAvailabilityZone?: string;
 
   /**
    * For a given replica, the ARM ID of the subnet where the control plane VM is deployed. Make sure it's a subnet under the virtual network in the cluster configuration.
    *
    * @schema ClusterSpecForProviderControlPlaneReplicaPlacements#subnetId
    */
-  readonly subnetId: string;
+  readonly subnetId?: string;
 
 }
 
@@ -1701,7 +1926,7 @@ export interface ClusterSpecForProviderControlPlaneSshConfig {
    *
    * @schema ClusterSpecForProviderControlPlaneSshConfig#authorizedKey
    */
-  readonly authorizedKey: string;
+  readonly authorizedKey?: string;
 
 }
 
@@ -1710,6 +1935,211 @@ export interface ClusterSpecForProviderControlPlaneSshConfig {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ClusterSpecForProviderControlPlaneSshConfig(obj: ClusterSpecForProviderControlPlaneSshConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'authorizedKey': obj.authorizedKey,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderAuthorizationAdminUsers
+ */
+export interface ClusterSpecInitProviderAuthorizationAdminUsers {
+  /**
+   * The name of the user, e.g. my-gcp-id@gmail.com.
+   *
+   * @schema ClusterSpecInitProviderAuthorizationAdminUsers#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderAuthorizationAdminUsers' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderAuthorizationAdminUsers(obj: ClusterSpecInitProviderAuthorizationAdminUsers | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderControlPlaneDatabaseEncryption
+ */
+export interface ClusterSpecInitProviderControlPlaneDatabaseEncryption {
+  /**
+   * The ARM ID of the Azure Key Vault key to encrypt / decrypt data. For example: /subscriptions/<subscription-id>/resourceGroups/<resource-group-id>/providers/Microsoft.KeyVault/vaults/<key-vault-id>/keys/<key-name> Encryption will always take the latest version of the key and hence specific version is not supported.
+   *
+   * @schema ClusterSpecInitProviderControlPlaneDatabaseEncryption#keyId
+   */
+  readonly keyId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderControlPlaneDatabaseEncryption' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderControlPlaneDatabaseEncryption(obj: ClusterSpecInitProviderControlPlaneDatabaseEncryption | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'keyId': obj.keyId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderControlPlaneMainVolume
+ */
+export interface ClusterSpecInitProviderControlPlaneMainVolume {
+  /**
+   * Optional. The size of the disk, in GiBs. When unspecified, a default value is provided. See the specific reference in the parent resource.
+   *
+   * @schema ClusterSpecInitProviderControlPlaneMainVolume#sizeGib
+   */
+  readonly sizeGib?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderControlPlaneMainVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderControlPlaneMainVolume(obj: ClusterSpecInitProviderControlPlaneMainVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sizeGib': obj.sizeGib,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderControlPlaneProxyConfig
+ */
+export interface ClusterSpecInitProviderControlPlaneProxyConfig {
+  /**
+   * The ARM ID of the resource group where the cluster resources are deployed. For example: /subscriptions/_/resourceGroups/*
+   *
+   * @schema ClusterSpecInitProviderControlPlaneProxyConfig#resourceGroupId
+   */
+  readonly resourceGroupId?: string;
+
+  /**
+   * The URL the of the proxy setting secret with its version. Secret ids are formatted as https:<key-vault-name>.vault.azure.net/secrets/<secret-name>/<secret-version>.
+   *
+   * @schema ClusterSpecInitProviderControlPlaneProxyConfig#secretId
+   */
+  readonly secretId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderControlPlaneProxyConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderControlPlaneProxyConfig(obj: ClusterSpecInitProviderControlPlaneProxyConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resourceGroupId': obj.resourceGroupId,
+    'secretId': obj.secretId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderControlPlaneReplicaPlacements
+ */
+export interface ClusterSpecInitProviderControlPlaneReplicaPlacements {
+  /**
+   * For a given replica, the Azure availability zone where to provision the control plane VM and the ETCD disk.
+   *
+   * @schema ClusterSpecInitProviderControlPlaneReplicaPlacements#azureAvailabilityZone
+   */
+  readonly azureAvailabilityZone?: string;
+
+  /**
+   * For a given replica, the ARM ID of the subnet where the control plane VM is deployed. Make sure it's a subnet under the virtual network in the cluster configuration.
+   *
+   * @schema ClusterSpecInitProviderControlPlaneReplicaPlacements#subnetId
+   */
+  readonly subnetId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderControlPlaneReplicaPlacements' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderControlPlaneReplicaPlacements(obj: ClusterSpecInitProviderControlPlaneReplicaPlacements | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'azureAvailabilityZone': obj.azureAvailabilityZone,
+    'subnetId': obj.subnetId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderControlPlaneRootVolume
+ */
+export interface ClusterSpecInitProviderControlPlaneRootVolume {
+  /**
+   * Optional. The size of the disk, in GiBs. When unspecified, a default value is provided. See the specific reference in the parent resource.
+   *
+   * @schema ClusterSpecInitProviderControlPlaneRootVolume#sizeGib
+   */
+  readonly sizeGib?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderControlPlaneRootVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderControlPlaneRootVolume(obj: ClusterSpecInitProviderControlPlaneRootVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sizeGib': obj.sizeGib,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderControlPlaneSshConfig
+ */
+export interface ClusterSpecInitProviderControlPlaneSshConfig {
+  /**
+   * The SSH public key data for VMs managed by Anthos. This accepts the authorized_keys file format used in OpenSSH according to the sshd(8) manual page.
+   *
+   * @schema ClusterSpecInitProviderControlPlaneSshConfig#authorizedKey
+   */
+  readonly authorizedKey?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderControlPlaneSshConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderControlPlaneSshConfig(obj: ClusterSpecInitProviderControlPlaneSshConfig | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'authorizedKey': obj.authorizedKey,
@@ -1737,30 +2167,6 @@ export enum ClusterSpecProviderConfigRefPolicyResolution {
  * @schema ClusterSpecProviderConfigRefPolicyResolve
  */
 export enum ClusterSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ClusterSpecProviderRefPolicyResolution
- */
-export enum ClusterSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ClusterSpecProviderRefPolicyResolve
- */
-export enum ClusterSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1925,7 +2331,7 @@ export function toJson_NodePoolProps(obj: NodePoolProps | undefined): Record<str
  */
 export interface NodePoolSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema NodePoolSpec#deletionPolicy
    */
@@ -1937,11 +2343,18 @@ export interface NodePoolSpec {
   readonly forProvider: NodePoolSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema NodePoolSpec#managementPolicy
+   * @schema NodePoolSpec#initProvider
    */
-  readonly managementPolicy?: NodePoolSpecManagementPolicy;
+  readonly initProvider?: NodePoolSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema NodePoolSpec#managementPolicies
+   */
+  readonly managementPolicies?: NodePoolSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1949,13 +2362,6 @@ export interface NodePoolSpec {
    * @schema NodePoolSpec#providerConfigRef
    */
   readonly providerConfigRef?: NodePoolSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema NodePoolSpec#providerRef
-   */
-  readonly providerRef?: NodePoolSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1982,9 +2388,9 @@ export function toJson_NodePoolSpec(obj: NodePoolSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_NodePoolSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_NodePoolSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_NodePoolSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_NodePoolSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_NodePoolSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_NodePoolSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1994,7 +2400,7 @@ export function toJson_NodePoolSpec(obj: NodePoolSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema NodePoolSpecDeletionPolicy
  */
@@ -2121,17 +2527,108 @@ export function toJson_NodePoolSpecForProvider(obj: NodePoolSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema NodePoolSpecManagementPolicy
+ * @schema NodePoolSpecInitProvider
  */
-export enum NodePoolSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface NodePoolSpecInitProvider {
+  /**
+   * Optional. Annotations on the node pool. This field has the same restrictions as Kubernetes annotations. The total size of all keys and values combined is limited to 256k. Keys can have 2 segments: prefix  and name , separated by a slash (/). Prefix must be a DNS subdomain. Name must be 63 characters or less, begin and end with alphanumerics, with dashes (-), underscores (_), dots (.), and alphanumerics between.
+   *
+   * @schema NodePoolSpecInitProvider#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Autoscaler configuration for this node pool.
+   *
+   * @schema NodePoolSpecInitProvider#autoscaling
+   */
+  readonly autoscaling?: NodePoolSpecInitProviderAutoscaling[];
+
+  /**
+   * Optional. The Azure availability zone of the nodes in this nodepool. When unspecified, it defaults to 1.
+   *
+   * @schema NodePoolSpecInitProvider#azureAvailabilityZone
+   */
+  readonly azureAvailabilityZone?: string;
+
+  /**
+   * The node configuration of the node pool.
+   *
+   * @schema NodePoolSpecInitProvider#config
+   */
+  readonly config?: NodePoolSpecInitProviderConfig[];
+
+  /**
+   * The constraint on the maximum number of pods that can be run simultaneously on a node in the node pool.
+   *
+   * @schema NodePoolSpecInitProvider#maxPodsConstraint
+   */
+  readonly maxPodsConstraint?: NodePoolSpecInitProviderMaxPodsConstraint[];
+
+  /**
+   * The project for the resource
+   *
+   * @schema NodePoolSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The ARM ID of the subnet where the node pool VMs run. Make sure it's a subnet under the virtual network in the cluster configuration.
+   *
+   * @schema NodePoolSpecInitProvider#subnetId
+   */
+  readonly subnetId?: string;
+
+  /**
+   * The Kubernetes version (e.g. 1.19.10-gke.1000) running on this node pool.
+   *
+   * @schema NodePoolSpecInitProvider#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProvider(obj: NodePoolSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'autoscaling': obj.autoscaling?.map(y => toJson_NodePoolSpecInitProviderAutoscaling(y)),
+    'azureAvailabilityZone': obj.azureAvailabilityZone,
+    'config': obj.config?.map(y => toJson_NodePoolSpecInitProviderConfig(y)),
+    'maxPodsConstraint': obj.maxPodsConstraint?.map(y => toJson_NodePoolSpecInitProviderMaxPodsConstraint(y)),
+    'project': obj.project,
+    'subnetId': obj.subnetId,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema NodePoolSpecManagementPolicies
+ */
+export enum NodePoolSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2165,43 +2662,6 @@ export function toJson_NodePoolSpecProviderConfigRef(obj: NodePoolSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_NodePoolSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema NodePoolSpecProviderRef
- */
-export interface NodePoolSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema NodePoolSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema NodePoolSpecProviderRef#policy
-   */
-  readonly policy?: NodePoolSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'NodePoolSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_NodePoolSpecProviderRef(obj: NodePoolSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_NodePoolSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2299,14 +2759,14 @@ export interface NodePoolSpecForProviderAutoscaling {
    *
    * @schema NodePoolSpecForProviderAutoscaling#maxNodeCount
    */
-  readonly maxNodeCount: number;
+  readonly maxNodeCount?: number;
 
   /**
    * Minimum number of nodes in the node pool. Must be >= 1 and <= max_node_count.
    *
    * @schema NodePoolSpecForProviderAutoscaling#minNodeCount
    */
-  readonly minNodeCount: number;
+  readonly minNodeCount?: number;
 
 }
 
@@ -2430,7 +2890,7 @@ export interface NodePoolSpecForProviderConfig {
    *
    * @schema NodePoolSpecForProviderConfig#sshConfig
    */
-  readonly sshConfig: NodePoolSpecForProviderConfigSshConfig[];
+  readonly sshConfig?: NodePoolSpecForProviderConfigSshConfig[];
 
   /**
    * Optional. A set of tags to apply to all underlying Azure resources for this node pool. This currently only includes Virtual Machine Scale Sets. Specify at most 50 pairs containing alphanumerics, spaces, and symbols (.+-=_:@/). Keys can be up to 127 Unicode characters. Values can be up to 255 Unicode characters.
@@ -2475,7 +2935,7 @@ export interface NodePoolSpecForProviderMaxPodsConstraint {
    *
    * @schema NodePoolSpecForProviderMaxPodsConstraint#maxPodsPerNode
    */
-  readonly maxPodsPerNode: number;
+  readonly maxPodsPerNode?: number;
 
 }
 
@@ -2484,6 +2944,127 @@ export interface NodePoolSpecForProviderMaxPodsConstraint {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_NodePoolSpecForProviderMaxPodsConstraint(obj: NodePoolSpecForProviderMaxPodsConstraint | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxPodsPerNode': obj.maxPodsPerNode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderAutoscaling
+ */
+export interface NodePoolSpecInitProviderAutoscaling {
+  /**
+   * Maximum number of nodes in the node pool. Must be >= min_node_count.
+   *
+   * @schema NodePoolSpecInitProviderAutoscaling#maxNodeCount
+   */
+  readonly maxNodeCount?: number;
+
+  /**
+   * Minimum number of nodes in the node pool. Must be >= 1 and <= max_node_count.
+   *
+   * @schema NodePoolSpecInitProviderAutoscaling#minNodeCount
+   */
+  readonly minNodeCount?: number;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderAutoscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderAutoscaling(obj: NodePoolSpecInitProviderAutoscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxNodeCount': obj.maxNodeCount,
+    'minNodeCount': obj.minNodeCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderConfig
+ */
+export interface NodePoolSpecInitProviderConfig {
+  /**
+   * Proxy configuration for outbound HTTP(S) traffic.
+   *
+   * @schema NodePoolSpecInitProviderConfig#proxyConfig
+   */
+  readonly proxyConfig?: NodePoolSpecInitProviderConfigProxyConfig[];
+
+  /**
+   * Optional. Configuration related to the root volume provisioned for each node pool machine. When unspecified, it defaults to a 32-GiB Azure Disk.
+   *
+   * @schema NodePoolSpecInitProviderConfig#rootVolume
+   */
+  readonly rootVolume?: NodePoolSpecInitProviderConfigRootVolume[];
+
+  /**
+   * SSH configuration for how to access the node pool machines.
+   *
+   * @schema NodePoolSpecInitProviderConfig#sshConfig
+   */
+  readonly sshConfig?: NodePoolSpecInitProviderConfigSshConfig[];
+
+  /**
+   * Optional. A set of tags to apply to all underlying Azure resources for this node pool. This currently only includes Virtual Machine Scale Sets. Specify at most 50 pairs containing alphanumerics, spaces, and symbols (.+-=_:@/). Keys can be up to 127 Unicode characters. Values can be up to 255 Unicode characters.
+   *
+   * @schema NodePoolSpecInitProviderConfig#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Optional. The Azure VM size name. Example: Standard_DS2_v2. See (/anthos/clusters/docs/azure/reference/supported-vms) for options. When unspecified, it defaults to Standard_DS2_v2.
+   *
+   * @schema NodePoolSpecInitProviderConfig#vmSize
+   */
+  readonly vmSize?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderConfig(obj: NodePoolSpecInitProviderConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'proxyConfig': obj.proxyConfig?.map(y => toJson_NodePoolSpecInitProviderConfigProxyConfig(y)),
+    'rootVolume': obj.rootVolume?.map(y => toJson_NodePoolSpecInitProviderConfigRootVolume(y)),
+    'sshConfig': obj.sshConfig?.map(y => toJson_NodePoolSpecInitProviderConfigSshConfig(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'vmSize': obj.vmSize,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderMaxPodsConstraint
+ */
+export interface NodePoolSpecInitProviderMaxPodsConstraint {
+  /**
+   * The maximum number of pods to schedule on a single node.
+   *
+   * @schema NodePoolSpecInitProviderMaxPodsConstraint#maxPodsPerNode
+   */
+  readonly maxPodsPerNode?: number;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderMaxPodsConstraint' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderMaxPodsConstraint(obj: NodePoolSpecInitProviderMaxPodsConstraint | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'maxPodsPerNode': obj.maxPodsPerNode,
@@ -2520,43 +3101,6 @@ export interface NodePoolSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_NodePoolSpecProviderConfigRefPolicy(obj: NodePoolSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema NodePoolSpecProviderRefPolicy
- */
-export interface NodePoolSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema NodePoolSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: NodePoolSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema NodePoolSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: NodePoolSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'NodePoolSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_NodePoolSpecProviderRefPolicy(obj: NodePoolSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2732,14 +3276,14 @@ export interface NodePoolSpecForProviderConfigProxyConfig {
    *
    * @schema NodePoolSpecForProviderConfigProxyConfig#resourceGroupId
    */
-  readonly resourceGroupId: string;
+  readonly resourceGroupId?: string;
 
   /**
    * The URL the of the proxy setting secret with its version. Secret ids are formatted as https:<key-vault-name>.vault.azure.net/secrets/<secret-name>/<secret-version>.
    *
    * @schema NodePoolSpecForProviderConfigProxyConfig#secretId
    */
-  readonly secretId: string;
+  readonly secretId?: string;
 
 }
 
@@ -2794,7 +3338,7 @@ export interface NodePoolSpecForProviderConfigSshConfig {
    *
    * @schema NodePoolSpecForProviderConfigSshConfig#authorizedKey
    */
-  readonly authorizedKey: string;
+  readonly authorizedKey?: string;
 
 }
 
@@ -2803,6 +3347,95 @@ export interface NodePoolSpecForProviderConfigSshConfig {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_NodePoolSpecForProviderConfigSshConfig(obj: NodePoolSpecForProviderConfigSshConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'authorizedKey': obj.authorizedKey,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderConfigProxyConfig
+ */
+export interface NodePoolSpecInitProviderConfigProxyConfig {
+  /**
+   * The ARM ID the of the resource group containing proxy keyvault. Resource group ids are formatted as /subscriptions/<subscription-id>/resourceGroups/<resource-group-name>
+   *
+   * @schema NodePoolSpecInitProviderConfigProxyConfig#resourceGroupId
+   */
+  readonly resourceGroupId?: string;
+
+  /**
+   * The URL the of the proxy setting secret with its version. Secret ids are formatted as https:<key-vault-name>.vault.azure.net/secrets/<secret-name>/<secret-version>.
+   *
+   * @schema NodePoolSpecInitProviderConfigProxyConfig#secretId
+   */
+  readonly secretId?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderConfigProxyConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderConfigProxyConfig(obj: NodePoolSpecInitProviderConfigProxyConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resourceGroupId': obj.resourceGroupId,
+    'secretId': obj.secretId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderConfigRootVolume
+ */
+export interface NodePoolSpecInitProviderConfigRootVolume {
+  /**
+   * Optional. The size of the disk, in GiBs. When unspecified, a default value is provided. See the specific reference in the parent resource.
+   *
+   * @schema NodePoolSpecInitProviderConfigRootVolume#sizeGib
+   */
+  readonly sizeGib?: number;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderConfigRootVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderConfigRootVolume(obj: NodePoolSpecInitProviderConfigRootVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sizeGib': obj.sizeGib,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderConfigSshConfig
+ */
+export interface NodePoolSpecInitProviderConfigSshConfig {
+  /**
+   * The SSH public key data for VMs managed by Anthos. This accepts the authorized_keys file format used in OpenSSH according to the sshd(8) manual page.
+   *
+   * @schema NodePoolSpecInitProviderConfigSshConfig#authorizedKey
+   */
+  readonly authorizedKey?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderConfigSshConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderConfigSshConfig(obj: NodePoolSpecInitProviderConfigSshConfig | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'authorizedKey': obj.authorizedKey,
@@ -2830,30 +3463,6 @@ export enum NodePoolSpecProviderConfigRefPolicyResolution {
  * @schema NodePoolSpecProviderConfigRefPolicyResolve
  */
 export enum NodePoolSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema NodePoolSpecProviderRefPolicyResolution
- */
-export enum NodePoolSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema NodePoolSpecProviderRefPolicyResolve
- */
-export enum NodePoolSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

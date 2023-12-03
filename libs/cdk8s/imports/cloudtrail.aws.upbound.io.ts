@@ -99,7 +99,7 @@ export function toJson_EventDataStoreProps(obj: EventDataStoreProps | undefined)
  */
 export interface EventDataStoreSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema EventDataStoreSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface EventDataStoreSpec {
   readonly forProvider: EventDataStoreSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema EventDataStoreSpec#managementPolicy
+   * @schema EventDataStoreSpec#initProvider
    */
-  readonly managementPolicy?: EventDataStoreSpecManagementPolicy;
+  readonly initProvider?: EventDataStoreSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema EventDataStoreSpec#managementPolicies
+   */
+  readonly managementPolicies?: EventDataStoreSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface EventDataStoreSpec {
    * @schema EventDataStoreSpec#providerConfigRef
    */
   readonly providerConfigRef?: EventDataStoreSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema EventDataStoreSpec#providerRef
-   */
-  readonly providerRef?: EventDataStoreSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_EventDataStoreSpec(obj: EventDataStoreSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_EventDataStoreSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_EventDataStoreSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_EventDataStoreSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_EventDataStoreSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_EventDataStoreSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_EventDataStoreSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_EventDataStoreSpec(obj: EventDataStoreSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema EventDataStoreSpecDeletionPolicy
  */
@@ -287,17 +287,100 @@ export function toJson_EventDataStoreSpecForProvider(obj: EventDataStoreSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema EventDataStoreSpecManagementPolicy
+ * @schema EventDataStoreSpecInitProvider
  */
-export enum EventDataStoreSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface EventDataStoreSpecInitProvider {
+  /**
+   * The advanced event selectors to use to select the events for the data store. For more information about how to use advanced event selectors, see Log events by using advanced event selectors in the CloudTrail User Guide.
+   *
+   * @schema EventDataStoreSpecInitProvider#advancedEventSelector
+   */
+  readonly advancedEventSelector?: EventDataStoreSpecInitProviderAdvancedEventSelector[];
+
+  /**
+   * Specifies whether the event data store includes events from all regions, or only from the region in which the event data store is created. Default: true.
+   *
+   * @schema EventDataStoreSpecInitProvider#multiRegionEnabled
+   */
+  readonly multiRegionEnabled?: boolean;
+
+  /**
+   * The name of the event data store.
+   *
+   * @schema EventDataStoreSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Specifies whether an event data store collects events logged for an organization in AWS Organizations. Default: false.
+   *
+   * @schema EventDataStoreSpecInitProvider#organizationEnabled
+   */
+  readonly organizationEnabled?: boolean;
+
+  /**
+   * The retention period of the event data store, in days. You can set a retention period of up to 2555 days, the equivalent of seven years. Default: 2555.
+   *
+   * @schema EventDataStoreSpecInitProvider#retentionPeriod
+   */
+  readonly retentionPeriod?: number;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema EventDataStoreSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Specifies whether termination protection is enabled for the event data store. If termination protection is enabled, you cannot delete the event data store until termination protection is disabled. Default: true.
+   *
+   * @schema EventDataStoreSpecInitProvider#terminationProtectionEnabled
+   */
+  readonly terminationProtectionEnabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'EventDataStoreSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EventDataStoreSpecInitProvider(obj: EventDataStoreSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'advancedEventSelector': obj.advancedEventSelector?.map(y => toJson_EventDataStoreSpecInitProviderAdvancedEventSelector(y)),
+    'multiRegionEnabled': obj.multiRegionEnabled,
+    'name': obj.name,
+    'organizationEnabled': obj.organizationEnabled,
+    'retentionPeriod': obj.retentionPeriod,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'terminationProtectionEnabled': obj.terminationProtectionEnabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema EventDataStoreSpecManagementPolicies
+ */
+export enum EventDataStoreSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -331,43 +414,6 @@ export function toJson_EventDataStoreSpecProviderConfigRef(obj: EventDataStoreSp
   const result = {
     'name': obj.name,
     'policy': toJson_EventDataStoreSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema EventDataStoreSpecProviderRef
- */
-export interface EventDataStoreSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema EventDataStoreSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema EventDataStoreSpecProviderRef#policy
-   */
-  readonly policy?: EventDataStoreSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'EventDataStoreSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_EventDataStoreSpecProviderRef(obj: EventDataStoreSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_EventDataStoreSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -574,6 +620,41 @@ export function toJson_EventDataStoreSpecForProviderKmsKeyIdSelector(obj: EventD
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema EventDataStoreSpecInitProviderAdvancedEventSelector
+ */
+export interface EventDataStoreSpecInitProviderAdvancedEventSelector {
+  /**
+   * Specifies the selector statements in an advanced event selector. Fields documented below.
+   *
+   * @schema EventDataStoreSpecInitProviderAdvancedEventSelector#fieldSelector
+   */
+  readonly fieldSelector?: EventDataStoreSpecInitProviderAdvancedEventSelectorFieldSelector[];
+
+  /**
+   * The name of the event data store.
+   *
+   * @schema EventDataStoreSpecInitProviderAdvancedEventSelector#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'EventDataStoreSpecInitProviderAdvancedEventSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EventDataStoreSpecInitProviderAdvancedEventSelector(obj: EventDataStoreSpecInitProviderAdvancedEventSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fieldSelector': obj.fieldSelector?.map(y => toJson_EventDataStoreSpecInitProviderAdvancedEventSelectorFieldSelector(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema EventDataStoreSpecProviderConfigRefPolicy
@@ -600,43 +681,6 @@ export interface EventDataStoreSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_EventDataStoreSpecProviderConfigRefPolicy(obj: EventDataStoreSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema EventDataStoreSpecProviderRefPolicy
- */
-export interface EventDataStoreSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema EventDataStoreSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: EventDataStoreSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema EventDataStoreSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: EventDataStoreSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'EventDataStoreSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_EventDataStoreSpecProviderRefPolicy(obj: EventDataStoreSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -879,6 +923,81 @@ export function toJson_EventDataStoreSpecForProviderKmsKeyIdSelectorPolicy(obj: 
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema EventDataStoreSpecInitProviderAdvancedEventSelectorFieldSelector
+ */
+export interface EventDataStoreSpecInitProviderAdvancedEventSelectorFieldSelector {
+  /**
+   * A list of values that includes events that match the last few characters of the event record field specified as the value of field.
+   *
+   * @schema EventDataStoreSpecInitProviderAdvancedEventSelectorFieldSelector#endsWith
+   */
+  readonly endsWith?: string[];
+
+  /**
+   * A list of values that includes events that match the exact value of the event record field specified as the value of field. This is the only valid operator that you can use with the readOnly, eventCategory, and resources.type fields.
+   *
+   * @schema EventDataStoreSpecInitProviderAdvancedEventSelectorFieldSelector#equals
+   */
+  readonly equals?: string[];
+
+  /**
+   * Specifies a field in an event record on which to filter events to be logged. You can specify only the following values: readOnly, eventSource, eventName, eventCategory, resources.type, resources.ARN.
+   *
+   * @schema EventDataStoreSpecInitProviderAdvancedEventSelectorFieldSelector#field
+   */
+  readonly field?: string;
+
+  /**
+   * A list of values that excludes events that match the last few characters of the event record field specified as the value of field.
+   *
+   * @schema EventDataStoreSpecInitProviderAdvancedEventSelectorFieldSelector#notEndsWith
+   */
+  readonly notEndsWith?: string[];
+
+  /**
+   * A list of values that excludes events that match the exact value of the event record field specified as the value of field.
+   *
+   * @schema EventDataStoreSpecInitProviderAdvancedEventSelectorFieldSelector#notEquals
+   */
+  readonly notEquals?: string[];
+
+  /**
+   * A list of values that excludes events that match the first few characters of the event record field specified as the value of field.
+   *
+   * @schema EventDataStoreSpecInitProviderAdvancedEventSelectorFieldSelector#notStartsWith
+   */
+  readonly notStartsWith?: string[];
+
+  /**
+   * A list of values that includes events that match the first few characters of the event record field specified as the value of field.
+   *
+   * @schema EventDataStoreSpecInitProviderAdvancedEventSelectorFieldSelector#startsWith
+   */
+  readonly startsWith?: string[];
+
+}
+
+/**
+ * Converts an object of type 'EventDataStoreSpecInitProviderAdvancedEventSelectorFieldSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EventDataStoreSpecInitProviderAdvancedEventSelectorFieldSelector(obj: EventDataStoreSpecInitProviderAdvancedEventSelectorFieldSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'endsWith': obj.endsWith?.map(y => y),
+    'equals': obj.equals?.map(y => y),
+    'field': obj.field,
+    'notEndsWith': obj.notEndsWith?.map(y => y),
+    'notEquals': obj.notEquals?.map(y => y),
+    'notStartsWith': obj.notStartsWith?.map(y => y),
+    'startsWith': obj.startsWith?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema EventDataStoreSpecProviderConfigRefPolicyResolution
@@ -896,30 +1015,6 @@ export enum EventDataStoreSpecProviderConfigRefPolicyResolution {
  * @schema EventDataStoreSpecProviderConfigRefPolicyResolve
  */
 export enum EventDataStoreSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema EventDataStoreSpecProviderRefPolicyResolution
- */
-export enum EventDataStoreSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema EventDataStoreSpecProviderRefPolicyResolve
- */
-export enum EventDataStoreSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1132,7 +1227,7 @@ export function toJson_TrailProps(obj: TrailProps | undefined): Record<string, a
  */
 export interface TrailSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema TrailSpec#deletionPolicy
    */
@@ -1144,11 +1239,18 @@ export interface TrailSpec {
   readonly forProvider: TrailSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema TrailSpec#managementPolicy
+   * @schema TrailSpec#initProvider
    */
-  readonly managementPolicy?: TrailSpecManagementPolicy;
+  readonly initProvider?: TrailSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema TrailSpec#managementPolicies
+   */
+  readonly managementPolicies?: TrailSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1156,13 +1258,6 @@ export interface TrailSpec {
    * @schema TrailSpec#providerConfigRef
    */
   readonly providerConfigRef?: TrailSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema TrailSpec#providerRef
-   */
-  readonly providerRef?: TrailSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1189,9 +1284,9 @@ export function toJson_TrailSpec(obj: TrailSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_TrailSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_TrailSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_TrailSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_TrailSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_TrailSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_TrailSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1201,7 +1296,7 @@ export function toJson_TrailSpec(obj: TrailSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema TrailSpecDeletionPolicy
  */
@@ -1413,17 +1508,145 @@ export function toJson_TrailSpecForProvider(obj: TrailSpecForProvider | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema TrailSpecManagementPolicy
+ * @schema TrailSpecInitProvider
  */
-export enum TrailSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface TrailSpecInitProvider {
+  /**
+   * Specifies an advanced event selector for enabling data event logging. Fields documented below. Conflicts with event_selector.
+   *
+   * @schema TrailSpecInitProvider#advancedEventSelector
+   */
+  readonly advancedEventSelector?: TrailSpecInitProviderAdvancedEventSelector[];
+
+  /**
+   * Log group name using an ARN that represents the log group to which CloudTrail logs will be delivered. Note that CloudTrail requires the Log Stream wildcard.
+   *
+   * @schema TrailSpecInitProvider#cloudWatchLogsGroupArn
+   */
+  readonly cloudWatchLogsGroupArn?: string;
+
+  /**
+   * Whether log file integrity validation is enabled. Defaults to false.
+   *
+   * @default false.
+   * @schema TrailSpecInitProvider#enableLogFileValidation
+   */
+  readonly enableLogFileValidation?: boolean;
+
+  /**
+   * Enables logging for the trail. Defaults to true. Setting this to false will pause logging.
+   *
+   * @default true. Setting this to false will pause logging.
+   * @schema TrailSpecInitProvider#enableLogging
+   */
+  readonly enableLogging?: boolean;
+
+  /**
+   * Specifies an event selector for enabling data event logging. Fields documented below. Please note the CloudTrail limits when configuring these. Conflicts with advanced_event_selector.
+   *
+   * @schema TrailSpecInitProvider#eventSelector
+   */
+  readonly eventSelector?: TrailSpecInitProviderEventSelector[];
+
+  /**
+   * Whether the trail is publishing events from global services such as IAM to the log files. Defaults to true.
+   *
+   * @default true.
+   * @schema TrailSpecInitProvider#includeGlobalServiceEvents
+   */
+  readonly includeGlobalServiceEvents?: boolean;
+
+  /**
+   * Configuration block for identifying unusual operational activity. See details below.
+   *
+   * @schema TrailSpecInitProvider#insightSelector
+   */
+  readonly insightSelector?: TrailSpecInitProviderInsightSelector[];
+
+  /**
+   * Whether the trail is created in the current region or in all regions. Defaults to false.
+   *
+   * @default false.
+   * @schema TrailSpecInitProvider#isMultiRegionTrail
+   */
+  readonly isMultiRegionTrail?: boolean;
+
+  /**
+   * Whether the trail is an AWS Organizations trail. Organization trails log events for the master account and all member accounts. Can only be created in the organization master account. Defaults to false.
+   *
+   * @default false.
+   * @schema TrailSpecInitProvider#isOrganizationTrail
+   */
+  readonly isOrganizationTrail?: boolean;
+
+  /**
+   * S3 key prefix that follows the name of the bucket you have designated for log file delivery.
+   *
+   * @schema TrailSpecInitProvider#s3KeyPrefix
+   */
+  readonly s3KeyPrefix?: string;
+
+  /**
+   * Name of the Amazon SNS topic defined for notification of log file delivery.
+   *
+   * @schema TrailSpecInitProvider#snsTopicName
+   */
+  readonly snsTopicName?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema TrailSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'TrailSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TrailSpecInitProvider(obj: TrailSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'advancedEventSelector': obj.advancedEventSelector?.map(y => toJson_TrailSpecInitProviderAdvancedEventSelector(y)),
+    'cloudWatchLogsGroupArn': obj.cloudWatchLogsGroupArn,
+    'enableLogFileValidation': obj.enableLogFileValidation,
+    'enableLogging': obj.enableLogging,
+    'eventSelector': obj.eventSelector?.map(y => toJson_TrailSpecInitProviderEventSelector(y)),
+    'includeGlobalServiceEvents': obj.includeGlobalServiceEvents,
+    'insightSelector': obj.insightSelector?.map(y => toJson_TrailSpecInitProviderInsightSelector(y)),
+    'isMultiRegionTrail': obj.isMultiRegionTrail,
+    'isOrganizationTrail': obj.isOrganizationTrail,
+    's3KeyPrefix': obj.s3KeyPrefix,
+    'snsTopicName': obj.snsTopicName,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema TrailSpecManagementPolicies
+ */
+export enum TrailSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1457,43 +1680,6 @@ export function toJson_TrailSpecProviderConfigRef(obj: TrailSpecProviderConfigRe
   const result = {
     'name': obj.name,
     'policy': toJson_TrailSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema TrailSpecProviderRef
- */
-export interface TrailSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema TrailSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema TrailSpecProviderRef#policy
-   */
-  readonly policy?: TrailSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'TrailSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_TrailSpecProviderRef(obj: TrailSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_TrailSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1591,7 +1777,7 @@ export interface TrailSpecForProviderAdvancedEventSelector {
    *
    * @schema TrailSpecForProviderAdvancedEventSelector#fieldSelector
    */
-  readonly fieldSelector: TrailSpecForProviderAdvancedEventSelectorFieldSelector[];
+  readonly fieldSelector?: TrailSpecForProviderAdvancedEventSelectorFieldSelector[];
 
   /**
    * Name of the trail.
@@ -1760,7 +1946,7 @@ export interface TrailSpecForProviderInsightSelector {
    *
    * @schema TrailSpecForProviderInsightSelector#insightType
    */
-  readonly insightType: string;
+  readonly insightType?: string;
 
 }
 
@@ -1943,6 +2129,120 @@ export function toJson_TrailSpecForProviderS3BucketNameSelector(obj: TrailSpecFo
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema TrailSpecInitProviderAdvancedEventSelector
+ */
+export interface TrailSpecInitProviderAdvancedEventSelector {
+  /**
+   * Specifies the selector statements in an advanced event selector. Fields documented below.
+   *
+   * @schema TrailSpecInitProviderAdvancedEventSelector#fieldSelector
+   */
+  readonly fieldSelector?: TrailSpecInitProviderAdvancedEventSelectorFieldSelector[];
+
+  /**
+   * Name of the trail.
+   *
+   * @schema TrailSpecInitProviderAdvancedEventSelector#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'TrailSpecInitProviderAdvancedEventSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TrailSpecInitProviderAdvancedEventSelector(obj: TrailSpecInitProviderAdvancedEventSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fieldSelector': obj.fieldSelector?.map(y => toJson_TrailSpecInitProviderAdvancedEventSelectorFieldSelector(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TrailSpecInitProviderEventSelector
+ */
+export interface TrailSpecInitProviderEventSelector {
+  /**
+   * Configuration block for data events. See details below.
+   *
+   * @schema TrailSpecInitProviderEventSelector#dataResource
+   */
+  readonly dataResource?: TrailSpecInitProviderEventSelectorDataResource[];
+
+  /**
+   * A set of event sources to exclude. Valid values include: kms.amazonaws.com and rdsdata.amazonaws.com. include_management_events must be set totrue to allow this.
+   *
+   * @schema TrailSpecInitProviderEventSelector#excludeManagementEventSources
+   */
+  readonly excludeManagementEventSources?: string[];
+
+  /**
+   * Whether to include management events for your trail. Defaults to true.
+   *
+   * @default true.
+   * @schema TrailSpecInitProviderEventSelector#includeManagementEvents
+   */
+  readonly includeManagementEvents?: boolean;
+
+  /**
+   * Type of events to log. Valid values are ReadOnly, WriteOnly, All. Default value is All.
+   *
+   * @schema TrailSpecInitProviderEventSelector#readWriteType
+   */
+  readonly readWriteType?: string;
+
+}
+
+/**
+ * Converts an object of type 'TrailSpecInitProviderEventSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TrailSpecInitProviderEventSelector(obj: TrailSpecInitProviderEventSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dataResource': obj.dataResource?.map(y => toJson_TrailSpecInitProviderEventSelectorDataResource(y)),
+    'excludeManagementEventSources': obj.excludeManagementEventSources?.map(y => y),
+    'includeManagementEvents': obj.includeManagementEvents,
+    'readWriteType': obj.readWriteType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TrailSpecInitProviderInsightSelector
+ */
+export interface TrailSpecInitProviderInsightSelector {
+  /**
+   * Type of insights to log on a trail. Valid values are: ApiCallRateInsight and ApiErrorRateInsight.
+   *
+   * @schema TrailSpecInitProviderInsightSelector#insightType
+   */
+  readonly insightType?: string;
+
+}
+
+/**
+ * Converts an object of type 'TrailSpecInitProviderInsightSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TrailSpecInitProviderInsightSelector(obj: TrailSpecInitProviderInsightSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'insightType': obj.insightType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema TrailSpecProviderConfigRefPolicy
@@ -1969,43 +2269,6 @@ export interface TrailSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_TrailSpecProviderConfigRefPolicy(obj: TrailSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema TrailSpecProviderRefPolicy
- */
-export interface TrailSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema TrailSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: TrailSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema TrailSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: TrailSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'TrailSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_TrailSpecProviderRefPolicy(obj: TrailSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2121,7 +2384,7 @@ export interface TrailSpecForProviderAdvancedEventSelectorFieldSelector {
    *
    * @schema TrailSpecForProviderAdvancedEventSelectorFieldSelector#field
    */
-  readonly field: string;
+  readonly field?: string;
 
   /**
    * A list of values that excludes events that match the last few characters of the event record field specified as the value of field.
@@ -2256,14 +2519,14 @@ export interface TrailSpecForProviderEventSelectorDataResource {
    *
    * @schema TrailSpecForProviderEventSelectorDataResource#type
    */
-  readonly type: string;
+  readonly type?: string;
 
   /**
    * List of ARN strings or partial ARN strings to specify selectors for data audit events over data resources. ARN list is specific to single-valued type. For example, arn:aws:s3:::<bucket name>/ for all objects in a bucket, arn:aws:s3:::<bucket name>/key for specific objects, arn:aws:lambda for all lambda events within an account, arn:aws:lambda:<region>:<account number>:function:<function name> for a specific Lambda function, arn:aws:dynamodb for all DDB events for all tables within an account, or arn:aws:dynamodb:<region>:<account number>:table/<table name> for a specific DynamoDB table.
    *
    * @schema TrailSpecForProviderEventSelectorDataResource#values
    */
-  readonly values: string[];
+  readonly values?: string[];
 
 }
 
@@ -2431,6 +2694,116 @@ export function toJson_TrailSpecForProviderS3BucketNameSelectorPolicy(obj: Trail
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema TrailSpecInitProviderAdvancedEventSelectorFieldSelector
+ */
+export interface TrailSpecInitProviderAdvancedEventSelectorFieldSelector {
+  /**
+   * A list of values that includes events that match the last few characters of the event record field specified as the value of field.
+   *
+   * @schema TrailSpecInitProviderAdvancedEventSelectorFieldSelector#endsWith
+   */
+  readonly endsWith?: string[];
+
+  /**
+   * A list of values that includes events that match the exact value of the event record field specified as the value of field. This is the only valid operator that you can use with the readOnly, eventCategory, and resources.type fields.
+   *
+   * @schema TrailSpecInitProviderAdvancedEventSelectorFieldSelector#equals
+   */
+  readonly equals?: string[];
+
+  /**
+   * Field in an event record on which to filter events to be logged. You can specify only the following values: readOnly, eventSource, eventName, eventCategory, resources.type, resources.ARN.
+   *
+   * @schema TrailSpecInitProviderAdvancedEventSelectorFieldSelector#field
+   */
+  readonly field?: string;
+
+  /**
+   * A list of values that excludes events that match the last few characters of the event record field specified as the value of field.
+   *
+   * @schema TrailSpecInitProviderAdvancedEventSelectorFieldSelector#notEndsWith
+   */
+  readonly notEndsWith?: string[];
+
+  /**
+   * A list of values that excludes events that match the exact value of the event record field specified as the value of field.
+   *
+   * @schema TrailSpecInitProviderAdvancedEventSelectorFieldSelector#notEquals
+   */
+  readonly notEquals?: string[];
+
+  /**
+   * A list of values that excludes events that match the first few characters of the event record field specified as the value of field.
+   *
+   * @schema TrailSpecInitProviderAdvancedEventSelectorFieldSelector#notStartsWith
+   */
+  readonly notStartsWith?: string[];
+
+  /**
+   * A list of values that includes events that match the first few characters of the event record field specified as the value of field.
+   *
+   * @schema TrailSpecInitProviderAdvancedEventSelectorFieldSelector#startsWith
+   */
+  readonly startsWith?: string[];
+
+}
+
+/**
+ * Converts an object of type 'TrailSpecInitProviderAdvancedEventSelectorFieldSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TrailSpecInitProviderAdvancedEventSelectorFieldSelector(obj: TrailSpecInitProviderAdvancedEventSelectorFieldSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'endsWith': obj.endsWith?.map(y => y),
+    'equals': obj.equals?.map(y => y),
+    'field': obj.field,
+    'notEndsWith': obj.notEndsWith?.map(y => y),
+    'notEquals': obj.notEquals?.map(y => y),
+    'notStartsWith': obj.notStartsWith?.map(y => y),
+    'startsWith': obj.startsWith?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TrailSpecInitProviderEventSelectorDataResource
+ */
+export interface TrailSpecInitProviderEventSelectorDataResource {
+  /**
+   * Resource type in which you want to log data events. You can specify only the following value: "AWS::S3::Object", "AWS::Lambda::Function" and "AWS::DynamoDB::Table".
+   *
+   * @schema TrailSpecInitProviderEventSelectorDataResource#type
+   */
+  readonly type?: string;
+
+  /**
+   * List of ARN strings or partial ARN strings to specify selectors for data audit events over data resources. ARN list is specific to single-valued type. For example, arn:aws:s3:::<bucket name>/ for all objects in a bucket, arn:aws:s3:::<bucket name>/key for specific objects, arn:aws:lambda for all lambda events within an account, arn:aws:lambda:<region>:<account number>:function:<function name> for a specific Lambda function, arn:aws:dynamodb for all DDB events for all tables within an account, or arn:aws:dynamodb:<region>:<account number>:table/<table name> for a specific DynamoDB table.
+   *
+   * @schema TrailSpecInitProviderEventSelectorDataResource#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'TrailSpecInitProviderEventSelectorDataResource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TrailSpecInitProviderEventSelectorDataResource(obj: TrailSpecInitProviderEventSelectorDataResource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'type': obj.type,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema TrailSpecProviderConfigRefPolicyResolution
@@ -2448,30 +2821,6 @@ export enum TrailSpecProviderConfigRefPolicyResolution {
  * @schema TrailSpecProviderConfigRefPolicyResolve
  */
 export enum TrailSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema TrailSpecProviderRefPolicyResolution
- */
-export enum TrailSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema TrailSpecProviderRefPolicyResolve
- */
-export enum TrailSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

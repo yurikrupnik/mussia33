@@ -99,7 +99,7 @@ export function toJson_ServerProps(obj: ServerProps | undefined): Record<string,
  */
 export interface ServerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ServerSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface ServerSpec {
   readonly forProvider: ServerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ServerSpec#managementPolicy
+   * @schema ServerSpec#initProvider
    */
-  readonly managementPolicy?: ServerSpecManagementPolicy;
+  readonly initProvider?: ServerSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ServerSpec#managementPolicies
+   */
+  readonly managementPolicies?: ServerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface ServerSpec {
    * @schema ServerSpec#providerConfigRef
    */
   readonly providerConfigRef?: ServerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ServerSpec#providerRef
-   */
-  readonly providerRef?: ServerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_ServerSpec(obj: ServerSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ServerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ServerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ServerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ServerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ServerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ServerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_ServerSpec(obj: ServerSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ServerSpecDeletionPolicy
  */
@@ -392,17 +392,157 @@ export function toJson_ServerSpecForProvider(obj: ServerSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ServerSpecManagementPolicy
+ * @schema ServerSpecInitProvider
  */
-export enum ServerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ServerSpecInitProvider {
+  /**
+   * The domain of the storage system that is used for file transfers. Valid values are: S3 and EFS. The default value is S3.
+   *
+   * @schema ServerSpecInitProvider#domain
+   */
+  readonly domain?: string;
+
+  /**
+   * The virtual private cloud (VPC) endpoint settings that you want to configure for your SFTP server. Fields documented below.
+   *
+   * @schema ServerSpecInitProvider#endpointDetails
+   */
+  readonly endpointDetails?: ServerSpecInitProviderEndpointDetails[];
+
+  /**
+   * The type of endpoint that you want your SFTP server connect to. If you connect to a VPC (or VPC_ENDPOINT), your SFTP server isn't accessible over the public internet. If you want to connect your SFTP server via public internet, set PUBLIC.  Defaults to PUBLIC.
+   *
+   * @default PUBLIC.
+   * @schema ServerSpecInitProvider#endpointType
+   */
+  readonly endpointType?: string;
+
+  /**
+   * A boolean that indicates all users associated with the server should be deleted so that the Server can be destroyed without error. The default value is false. This option only applies to servers configured with a SERVICE_MANAGED identity_provider_type.
+   *
+   * @schema ServerSpecInitProvider#forceDestroy
+   */
+  readonly forceDestroy?: boolean;
+
+  /**
+   * The ARN for a lambda function to use for the Identity provider.
+   *
+   * @schema ServerSpecInitProvider#function
+   */
+  readonly function?: string;
+
+  /**
+   * The mode of authentication enabled for this service. The default value is SERVICE_MANAGED, which allows you to store and access SFTP user credentials within the service. API_GATEWAY indicates that user authentication requires a call to an API Gateway endpoint URL provided by you to integrate an identity provider of your choice. Using AWS_DIRECTORY_SERVICE will allow for authentication against AWS Managed Active Directory or Microsoft Active Directory in your on-premises environment, or in AWS using AD Connectors. Use the AWS_LAMBDA value to directly use a Lambda function as your identity provider. If you choose this value, you must specify the ARN for the lambda function in the function argument.
+   *
+   * @schema ServerSpecInitProvider#identityProviderType
+   */
+  readonly identityProviderType?: string;
+
+  /**
+   * Amazon Resource Name (ARN) of the IAM role used to authenticate the user account with an identity_provider_type of API_GATEWAY.
+   *
+   * @schema ServerSpecInitProvider#invocationRole
+   */
+  readonly invocationRole?: string;
+
+  /**
+   * Amazon Resource Name (ARN) of an IAM role that allows the service to write your SFTP users’ activity to your Amazon CloudWatch logs for monitoring and auditing purposes.
+   *
+   * @schema ServerSpecInitProvider#loggingRole
+   */
+  readonly loggingRole?: string;
+
+  /**
+   * The protocol settings that are configured for your server.
+   *
+   * @schema ServerSpecInitProvider#protocolDetails
+   */
+  readonly protocolDetails?: ServerSpecInitProviderProtocolDetails[];
+
+  /**
+   * Specifies the file transfer protocol or protocols over which your file transfer protocol client can connect to your server's endpoint. This defaults to SFTP . The available protocols are:
+   *
+   * @schema ServerSpecInitProvider#protocols
+   */
+  readonly protocols?: string[];
+
+  /**
+   * Specifies the name of the security policy that is attached to the server. Possible values are TransferSecurityPolicy-2018-11, TransferSecurityPolicy-2020-06, TransferSecurityPolicy-FIPS-2020-06 and TransferSecurityPolicy-2022-03. Default value is: TransferSecurityPolicy-2018-11.
+   *
+   * @schema ServerSpecInitProvider#securityPolicyName
+   */
+  readonly securityPolicyName?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ServerSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * - URL of the service endpoint used to authenticate users with an identity_provider_type of API_GATEWAY.
+   *
+   * @schema ServerSpecInitProvider#url
+   */
+  readonly url?: string;
+
+  /**
+   * Specifies the workflow details. See Workflow Details below.
+   *
+   * @schema ServerSpecInitProvider#workflowDetails
+   */
+  readonly workflowDetails?: ServerSpecInitProviderWorkflowDetails[];
+
+}
+
+/**
+ * Converts an object of type 'ServerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerSpecInitProvider(obj: ServerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'domain': obj.domain,
+    'endpointDetails': obj.endpointDetails?.map(y => toJson_ServerSpecInitProviderEndpointDetails(y)),
+    'endpointType': obj.endpointType,
+    'forceDestroy': obj.forceDestroy,
+    'function': obj.function,
+    'identityProviderType': obj.identityProviderType,
+    'invocationRole': obj.invocationRole,
+    'loggingRole': obj.loggingRole,
+    'protocolDetails': obj.protocolDetails?.map(y => toJson_ServerSpecInitProviderProtocolDetails(y)),
+    'protocols': obj.protocols?.map(y => y),
+    'securityPolicyName': obj.securityPolicyName,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'url': obj.url,
+    'workflowDetails': obj.workflowDetails?.map(y => toJson_ServerSpecInitProviderWorkflowDetails(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ServerSpecManagementPolicies
+ */
+export enum ServerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -436,43 +576,6 @@ export function toJson_ServerSpecProviderConfigRef(obj: ServerSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_ServerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ServerSpecProviderRef
- */
-export interface ServerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ServerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ServerSpecProviderRef#policy
-   */
-  readonly policy?: ServerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ServerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ServerSpecProviderRef(obj: ServerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ServerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1022,6 +1125,143 @@ export function toJson_ServerSpecForProviderWorkflowDetails(obj: ServerSpecForPr
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ServerSpecInitProviderEndpointDetails
+ */
+export interface ServerSpecInitProviderEndpointDetails {
+  /**
+   * A list of address allocation IDs that are required to attach an Elastic IP address to your SFTP server's endpoint. This property can only be used when endpoint_type is set to VPC.
+   *
+   * @schema ServerSpecInitProviderEndpointDetails#addressAllocationIds
+   */
+  readonly addressAllocationIds?: string[];
+
+  /**
+   * A list of security groups IDs that are available to attach to your server's endpoint. If no security groups are specified, the VPC's default security groups are automatically assigned to your endpoint. This property can only be used when endpoint_type is set to VPC.
+   *
+   * @schema ServerSpecInitProviderEndpointDetails#securityGroupIds
+   */
+  readonly securityGroupIds?: string[];
+
+  /**
+   * A list of subnet IDs that are required to host your SFTP server endpoint in your VPC. This property can only be used when endpoint_type is set to VPC.
+   *
+   * @schema ServerSpecInitProviderEndpointDetails#subnetIds
+   */
+  readonly subnetIds?: string[];
+
+  /**
+   * The ID of the VPC endpoint. This property can only be used when endpoint_type is set to VPC_ENDPOINT
+   *
+   * @schema ServerSpecInitProviderEndpointDetails#vpcEndpointId
+   */
+  readonly vpcEndpointId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServerSpecInitProviderEndpointDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerSpecInitProviderEndpointDetails(obj: ServerSpecInitProviderEndpointDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'addressAllocationIds': obj.addressAllocationIds?.map(y => y),
+    'securityGroupIds': obj.securityGroupIds?.map(y => y),
+    'subnetIds': obj.subnetIds?.map(y => y),
+    'vpcEndpointId': obj.vpcEndpointId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServerSpecInitProviderProtocolDetails
+ */
+export interface ServerSpecInitProviderProtocolDetails {
+  /**
+   * Indicates the transport method for the AS2 messages. Currently, only HTTP is supported.
+   *
+   * @schema ServerSpecInitProviderProtocolDetails#as2Transports
+   */
+  readonly as2Transports?: string[];
+
+  /**
+   * Indicates passive mode, for FTP and FTPS protocols. Enter a single IPv4 address, such as the public IP address of a firewall, router, or load balancer.
+   *
+   * @schema ServerSpecInitProviderProtocolDetails#passiveIp
+   */
+  readonly passiveIp?: string;
+
+  /**
+   * Use to ignore the error that is generated when the client attempts to use SETSTAT on a file you are uploading to an S3 bucket. Valid values: DEFAULT, ENABLE_NO_OP.
+   *
+   * @schema ServerSpecInitProviderProtocolDetails#setStatOption
+   */
+  readonly setStatOption?: string;
+
+  /**
+   * A property used with Transfer Family servers that use the FTPS protocol. Provides a mechanism to resume or share a negotiated secret key between the control and data connection for an FTPS session. Valid values: DISABLED, ENABLED, ENFORCED.
+   *
+   * @schema ServerSpecInitProviderProtocolDetails#tlsSessionResumptionMode
+   */
+  readonly tlsSessionResumptionMode?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServerSpecInitProviderProtocolDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerSpecInitProviderProtocolDetails(obj: ServerSpecInitProviderProtocolDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'as2Transports': obj.as2Transports?.map(y => y),
+    'passiveIp': obj.passiveIp,
+    'setStatOption': obj.setStatOption,
+    'tlsSessionResumptionMode': obj.tlsSessionResumptionMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServerSpecInitProviderWorkflowDetails
+ */
+export interface ServerSpecInitProviderWorkflowDetails {
+  /**
+   * A trigger that starts a workflow if a file is only partially uploaded. See Workflow Detail below.
+   *
+   * @schema ServerSpecInitProviderWorkflowDetails#onPartialUpload
+   */
+  readonly onPartialUpload?: ServerSpecInitProviderWorkflowDetailsOnPartialUpload[];
+
+  /**
+   * A trigger that starts a workflow: the workflow begins to execute after a file is uploaded. See Workflow Detail below.
+   *
+   * @schema ServerSpecInitProviderWorkflowDetails#onUpload
+   */
+  readonly onUpload?: ServerSpecInitProviderWorkflowDetailsOnUpload[];
+
+}
+
+/**
+ * Converts an object of type 'ServerSpecInitProviderWorkflowDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerSpecInitProviderWorkflowDetails(obj: ServerSpecInitProviderWorkflowDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'onPartialUpload': obj.onPartialUpload?.map(y => toJson_ServerSpecInitProviderWorkflowDetailsOnPartialUpload(y)),
+    'onUpload': obj.onUpload?.map(y => toJson_ServerSpecInitProviderWorkflowDetailsOnUpload(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ServerSpecProviderConfigRefPolicy
@@ -1048,43 +1288,6 @@ export interface ServerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ServerSpecProviderConfigRefPolicy(obj: ServerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ServerSpecProviderRefPolicy
- */
-export interface ServerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ServerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ServerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ServerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ServerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ServerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ServerSpecProviderRefPolicy(obj: ServerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1416,14 +1619,14 @@ export interface ServerSpecForProviderWorkflowDetailsOnPartialUpload {
    *
    * @schema ServerSpecForProviderWorkflowDetailsOnPartialUpload#executionRole
    */
-  readonly executionRole: string;
+  readonly executionRole?: string;
 
   /**
    * A unique identifier for the workflow.
    *
    * @schema ServerSpecForProviderWorkflowDetailsOnPartialUpload#workflowId
    */
-  readonly workflowId: string;
+  readonly workflowId?: string;
 
 }
 
@@ -1451,14 +1654,14 @@ export interface ServerSpecForProviderWorkflowDetailsOnUpload {
    *
    * @schema ServerSpecForProviderWorkflowDetailsOnUpload#executionRole
    */
-  readonly executionRole: string;
+  readonly executionRole?: string;
 
   /**
    * A unique identifier for the workflow.
    *
    * @schema ServerSpecForProviderWorkflowDetailsOnUpload#workflowId
    */
-  readonly workflowId: string;
+  readonly workflowId?: string;
 
 }
 
@@ -1467,6 +1670,76 @@ export interface ServerSpecForProviderWorkflowDetailsOnUpload {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ServerSpecForProviderWorkflowDetailsOnUpload(obj: ServerSpecForProviderWorkflowDetailsOnUpload | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'executionRole': obj.executionRole,
+    'workflowId': obj.workflowId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServerSpecInitProviderWorkflowDetailsOnPartialUpload
+ */
+export interface ServerSpecInitProviderWorkflowDetailsOnPartialUpload {
+  /**
+   * Includes the necessary permissions for S3, EFS, and Lambda operations that Transfer can assume, so that all workflow steps can operate on the required resources.
+   *
+   * @schema ServerSpecInitProviderWorkflowDetailsOnPartialUpload#executionRole
+   */
+  readonly executionRole?: string;
+
+  /**
+   * A unique identifier for the workflow.
+   *
+   * @schema ServerSpecInitProviderWorkflowDetailsOnPartialUpload#workflowId
+   */
+  readonly workflowId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServerSpecInitProviderWorkflowDetailsOnPartialUpload' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerSpecInitProviderWorkflowDetailsOnPartialUpload(obj: ServerSpecInitProviderWorkflowDetailsOnPartialUpload | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'executionRole': obj.executionRole,
+    'workflowId': obj.workflowId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServerSpecInitProviderWorkflowDetailsOnUpload
+ */
+export interface ServerSpecInitProviderWorkflowDetailsOnUpload {
+  /**
+   * Includes the necessary permissions for S3, EFS, and Lambda operations that Transfer can assume, so that all workflow steps can operate on the required resources.
+   *
+   * @schema ServerSpecInitProviderWorkflowDetailsOnUpload#executionRole
+   */
+  readonly executionRole?: string;
+
+  /**
+   * A unique identifier for the workflow.
+   *
+   * @schema ServerSpecInitProviderWorkflowDetailsOnUpload#workflowId
+   */
+  readonly workflowId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServerSpecInitProviderWorkflowDetailsOnUpload' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerSpecInitProviderWorkflowDetailsOnUpload(obj: ServerSpecInitProviderWorkflowDetailsOnUpload | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'executionRole': obj.executionRole,
@@ -1495,30 +1768,6 @@ export enum ServerSpecProviderConfigRefPolicyResolution {
  * @schema ServerSpecProviderConfigRefPolicyResolve
  */
 export enum ServerSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ServerSpecProviderRefPolicyResolution
- */
-export enum ServerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ServerSpecProviderRefPolicyResolve
- */
-export enum ServerSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1901,7 +2150,7 @@ export function toJson_SshKeyProps(obj: SshKeyProps | undefined): Record<string,
  */
 export interface SshKeySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SshKeySpec#deletionPolicy
    */
@@ -1913,11 +2162,18 @@ export interface SshKeySpec {
   readonly forProvider: SshKeySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema SshKeySpec#managementPolicy
+   * @schema SshKeySpec#initProvider
    */
-  readonly managementPolicy?: SshKeySpecManagementPolicy;
+  readonly initProvider?: SshKeySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema SshKeySpec#managementPolicies
+   */
+  readonly managementPolicies?: SshKeySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1925,13 +2181,6 @@ export interface SshKeySpec {
    * @schema SshKeySpec#providerConfigRef
    */
   readonly providerConfigRef?: SshKeySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema SshKeySpec#providerRef
-   */
-  readonly providerRef?: SshKeySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1958,9 +2207,9 @@ export function toJson_SshKeySpec(obj: SshKeySpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SshKeySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_SshKeySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_SshKeySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_SshKeySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SshKeySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_SshKeySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1970,7 +2219,7 @@ export function toJson_SshKeySpec(obj: SshKeySpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SshKeySpecDeletionPolicy
  */
@@ -2065,17 +2314,52 @@ export function toJson_SshKeySpecForProvider(obj: SshKeySpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema SshKeySpecManagementPolicy
+ * @schema SshKeySpecInitProvider
  */
-export enum SshKeySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface SshKeySpecInitProvider {
+  /**
+   * (Requirement) The public key portion of an SSH key pair.
+   *
+   * @schema SshKeySpecInitProvider#body
+   */
+  readonly body?: string;
+
+}
+
+/**
+ * Converts an object of type 'SshKeySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SshKeySpecInitProvider(obj: SshKeySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'body': obj.body,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema SshKeySpecManagementPolicies
+ */
+export enum SshKeySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2109,43 +2393,6 @@ export function toJson_SshKeySpecProviderConfigRef(obj: SshKeySpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_SshKeySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema SshKeySpecProviderRef
- */
-export interface SshKeySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema SshKeySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema SshKeySpecProviderRef#policy
-   */
-  readonly policy?: SshKeySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'SshKeySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SshKeySpecProviderRef(obj: SshKeySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_SshKeySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2436,43 +2683,6 @@ export function toJson_SshKeySpecProviderConfigRefPolicy(obj: SshKeySpecProvider
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema SshKeySpecProviderRefPolicy
- */
-export interface SshKeySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema SshKeySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: SshKeySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema SshKeySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: SshKeySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'SshKeySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SshKeySpecProviderRefPolicy(obj: SshKeySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema SshKeySpecPublishConnectionDetailsToConfigRef
@@ -2720,30 +2930,6 @@ export enum SshKeySpecProviderConfigRefPolicyResolution {
  * @schema SshKeySpecProviderConfigRefPolicyResolve
  */
 export enum SshKeySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema SshKeySpecProviderRefPolicyResolution
- */
-export enum SshKeySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema SshKeySpecProviderRefPolicyResolve
- */
-export enum SshKeySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3004,7 +3190,7 @@ export function toJson_TagProps(obj: TagProps | undefined): Record<string, any> 
  */
 export interface TagSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema TagSpec#deletionPolicy
    */
@@ -3016,11 +3202,18 @@ export interface TagSpec {
   readonly forProvider: TagSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema TagSpec#managementPolicy
+   * @schema TagSpec#initProvider
    */
-  readonly managementPolicy?: TagSpecManagementPolicy;
+  readonly initProvider?: TagSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema TagSpec#managementPolicies
+   */
+  readonly managementPolicies?: TagSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3028,13 +3221,6 @@ export interface TagSpec {
    * @schema TagSpec#providerConfigRef
    */
   readonly providerConfigRef?: TagSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema TagSpec#providerRef
-   */
-  readonly providerRef?: TagSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3061,9 +3247,9 @@ export function toJson_TagSpec(obj: TagSpec | undefined): Record<string, any> | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_TagSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_TagSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_TagSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_TagSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_TagSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_TagSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3073,7 +3259,7 @@ export function toJson_TagSpec(obj: TagSpec | undefined): Record<string, any> | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema TagSpecDeletionPolicy
  */
@@ -3152,17 +3338,60 @@ export function toJson_TagSpecForProvider(obj: TagSpecForProvider | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema TagSpecManagementPolicy
+ * @schema TagSpecInitProvider
  */
-export enum TagSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface TagSpecInitProvider {
+  /**
+   * Tag name.
+   *
+   * @schema TagSpecInitProvider#key
+   */
+  readonly key?: string;
+
+  /**
+   * Tag value.
+   *
+   * @schema TagSpecInitProvider#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'TagSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TagSpecInitProvider(obj: TagSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema TagSpecManagementPolicies
+ */
+export enum TagSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3196,43 +3425,6 @@ export function toJson_TagSpecProviderConfigRef(obj: TagSpecProviderConfigRef | 
   const result = {
     'name': obj.name,
     'policy': toJson_TagSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema TagSpecProviderRef
- */
-export interface TagSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema TagSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema TagSpecProviderRef#policy
-   */
-  readonly policy?: TagSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'TagSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_TagSpecProviderRef(obj: TagSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_TagSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3441,43 +3633,6 @@ export function toJson_TagSpecProviderConfigRefPolicy(obj: TagSpecProviderConfig
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema TagSpecProviderRefPolicy
- */
-export interface TagSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema TagSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: TagSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema TagSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: TagSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'TagSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_TagSpecProviderRefPolicy(obj: TagSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema TagSpecPublishConnectionDetailsToConfigRef
@@ -3651,30 +3806,6 @@ export enum TagSpecProviderConfigRefPolicyResolution {
  * @schema TagSpecProviderConfigRefPolicyResolve
  */
 export enum TagSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema TagSpecProviderRefPolicyResolution
- */
-export enum TagSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema TagSpecProviderRefPolicyResolve
- */
-export enum TagSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3887,7 +4018,7 @@ export function toJson_UserProps(obj: UserProps | undefined): Record<string, any
  */
 export interface UserSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema UserSpec#deletionPolicy
    */
@@ -3899,11 +4030,18 @@ export interface UserSpec {
   readonly forProvider: UserSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema UserSpec#managementPolicy
+   * @schema UserSpec#initProvider
    */
-  readonly managementPolicy?: UserSpecManagementPolicy;
+  readonly initProvider?: UserSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema UserSpec#managementPolicies
+   */
+  readonly managementPolicies?: UserSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3911,13 +4049,6 @@ export interface UserSpec {
    * @schema UserSpec#providerConfigRef
    */
   readonly providerConfigRef?: UserSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema UserSpec#providerRef
-   */
-  readonly providerRef?: UserSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3944,9 +4075,9 @@ export function toJson_UserSpec(obj: UserSpec | undefined): Record<string, any> 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_UserSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_UserSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_UserSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_UserSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_UserSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_UserSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3956,7 +4087,7 @@ export function toJson_UserSpec(obj: UserSpec | undefined): Record<string, any> 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema UserSpecDeletionPolicy
  */
@@ -4091,17 +4222,92 @@ export function toJson_UserSpecForProvider(obj: UserSpecForProvider | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema UserSpecManagementPolicy
+ * @schema UserSpecInitProvider
  */
-export enum UserSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface UserSpecInitProvider {
+  /**
+   * The landing directory (folder) for a user when they log in to the server using their SFTP client.  It should begin with a /.  The first item in the path is the name of the home bucket (accessible as ${Transfer:HomeBucket} in the policy) and the rest is the home directory (accessible as ${Transfer:HomeDirectory} in the policy). For example, /example-bucket-1234/username would set the home bucket to example-bucket-1234 and the home directory to username.
+   *
+   * @schema UserSpecInitProvider#homeDirectory
+   */
+  readonly homeDirectory?: string;
+
+  /**
+   * Logical directory mappings that specify what S3 paths and keys should be visible to your user and how you want to make them visible. See Home Directory Mappings below.
+   *
+   * @schema UserSpecInitProvider#homeDirectoryMappings
+   */
+  readonly homeDirectoryMappings?: UserSpecInitProviderHomeDirectoryMappings[];
+
+  /**
+   * The type of landing directory (folder) you mapped for your users' home directory. Valid values are PATH and LOGICAL.
+   *
+   * @schema UserSpecInitProvider#homeDirectoryType
+   */
+  readonly homeDirectoryType?: string;
+
+  /**
+   * An IAM JSON policy document that scopes down user access to portions of their Amazon S3 bucket. IAM variables you can use inside this policy include ${Transfer:UserName}, ${Transfer:HomeDirectory}, and ${Transfer:HomeBucket}.  These are evaluated on-the-fly when navigating the bucket.
+   *
+   * @schema UserSpecInitProvider#policy
+   */
+  readonly policy?: string;
+
+  /**
+   * Specifies the full POSIX identity, including user ID (Uid), group ID (Gid), and any secondary groups IDs (SecondaryGids), that controls your users' access to your Amazon EFS file systems. See Posix Profile below.
+   *
+   * @schema UserSpecInitProvider#posixProfile
+   */
+  readonly posixProfile?: UserSpecInitProviderPosixProfile[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema UserSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'UserSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserSpecInitProvider(obj: UserSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'homeDirectory': obj.homeDirectory,
+    'homeDirectoryMappings': obj.homeDirectoryMappings?.map(y => toJson_UserSpecInitProviderHomeDirectoryMappings(y)),
+    'homeDirectoryType': obj.homeDirectoryType,
+    'policy': obj.policy,
+    'posixProfile': obj.posixProfile?.map(y => toJson_UserSpecInitProviderPosixProfile(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema UserSpecManagementPolicies
+ */
+export enum UserSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4135,43 +4341,6 @@ export function toJson_UserSpecProviderConfigRef(obj: UserSpecProviderConfigRef 
   const result = {
     'name': obj.name,
     'policy': toJson_UserSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema UserSpecProviderRef
- */
-export interface UserSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema UserSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema UserSpecProviderRef#policy
-   */
-  readonly policy?: UserSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'UserSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserSpecProviderRef(obj: UserSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_UserSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4269,14 +4438,14 @@ export interface UserSpecForProviderHomeDirectoryMappings {
    *
    * @schema UserSpecForProviderHomeDirectoryMappings#entry
    */
-  readonly entry: string;
+  readonly entry?: string;
 
   /**
    * Represents the map target.
    *
    * @schema UserSpecForProviderHomeDirectoryMappings#target
    */
-  readonly target: string;
+  readonly target?: string;
 
 }
 
@@ -4304,7 +4473,7 @@ export interface UserSpecForProviderPosixProfile {
    *
    * @schema UserSpecForProviderPosixProfile#gid
    */
-  readonly gid: number;
+  readonly gid?: number;
 
   /**
    * The secondary POSIX group IDs used for all EFS operations by this user.
@@ -4318,7 +4487,7 @@ export interface UserSpecForProviderPosixProfile {
    *
    * @schema UserSpecForProviderPosixProfile#uid
    */
-  readonly uid: number;
+  readonly uid?: number;
 
 }
 
@@ -4503,6 +4672,84 @@ export function toJson_UserSpecForProviderServerIdSelector(obj: UserSpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema UserSpecInitProviderHomeDirectoryMappings
+ */
+export interface UserSpecInitProviderHomeDirectoryMappings {
+  /**
+   * Represents an entry and a target.
+   *
+   * @schema UserSpecInitProviderHomeDirectoryMappings#entry
+   */
+  readonly entry?: string;
+
+  /**
+   * Represents the map target.
+   *
+   * @schema UserSpecInitProviderHomeDirectoryMappings#target
+   */
+  readonly target?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserSpecInitProviderHomeDirectoryMappings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserSpecInitProviderHomeDirectoryMappings(obj: UserSpecInitProviderHomeDirectoryMappings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'entry': obj.entry,
+    'target': obj.target,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserSpecInitProviderPosixProfile
+ */
+export interface UserSpecInitProviderPosixProfile {
+  /**
+   * The POSIX group ID used for all EFS operations by this user.
+   *
+   * @schema UserSpecInitProviderPosixProfile#gid
+   */
+  readonly gid?: number;
+
+  /**
+   * The secondary POSIX group IDs used for all EFS operations by this user.
+   *
+   * @schema UserSpecInitProviderPosixProfile#secondaryGids
+   */
+  readonly secondaryGids?: number[];
+
+  /**
+   * The POSIX user ID used for all EFS operations by this user.
+   *
+   * @schema UserSpecInitProviderPosixProfile#uid
+   */
+  readonly uid?: number;
+
+}
+
+/**
+ * Converts an object of type 'UserSpecInitProviderPosixProfile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserSpecInitProviderPosixProfile(obj: UserSpecInitProviderPosixProfile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'gid': obj.gid,
+    'secondaryGids': obj.secondaryGids?.map(y => y),
+    'uid': obj.uid,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema UserSpecProviderConfigRefPolicy
@@ -4529,43 +4776,6 @@ export interface UserSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_UserSpecProviderConfigRefPolicy(obj: UserSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema UserSpecProviderRefPolicy
- */
-export interface UserSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema UserSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: UserSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema UserSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: UserSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'UserSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserSpecProviderRefPolicy(obj: UserSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -4831,30 +5041,6 @@ export enum UserSpecProviderConfigRefPolicyResolve {
 }
 
 /**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema UserSpecProviderRefPolicyResolution
- */
-export enum UserSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema UserSpecProviderRefPolicyResolve
- */
-export enum UserSpecProviderRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
  * Policies for referencing.
  *
  * @schema UserSpecPublishConnectionDetailsToConfigRefPolicy
@@ -5108,7 +5294,7 @@ export function toJson_WorkflowProps(obj: WorkflowProps | undefined): Record<str
  */
 export interface WorkflowSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema WorkflowSpec#deletionPolicy
    */
@@ -5120,11 +5306,18 @@ export interface WorkflowSpec {
   readonly forProvider: WorkflowSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema WorkflowSpec#managementPolicy
+   * @schema WorkflowSpec#initProvider
    */
-  readonly managementPolicy?: WorkflowSpecManagementPolicy;
+  readonly initProvider?: WorkflowSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema WorkflowSpec#managementPolicies
+   */
+  readonly managementPolicies?: WorkflowSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5132,13 +5325,6 @@ export interface WorkflowSpec {
    * @schema WorkflowSpec#providerConfigRef
    */
   readonly providerConfigRef?: WorkflowSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema WorkflowSpec#providerRef
-   */
-  readonly providerRef?: WorkflowSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -5165,9 +5351,9 @@ export function toJson_WorkflowSpec(obj: WorkflowSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_WorkflowSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_WorkflowSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_WorkflowSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_WorkflowSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_WorkflowSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_WorkflowSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -5177,7 +5363,7 @@ export function toJson_WorkflowSpec(obj: WorkflowSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema WorkflowSpecDeletionPolicy
  */
@@ -5248,17 +5434,76 @@ export function toJson_WorkflowSpecForProvider(obj: WorkflowSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema WorkflowSpecManagementPolicy
+ * @schema WorkflowSpecInitProvider
  */
-export enum WorkflowSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface WorkflowSpecInitProvider {
+  /**
+   * A textual description for the workflow.
+   *
+   * @schema WorkflowSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Specifies the steps (actions) to take if errors are encountered during execution of the workflow. See Workflow Steps below.
+   *
+   * @schema WorkflowSpecInitProvider#onExceptionSteps
+   */
+  readonly onExceptionSteps?: WorkflowSpecInitProviderOnExceptionSteps[];
+
+  /**
+   * Specifies the details for the steps that are in the specified workflow. See Workflow Steps below.
+   *
+   * @schema WorkflowSpecInitProvider#steps
+   */
+  readonly steps?: WorkflowSpecInitProviderSteps[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema WorkflowSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProvider(obj: WorkflowSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'onExceptionSteps': obj.onExceptionSteps?.map(y => toJson_WorkflowSpecInitProviderOnExceptionSteps(y)),
+    'steps': obj.steps?.map(y => toJson_WorkflowSpecInitProviderSteps(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema WorkflowSpecManagementPolicies
+ */
+export enum WorkflowSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -5292,43 +5537,6 @@ export function toJson_WorkflowSpecProviderConfigRef(obj: WorkflowSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_WorkflowSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema WorkflowSpecProviderRef
- */
-export interface WorkflowSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema WorkflowSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema WorkflowSpecProviderRef#policy
-   */
-  readonly policy?: WorkflowSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'WorkflowSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_WorkflowSpecProviderRef(obj: WorkflowSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_WorkflowSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5461,7 +5669,7 @@ export interface WorkflowSpecForProviderOnExceptionSteps {
    *
    * @schema WorkflowSpecForProviderOnExceptionSteps#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -5528,7 +5736,7 @@ export interface WorkflowSpecForProviderSteps {
    *
    * @schema WorkflowSpecForProviderSteps#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -5544,6 +5752,140 @@ export function toJson_WorkflowSpecForProviderSteps(obj: WorkflowSpecForProvider
     'decryptStepDetails': obj.decryptStepDetails?.map(y => toJson_WorkflowSpecForProviderStepsDecryptStepDetails(y)),
     'deleteStepDetails': obj.deleteStepDetails?.map(y => toJson_WorkflowSpecForProviderStepsDeleteStepDetails(y)),
     'tagStepDetails': obj.tagStepDetails?.map(y => toJson_WorkflowSpecForProviderStepsTagStepDetails(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderOnExceptionSteps
+ */
+export interface WorkflowSpecInitProviderOnExceptionSteps {
+  /**
+   * Details for a step that performs a file copy. See Copy Step Details below.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionSteps#copyStepDetails
+   */
+  readonly copyStepDetails?: WorkflowSpecInitProviderOnExceptionStepsCopyStepDetails[];
+
+  /**
+   * Details for a step that invokes a lambda function.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionSteps#customStepDetails
+   */
+  readonly customStepDetails?: WorkflowSpecInitProviderOnExceptionStepsCustomStepDetails[];
+
+  /**
+   * Details for a step that decrypts the file.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionSteps#decryptStepDetails
+   */
+  readonly decryptStepDetails?: WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetails[];
+
+  /**
+   * Details for a step that deletes the file.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionSteps#deleteStepDetails
+   */
+  readonly deleteStepDetails?: WorkflowSpecInitProviderOnExceptionStepsDeleteStepDetails[];
+
+  /**
+   * Details for a step that creates one or more tags.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionSteps#tagStepDetails
+   */
+  readonly tagStepDetails?: WorkflowSpecInitProviderOnExceptionStepsTagStepDetails[];
+
+  /**
+   * One of the following step types are supported. COPY, CUSTOM, DECRYPT, DELETE, and TAG.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionSteps#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderOnExceptionSteps' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderOnExceptionSteps(obj: WorkflowSpecInitProviderOnExceptionSteps | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'copyStepDetails': obj.copyStepDetails?.map(y => toJson_WorkflowSpecInitProviderOnExceptionStepsCopyStepDetails(y)),
+    'customStepDetails': obj.customStepDetails?.map(y => toJson_WorkflowSpecInitProviderOnExceptionStepsCustomStepDetails(y)),
+    'decryptStepDetails': obj.decryptStepDetails?.map(y => toJson_WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetails(y)),
+    'deleteStepDetails': obj.deleteStepDetails?.map(y => toJson_WorkflowSpecInitProviderOnExceptionStepsDeleteStepDetails(y)),
+    'tagStepDetails': obj.tagStepDetails?.map(y => toJson_WorkflowSpecInitProviderOnExceptionStepsTagStepDetails(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderSteps
+ */
+export interface WorkflowSpecInitProviderSteps {
+  /**
+   * Details for a step that performs a file copy. See Copy Step Details below.
+   *
+   * @schema WorkflowSpecInitProviderSteps#copyStepDetails
+   */
+  readonly copyStepDetails?: WorkflowSpecInitProviderStepsCopyStepDetails[];
+
+  /**
+   * Details for a step that invokes a lambda function.
+   *
+   * @schema WorkflowSpecInitProviderSteps#customStepDetails
+   */
+  readonly customStepDetails?: WorkflowSpecInitProviderStepsCustomStepDetails[];
+
+  /**
+   * Details for a step that decrypts the file.
+   *
+   * @schema WorkflowSpecInitProviderSteps#decryptStepDetails
+   */
+  readonly decryptStepDetails?: WorkflowSpecInitProviderStepsDecryptStepDetails[];
+
+  /**
+   * Details for a step that deletes the file.
+   *
+   * @schema WorkflowSpecInitProviderSteps#deleteStepDetails
+   */
+  readonly deleteStepDetails?: WorkflowSpecInitProviderStepsDeleteStepDetails[];
+
+  /**
+   * Details for a step that creates one or more tags.
+   *
+   * @schema WorkflowSpecInitProviderSteps#tagStepDetails
+   */
+  readonly tagStepDetails?: WorkflowSpecInitProviderStepsTagStepDetails[];
+
+  /**
+   * One of the following step types are supported. COPY, CUSTOM, DECRYPT, DELETE, and TAG.
+   *
+   * @schema WorkflowSpecInitProviderSteps#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderSteps' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderSteps(obj: WorkflowSpecInitProviderSteps | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'copyStepDetails': obj.copyStepDetails?.map(y => toJson_WorkflowSpecInitProviderStepsCopyStepDetails(y)),
+    'customStepDetails': obj.customStepDetails?.map(y => toJson_WorkflowSpecInitProviderStepsCustomStepDetails(y)),
+    'decryptStepDetails': obj.decryptStepDetails?.map(y => toJson_WorkflowSpecInitProviderStepsDecryptStepDetails(y)),
+    'deleteStepDetails': obj.deleteStepDetails?.map(y => toJson_WorkflowSpecInitProviderStepsDeleteStepDetails(y)),
+    'tagStepDetails': obj.tagStepDetails?.map(y => toJson_WorkflowSpecInitProviderStepsTagStepDetails(y)),
     'type': obj.type,
   };
   // filter undefined values
@@ -5578,43 +5920,6 @@ export interface WorkflowSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_WorkflowSpecProviderConfigRefPolicy(obj: WorkflowSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema WorkflowSpecProviderRefPolicy
- */
-export interface WorkflowSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema WorkflowSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: WorkflowSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema WorkflowSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: WorkflowSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'WorkflowSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_WorkflowSpecProviderRefPolicy(obj: WorkflowSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -5846,7 +6151,7 @@ export interface WorkflowSpecForProviderOnExceptionStepsDecryptStepDetails {
    *
    * @schema WorkflowSpecForProviderOnExceptionStepsDecryptStepDetails#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -6101,7 +6406,7 @@ export interface WorkflowSpecForProviderStepsDecryptStepDetails {
    *
    * @schema WorkflowSpecForProviderStepsDecryptStepDetails#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -6202,6 +6507,476 @@ export function toJson_WorkflowSpecForProviderStepsTagStepDetails(obj: WorkflowS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema WorkflowSpecInitProviderOnExceptionStepsCopyStepDetails
+ */
+export interface WorkflowSpecInitProviderOnExceptionStepsCopyStepDetails {
+  /**
+   * Specifies the location for the file being copied. Use ${Transfer:username} in this field to parametrize the destination prefix by username.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsCopyStepDetails#destinationFileLocation
+   */
+  readonly destinationFileLocation?: WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocation[];
+
+  /**
+   * The name of the step, used as an identifier.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsCopyStepDetails#name
+   */
+  readonly name?: string;
+
+  /**
+   * A flag that indicates whether or not to overwrite an existing file of the same name. The default is FALSE. Valid values are TRUE and FALSE.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsCopyStepDetails#overwriteExisting
+   */
+  readonly overwriteExisting?: string;
+
+  /**
+   * Specifies which file to use as input to the workflow step: either the output from the previous step, or the originally uploaded file for the workflow. Enter ${previous.file} to use the previous file as the input. In this case, this workflow step uses the output file from the previous workflow step as input. This is the default value. Enter ${original.file} to use the originally-uploaded file location as input for this step.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsCopyStepDetails#sourceFileLocation
+   */
+  readonly sourceFileLocation?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderOnExceptionStepsCopyStepDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderOnExceptionStepsCopyStepDetails(obj: WorkflowSpecInitProviderOnExceptionStepsCopyStepDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destinationFileLocation': obj.destinationFileLocation?.map(y => toJson_WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocation(y)),
+    'name': obj.name,
+    'overwriteExisting': obj.overwriteExisting,
+    'sourceFileLocation': obj.sourceFileLocation,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderOnExceptionStepsCustomStepDetails
+ */
+export interface WorkflowSpecInitProviderOnExceptionStepsCustomStepDetails {
+  /**
+   * The name of the step, used as an identifier.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsCustomStepDetails#name
+   */
+  readonly name?: string;
+
+  /**
+   * Specifies which file to use as input to the workflow step: either the output from the previous step, or the originally uploaded file for the workflow. Enter ${previous.file} to use the previous file as the input. In this case, this workflow step uses the output file from the previous workflow step as input. This is the default value. Enter ${original.file} to use the originally-uploaded file location as input for this step.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsCustomStepDetails#sourceFileLocation
+   */
+  readonly sourceFileLocation?: string;
+
+  /**
+   * The ARN for the lambda function that is being called.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsCustomStepDetails#target
+   */
+  readonly target?: string;
+
+  /**
+   * Timeout, in seconds, for the step.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsCustomStepDetails#timeoutSeconds
+   */
+  readonly timeoutSeconds?: number;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderOnExceptionStepsCustomStepDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderOnExceptionStepsCustomStepDetails(obj: WorkflowSpecInitProviderOnExceptionStepsCustomStepDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'sourceFileLocation': obj.sourceFileLocation,
+    'target': obj.target,
+    'timeoutSeconds': obj.timeoutSeconds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetails
+ */
+export interface WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetails {
+  /**
+   * Specifies the location for the file being copied. Use ${Transfer:username} in this field to parametrize the destination prefix by username.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetails#destinationFileLocation
+   */
+  readonly destinationFileLocation?: WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocation[];
+
+  /**
+   * The name of the step, used as an identifier.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetails#name
+   */
+  readonly name?: string;
+
+  /**
+   * A flag that indicates whether or not to overwrite an existing file of the same name. The default is FALSE. Valid values are TRUE and FALSE.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetails#overwriteExisting
+   */
+  readonly overwriteExisting?: string;
+
+  /**
+   * Specifies which file to use as input to the workflow step: either the output from the previous step, or the originally uploaded file for the workflow. Enter ${previous.file} to use the previous file as the input. In this case, this workflow step uses the output file from the previous workflow step as input. This is the default value. Enter ${original.file} to use the originally-uploaded file location as input for this step.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetails#sourceFileLocation
+   */
+  readonly sourceFileLocation?: string;
+
+  /**
+   * One of the following step types are supported. COPY, CUSTOM, DECRYPT, DELETE, and TAG.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetails#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetails(obj: WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destinationFileLocation': obj.destinationFileLocation?.map(y => toJson_WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocation(y)),
+    'name': obj.name,
+    'overwriteExisting': obj.overwriteExisting,
+    'sourceFileLocation': obj.sourceFileLocation,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderOnExceptionStepsDeleteStepDetails
+ */
+export interface WorkflowSpecInitProviderOnExceptionStepsDeleteStepDetails {
+  /**
+   * The name of the step, used as an identifier.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsDeleteStepDetails#name
+   */
+  readonly name?: string;
+
+  /**
+   * Specifies which file to use as input to the workflow step: either the output from the previous step, or the originally uploaded file for the workflow. Enter ${previous.file} to use the previous file as the input. In this case, this workflow step uses the output file from the previous workflow step as input. This is the default value. Enter ${original.file} to use the originally-uploaded file location as input for this step.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsDeleteStepDetails#sourceFileLocation
+   */
+  readonly sourceFileLocation?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderOnExceptionStepsDeleteStepDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderOnExceptionStepsDeleteStepDetails(obj: WorkflowSpecInitProviderOnExceptionStepsDeleteStepDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'sourceFileLocation': obj.sourceFileLocation,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderOnExceptionStepsTagStepDetails
+ */
+export interface WorkflowSpecInitProviderOnExceptionStepsTagStepDetails {
+  /**
+   * The name of the step, used as an identifier.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsTagStepDetails#name
+   */
+  readonly name?: string;
+
+  /**
+   * Specifies which file to use as input to the workflow step: either the output from the previous step, or the originally uploaded file for the workflow. Enter ${previous.file} to use the previous file as the input. In this case, this workflow step uses the output file from the previous workflow step as input. This is the default value. Enter ${original.file} to use the originally-uploaded file location as input for this step.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsTagStepDetails#sourceFileLocation
+   */
+  readonly sourceFileLocation?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsTagStepDetails#tags
+   */
+  readonly tags?: WorkflowSpecInitProviderOnExceptionStepsTagStepDetailsTags[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderOnExceptionStepsTagStepDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderOnExceptionStepsTagStepDetails(obj: WorkflowSpecInitProviderOnExceptionStepsTagStepDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'sourceFileLocation': obj.sourceFileLocation,
+    'tags': obj.tags?.map(y => toJson_WorkflowSpecInitProviderOnExceptionStepsTagStepDetailsTags(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderStepsCopyStepDetails
+ */
+export interface WorkflowSpecInitProviderStepsCopyStepDetails {
+  /**
+   * Specifies the location for the file being copied. Use ${Transfer:username} in this field to parametrize the destination prefix by username.
+   *
+   * @schema WorkflowSpecInitProviderStepsCopyStepDetails#destinationFileLocation
+   */
+  readonly destinationFileLocation?: WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocation[];
+
+  /**
+   * The name of the step, used as an identifier.
+   *
+   * @schema WorkflowSpecInitProviderStepsCopyStepDetails#name
+   */
+  readonly name?: string;
+
+  /**
+   * A flag that indicates whether or not to overwrite an existing file of the same name. The default is FALSE. Valid values are TRUE and FALSE.
+   *
+   * @schema WorkflowSpecInitProviderStepsCopyStepDetails#overwriteExisting
+   */
+  readonly overwriteExisting?: string;
+
+  /**
+   * Specifies which file to use as input to the workflow step: either the output from the previous step, or the originally uploaded file for the workflow. Enter ${previous.file} to use the previous file as the input. In this case, this workflow step uses the output file from the previous workflow step as input. This is the default value. Enter ${original.file} to use the originally-uploaded file location as input for this step.
+   *
+   * @schema WorkflowSpecInitProviderStepsCopyStepDetails#sourceFileLocation
+   */
+  readonly sourceFileLocation?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderStepsCopyStepDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderStepsCopyStepDetails(obj: WorkflowSpecInitProviderStepsCopyStepDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destinationFileLocation': obj.destinationFileLocation?.map(y => toJson_WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocation(y)),
+    'name': obj.name,
+    'overwriteExisting': obj.overwriteExisting,
+    'sourceFileLocation': obj.sourceFileLocation,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderStepsCustomStepDetails
+ */
+export interface WorkflowSpecInitProviderStepsCustomStepDetails {
+  /**
+   * The name of the step, used as an identifier.
+   *
+   * @schema WorkflowSpecInitProviderStepsCustomStepDetails#name
+   */
+  readonly name?: string;
+
+  /**
+   * Specifies which file to use as input to the workflow step: either the output from the previous step, or the originally uploaded file for the workflow. Enter ${previous.file} to use the previous file as the input. In this case, this workflow step uses the output file from the previous workflow step as input. This is the default value. Enter ${original.file} to use the originally-uploaded file location as input for this step.
+   *
+   * @schema WorkflowSpecInitProviderStepsCustomStepDetails#sourceFileLocation
+   */
+  readonly sourceFileLocation?: string;
+
+  /**
+   * Timeout, in seconds, for the step.
+   *
+   * @schema WorkflowSpecInitProviderStepsCustomStepDetails#timeoutSeconds
+   */
+  readonly timeoutSeconds?: number;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderStepsCustomStepDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderStepsCustomStepDetails(obj: WorkflowSpecInitProviderStepsCustomStepDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'sourceFileLocation': obj.sourceFileLocation,
+    'timeoutSeconds': obj.timeoutSeconds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderStepsDecryptStepDetails
+ */
+export interface WorkflowSpecInitProviderStepsDecryptStepDetails {
+  /**
+   * Specifies the location for the file being copied. Use ${Transfer:username} in this field to parametrize the destination prefix by username.
+   *
+   * @schema WorkflowSpecInitProviderStepsDecryptStepDetails#destinationFileLocation
+   */
+  readonly destinationFileLocation?: WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocation[];
+
+  /**
+   * The name of the step, used as an identifier.
+   *
+   * @schema WorkflowSpecInitProviderStepsDecryptStepDetails#name
+   */
+  readonly name?: string;
+
+  /**
+   * A flag that indicates whether or not to overwrite an existing file of the same name. The default is FALSE. Valid values are TRUE and FALSE.
+   *
+   * @schema WorkflowSpecInitProviderStepsDecryptStepDetails#overwriteExisting
+   */
+  readonly overwriteExisting?: string;
+
+  /**
+   * Specifies which file to use as input to the workflow step: either the output from the previous step, or the originally uploaded file for the workflow. Enter ${previous.file} to use the previous file as the input. In this case, this workflow step uses the output file from the previous workflow step as input. This is the default value. Enter ${original.file} to use the originally-uploaded file location as input for this step.
+   *
+   * @schema WorkflowSpecInitProviderStepsDecryptStepDetails#sourceFileLocation
+   */
+  readonly sourceFileLocation?: string;
+
+  /**
+   * One of the following step types are supported. COPY, CUSTOM, DECRYPT, DELETE, and TAG.
+   *
+   * @schema WorkflowSpecInitProviderStepsDecryptStepDetails#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderStepsDecryptStepDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderStepsDecryptStepDetails(obj: WorkflowSpecInitProviderStepsDecryptStepDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destinationFileLocation': obj.destinationFileLocation?.map(y => toJson_WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocation(y)),
+    'name': obj.name,
+    'overwriteExisting': obj.overwriteExisting,
+    'sourceFileLocation': obj.sourceFileLocation,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderStepsDeleteStepDetails
+ */
+export interface WorkflowSpecInitProviderStepsDeleteStepDetails {
+  /**
+   * The name of the step, used as an identifier.
+   *
+   * @schema WorkflowSpecInitProviderStepsDeleteStepDetails#name
+   */
+  readonly name?: string;
+
+  /**
+   * Specifies which file to use as input to the workflow step: either the output from the previous step, or the originally uploaded file for the workflow. Enter ${previous.file} to use the previous file as the input. In this case, this workflow step uses the output file from the previous workflow step as input. This is the default value. Enter ${original.file} to use the originally-uploaded file location as input for this step.
+   *
+   * @schema WorkflowSpecInitProviderStepsDeleteStepDetails#sourceFileLocation
+   */
+  readonly sourceFileLocation?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderStepsDeleteStepDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderStepsDeleteStepDetails(obj: WorkflowSpecInitProviderStepsDeleteStepDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'sourceFileLocation': obj.sourceFileLocation,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderStepsTagStepDetails
+ */
+export interface WorkflowSpecInitProviderStepsTagStepDetails {
+  /**
+   * The name of the step, used as an identifier.
+   *
+   * @schema WorkflowSpecInitProviderStepsTagStepDetails#name
+   */
+  readonly name?: string;
+
+  /**
+   * Specifies which file to use as input to the workflow step: either the output from the previous step, or the originally uploaded file for the workflow. Enter ${previous.file} to use the previous file as the input. In this case, this workflow step uses the output file from the previous workflow step as input. This is the default value. Enter ${original.file} to use the originally-uploaded file location as input for this step.
+   *
+   * @schema WorkflowSpecInitProviderStepsTagStepDetails#sourceFileLocation
+   */
+  readonly sourceFileLocation?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema WorkflowSpecInitProviderStepsTagStepDetails#tags
+   */
+  readonly tags?: WorkflowSpecInitProviderStepsTagStepDetailsTags[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderStepsTagStepDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderStepsTagStepDetails(obj: WorkflowSpecInitProviderStepsTagStepDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'sourceFileLocation': obj.sourceFileLocation,
+    'tags': obj.tags?.map(y => toJson_WorkflowSpecInitProviderStepsTagStepDetailsTags(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema WorkflowSpecProviderConfigRefPolicyResolution
@@ -6219,30 +6994,6 @@ export enum WorkflowSpecProviderConfigRefPolicyResolution {
  * @schema WorkflowSpecProviderConfigRefPolicyResolve
  */
 export enum WorkflowSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema WorkflowSpecProviderRefPolicyResolution
- */
-export enum WorkflowSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema WorkflowSpecProviderRefPolicyResolve
- */
-export enum WorkflowSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -6365,14 +7116,14 @@ export interface WorkflowSpecForProviderOnExceptionStepsTagStepDetailsTags {
    *
    * @schema WorkflowSpecForProviderOnExceptionStepsTagStepDetailsTags#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * The value that corresponds to the key.
    *
    * @schema WorkflowSpecForProviderOnExceptionStepsTagStepDetailsTags#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -6552,14 +7303,14 @@ export interface WorkflowSpecForProviderStepsTagStepDetailsTags {
    *
    * @schema WorkflowSpecForProviderStepsTagStepDetailsTags#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * The value that corresponds to the key.
    *
    * @schema WorkflowSpecForProviderStepsTagStepDetailsTags#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -6568,6 +7319,216 @@ export interface WorkflowSpecForProviderStepsTagStepDetailsTags {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_WorkflowSpecForProviderStepsTagStepDetailsTags(obj: WorkflowSpecForProviderStepsTagStepDetailsTags | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocation
+ */
+export interface WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocation {
+  /**
+   * Specifies the details for the EFS file being copied.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocation#efsFileLocation
+   */
+  readonly efsFileLocation?: WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationEfsFileLocation[];
+
+  /**
+   * Specifies the details for the S3 file being copied.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocation#s3FileLocation
+   */
+  readonly s3FileLocation?: WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationS3FileLocation[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocation(obj: WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'efsFileLocation': obj.efsFileLocation?.map(y => toJson_WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationEfsFileLocation(y)),
+    's3FileLocation': obj.s3FileLocation?.map(y => toJson_WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationS3FileLocation(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocation
+ */
+export interface WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocation {
+  /**
+   * Specifies the details for the EFS file being copied.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocation#efsFileLocation
+   */
+  readonly efsFileLocation?: WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation[];
+
+  /**
+   * Specifies the details for the S3 file being copied.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocation#s3FileLocation
+   */
+  readonly s3FileLocation?: WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationS3FileLocation[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocation(obj: WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'efsFileLocation': obj.efsFileLocation?.map(y => toJson_WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation(y)),
+    's3FileLocation': obj.s3FileLocation?.map(y => toJson_WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationS3FileLocation(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderOnExceptionStepsTagStepDetailsTags
+ */
+export interface WorkflowSpecInitProviderOnExceptionStepsTagStepDetailsTags {
+  /**
+   * The name assigned to the file when it was created in S3. You use the object key to retrieve the object.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsTagStepDetailsTags#key
+   */
+  readonly key?: string;
+
+  /**
+   * The value that corresponds to the key.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsTagStepDetailsTags#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderOnExceptionStepsTagStepDetailsTags' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderOnExceptionStepsTagStepDetailsTags(obj: WorkflowSpecInitProviderOnExceptionStepsTagStepDetailsTags | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocation
+ */
+export interface WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocation {
+  /**
+   * Specifies the details for the EFS file being copied.
+   *
+   * @schema WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocation#efsFileLocation
+   */
+  readonly efsFileLocation?: WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationEfsFileLocation[];
+
+  /**
+   * Specifies the details for the S3 file being copied.
+   *
+   * @schema WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocation#s3FileLocation
+   */
+  readonly s3FileLocation?: WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationS3FileLocation[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocation(obj: WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'efsFileLocation': obj.efsFileLocation?.map(y => toJson_WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationEfsFileLocation(y)),
+    's3FileLocation': obj.s3FileLocation?.map(y => toJson_WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationS3FileLocation(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocation
+ */
+export interface WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocation {
+  /**
+   * Specifies the details for the EFS file being copied.
+   *
+   * @schema WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocation#efsFileLocation
+   */
+  readonly efsFileLocation?: WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation[];
+
+  /**
+   * Specifies the details for the S3 file being copied.
+   *
+   * @schema WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocation#s3FileLocation
+   */
+  readonly s3FileLocation?: WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationS3FileLocation[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocation(obj: WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'efsFileLocation': obj.efsFileLocation?.map(y => toJson_WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation(y)),
+    's3FileLocation': obj.s3FileLocation?.map(y => toJson_WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationS3FileLocation(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderStepsTagStepDetailsTags
+ */
+export interface WorkflowSpecInitProviderStepsTagStepDetailsTags {
+  /**
+   * The name assigned to the file when it was created in S3. You use the object key to retrieve the object.
+   *
+   * @schema WorkflowSpecInitProviderStepsTagStepDetailsTags#key
+   */
+  readonly key?: string;
+
+  /**
+   * The value that corresponds to the key.
+   *
+   * @schema WorkflowSpecInitProviderStepsTagStepDetailsTags#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderStepsTagStepDetailsTags' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderStepsTagStepDetailsTags(obj: WorkflowSpecInitProviderStepsTagStepDetailsTags | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'key': obj.key,
@@ -6946,6 +7907,286 @@ export interface WorkflowSpecForProviderStepsDecryptStepDetailsDestinationFileLo
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_WorkflowSpecForProviderStepsDecryptStepDetailsDestinationFileLocationS3FileLocation(obj: WorkflowSpecForProviderStepsDecryptStepDetailsDestinationFileLocationS3FileLocation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'key': obj.key,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationEfsFileLocation
+ */
+export interface WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationEfsFileLocation {
+  /**
+   * The ID of the file system, assigned by Amazon EFS.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationEfsFileLocation#fileSystemId
+   */
+  readonly fileSystemId?: string;
+
+  /**
+   * The pathname for the folder being used by a workflow.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationEfsFileLocation#path
+   */
+  readonly path?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationEfsFileLocation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationEfsFileLocation(obj: WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationEfsFileLocation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fileSystemId': obj.fileSystemId,
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationS3FileLocation
+ */
+export interface WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationS3FileLocation {
+  /**
+   * Specifies the S3 bucket for the customer input file.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationS3FileLocation#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * The name assigned to the file when it was created in S3. You use the object key to retrieve the object.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationS3FileLocation#key
+   */
+  readonly key?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationS3FileLocation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationS3FileLocation(obj: WorkflowSpecInitProviderOnExceptionStepsCopyStepDetailsDestinationFileLocationS3FileLocation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'key': obj.key,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation
+ */
+export interface WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation {
+  /**
+   * The ID of the file system, assigned by Amazon EFS.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation#fileSystemId
+   */
+  readonly fileSystemId?: string;
+
+  /**
+   * The pathname for the folder being used by a workflow.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation#path
+   */
+  readonly path?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation(obj: WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fileSystemId': obj.fileSystemId,
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationS3FileLocation
+ */
+export interface WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationS3FileLocation {
+  /**
+   * Specifies the S3 bucket for the customer input file.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationS3FileLocation#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * The name assigned to the file when it was created in S3. You use the object key to retrieve the object.
+   *
+   * @schema WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationS3FileLocation#key
+   */
+  readonly key?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationS3FileLocation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationS3FileLocation(obj: WorkflowSpecInitProviderOnExceptionStepsDecryptStepDetailsDestinationFileLocationS3FileLocation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'key': obj.key,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationEfsFileLocation
+ */
+export interface WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationEfsFileLocation {
+  /**
+   * The ID of the file system, assigned by Amazon EFS.
+   *
+   * @schema WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationEfsFileLocation#fileSystemId
+   */
+  readonly fileSystemId?: string;
+
+  /**
+   * The pathname for the folder being used by a workflow.
+   *
+   * @schema WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationEfsFileLocation#path
+   */
+  readonly path?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationEfsFileLocation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationEfsFileLocation(obj: WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationEfsFileLocation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fileSystemId': obj.fileSystemId,
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationS3FileLocation
+ */
+export interface WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationS3FileLocation {
+  /**
+   * Specifies the S3 bucket for the customer input file.
+   *
+   * @schema WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationS3FileLocation#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * The name assigned to the file when it was created in S3. You use the object key to retrieve the object.
+   *
+   * @schema WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationS3FileLocation#key
+   */
+  readonly key?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationS3FileLocation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationS3FileLocation(obj: WorkflowSpecInitProviderStepsCopyStepDetailsDestinationFileLocationS3FileLocation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'key': obj.key,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation
+ */
+export interface WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation {
+  /**
+   * The ID of the file system, assigned by Amazon EFS.
+   *
+   * @schema WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation#fileSystemId
+   */
+  readonly fileSystemId?: string;
+
+  /**
+   * The pathname for the folder being used by a workflow.
+   *
+   * @schema WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation#path
+   */
+  readonly path?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation(obj: WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationEfsFileLocation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fileSystemId': obj.fileSystemId,
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationS3FileLocation
+ */
+export interface WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationS3FileLocation {
+  /**
+   * Specifies the S3 bucket for the customer input file.
+   *
+   * @schema WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationS3FileLocation#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * The name assigned to the file when it was created in S3. You use the object key to retrieve the object.
+   *
+   * @schema WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationS3FileLocation#key
+   */
+  readonly key?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationS3FileLocation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationS3FileLocation(obj: WorkflowSpecInitProviderStepsDecryptStepDetailsDestinationFileLocationS3FileLocation | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'bucket': obj.bucket,

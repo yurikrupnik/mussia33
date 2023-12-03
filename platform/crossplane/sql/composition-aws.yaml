@@ -1,0 +1,25 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: aws.compositesqls.multicloud.platformref.yurikrupnik.com
+  labels:
+    provider: AWS
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+    kind: CompositeSql
+  resources:
+#    todo rds here
+    - base:
+        apiVersion: s3.aws.upbound.io/v1beta1
+        kind: Bucket
+        metadata:
+          name: yuriks-bucket-via-crossplane
+        spec:
+          forProvider:
+            region: eu-west-1
+      patches:
+        - fromFieldPath: spec.location
+          toFieldPath: spec.forProvider.region
+

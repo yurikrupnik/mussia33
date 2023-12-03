@@ -99,7 +99,7 @@ export function toJson_ClusterProps(obj: ClusterProps | undefined): Record<strin
  */
 export interface ClusterSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ClusterSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface ClusterSpec {
   readonly forProvider: ClusterSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ClusterSpec#managementPolicy
+   * @schema ClusterSpec#initProvider
    */
-  readonly managementPolicy?: ClusterSpecManagementPolicy;
+  readonly initProvider?: ClusterSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ClusterSpec#managementPolicies
+   */
+  readonly managementPolicies?: ClusterSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface ClusterSpec {
    * @schema ClusterSpec#providerConfigRef
    */
   readonly providerConfigRef?: ClusterSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ClusterSpec#providerRef
-   */
-  readonly providerRef?: ClusterSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_ClusterSpec(obj: ClusterSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ClusterSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ClusterSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ClusterSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ClusterSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ClusterSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ClusterSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_ClusterSpec(obj: ClusterSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ClusterSpecDeletionPolicy
  */
@@ -303,17 +303,140 @@ export function toJson_ClusterSpecForProvider(obj: ClusterSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ClusterSpecManagementPolicy
+ * @schema ClusterSpecInitProvider
  */
-export enum ClusterSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ClusterSpecInitProvider {
+  /**
+   * Configuration block for the broker nodes of the Kafka cluster.
+   *
+   * @schema ClusterSpecInitProvider#brokerNodeGroupInfo
+   */
+  readonly brokerNodeGroupInfo?: ClusterSpecInitProviderBrokerNodeGroupInfo[];
+
+  /**
+   * Configuration block for specifying a client authentication. See below.
+   *
+   * @schema ClusterSpecInitProvider#clientAuthentication
+   */
+  readonly clientAuthentication?: ClusterSpecInitProviderClientAuthentication[];
+
+  /**
+   * Name of the MSK cluster.
+   *
+   * @schema ClusterSpecInitProvider#clusterName
+   */
+  readonly clusterName?: string;
+
+  /**
+   * Configuration block for specifying a MSK Configuration to attach to Kafka brokers. See below.
+   *
+   * @schema ClusterSpecInitProvider#configurationInfo
+   */
+  readonly configurationInfo?: ClusterSpecInitProviderConfigurationInfo[];
+
+  /**
+   * Configuration block for specifying encryption. See below.
+   *
+   * @schema ClusterSpecInitProvider#encryptionInfo
+   */
+  readonly encryptionInfo?: ClusterSpecInitProviderEncryptionInfo[];
+
+  /**
+   * Specify the desired enhanced MSK CloudWatch monitoring level. See Monitoring Amazon MSK with Amazon CloudWatch
+   *
+   * @schema ClusterSpecInitProvider#enhancedMonitoring
+   */
+  readonly enhancedMonitoring?: string;
+
+  /**
+   * Specify the desired Kafka software version.
+   *
+   * @schema ClusterSpecInitProvider#kafkaVersion
+   */
+  readonly kafkaVersion?: string;
+
+  /**
+   * Configuration block for streaming broker logs to Cloudwatch/S3/Kinesis Firehose. See below.
+   *
+   * @schema ClusterSpecInitProvider#loggingInfo
+   */
+  readonly loggingInfo?: ClusterSpecInitProviderLoggingInfo[];
+
+  /**
+   * The desired total number of broker nodes in the kafka cluster.  It must be a multiple of the number of specified client subnets.
+   *
+   * @schema ClusterSpecInitProvider#numberOfBrokerNodes
+   */
+  readonly numberOfBrokerNodes?: number;
+
+  /**
+   * Configuration block for JMX and Node monitoring for the MSK cluster. See below.
+   *
+   * @schema ClusterSpecInitProvider#openMonitoring
+   */
+  readonly openMonitoring?: ClusterSpecInitProviderOpenMonitoring[];
+
+  /**
+   * Controls storage mode for supported storage tiers. Valid values are: LOCAL or TIERED.
+   *
+   * @schema ClusterSpecInitProvider#storageMode
+   */
+  readonly storageMode?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ClusterSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProvider(obj: ClusterSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'brokerNodeGroupInfo': obj.brokerNodeGroupInfo?.map(y => toJson_ClusterSpecInitProviderBrokerNodeGroupInfo(y)),
+    'clientAuthentication': obj.clientAuthentication?.map(y => toJson_ClusterSpecInitProviderClientAuthentication(y)),
+    'clusterName': obj.clusterName,
+    'configurationInfo': obj.configurationInfo?.map(y => toJson_ClusterSpecInitProviderConfigurationInfo(y)),
+    'encryptionInfo': obj.encryptionInfo?.map(y => toJson_ClusterSpecInitProviderEncryptionInfo(y)),
+    'enhancedMonitoring': obj.enhancedMonitoring,
+    'kafkaVersion': obj.kafkaVersion,
+    'loggingInfo': obj.loggingInfo?.map(y => toJson_ClusterSpecInitProviderLoggingInfo(y)),
+    'numberOfBrokerNodes': obj.numberOfBrokerNodes,
+    'openMonitoring': obj.openMonitoring?.map(y => toJson_ClusterSpecInitProviderOpenMonitoring(y)),
+    'storageMode': obj.storageMode,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ClusterSpecManagementPolicies
+ */
+export enum ClusterSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -347,43 +470,6 @@ export function toJson_ClusterSpecProviderConfigRef(obj: ClusterSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_ClusterSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ClusterSpecProviderRef
- */
-export interface ClusterSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ClusterSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ClusterSpecProviderRef#policy
-   */
-  readonly policy?: ClusterSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ClusterSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ClusterSpecProviderRef(obj: ClusterSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ClusterSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -523,7 +609,7 @@ export interface ClusterSpecForProviderBrokerNodeGroupInfo {
    *
    * @schema ClusterSpecForProviderBrokerNodeGroupInfo#instanceType
    */
-  readonly instanceType: string;
+  readonly instanceType?: string;
 
   /**
    * A list of the security groups to associate with the elastic network interfaces to control who can communicate with the cluster.
@@ -631,14 +717,28 @@ export interface ClusterSpecForProviderConfigurationInfo {
    *
    * @schema ClusterSpecForProviderConfigurationInfo#arn
    */
-  readonly arn: string;
+  readonly arn?: string;
+
+  /**
+   * Reference to a Configuration to populate arn.
+   *
+   * @schema ClusterSpecForProviderConfigurationInfo#arnRef
+   */
+  readonly arnRef?: ClusterSpecForProviderConfigurationInfoArnRef;
+
+  /**
+   * Selector for a Configuration to populate arn.
+   *
+   * @schema ClusterSpecForProviderConfigurationInfo#arnSelector
+   */
+  readonly arnSelector?: ClusterSpecForProviderConfigurationInfoArnSelector;
 
   /**
    * Revision of the MSK Configuration to use in the cluster.
    *
    * @schema ClusterSpecForProviderConfigurationInfo#revision
    */
-  readonly revision: number;
+  readonly revision?: number;
 
 }
 
@@ -650,6 +750,8 @@ export function toJson_ClusterSpecForProviderConfigurationInfo(obj: ClusterSpecF
   if (obj === undefined) { return undefined; }
   const result = {
     'arn': obj.arn,
+    'arnRef': toJson_ClusterSpecForProviderConfigurationInfoArnRef(obj.arnRef),
+    'arnSelector': toJson_ClusterSpecForProviderConfigurationInfoArnSelector(obj.arnSelector),
     'revision': obj.revision,
   };
   // filter undefined values
@@ -717,7 +819,7 @@ export interface ClusterSpecForProviderLoggingInfo {
    *
    * @schema ClusterSpecForProviderLoggingInfo#brokerLogs
    */
-  readonly brokerLogs: ClusterSpecForProviderLoggingInfoBrokerLogs[];
+  readonly brokerLogs?: ClusterSpecForProviderLoggingInfoBrokerLogs[];
 
 }
 
@@ -744,7 +846,7 @@ export interface ClusterSpecForProviderOpenMonitoring {
    *
    * @schema ClusterSpecForProviderOpenMonitoring#prometheus
    */
-  readonly prometheus: ClusterSpecForProviderOpenMonitoringPrometheus[];
+  readonly prometheus?: ClusterSpecForProviderOpenMonitoringPrometheus[];
 
 }
 
@@ -756,6 +858,216 @@ export function toJson_ClusterSpecForProviderOpenMonitoring(obj: ClusterSpecForP
   if (obj === undefined) { return undefined; }
   const result = {
     'prometheus': obj.prometheus?.map(y => toJson_ClusterSpecForProviderOpenMonitoringPrometheus(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderBrokerNodeGroupInfo
+ */
+export interface ClusterSpecInitProviderBrokerNodeGroupInfo {
+  /**
+   * The distribution of broker nodes across availability zones (documentation). Currently the only valid value is DEFAULT.
+   *
+   * @schema ClusterSpecInitProviderBrokerNodeGroupInfo#azDistribution
+   */
+  readonly azDistribution?: string;
+
+  /**
+   * Information about the cluster access configuration. See below. For security reasons, you can't turn on public access while creating an MSK cluster. However, you can update an existing cluster to make it publicly accessible. You can also create a new cluster and then update it to make it publicly accessible (documentation).
+   *
+   * @schema ClusterSpecInitProviderBrokerNodeGroupInfo#connectivityInfo
+   */
+  readonly connectivityInfo?: ClusterSpecInitProviderBrokerNodeGroupInfoConnectivityInfo[];
+
+  /**
+   * The size in GiB of the EBS volume for the data drive on each broker node.
+   *
+   * @schema ClusterSpecInitProviderBrokerNodeGroupInfo#ebsVolumeSize
+   */
+  readonly ebsVolumeSize?: number;
+
+  /**
+   * Specify the instance type to use for the kafka brokersE.g., kafka.m5.large. (Pricing info)
+   *
+   * @schema ClusterSpecInitProviderBrokerNodeGroupInfo#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * A block that contains information about storage volumes attached to MSK broker nodes. See below.
+   *
+   * @schema ClusterSpecInitProviderBrokerNodeGroupInfo#storageInfo
+   */
+  readonly storageInfo?: ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfo[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderBrokerNodeGroupInfo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderBrokerNodeGroupInfo(obj: ClusterSpecInitProviderBrokerNodeGroupInfo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'azDistribution': obj.azDistribution,
+    'connectivityInfo': obj.connectivityInfo?.map(y => toJson_ClusterSpecInitProviderBrokerNodeGroupInfoConnectivityInfo(y)),
+    'ebsVolumeSize': obj.ebsVolumeSize,
+    'instanceType': obj.instanceType,
+    'storageInfo': obj.storageInfo?.map(y => toJson_ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfo(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClientAuthentication
+ */
+export interface ClusterSpecInitProviderClientAuthentication {
+  /**
+   * Configuration block for specifying SASL client authentication. See below.
+   *
+   * @schema ClusterSpecInitProviderClientAuthentication#sasl
+   */
+  readonly sasl?: ClusterSpecInitProviderClientAuthenticationSasl[];
+
+  /**
+   * Configuration block for specifying TLS client authentication. See below.
+   *
+   * @schema ClusterSpecInitProviderClientAuthentication#tls
+   */
+  readonly tls?: ClusterSpecInitProviderClientAuthenticationTls[];
+
+  /**
+   * Enables unauthenticated access.
+   *
+   * @schema ClusterSpecInitProviderClientAuthentication#unauthenticated
+   */
+  readonly unauthenticated?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClientAuthentication' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClientAuthentication(obj: ClusterSpecInitProviderClientAuthentication | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sasl': obj.sasl?.map(y => toJson_ClusterSpecInitProviderClientAuthenticationSasl(y)),
+    'tls': obj.tls?.map(y => toJson_ClusterSpecInitProviderClientAuthenticationTls(y)),
+    'unauthenticated': obj.unauthenticated,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderConfigurationInfo
+ */
+export interface ClusterSpecInitProviderConfigurationInfo {
+  /**
+   * Revision of the MSK Configuration to use in the cluster.
+   *
+   * @schema ClusterSpecInitProviderConfigurationInfo#revision
+   */
+  readonly revision?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderConfigurationInfo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderConfigurationInfo(obj: ClusterSpecInitProviderConfigurationInfo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'revision': obj.revision,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderEncryptionInfo
+ */
+export interface ClusterSpecInitProviderEncryptionInfo {
+  /**
+   * Configuration block to specify encryption in transit. See below.
+   *
+   * @schema ClusterSpecInitProviderEncryptionInfo#encryptionInTransit
+   */
+  readonly encryptionInTransit?: ClusterSpecInitProviderEncryptionInfoEncryptionInTransit[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderEncryptionInfo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderEncryptionInfo(obj: ClusterSpecInitProviderEncryptionInfo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'encryptionInTransit': obj.encryptionInTransit?.map(y => toJson_ClusterSpecInitProviderEncryptionInfoEncryptionInTransit(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderLoggingInfo
+ */
+export interface ClusterSpecInitProviderLoggingInfo {
+  /**
+   * Configuration block for Broker Logs settings for logging info. See below.
+   *
+   * @schema ClusterSpecInitProviderLoggingInfo#brokerLogs
+   */
+  readonly brokerLogs?: ClusterSpecInitProviderLoggingInfoBrokerLogs[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderLoggingInfo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderLoggingInfo(obj: ClusterSpecInitProviderLoggingInfo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'brokerLogs': obj.brokerLogs?.map(y => toJson_ClusterSpecInitProviderLoggingInfoBrokerLogs(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderOpenMonitoring
+ */
+export interface ClusterSpecInitProviderOpenMonitoring {
+  /**
+   * Configuration block for Prometheus settings for open monitoring. See below.
+   *
+   * @schema ClusterSpecInitProviderOpenMonitoring#prometheus
+   */
+  readonly prometheus?: ClusterSpecInitProviderOpenMonitoringPrometheus[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderOpenMonitoring' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderOpenMonitoring(obj: ClusterSpecInitProviderOpenMonitoring | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'prometheus': obj.prometheus?.map(y => toJson_ClusterSpecInitProviderOpenMonitoringPrometheus(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -789,43 +1101,6 @@ export interface ClusterSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ClusterSpecProviderConfigRefPolicy(obj: ClusterSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ClusterSpecProviderRefPolicy
- */
-export interface ClusterSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ClusterSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ClusterSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ClusterSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ClusterSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ClusterSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ClusterSpecProviderRefPolicy(obj: ClusterSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1201,6 +1476,88 @@ export function toJson_ClusterSpecForProviderClientAuthenticationTls(obj: Cluste
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Reference to a Configuration to populate arn.
+ *
+ * @schema ClusterSpecForProviderConfigurationInfoArnRef
+ */
+export interface ClusterSpecForProviderConfigurationInfoArnRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema ClusterSpecForProviderConfigurationInfoArnRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema ClusterSpecForProviderConfigurationInfoArnRef#policy
+   */
+  readonly policy?: ClusterSpecForProviderConfigurationInfoArnRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderConfigurationInfoArnRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderConfigurationInfoArnRef(obj: ClusterSpecForProviderConfigurationInfoArnRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_ClusterSpecForProviderConfigurationInfoArnRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a Configuration to populate arn.
+ *
+ * @schema ClusterSpecForProviderConfigurationInfoArnSelector
+ */
+export interface ClusterSpecForProviderConfigurationInfoArnSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema ClusterSpecForProviderConfigurationInfoArnSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema ClusterSpecForProviderConfigurationInfoArnSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema ClusterSpecForProviderConfigurationInfoArnSelector#policy
+   */
+  readonly policy?: ClusterSpecForProviderConfigurationInfoArnSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderConfigurationInfoArnSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderConfigurationInfoArnSelector(obj: ClusterSpecForProviderConfigurationInfoArnSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_ClusterSpecForProviderConfigurationInfoArnSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Reference to a Key in kms to populate encryptionAtRestKmsKeyArn.
  *
  * @schema ClusterSpecForProviderEncryptionInfoEncryptionAtRestKmsKeyArnRef
@@ -1390,6 +1747,231 @@ export function toJson_ClusterSpecForProviderOpenMonitoringPrometheus(obj: Clust
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ClusterSpecInitProviderBrokerNodeGroupInfoConnectivityInfo
+ */
+export interface ClusterSpecInitProviderBrokerNodeGroupInfoConnectivityInfo {
+  /**
+   * Access control settings for brokers. See below.
+   *
+   * @schema ClusterSpecInitProviderBrokerNodeGroupInfoConnectivityInfo#publicAccess
+   */
+  readonly publicAccess?: ClusterSpecInitProviderBrokerNodeGroupInfoConnectivityInfoPublicAccess[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderBrokerNodeGroupInfoConnectivityInfo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderBrokerNodeGroupInfoConnectivityInfo(obj: ClusterSpecInitProviderBrokerNodeGroupInfoConnectivityInfo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'publicAccess': obj.publicAccess?.map(y => toJson_ClusterSpecInitProviderBrokerNodeGroupInfoConnectivityInfoPublicAccess(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfo
+ */
+export interface ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfo {
+  /**
+   * A block that contains EBS volume information. See below.
+   *
+   * @schema ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfo#ebsStorageInfo
+   */
+  readonly ebsStorageInfo?: ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfo[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfo(obj: ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ebsStorageInfo': obj.ebsStorageInfo?.map(y => toJson_ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfo(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClientAuthenticationSasl
+ */
+export interface ClusterSpecInitProviderClientAuthenticationSasl {
+  /**
+   * Enables IAM client authentication. Defaults to false.
+   *
+   * @default false.
+   * @schema ClusterSpecInitProviderClientAuthenticationSasl#iam
+   */
+  readonly iam?: boolean;
+
+  /**
+   * Enables SCRAM client authentication via AWS Secrets Manager. Defaults to false.
+   *
+   * @default false.
+   * @schema ClusterSpecInitProviderClientAuthenticationSasl#scram
+   */
+  readonly scram?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClientAuthenticationSasl' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClientAuthenticationSasl(obj: ClusterSpecInitProviderClientAuthenticationSasl | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'iam': obj.iam,
+    'scram': obj.scram,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClientAuthenticationTls
+ */
+export interface ClusterSpecInitProviderClientAuthenticationTls {
+  /**
+   * List of ACM Certificate Authority Amazon Resource Names (ARNs).
+   *
+   * @schema ClusterSpecInitProviderClientAuthenticationTls#certificateAuthorityArns
+   */
+  readonly certificateAuthorityArns?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClientAuthenticationTls' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClientAuthenticationTls(obj: ClusterSpecInitProviderClientAuthenticationTls | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateAuthorityArns': obj.certificateAuthorityArns?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderEncryptionInfoEncryptionInTransit
+ */
+export interface ClusterSpecInitProviderEncryptionInfoEncryptionInTransit {
+  /**
+   * Encryption setting for data in transit between clients and brokers. Valid values: TLS, TLS_PLAINTEXT, and PLAINTEXT. Default value is TLS.
+   *
+   * @schema ClusterSpecInitProviderEncryptionInfoEncryptionInTransit#clientBroker
+   */
+  readonly clientBroker?: string;
+
+  /**
+   * Whether data communication among broker nodes is encrypted. Default value: true.
+   *
+   * @schema ClusterSpecInitProviderEncryptionInfoEncryptionInTransit#inCluster
+   */
+  readonly inCluster?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderEncryptionInfoEncryptionInTransit' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderEncryptionInfoEncryptionInTransit(obj: ClusterSpecInitProviderEncryptionInfoEncryptionInTransit | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clientBroker': obj.clientBroker,
+    'inCluster': obj.inCluster,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderLoggingInfoBrokerLogs
+ */
+export interface ClusterSpecInitProviderLoggingInfoBrokerLogs {
+  /**
+   * @schema ClusterSpecInitProviderLoggingInfoBrokerLogs#cloudwatchLogs
+   */
+  readonly cloudwatchLogs?: ClusterSpecInitProviderLoggingInfoBrokerLogsCloudwatchLogs[];
+
+  /**
+   * @schema ClusterSpecInitProviderLoggingInfoBrokerLogs#firehose
+   */
+  readonly firehose?: ClusterSpecInitProviderLoggingInfoBrokerLogsFirehose[];
+
+  /**
+   * @schema ClusterSpecInitProviderLoggingInfoBrokerLogs#s3
+   */
+  readonly s3?: ClusterSpecInitProviderLoggingInfoBrokerLogsS3[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderLoggingInfoBrokerLogs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderLoggingInfoBrokerLogs(obj: ClusterSpecInitProviderLoggingInfoBrokerLogs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cloudwatchLogs': obj.cloudwatchLogs?.map(y => toJson_ClusterSpecInitProviderLoggingInfoBrokerLogsCloudwatchLogs(y)),
+    'firehose': obj.firehose?.map(y => toJson_ClusterSpecInitProviderLoggingInfoBrokerLogsFirehose(y)),
+    's3': obj.s3?.map(y => toJson_ClusterSpecInitProviderLoggingInfoBrokerLogsS3(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderOpenMonitoringPrometheus
+ */
+export interface ClusterSpecInitProviderOpenMonitoringPrometheus {
+  /**
+   * Configuration block for JMX Exporter. See below.
+   *
+   * @schema ClusterSpecInitProviderOpenMonitoringPrometheus#jmxExporter
+   */
+  readonly jmxExporter?: ClusterSpecInitProviderOpenMonitoringPrometheusJmxExporter[];
+
+  /**
+   * Configuration block for Node Exporter. See below.
+   *
+   * @schema ClusterSpecInitProviderOpenMonitoringPrometheus#nodeExporter
+   */
+  readonly nodeExporter?: ClusterSpecInitProviderOpenMonitoringPrometheusNodeExporter[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderOpenMonitoringPrometheus' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderOpenMonitoringPrometheus(obj: ClusterSpecInitProviderOpenMonitoringPrometheus | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'jmxExporter': obj.jmxExporter?.map(y => toJson_ClusterSpecInitProviderOpenMonitoringPrometheusJmxExporter(y)),
+    'nodeExporter': obj.nodeExporter?.map(y => toJson_ClusterSpecInitProviderOpenMonitoringPrometheusNodeExporter(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema ClusterSpecProviderConfigRefPolicyResolution
@@ -1407,30 +1989,6 @@ export enum ClusterSpecProviderConfigRefPolicyResolution {
  * @schema ClusterSpecProviderConfigRefPolicyResolve
  */
 export enum ClusterSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ClusterSpecProviderRefPolicyResolution
- */
-export enum ClusterSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ClusterSpecProviderRefPolicyResolve
- */
-export enum ClusterSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1687,6 +2245,80 @@ export function toJson_ClusterSpecForProviderBrokerNodeGroupInfoStorageInfoEbsSt
 /**
  * Policies for referencing.
  *
+ * @schema ClusterSpecForProviderConfigurationInfoArnRefPolicy
+ */
+export interface ClusterSpecForProviderConfigurationInfoArnRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ClusterSpecForProviderConfigurationInfoArnRefPolicy#resolution
+   */
+  readonly resolution?: ClusterSpecForProviderConfigurationInfoArnRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ClusterSpecForProviderConfigurationInfoArnRefPolicy#resolve
+   */
+  readonly resolve?: ClusterSpecForProviderConfigurationInfoArnRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderConfigurationInfoArnRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderConfigurationInfoArnRefPolicy(obj: ClusterSpecForProviderConfigurationInfoArnRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema ClusterSpecForProviderConfigurationInfoArnSelectorPolicy
+ */
+export interface ClusterSpecForProviderConfigurationInfoArnSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ClusterSpecForProviderConfigurationInfoArnSelectorPolicy#resolution
+   */
+  readonly resolution?: ClusterSpecForProviderConfigurationInfoArnSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ClusterSpecForProviderConfigurationInfoArnSelectorPolicy#resolve
+   */
+  readonly resolve?: ClusterSpecForProviderConfigurationInfoArnSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderConfigurationInfoArnSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderConfigurationInfoArnSelectorPolicy(obj: ClusterSpecForProviderConfigurationInfoArnSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
  * @schema ClusterSpecForProviderEncryptionInfoEncryptionAtRestKmsKeyArnRefPolicy
  */
 export interface ClusterSpecForProviderEncryptionInfoEncryptionAtRestKmsKeyArnRefPolicy {
@@ -1767,7 +2399,7 @@ export interface ClusterSpecForProviderLoggingInfoBrokerLogsCloudwatchLogs {
    *
    * @schema ClusterSpecForProviderLoggingInfoBrokerLogsCloudwatchLogs#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
   /**
    * Name of the Cloudwatch Log Group to deliver logs to.
@@ -1839,7 +2471,7 @@ export interface ClusterSpecForProviderLoggingInfoBrokerLogsFirehose {
    *
    * @schema ClusterSpecForProviderLoggingInfoBrokerLogsFirehose#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -1890,7 +2522,7 @@ export interface ClusterSpecForProviderLoggingInfoBrokerLogsS3 {
    *
    * @schema ClusterSpecForProviderLoggingInfoBrokerLogsS3#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
   /**
    * Prefix to append to the folder name.
@@ -1928,7 +2560,7 @@ export interface ClusterSpecForProviderOpenMonitoringPrometheusJmxExporter {
    *
    * @schema ClusterSpecForProviderOpenMonitoringPrometheusJmxExporter#enabledInBroker
    */
-  readonly enabledInBroker: boolean;
+  readonly enabledInBroker?: boolean;
 
 }
 
@@ -1955,7 +2587,7 @@ export interface ClusterSpecForProviderOpenMonitoringPrometheusNodeExporter {
    *
    * @schema ClusterSpecForProviderOpenMonitoringPrometheusNodeExporter#enabledInBroker
    */
-  readonly enabledInBroker: boolean;
+  readonly enabledInBroker?: boolean;
 
 }
 
@@ -1964,6 +2596,211 @@ export interface ClusterSpecForProviderOpenMonitoringPrometheusNodeExporter {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ClusterSpecForProviderOpenMonitoringPrometheusNodeExporter(obj: ClusterSpecForProviderOpenMonitoringPrometheusNodeExporter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabledInBroker': obj.enabledInBroker,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderBrokerNodeGroupInfoConnectivityInfoPublicAccess
+ */
+export interface ClusterSpecInitProviderBrokerNodeGroupInfoConnectivityInfoPublicAccess {
+  /**
+   * Public access type. Valida values: DISABLED, SERVICE_PROVIDED_EIPS.
+   *
+   * @schema ClusterSpecInitProviderBrokerNodeGroupInfoConnectivityInfoPublicAccess#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderBrokerNodeGroupInfoConnectivityInfoPublicAccess' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderBrokerNodeGroupInfoConnectivityInfoPublicAccess(obj: ClusterSpecInitProviderBrokerNodeGroupInfoConnectivityInfoPublicAccess | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfo
+ */
+export interface ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfo {
+  /**
+   * A block that contains EBS volume provisioned throughput information. To provision storage throughput, you must choose broker type kafka.m5.4xlarge or larger. See below.
+   *
+   * @schema ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfo#provisionedThroughput
+   */
+  readonly provisionedThroughput?: ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfoProvisionedThroughput[];
+
+  /**
+   * The size in GiB of the EBS volume for the data drive on each broker node. Minimum value of 1 and maximum value of 16384.
+   *
+   * @schema ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfo#volumeSize
+   */
+  readonly volumeSize?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfo(obj: ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'provisionedThroughput': obj.provisionedThroughput?.map(y => toJson_ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfoProvisionedThroughput(y)),
+    'volumeSize': obj.volumeSize,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderLoggingInfoBrokerLogsCloudwatchLogs
+ */
+export interface ClusterSpecInitProviderLoggingInfoBrokerLogsCloudwatchLogs {
+  /**
+   * Controls whether provisioned throughput is enabled or not. Default value: false.
+   *
+   * @schema ClusterSpecInitProviderLoggingInfoBrokerLogsCloudwatchLogs#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderLoggingInfoBrokerLogsCloudwatchLogs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderLoggingInfoBrokerLogsCloudwatchLogs(obj: ClusterSpecInitProviderLoggingInfoBrokerLogsCloudwatchLogs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderLoggingInfoBrokerLogsFirehose
+ */
+export interface ClusterSpecInitProviderLoggingInfoBrokerLogsFirehose {
+  /**
+   * Controls whether provisioned throughput is enabled or not. Default value: false.
+   *
+   * @schema ClusterSpecInitProviderLoggingInfoBrokerLogsFirehose#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderLoggingInfoBrokerLogsFirehose' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderLoggingInfoBrokerLogsFirehose(obj: ClusterSpecInitProviderLoggingInfoBrokerLogsFirehose | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderLoggingInfoBrokerLogsS3
+ */
+export interface ClusterSpecInitProviderLoggingInfoBrokerLogsS3 {
+  /**
+   * Controls whether provisioned throughput is enabled or not. Default value: false.
+   *
+   * @schema ClusterSpecInitProviderLoggingInfoBrokerLogsS3#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Prefix to append to the folder name.
+   *
+   * @schema ClusterSpecInitProviderLoggingInfoBrokerLogsS3#prefix
+   */
+  readonly prefix?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderLoggingInfoBrokerLogsS3' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderLoggingInfoBrokerLogsS3(obj: ClusterSpecInitProviderLoggingInfoBrokerLogsS3 | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'prefix': obj.prefix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderOpenMonitoringPrometheusJmxExporter
+ */
+export interface ClusterSpecInitProviderOpenMonitoringPrometheusJmxExporter {
+  /**
+   * Indicates whether you want to enable or disable the JMX Exporter.
+   *
+   * @schema ClusterSpecInitProviderOpenMonitoringPrometheusJmxExporter#enabledInBroker
+   */
+  readonly enabledInBroker?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderOpenMonitoringPrometheusJmxExporter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderOpenMonitoringPrometheusJmxExporter(obj: ClusterSpecInitProviderOpenMonitoringPrometheusJmxExporter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabledInBroker': obj.enabledInBroker,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderOpenMonitoringPrometheusNodeExporter
+ */
+export interface ClusterSpecInitProviderOpenMonitoringPrometheusNodeExporter {
+  /**
+   * Indicates whether you want to enable or disable the JMX Exporter.
+   *
+   * @schema ClusterSpecInitProviderOpenMonitoringPrometheusNodeExporter#enabledInBroker
+   */
+  readonly enabledInBroker?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderOpenMonitoringPrometheusNodeExporter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderOpenMonitoringPrometheusNodeExporter(obj: ClusterSpecInitProviderOpenMonitoringPrometheusNodeExporter | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'enabledInBroker': obj.enabledInBroker,
@@ -2127,6 +2964,54 @@ export function toJson_ClusterSpecForProviderBrokerNodeGroupInfoStorageInfoEbsSt
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ClusterSpecForProviderConfigurationInfoArnRefPolicyResolution
+ */
+export enum ClusterSpecForProviderConfigurationInfoArnRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ClusterSpecForProviderConfigurationInfoArnRefPolicyResolve
+ */
+export enum ClusterSpecForProviderConfigurationInfoArnRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ClusterSpecForProviderConfigurationInfoArnSelectorPolicyResolution
+ */
+export enum ClusterSpecForProviderConfigurationInfoArnSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ClusterSpecForProviderConfigurationInfoArnSelectorPolicyResolve
+ */
+export enum ClusterSpecForProviderConfigurationInfoArnSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
 
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
@@ -2416,6 +3301,41 @@ export function toJson_ClusterSpecForProviderLoggingInfoBrokerLogsS3BucketSelect
     'matchControllerRef': obj.matchControllerRef,
     'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'policy': toJson_ClusterSpecForProviderLoggingInfoBrokerLogsS3BucketSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfoProvisionedThroughput
+ */
+export interface ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfoProvisionedThroughput {
+  /**
+   * Controls whether provisioned throughput is enabled or not. Default value: false.
+   *
+   * @schema ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfoProvisionedThroughput#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Throughput value of the EBS volumes for the data drive on each kafka broker node in MiB per second. The minimum value is 250. The maximum value varies between broker type. You can refer to the valid values for the maximum volume throughput at the following documentation on throughput bottlenecks
+   *
+   * @schema ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfoProvisionedThroughput#volumeThroughput
+   */
+  readonly volumeThroughput?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfoProvisionedThroughput' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfoProvisionedThroughput(obj: ClusterSpecInitProviderBrokerNodeGroupInfoStorageInfoEbsStorageInfoProvisionedThroughput | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'volumeThroughput': obj.volumeThroughput,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2790,7 +3710,7 @@ export enum ClusterSpecForProviderLoggingInfoBrokerLogsS3BucketSelectorPolicyRes
 
 
 /**
- * Configuration is the Schema for the Configurations API. Upbound official provider resource for managing an amazon managed streaming for kafka configuration
+ * Configuration is the Schema for the Configurations API. provider resource for managing an amazon managed streaming for kafka configuration
  *
  * @schema Configuration
  */
@@ -2844,7 +3764,7 @@ export class Configuration extends ApiObject {
 }
 
 /**
- * Configuration is the Schema for the Configurations API. Upbound official provider resource for managing an amazon managed streaming for kafka configuration
+ * Configuration is the Schema for the Configurations API. provider resource for managing an amazon managed streaming for kafka configuration
  *
  * @schema Configuration
  */
@@ -2885,7 +3805,7 @@ export function toJson_ConfigurationProps(obj: ConfigurationProps | undefined): 
  */
 export interface ConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ConfigurationSpec#deletionPolicy
    */
@@ -2897,11 +3817,18 @@ export interface ConfigurationSpec {
   readonly forProvider: ConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ConfigurationSpec#managementPolicy
+   * @schema ConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: ConfigurationSpecManagementPolicy;
+  readonly initProvider?: ConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: ConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2909,13 +3836,6 @@ export interface ConfigurationSpec {
    * @schema ConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: ConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ConfigurationSpec#providerRef
-   */
-  readonly providerRef?: ConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2942,9 +3862,9 @@ export function toJson_ConfigurationSpec(obj: ConfigurationSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2954,7 +3874,7 @@ export function toJson_ConfigurationSpec(obj: ConfigurationSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ConfigurationSpecDeletionPolicy
  */
@@ -3025,17 +3945,76 @@ export function toJson_ConfigurationSpecForProvider(obj: ConfigurationSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ConfigurationSpecManagementPolicy
+ * @schema ConfigurationSpecInitProvider
  */
-export enum ConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ConfigurationSpecInitProvider {
+  /**
+   * Description of the configuration.
+   *
+   * @schema ConfigurationSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * List of Apache Kafka versions which can use this configuration.
+   *
+   * @schema ConfigurationSpecInitProvider#kafkaVersions
+   */
+  readonly kafkaVersions?: string[];
+
+  /**
+   * Name of the configuration.
+   *
+   * @schema ConfigurationSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Contents of the server.properties file. Supported properties are documented in the MSK Developer Guide.
+   *
+   * @schema ConfigurationSpecInitProvider#serverProperties
+   */
+  readonly serverProperties?: string;
+
+}
+
+/**
+ * Converts an object of type 'ConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ConfigurationSpecInitProvider(obj: ConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'kafkaVersions': obj.kafkaVersions?.map(y => y),
+    'name': obj.name,
+    'serverProperties': obj.serverProperties,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ConfigurationSpecManagementPolicies
+ */
+export enum ConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3069,43 +4048,6 @@ export function toJson_ConfigurationSpecProviderConfigRef(obj: ConfigurationSpec
   const result = {
     'name': obj.name,
     'policy': toJson_ConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ConfigurationSpecProviderRef
- */
-export interface ConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: ConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ConfigurationSpecProviderRef(obj: ConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3232,43 +4174,6 @@ export function toJson_ConfigurationSpecProviderConfigRefPolicy(obj: Configurati
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ConfigurationSpecProviderRefPolicy
- */
-export interface ConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ConfigurationSpecProviderRefPolicy(obj: ConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ConfigurationSpecPublishConnectionDetailsToConfigRef
@@ -3375,30 +4280,6 @@ export enum ConfigurationSpecProviderConfigRefPolicyResolve {
 }
 
 /**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ConfigurationSpecProviderRefPolicyResolution
- */
-export enum ConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ConfigurationSpecProviderRefPolicyResolve
- */
-export enum ConfigurationSpecProviderRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
  * Policies for referencing.
  *
  * @schema ConfigurationSpecPublishConnectionDetailsToConfigRefPolicy
@@ -3453,6 +4334,2278 @@ export enum ConfigurationSpecPublishConnectionDetailsToConfigRefPolicyResolution
  * @schema ConfigurationSpecPublishConnectionDetailsToConfigRefPolicyResolve
  */
 export enum ConfigurationSpecPublishConnectionDetailsToConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+
+/**
+ * ScramSecretAssociation is the Schema for the ScramSecretAssociations API. Associates SCRAM secrets with a Managed Streaming for Kafka (MSK) cluster.
+ *
+ * @schema ScramSecretAssociation
+ */
+export class ScramSecretAssociation extends ApiObject {
+  /**
+   * Returns the apiVersion and kind for "ScramSecretAssociation"
+   */
+  public static readonly GVK: GroupVersionKind = {
+    apiVersion: 'kafka.aws.upbound.io/v1beta1',
+    kind: 'ScramSecretAssociation',
+  }
+
+  /**
+   * Renders a Kubernetes manifest for "ScramSecretAssociation".
+   *
+   * This can be used to inline resource manifests inside other objects (e.g. as templates).
+   *
+   * @param props initialization props
+   */
+  public static manifest(props: ScramSecretAssociationProps): any {
+    return {
+      ...ScramSecretAssociation.GVK,
+      ...toJson_ScramSecretAssociationProps(props),
+    };
+  }
+
+  /**
+   * Defines a "ScramSecretAssociation" API object
+   * @param scope the scope in which to define this object
+   * @param id a scope-local name for the object
+   * @param props initialization props
+   */
+  public constructor(scope: Construct, id: string, props: ScramSecretAssociationProps) {
+    super(scope, id, {
+      ...ScramSecretAssociation.GVK,
+      ...props,
+    });
+  }
+
+  /**
+   * Renders the object to Kubernetes JSON.
+   */
+  public toJson(): any {
+    const resolved = super.toJson();
+
+    return {
+      ...ScramSecretAssociation.GVK,
+      ...toJson_ScramSecretAssociationProps(resolved),
+    };
+  }
+}
+
+/**
+ * ScramSecretAssociation is the Schema for the ScramSecretAssociations API. Associates SCRAM secrets with a Managed Streaming for Kafka (MSK) cluster.
+ *
+ * @schema ScramSecretAssociation
+ */
+export interface ScramSecretAssociationProps {
+  /**
+   * @schema ScramSecretAssociation#metadata
+   */
+  readonly metadata?: ApiObjectMetadata;
+
+  /**
+   * ScramSecretAssociationSpec defines the desired state of ScramSecretAssociation
+   *
+   * @schema ScramSecretAssociation#spec
+   */
+  readonly spec: ScramSecretAssociationSpec;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationProps' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationProps(obj: ScramSecretAssociationProps | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metadata': obj.metadata,
+    'spec': toJson_ScramSecretAssociationSpec(obj.spec),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ScramSecretAssociationSpec defines the desired state of ScramSecretAssociation
+ *
+ * @schema ScramSecretAssociationSpec
+ */
+export interface ScramSecretAssociationSpec {
+  /**
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ScramSecretAssociationSpec#deletionPolicy
+   */
+  readonly deletionPolicy?: ScramSecretAssociationSpecDeletionPolicy;
+
+  /**
+   * @schema ScramSecretAssociationSpec#forProvider
+   */
+  readonly forProvider: ScramSecretAssociationSpecForProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
+   *
+   * @schema ScramSecretAssociationSpec#initProvider
+   */
+  readonly initProvider?: any;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ScramSecretAssociationSpec#managementPolicies
+   */
+  readonly managementPolicies?: ScramSecretAssociationSpecManagementPolicies[];
+
+  /**
+   * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+   *
+   * @schema ScramSecretAssociationSpec#providerConfigRef
+   */
+  readonly providerConfigRef?: ScramSecretAssociationSpecProviderConfigRef;
+
+  /**
+   * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+   *
+   * @schema ScramSecretAssociationSpec#publishConnectionDetailsTo
+   */
+  readonly publishConnectionDetailsTo?: ScramSecretAssociationSpecPublishConnectionDetailsTo;
+
+  /**
+   * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+   *
+   * @schema ScramSecretAssociationSpec#writeConnectionSecretToRef
+   */
+  readonly writeConnectionSecretToRef?: ScramSecretAssociationSpecWriteConnectionSecretToRef;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpec(obj: ScramSecretAssociationSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deletionPolicy': obj.deletionPolicy,
+    'forProvider': toJson_ScramSecretAssociationSpecForProvider(obj.forProvider),
+    'initProvider': obj.initProvider,
+    'managementPolicies': obj.managementPolicies?.map(y => y),
+    'providerConfigRef': toJson_ScramSecretAssociationSpecProviderConfigRef(obj.providerConfigRef),
+    'publishConnectionDetailsTo': toJson_ScramSecretAssociationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
+    'writeConnectionSecretToRef': toJson_ScramSecretAssociationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ScramSecretAssociationSpecDeletionPolicy
+ */
+export enum ScramSecretAssociationSpecDeletionPolicy {
+  /** Orphan */
+  ORPHAN = "Orphan",
+  /** Delete */
+  DELETE = "Delete",
+}
+
+/**
+ * @schema ScramSecretAssociationSpecForProvider
+ */
+export interface ScramSecretAssociationSpecForProvider {
+  /**
+   * Amazon Resource Name (ARN) of the MSK cluster.
+   *
+   * @schema ScramSecretAssociationSpecForProvider#clusterArn
+   */
+  readonly clusterArn?: string;
+
+  /**
+   * Reference to a Cluster in kafka to populate clusterArn.
+   *
+   * @schema ScramSecretAssociationSpecForProvider#clusterArnRef
+   */
+  readonly clusterArnRef?: ScramSecretAssociationSpecForProviderClusterArnRef;
+
+  /**
+   * Selector for a Cluster in kafka to populate clusterArn.
+   *
+   * @schema ScramSecretAssociationSpecForProvider#clusterArnSelector
+   */
+  readonly clusterArnSelector?: ScramSecretAssociationSpecForProviderClusterArnSelector;
+
+  /**
+   * Region is the region you'd like your resource to be created in.
+   *
+   * @schema ScramSecretAssociationSpecForProvider#region
+   */
+  readonly region: string;
+
+  /**
+   * List of all AWS Secrets Manager secret ARNs to associate with the cluster. Secrets not referenced, selected or listed here will be disassociated from the cluster.
+   *
+   * @schema ScramSecretAssociationSpecForProvider#secretArnList
+   */
+  readonly secretArnList?: string[];
+
+  /**
+   * References to Secret in secretsmanager to populate secretArnList.
+   *
+   * @schema ScramSecretAssociationSpecForProvider#secretArnRefs
+   */
+  readonly secretArnRefs?: ScramSecretAssociationSpecForProviderSecretArnRefs[];
+
+  /**
+   * Selector for a list of Secret in secretsmanager to populate secretArnList.
+   *
+   * @schema ScramSecretAssociationSpecForProvider#secretArnSelector
+   */
+  readonly secretArnSelector?: ScramSecretAssociationSpecForProviderSecretArnSelector;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpecForProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpecForProvider(obj: ScramSecretAssociationSpecForProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clusterArn': obj.clusterArn,
+    'clusterArnRef': toJson_ScramSecretAssociationSpecForProviderClusterArnRef(obj.clusterArnRef),
+    'clusterArnSelector': toJson_ScramSecretAssociationSpecForProviderClusterArnSelector(obj.clusterArnSelector),
+    'region': obj.region,
+    'secretArnList': obj.secretArnList?.map(y => y),
+    'secretArnRefs': obj.secretArnRefs?.map(y => toJson_ScramSecretAssociationSpecForProviderSecretArnRefs(y)),
+    'secretArnSelector': toJson_ScramSecretAssociationSpecForProviderSecretArnSelector(obj.secretArnSelector),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ScramSecretAssociationSpecManagementPolicies
+ */
+export enum ScramSecretAssociationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
+}
+
+/**
+ * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+ *
+ * @schema ScramSecretAssociationSpecProviderConfigRef
+ */
+export interface ScramSecretAssociationSpecProviderConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema ScramSecretAssociationSpecProviderConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema ScramSecretAssociationSpecProviderConfigRef#policy
+   */
+  readonly policy?: ScramSecretAssociationSpecProviderConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpecProviderConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpecProviderConfigRef(obj: ScramSecretAssociationSpecProviderConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_ScramSecretAssociationSpecProviderConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+ *
+ * @schema ScramSecretAssociationSpecPublishConnectionDetailsTo
+ */
+export interface ScramSecretAssociationSpecPublishConnectionDetailsTo {
+  /**
+   * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+   *
+   * @schema ScramSecretAssociationSpecPublishConnectionDetailsTo#configRef
+   */
+  readonly configRef?: ScramSecretAssociationSpecPublishConnectionDetailsToConfigRef;
+
+  /**
+   * Metadata is the metadata for connection secret.
+   *
+   * @schema ScramSecretAssociationSpecPublishConnectionDetailsTo#metadata
+   */
+  readonly metadata?: ScramSecretAssociationSpecPublishConnectionDetailsToMetadata;
+
+  /**
+   * Name is the name of the connection secret.
+   *
+   * @schema ScramSecretAssociationSpecPublishConnectionDetailsTo#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpecPublishConnectionDetailsTo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpecPublishConnectionDetailsTo(obj: ScramSecretAssociationSpecPublishConnectionDetailsTo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configRef': toJson_ScramSecretAssociationSpecPublishConnectionDetailsToConfigRef(obj.configRef),
+    'metadata': toJson_ScramSecretAssociationSpecPublishConnectionDetailsToMetadata(obj.metadata),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+ *
+ * @schema ScramSecretAssociationSpecWriteConnectionSecretToRef
+ */
+export interface ScramSecretAssociationSpecWriteConnectionSecretToRef {
+  /**
+   * Name of the secret.
+   *
+   * @schema ScramSecretAssociationSpecWriteConnectionSecretToRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the secret.
+   *
+   * @schema ScramSecretAssociationSpecWriteConnectionSecretToRef#namespace
+   */
+  readonly namespace: string;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpecWriteConnectionSecretToRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpecWriteConnectionSecretToRef(obj: ScramSecretAssociationSpecWriteConnectionSecretToRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Reference to a Cluster in kafka to populate clusterArn.
+ *
+ * @schema ScramSecretAssociationSpecForProviderClusterArnRef
+ */
+export interface ScramSecretAssociationSpecForProviderClusterArnRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema ScramSecretAssociationSpecForProviderClusterArnRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema ScramSecretAssociationSpecForProviderClusterArnRef#policy
+   */
+  readonly policy?: ScramSecretAssociationSpecForProviderClusterArnRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpecForProviderClusterArnRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpecForProviderClusterArnRef(obj: ScramSecretAssociationSpecForProviderClusterArnRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_ScramSecretAssociationSpecForProviderClusterArnRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a Cluster in kafka to populate clusterArn.
+ *
+ * @schema ScramSecretAssociationSpecForProviderClusterArnSelector
+ */
+export interface ScramSecretAssociationSpecForProviderClusterArnSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema ScramSecretAssociationSpecForProviderClusterArnSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema ScramSecretAssociationSpecForProviderClusterArnSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema ScramSecretAssociationSpecForProviderClusterArnSelector#policy
+   */
+  readonly policy?: ScramSecretAssociationSpecForProviderClusterArnSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpecForProviderClusterArnSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpecForProviderClusterArnSelector(obj: ScramSecretAssociationSpecForProviderClusterArnSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_ScramSecretAssociationSpecForProviderClusterArnSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A Reference to a named object.
+ *
+ * @schema ScramSecretAssociationSpecForProviderSecretArnRefs
+ */
+export interface ScramSecretAssociationSpecForProviderSecretArnRefs {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema ScramSecretAssociationSpecForProviderSecretArnRefs#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema ScramSecretAssociationSpecForProviderSecretArnRefs#policy
+   */
+  readonly policy?: ScramSecretAssociationSpecForProviderSecretArnRefsPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpecForProviderSecretArnRefs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpecForProviderSecretArnRefs(obj: ScramSecretAssociationSpecForProviderSecretArnRefs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_ScramSecretAssociationSpecForProviderSecretArnRefsPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a list of Secret in secretsmanager to populate secretArnList.
+ *
+ * @schema ScramSecretAssociationSpecForProviderSecretArnSelector
+ */
+export interface ScramSecretAssociationSpecForProviderSecretArnSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema ScramSecretAssociationSpecForProviderSecretArnSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema ScramSecretAssociationSpecForProviderSecretArnSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema ScramSecretAssociationSpecForProviderSecretArnSelector#policy
+   */
+  readonly policy?: ScramSecretAssociationSpecForProviderSecretArnSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpecForProviderSecretArnSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpecForProviderSecretArnSelector(obj: ScramSecretAssociationSpecForProviderSecretArnSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_ScramSecretAssociationSpecForProviderSecretArnSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema ScramSecretAssociationSpecProviderConfigRefPolicy
+ */
+export interface ScramSecretAssociationSpecProviderConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ScramSecretAssociationSpecProviderConfigRefPolicy#resolution
+   */
+  readonly resolution?: ScramSecretAssociationSpecProviderConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ScramSecretAssociationSpecProviderConfigRefPolicy#resolve
+   */
+  readonly resolve?: ScramSecretAssociationSpecProviderConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpecProviderConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpecProviderConfigRefPolicy(obj: ScramSecretAssociationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+ *
+ * @schema ScramSecretAssociationSpecPublishConnectionDetailsToConfigRef
+ */
+export interface ScramSecretAssociationSpecPublishConnectionDetailsToConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema ScramSecretAssociationSpecPublishConnectionDetailsToConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema ScramSecretAssociationSpecPublishConnectionDetailsToConfigRef#policy
+   */
+  readonly policy?: ScramSecretAssociationSpecPublishConnectionDetailsToConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpecPublishConnectionDetailsToConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpecPublishConnectionDetailsToConfigRef(obj: ScramSecretAssociationSpecPublishConnectionDetailsToConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_ScramSecretAssociationSpecPublishConnectionDetailsToConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Metadata is the metadata for connection secret.
+ *
+ * @schema ScramSecretAssociationSpecPublishConnectionDetailsToMetadata
+ */
+export interface ScramSecretAssociationSpecPublishConnectionDetailsToMetadata {
+  /**
+   * Annotations are the annotations to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.annotations". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema ScramSecretAssociationSpecPublishConnectionDetailsToMetadata#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Labels are the labels/tags to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.labels". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema ScramSecretAssociationSpecPublishConnectionDetailsToMetadata#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Type is the SecretType for the connection secret. - Only valid for Kubernetes Secret Stores.
+   *
+   * @schema ScramSecretAssociationSpecPublishConnectionDetailsToMetadata#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpecPublishConnectionDetailsToMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpecPublishConnectionDetailsToMetadata(obj: ScramSecretAssociationSpecPublishConnectionDetailsToMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema ScramSecretAssociationSpecForProviderClusterArnRefPolicy
+ */
+export interface ScramSecretAssociationSpecForProviderClusterArnRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ScramSecretAssociationSpecForProviderClusterArnRefPolicy#resolution
+   */
+  readonly resolution?: ScramSecretAssociationSpecForProviderClusterArnRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ScramSecretAssociationSpecForProviderClusterArnRefPolicy#resolve
+   */
+  readonly resolve?: ScramSecretAssociationSpecForProviderClusterArnRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpecForProviderClusterArnRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpecForProviderClusterArnRefPolicy(obj: ScramSecretAssociationSpecForProviderClusterArnRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema ScramSecretAssociationSpecForProviderClusterArnSelectorPolicy
+ */
+export interface ScramSecretAssociationSpecForProviderClusterArnSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ScramSecretAssociationSpecForProviderClusterArnSelectorPolicy#resolution
+   */
+  readonly resolution?: ScramSecretAssociationSpecForProviderClusterArnSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ScramSecretAssociationSpecForProviderClusterArnSelectorPolicy#resolve
+   */
+  readonly resolve?: ScramSecretAssociationSpecForProviderClusterArnSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpecForProviderClusterArnSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpecForProviderClusterArnSelectorPolicy(obj: ScramSecretAssociationSpecForProviderClusterArnSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema ScramSecretAssociationSpecForProviderSecretArnRefsPolicy
+ */
+export interface ScramSecretAssociationSpecForProviderSecretArnRefsPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ScramSecretAssociationSpecForProviderSecretArnRefsPolicy#resolution
+   */
+  readonly resolution?: ScramSecretAssociationSpecForProviderSecretArnRefsPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ScramSecretAssociationSpecForProviderSecretArnRefsPolicy#resolve
+   */
+  readonly resolve?: ScramSecretAssociationSpecForProviderSecretArnRefsPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpecForProviderSecretArnRefsPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpecForProviderSecretArnRefsPolicy(obj: ScramSecretAssociationSpecForProviderSecretArnRefsPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema ScramSecretAssociationSpecForProviderSecretArnSelectorPolicy
+ */
+export interface ScramSecretAssociationSpecForProviderSecretArnSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ScramSecretAssociationSpecForProviderSecretArnSelectorPolicy#resolution
+   */
+  readonly resolution?: ScramSecretAssociationSpecForProviderSecretArnSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ScramSecretAssociationSpecForProviderSecretArnSelectorPolicy#resolve
+   */
+  readonly resolve?: ScramSecretAssociationSpecForProviderSecretArnSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpecForProviderSecretArnSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpecForProviderSecretArnSelectorPolicy(obj: ScramSecretAssociationSpecForProviderSecretArnSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ScramSecretAssociationSpecProviderConfigRefPolicyResolution
+ */
+export enum ScramSecretAssociationSpecProviderConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ScramSecretAssociationSpecProviderConfigRefPolicyResolve
+ */
+export enum ScramSecretAssociationSpecProviderConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Policies for referencing.
+ *
+ * @schema ScramSecretAssociationSpecPublishConnectionDetailsToConfigRefPolicy
+ */
+export interface ScramSecretAssociationSpecPublishConnectionDetailsToConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ScramSecretAssociationSpecPublishConnectionDetailsToConfigRefPolicy#resolution
+   */
+  readonly resolution?: ScramSecretAssociationSpecPublishConnectionDetailsToConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ScramSecretAssociationSpecPublishConnectionDetailsToConfigRefPolicy#resolve
+   */
+  readonly resolve?: ScramSecretAssociationSpecPublishConnectionDetailsToConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ScramSecretAssociationSpecPublishConnectionDetailsToConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScramSecretAssociationSpecPublishConnectionDetailsToConfigRefPolicy(obj: ScramSecretAssociationSpecPublishConnectionDetailsToConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ScramSecretAssociationSpecForProviderClusterArnRefPolicyResolution
+ */
+export enum ScramSecretAssociationSpecForProviderClusterArnRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ScramSecretAssociationSpecForProviderClusterArnRefPolicyResolve
+ */
+export enum ScramSecretAssociationSpecForProviderClusterArnRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ScramSecretAssociationSpecForProviderClusterArnSelectorPolicyResolution
+ */
+export enum ScramSecretAssociationSpecForProviderClusterArnSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ScramSecretAssociationSpecForProviderClusterArnSelectorPolicyResolve
+ */
+export enum ScramSecretAssociationSpecForProviderClusterArnSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ScramSecretAssociationSpecForProviderSecretArnRefsPolicyResolution
+ */
+export enum ScramSecretAssociationSpecForProviderSecretArnRefsPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ScramSecretAssociationSpecForProviderSecretArnRefsPolicyResolve
+ */
+export enum ScramSecretAssociationSpecForProviderSecretArnRefsPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ScramSecretAssociationSpecForProviderSecretArnSelectorPolicyResolution
+ */
+export enum ScramSecretAssociationSpecForProviderSecretArnSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ScramSecretAssociationSpecForProviderSecretArnSelectorPolicyResolve
+ */
+export enum ScramSecretAssociationSpecForProviderSecretArnSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ScramSecretAssociationSpecPublishConnectionDetailsToConfigRefPolicyResolution
+ */
+export enum ScramSecretAssociationSpecPublishConnectionDetailsToConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ScramSecretAssociationSpecPublishConnectionDetailsToConfigRefPolicyResolve
+ */
+export enum ScramSecretAssociationSpecPublishConnectionDetailsToConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+
+/**
+ * ServerlessCluster is the Schema for the ServerlessClusters API.
+ *
+ * @schema ServerlessCluster
+ */
+export class ServerlessCluster extends ApiObject {
+  /**
+   * Returns the apiVersion and kind for "ServerlessCluster"
+   */
+  public static readonly GVK: GroupVersionKind = {
+    apiVersion: 'kafka.aws.upbound.io/v1beta1',
+    kind: 'ServerlessCluster',
+  }
+
+  /**
+   * Renders a Kubernetes manifest for "ServerlessCluster".
+   *
+   * This can be used to inline resource manifests inside other objects (e.g. as templates).
+   *
+   * @param props initialization props
+   */
+  public static manifest(props: ServerlessClusterProps): any {
+    return {
+      ...ServerlessCluster.GVK,
+      ...toJson_ServerlessClusterProps(props),
+    };
+  }
+
+  /**
+   * Defines a "ServerlessCluster" API object
+   * @param scope the scope in which to define this object
+   * @param id a scope-local name for the object
+   * @param props initialization props
+   */
+  public constructor(scope: Construct, id: string, props: ServerlessClusterProps) {
+    super(scope, id, {
+      ...ServerlessCluster.GVK,
+      ...props,
+    });
+  }
+
+  /**
+   * Renders the object to Kubernetes JSON.
+   */
+  public toJson(): any {
+    const resolved = super.toJson();
+
+    return {
+      ...ServerlessCluster.GVK,
+      ...toJson_ServerlessClusterProps(resolved),
+    };
+  }
+}
+
+/**
+ * ServerlessCluster is the Schema for the ServerlessClusters API.
+ *
+ * @schema ServerlessCluster
+ */
+export interface ServerlessClusterProps {
+  /**
+   * @schema ServerlessCluster#metadata
+   */
+  readonly metadata?: ApiObjectMetadata;
+
+  /**
+   * ServerlessClusterSpec defines the desired state of ServerlessCluster
+   *
+   * @schema ServerlessCluster#spec
+   */
+  readonly spec: ServerlessClusterSpec;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterProps' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterProps(obj: ServerlessClusterProps | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metadata': obj.metadata,
+    'spec': toJson_ServerlessClusterSpec(obj.spec),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ServerlessClusterSpec defines the desired state of ServerlessCluster
+ *
+ * @schema ServerlessClusterSpec
+ */
+export interface ServerlessClusterSpec {
+  /**
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   *
+   * @schema ServerlessClusterSpec#deletionPolicy
+   */
+  readonly deletionPolicy?: ServerlessClusterSpecDeletionPolicy;
+
+  /**
+   * @schema ServerlessClusterSpec#forProvider
+   */
+  readonly forProvider: ServerlessClusterSpecForProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
+   *
+   * @schema ServerlessClusterSpec#initProvider
+   */
+  readonly initProvider?: ServerlessClusterSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ServerlessClusterSpec#managementPolicies
+   */
+  readonly managementPolicies?: ServerlessClusterSpecManagementPolicies[];
+
+  /**
+   * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+   *
+   * @schema ServerlessClusterSpec#providerConfigRef
+   */
+  readonly providerConfigRef?: ServerlessClusterSpecProviderConfigRef;
+
+  /**
+   * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+   *
+   * @schema ServerlessClusterSpec#publishConnectionDetailsTo
+   */
+  readonly publishConnectionDetailsTo?: ServerlessClusterSpecPublishConnectionDetailsTo;
+
+  /**
+   * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+   *
+   * @schema ServerlessClusterSpec#writeConnectionSecretToRef
+   */
+  readonly writeConnectionSecretToRef?: ServerlessClusterSpecWriteConnectionSecretToRef;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpec(obj: ServerlessClusterSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deletionPolicy': obj.deletionPolicy,
+    'forProvider': toJson_ServerlessClusterSpecForProvider(obj.forProvider),
+    'initProvider': toJson_ServerlessClusterSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
+    'providerConfigRef': toJson_ServerlessClusterSpecProviderConfigRef(obj.providerConfigRef),
+    'publishConnectionDetailsTo': toJson_ServerlessClusterSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
+    'writeConnectionSecretToRef': toJson_ServerlessClusterSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ *
+ * @schema ServerlessClusterSpecDeletionPolicy
+ */
+export enum ServerlessClusterSpecDeletionPolicy {
+  /** Orphan */
+  ORPHAN = "Orphan",
+  /** Delete */
+  DELETE = "Delete",
+}
+
+/**
+ * @schema ServerlessClusterSpecForProvider
+ */
+export interface ServerlessClusterSpecForProvider {
+  /**
+   * Specifies client authentication information for the serverless cluster. See below.
+   *
+   * @schema ServerlessClusterSpecForProvider#clientAuthentication
+   */
+  readonly clientAuthentication?: ServerlessClusterSpecForProviderClientAuthentication[];
+
+  /**
+   * The name of the serverless cluster.
+   *
+   * @schema ServerlessClusterSpecForProvider#clusterName
+   */
+  readonly clusterName?: string;
+
+  /**
+   * Region is the region you'd like your resource to be created in.
+   *
+   * @schema ServerlessClusterSpecForProvider#region
+   */
+  readonly region: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ServerlessClusterSpecForProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * VPC configuration information. See below.
+   *
+   * @schema ServerlessClusterSpecForProvider#vpcConfig
+   */
+  readonly vpcConfig?: ServerlessClusterSpecForProviderVpcConfig[];
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecForProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecForProvider(obj: ServerlessClusterSpecForProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clientAuthentication': obj.clientAuthentication?.map(y => toJson_ServerlessClusterSpecForProviderClientAuthentication(y)),
+    'clusterName': obj.clusterName,
+    'region': obj.region,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'vpcConfig': obj.vpcConfig?.map(y => toJson_ServerlessClusterSpecForProviderVpcConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
+ *
+ * @schema ServerlessClusterSpecInitProvider
+ */
+export interface ServerlessClusterSpecInitProvider {
+  /**
+   * Specifies client authentication information for the serverless cluster. See below.
+   *
+   * @schema ServerlessClusterSpecInitProvider#clientAuthentication
+   */
+  readonly clientAuthentication?: ServerlessClusterSpecInitProviderClientAuthentication[];
+
+  /**
+   * The name of the serverless cluster.
+   *
+   * @schema ServerlessClusterSpecInitProvider#clusterName
+   */
+  readonly clusterName?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ServerlessClusterSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * VPC configuration information. See below.
+   *
+   * @schema ServerlessClusterSpecInitProvider#vpcConfig
+   */
+  readonly vpcConfig?: any[];
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecInitProvider(obj: ServerlessClusterSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clientAuthentication': obj.clientAuthentication?.map(y => toJson_ServerlessClusterSpecInitProviderClientAuthentication(y)),
+    'clusterName': obj.clusterName,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'vpcConfig': obj.vpcConfig?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ServerlessClusterSpecManagementPolicies
+ */
+export enum ServerlessClusterSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
+}
+
+/**
+ * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
+ *
+ * @schema ServerlessClusterSpecProviderConfigRef
+ */
+export interface ServerlessClusterSpecProviderConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema ServerlessClusterSpecProviderConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema ServerlessClusterSpecProviderConfigRef#policy
+   */
+  readonly policy?: ServerlessClusterSpecProviderConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecProviderConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecProviderConfigRef(obj: ServerlessClusterSpecProviderConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_ServerlessClusterSpecProviderConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
+ *
+ * @schema ServerlessClusterSpecPublishConnectionDetailsTo
+ */
+export interface ServerlessClusterSpecPublishConnectionDetailsTo {
+  /**
+   * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+   *
+   * @schema ServerlessClusterSpecPublishConnectionDetailsTo#configRef
+   */
+  readonly configRef?: ServerlessClusterSpecPublishConnectionDetailsToConfigRef;
+
+  /**
+   * Metadata is the metadata for connection secret.
+   *
+   * @schema ServerlessClusterSpecPublishConnectionDetailsTo#metadata
+   */
+  readonly metadata?: ServerlessClusterSpecPublishConnectionDetailsToMetadata;
+
+  /**
+   * Name is the name of the connection secret.
+   *
+   * @schema ServerlessClusterSpecPublishConnectionDetailsTo#name
+   */
+  readonly name: string;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecPublishConnectionDetailsTo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecPublishConnectionDetailsTo(obj: ServerlessClusterSpecPublishConnectionDetailsTo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configRef': toJson_ServerlessClusterSpecPublishConnectionDetailsToConfigRef(obj.configRef),
+    'metadata': toJson_ServerlessClusterSpecPublishConnectionDetailsToMetadata(obj.metadata),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * WriteConnectionSecretToReference specifies the namespace and name of a Secret to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource. This field is planned to be replaced in a future release in favor of PublishConnectionDetailsTo. Currently, both could be set independently and connection details would be published to both without affecting each other.
+ *
+ * @schema ServerlessClusterSpecWriteConnectionSecretToRef
+ */
+export interface ServerlessClusterSpecWriteConnectionSecretToRef {
+  /**
+   * Name of the secret.
+   *
+   * @schema ServerlessClusterSpecWriteConnectionSecretToRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the secret.
+   *
+   * @schema ServerlessClusterSpecWriteConnectionSecretToRef#namespace
+   */
+  readonly namespace: string;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecWriteConnectionSecretToRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecWriteConnectionSecretToRef(obj: ServerlessClusterSpecWriteConnectionSecretToRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServerlessClusterSpecForProviderClientAuthentication
+ */
+export interface ServerlessClusterSpecForProviderClientAuthentication {
+  /**
+   * Details for client authentication using SASL. See below.
+   *
+   * @schema ServerlessClusterSpecForProviderClientAuthentication#sasl
+   */
+  readonly sasl?: ServerlessClusterSpecForProviderClientAuthenticationSasl[];
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecForProviderClientAuthentication' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecForProviderClientAuthentication(obj: ServerlessClusterSpecForProviderClientAuthentication | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sasl': obj.sasl?.map(y => toJson_ServerlessClusterSpecForProviderClientAuthenticationSasl(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServerlessClusterSpecForProviderVpcConfig
+ */
+export interface ServerlessClusterSpecForProviderVpcConfig {
+  /**
+   * References to SecurityGroup in ec2 to populate securityGroupIds.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfig#securityGroupIdRefs
+   */
+  readonly securityGroupIdRefs?: ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefs[];
+
+  /**
+   * Selector for a list of SecurityGroup in ec2 to populate securityGroupIds.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfig#securityGroupIdSelector
+   */
+  readonly securityGroupIdSelector?: ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelector;
+
+  /**
+   * Specifies up to five security groups that control inbound and outbound traffic for the serverless cluster.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfig#securityGroupIds
+   */
+  readonly securityGroupIds?: string[];
+
+  /**
+   * References to Subnet in ec2 to populate subnetIds.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfig#subnetIdRefs
+   */
+  readonly subnetIdRefs?: ServerlessClusterSpecForProviderVpcConfigSubnetIdRefs[];
+
+  /**
+   * Selector for a list of Subnet in ec2 to populate subnetIds.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfig#subnetIdSelector
+   */
+  readonly subnetIdSelector?: ServerlessClusterSpecForProviderVpcConfigSubnetIdSelector;
+
+  /**
+   * A list of subnets in at least two different Availability Zones that host your client applications.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfig#subnetIds
+   */
+  readonly subnetIds?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecForProviderVpcConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecForProviderVpcConfig(obj: ServerlessClusterSpecForProviderVpcConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'securityGroupIdRefs': obj.securityGroupIdRefs?.map(y => toJson_ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefs(y)),
+    'securityGroupIdSelector': toJson_ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelector(obj.securityGroupIdSelector),
+    'securityGroupIds': obj.securityGroupIds?.map(y => y),
+    'subnetIdRefs': obj.subnetIdRefs?.map(y => toJson_ServerlessClusterSpecForProviderVpcConfigSubnetIdRefs(y)),
+    'subnetIdSelector': toJson_ServerlessClusterSpecForProviderVpcConfigSubnetIdSelector(obj.subnetIdSelector),
+    'subnetIds': obj.subnetIds?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServerlessClusterSpecInitProviderClientAuthentication
+ */
+export interface ServerlessClusterSpecInitProviderClientAuthentication {
+  /**
+   * Details for client authentication using SASL. See below.
+   *
+   * @schema ServerlessClusterSpecInitProviderClientAuthentication#sasl
+   */
+  readonly sasl?: ServerlessClusterSpecInitProviderClientAuthenticationSasl[];
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecInitProviderClientAuthentication' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecInitProviderClientAuthentication(obj: ServerlessClusterSpecInitProviderClientAuthentication | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sasl': obj.sasl?.map(y => toJson_ServerlessClusterSpecInitProviderClientAuthenticationSasl(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema ServerlessClusterSpecProviderConfigRefPolicy
+ */
+export interface ServerlessClusterSpecProviderConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ServerlessClusterSpecProviderConfigRefPolicy#resolution
+   */
+  readonly resolution?: ServerlessClusterSpecProviderConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ServerlessClusterSpecProviderConfigRefPolicy#resolve
+   */
+  readonly resolve?: ServerlessClusterSpecProviderConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecProviderConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecProviderConfigRefPolicy(obj: ServerlessClusterSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
+ *
+ * @schema ServerlessClusterSpecPublishConnectionDetailsToConfigRef
+ */
+export interface ServerlessClusterSpecPublishConnectionDetailsToConfigRef {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema ServerlessClusterSpecPublishConnectionDetailsToConfigRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema ServerlessClusterSpecPublishConnectionDetailsToConfigRef#policy
+   */
+  readonly policy?: ServerlessClusterSpecPublishConnectionDetailsToConfigRefPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecPublishConnectionDetailsToConfigRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecPublishConnectionDetailsToConfigRef(obj: ServerlessClusterSpecPublishConnectionDetailsToConfigRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_ServerlessClusterSpecPublishConnectionDetailsToConfigRefPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Metadata is the metadata for connection secret.
+ *
+ * @schema ServerlessClusterSpecPublishConnectionDetailsToMetadata
+ */
+export interface ServerlessClusterSpecPublishConnectionDetailsToMetadata {
+  /**
+   * Annotations are the annotations to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.annotations". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema ServerlessClusterSpecPublishConnectionDetailsToMetadata#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Labels are the labels/tags to be added to connection secret. - For Kubernetes secrets, this will be used as "metadata.labels". - It is up to Secret Store implementation for others store types.
+   *
+   * @schema ServerlessClusterSpecPublishConnectionDetailsToMetadata#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Type is the SecretType for the connection secret. - Only valid for Kubernetes Secret Stores.
+   *
+   * @schema ServerlessClusterSpecPublishConnectionDetailsToMetadata#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecPublishConnectionDetailsToMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecPublishConnectionDetailsToMetadata(obj: ServerlessClusterSpecPublishConnectionDetailsToMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServerlessClusterSpecForProviderClientAuthenticationSasl
+ */
+export interface ServerlessClusterSpecForProviderClientAuthenticationSasl {
+  /**
+   * Details for client authentication using IAM. See below.
+   *
+   * @schema ServerlessClusterSpecForProviderClientAuthenticationSasl#iam
+   */
+  readonly iam?: ServerlessClusterSpecForProviderClientAuthenticationSaslIam[];
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecForProviderClientAuthenticationSasl' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecForProviderClientAuthenticationSasl(obj: ServerlessClusterSpecForProviderClientAuthenticationSasl | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'iam': obj.iam?.map(y => toJson_ServerlessClusterSpecForProviderClientAuthenticationSaslIam(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A Reference to a named object.
+ *
+ * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefs
+ */
+export interface ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefs {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefs#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefs#policy
+   */
+  readonly policy?: ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefsPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefs(obj: ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefsPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a list of SecurityGroup in ec2 to populate securityGroupIds.
+ *
+ * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelector
+ */
+export interface ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelector#policy
+   */
+  readonly policy?: ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelector(obj: ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A Reference to a named object.
+ *
+ * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdRefs
+ */
+export interface ServerlessClusterSpecForProviderVpcConfigSubnetIdRefs {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdRefs#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdRefs#policy
+   */
+  readonly policy?: ServerlessClusterSpecForProviderVpcConfigSubnetIdRefsPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecForProviderVpcConfigSubnetIdRefs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecForProviderVpcConfigSubnetIdRefs(obj: ServerlessClusterSpecForProviderVpcConfigSubnetIdRefs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_ServerlessClusterSpecForProviderVpcConfigSubnetIdRefsPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a list of Subnet in ec2 to populate subnetIds.
+ *
+ * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdSelector
+ */
+export interface ServerlessClusterSpecForProviderVpcConfigSubnetIdSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdSelector#policy
+   */
+  readonly policy?: ServerlessClusterSpecForProviderVpcConfigSubnetIdSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecForProviderVpcConfigSubnetIdSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecForProviderVpcConfigSubnetIdSelector(obj: ServerlessClusterSpecForProviderVpcConfigSubnetIdSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_ServerlessClusterSpecForProviderVpcConfigSubnetIdSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServerlessClusterSpecInitProviderClientAuthenticationSasl
+ */
+export interface ServerlessClusterSpecInitProviderClientAuthenticationSasl {
+  /**
+   * Details for client authentication using IAM. See below.
+   *
+   * @schema ServerlessClusterSpecInitProviderClientAuthenticationSasl#iam
+   */
+  readonly iam?: ServerlessClusterSpecInitProviderClientAuthenticationSaslIam[];
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecInitProviderClientAuthenticationSasl' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecInitProviderClientAuthenticationSasl(obj: ServerlessClusterSpecInitProviderClientAuthenticationSasl | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'iam': obj.iam?.map(y => toJson_ServerlessClusterSpecInitProviderClientAuthenticationSaslIam(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ServerlessClusterSpecProviderConfigRefPolicyResolution
+ */
+export enum ServerlessClusterSpecProviderConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ServerlessClusterSpecProviderConfigRefPolicyResolve
+ */
+export enum ServerlessClusterSpecProviderConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Policies for referencing.
+ *
+ * @schema ServerlessClusterSpecPublishConnectionDetailsToConfigRefPolicy
+ */
+export interface ServerlessClusterSpecPublishConnectionDetailsToConfigRefPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ServerlessClusterSpecPublishConnectionDetailsToConfigRefPolicy#resolution
+   */
+  readonly resolution?: ServerlessClusterSpecPublishConnectionDetailsToConfigRefPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ServerlessClusterSpecPublishConnectionDetailsToConfigRefPolicy#resolve
+   */
+  readonly resolve?: ServerlessClusterSpecPublishConnectionDetailsToConfigRefPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecPublishConnectionDetailsToConfigRefPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecPublishConnectionDetailsToConfigRefPolicy(obj: ServerlessClusterSpecPublishConnectionDetailsToConfigRefPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServerlessClusterSpecForProviderClientAuthenticationSaslIam
+ */
+export interface ServerlessClusterSpecForProviderClientAuthenticationSaslIam {
+  /**
+   * Whether SASL/IAM authentication is enabled or not.
+   *
+   * @schema ServerlessClusterSpecForProviderClientAuthenticationSaslIam#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecForProviderClientAuthenticationSaslIam' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecForProviderClientAuthenticationSaslIam(obj: ServerlessClusterSpecForProviderClientAuthenticationSaslIam | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefsPolicy
+ */
+export interface ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefsPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefsPolicy#resolution
+   */
+  readonly resolution?: ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefsPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefsPolicy#resolve
+   */
+  readonly resolve?: ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefsPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefsPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefsPolicy(obj: ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefsPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelectorPolicy
+ */
+export interface ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelectorPolicy#resolution
+   */
+  readonly resolution?: ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelectorPolicy#resolve
+   */
+  readonly resolve?: ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelectorPolicy(obj: ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
+ * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdRefsPolicy
+ */
+export interface ServerlessClusterSpecForProviderVpcConfigSubnetIdRefsPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdRefsPolicy#resolution
+   */
+  readonly resolution?: ServerlessClusterSpecForProviderVpcConfigSubnetIdRefsPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdRefsPolicy#resolve
+   */
+  readonly resolve?: ServerlessClusterSpecForProviderVpcConfigSubnetIdRefsPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecForProviderVpcConfigSubnetIdRefsPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecForProviderVpcConfigSubnetIdRefsPolicy(obj: ServerlessClusterSpecForProviderVpcConfigSubnetIdRefsPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdSelectorPolicy
+ */
+export interface ServerlessClusterSpecForProviderVpcConfigSubnetIdSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdSelectorPolicy#resolution
+   */
+  readonly resolution?: ServerlessClusterSpecForProviderVpcConfigSubnetIdSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdSelectorPolicy#resolve
+   */
+  readonly resolve?: ServerlessClusterSpecForProviderVpcConfigSubnetIdSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecForProviderVpcConfigSubnetIdSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecForProviderVpcConfigSubnetIdSelectorPolicy(obj: ServerlessClusterSpecForProviderVpcConfigSubnetIdSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServerlessClusterSpecInitProviderClientAuthenticationSaslIam
+ */
+export interface ServerlessClusterSpecInitProviderClientAuthenticationSaslIam {
+  /**
+   * Whether SASL/IAM authentication is enabled or not.
+   *
+   * @schema ServerlessClusterSpecInitProviderClientAuthenticationSaslIam#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ServerlessClusterSpecInitProviderClientAuthenticationSaslIam' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServerlessClusterSpecInitProviderClientAuthenticationSaslIam(obj: ServerlessClusterSpecInitProviderClientAuthenticationSaslIam | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ServerlessClusterSpecPublishConnectionDetailsToConfigRefPolicyResolution
+ */
+export enum ServerlessClusterSpecPublishConnectionDetailsToConfigRefPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ServerlessClusterSpecPublishConnectionDetailsToConfigRefPolicyResolve
+ */
+export enum ServerlessClusterSpecPublishConnectionDetailsToConfigRefPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefsPolicyResolution
+ */
+export enum ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefsPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefsPolicyResolve
+ */
+export enum ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdRefsPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelectorPolicyResolution
+ */
+export enum ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelectorPolicyResolve
+ */
+export enum ServerlessClusterSpecForProviderVpcConfigSecurityGroupIdSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdRefsPolicyResolution
+ */
+export enum ServerlessClusterSpecForProviderVpcConfigSubnetIdRefsPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdRefsPolicyResolve
+ */
+export enum ServerlessClusterSpecForProviderVpcConfigSubnetIdRefsPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdSelectorPolicyResolution
+ */
+export enum ServerlessClusterSpecForProviderVpcConfigSubnetIdSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema ServerlessClusterSpecForProviderVpcConfigSubnetIdSelectorPolicyResolve
+ */
+export enum ServerlessClusterSpecForProviderVpcConfigSubnetIdSelectorPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

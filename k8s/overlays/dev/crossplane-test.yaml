@@ -1,3 +1,78 @@
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Network
+metadata:
+  name: my-gcp-network
+spec:
+  id: my-gcp-network
+  clusterRef:
+    id: not-being-used1
+  compositionSelector:
+    matchLabels:
+      provider: GCP
+---
+#apiVersion: compute.gcp.upbound.io/v1beta1
+#kind: HealthCheck
+#metadata:
+#  annotations:
+#    meta.upbound.io/example-id: compute/v1beta1/forwardingrule
+#  labels:
+#    testing.upbound.io/example-name: forwarding-rule
+#  name: forwarding-rule
+#spec:
+#  forProvider:
+#    checkIntervalSec: 1
+#    httpHealthCheck:
+#      - port: 80
+#    timeoutSec: 5
+#---
+#apiVersion: compute.gcp.upbound.io/v1beta1
+#kind: HealthCheck
+#metadata:
+#  annotations:
+#    meta.upbound.io/example-id: compute/v1beta1/hc1
+#  labels:
+#    testing.upbound.io/example-name: hc1
+#  name: hc1
+#spec:
+#  forProvider:
+#    checkIntervalSec: 10
+#    httpHealthCheck:
+#      - port: 80
+#    timeoutSec: 5
+#---
+apiVersion: cloudplatform.gcp.upbound.io/v1beta1
+kind: ServiceAccount
+metadata:
+  annotations:
+    meta.upbound.io/example-id: cloudplatform/v1beta1/vm-manager
+  labels:
+    testing.upbound.io/example-name: vm-manager
+  name: vm-manager
+spec:
+  forProvider:
+    displayName: VN Manager
+    description: VM manger service account - default for instance groups.
+  writeConnectionSecretToRef:
+    name: vm-manager-sa-connection
+    namespace: crossplane-system
+---
+apiVersion: cloudplatform.gcp.upbound.io/v1beta1
+kind: ProjectIAMMember
+metadata:
+  annotations:
+    meta.upbound.io/example-id: cloudplatform/v1beta1/projectiammember
+  labels:
+    testing.upbound.io/example-name: project-iam-member
+  name: project-iam-member
+spec:
+  forProvider:
+#    member: ${data.google_iam_member.member}
+#    project: ${data.cloudplatform_project.projectId}
+    member: serviceAccount:vm-manager@shared-v1.iam.gserviceaccount.com
+    project: shared-v1
+    role: roles/storage.admin
+---
 #apiVersion: container.gcp.upbound.io/v1beta1
 #kind: Cluster
 #metadata:
@@ -14,6 +89,8 @@
 #    location: us-central1-a
 #    nodeConfig:
 #      - machineType: e2-standard-4
+#  writeConnectionSecretToRef:
+#    name: my-access-cluster-secret
 #---
 #apiVersion: container.gcp.upbound.io/v1beta1
 #kind: NodePool
@@ -33,17 +110,45 @@
 #        oauthScopes:
 #          - https://www.googleapis.com/auth/cloud-platform
 #    nodeCount: 1
----
+#  writeConnectionSecretToRef:
+#    name: my-access-nodepool-secret
+#---
 #apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
 #kind: Storage
 #metadata:
 #  name: storage-aws
+#  namespace: crossplane-system
 #spec:
 #  location: us-west-2
+##  id: aris1
 #  compositionSelector:
 #    matchLabels:
 #      provider: AWS
 #---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Storage
+metadata:
+  name: storage-gcp2
+  namespace: crossplane-system
+spec:
+  id: aris2
+  location: me-west1
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Storage
+metadata:
+  name: storage-gcp1
+  namespace: crossplane-system
+spec:
+  id: aris1
+  location: me-west1
+  providerConfigRef:
+    name: shared
+---
+#  compositionSelector:
+#    matchLabels:
+#      provider: GCP
+---
 #apiVersion: apiextensions.crossplane.io/v1alpha1
 #kind: EnvironmentConfig
 #metadata:
@@ -54,44 +159,43 @@
 #    eu: me-west1
 #  key1: value1
 #  key2: value2
-
----
-apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
-kind: Storage
-metadata:
-  name: storage-gcp1
-  namespace: crossplane-system
-spec:
-  location: me-west1
-#  storageClass: NEARLINE
-#  labels:
-#    provider: GCP
-  compositionSelector:
-    matchLabels:
-      provider: GCP
-  writeConnectionSecretToRef:
-    name: my-access-key-secret
----
-#apiVersion: sql.gcp.upbound.io/v1beta1
-#kind: DatabaseInstance
+#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#kind: Project
 #metadata:
-#  annotations:
-#    meta.upbound.io/example-id: sql/v1beta1/user
-#    uptest.upbound.io/pre-delete-hook: testhooks/delete-user.sh
-#  labels:
-#    testing.upbound.io/example-name: example_instance
-#  name: example-instance
-##  name: example-instance-${Rand.RFC1123Subdomain}
+#  name: a-team-project
 #spec:
-#  forProvider:
-#    databaseVersion: MYSQL_5_7
-#    deletionProtection: false
-#    region: us-central1
-#    settings:
-#      - diskSize: 20
-#        tier: db-f1-micro
+#  region: me-west1
+##  id: a-team-project
+#  compositionSelector:
+#    matchLabels:
+#      provider: GCP
+#  parameters:
+#    nodeSize: small
+#    minNodeCount: 1
 #  writeConnectionSecretToRef:
-#    name: example-sql-db-instance-secret
+#    name: a-team-gke
+#---
+#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#kind: Redis
+#metadata:
+#  name: redis-gcp1
+#  namespace: crossplane-system
+#spec:
+#  location: me-west1
+#  compositionSelector:
+#    matchLabels:
+#      provider: GCP
+#---
+#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#kind: Sql
+#metadata:
+#  name: sql-main-db
+#  namespace: crossplane-system
+#spec:
+#  location: me-west1
+#  compositionSelector:
+#    matchLabels:
+#      provider: GCP
 ---
 #apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
 #kind: Network
@@ -116,18 +220,55 @@ spec:
 #  compositionSelector:
 #    matchLabels:
 #      provider: AWS
-#---
-#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
-#kind: Registry
-#metadata:
-#  name: a-team-registry
-#spec:
-#  id: a-team-registry
-#  location: us-west1
-#  compositionSelector:
-#    matchLabels:
-#      provider: GCP
-#---
+---
+apiVersion: artifact.gcp.upbound.io/v1beta1
+kind: RegistryRepository
+metadata:
+  annotations:
+    meta.upbound.io/example-id: artifact/v1beta1/registryrepository
+  labels:
+    testing.upbound.io/example-name: container-repo2
+  name: container-repo2
+spec:
+  forProvider:
+    description: Shit desc
+    format: DOCKER
+    location: europe-central2
+    labels:
+      iac: crossplane
+  reclaimPolicy: Delete
+  providerConfigRef:
+    name: shared
+## Todo check - Does not work!
+#  providerRef:
+#    name: shared
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Registry
+metadata:
+  name: a-team-registry
+spec:
+  id: a-team-registry
+  location: us-west1
+  compositionSelector:
+    matchLabels:
+      provider: GCP
+  providerConfigRef:
+    name: default
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Registry
+metadata:
+  name: shared-registry
+spec:
+  id: shared-registry
+  location: us-west1
+  compositionSelector:
+    matchLabels:
+      provider: GCP
+  providerConfigRef:
+    name: shared
+---
 #apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
 #kind: Project
 #metadata:
@@ -156,14 +297,110 @@ spec:
 #  compositionSelector:
 #    matchLabels:
 #      provider: GCP
-#apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
-#kind: Network
+---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Network
+metadata:
+  name: network-gcp
+spec:
+  id: multik8s-network-gcp
+  clusterRef:
+    id: not-being-used
+  compositionSelector:
+    matchLabels:
+      provider: GCP
+---
+# sa here for vm instance template
+---
+#apiVersion: compute.gcp.upbound.io/v1beta1
+#kind: InstanceGroup
 #metadata:
-#  name: network-gcp
+#  annotations:
+#    meta.upbound.io/example-id: compute/v1beta1/instancegroup
+#  labels:
+#    testing.upbound.io/example-name: instance-group
+#  name: instance-group
 #spec:
-#  id: multik8s-network-gcp
-#  clusterRef:
-#    id: multik8s-cluster-gcp
-#  compositionSelector:
-#    matchLabels:
-#      provider: GCP
+#  forProvider:
+#    description: Terraform test instance group
+#    networkSelector:
+#      matchLabels:
+#        testing.upbound.io/example-name: instance-group
+#    zone: us-central1-a
+#---
+apiVersion: compute.gcp.upbound.io/v1beta1
+kind: InstanceTemplate
+metadata:
+  annotations:
+    meta.upbound.io/example-id: compute/v1beta1/instancefromtemplate
+  labels:
+    testing.upbound.io/example-name: instance-from-template
+  name: instance-from-template
+spec:
+  forProvider:
+    canIpForward: false
+    description: This template is used to create app server instances.
+    disk:
+      - autoDelete: false
+        boot: true
+        sourceImage: debian-cloud/debian-11
+    instanceDescription: description assigned to instances
+    labels:
+      environment: dev
+    machineType: e2-medium
+    metadata:
+      environment: dev
+    networkInterface:
+      - network: default
+    scheduling:
+      - automaticRestart: true
+        onHostMaintenance: MIGRATE
+    tags:
+      - foo
+      - bar
+---
+#apiVersion: compute.gcp.upbound.io/v1beta1
+#kind: InstanceGroupNamedPort
+#metadata:
+#  annotations:
+#    meta.upbound.io/example-id: compute/v1beta1/instancegroupnamedport
+#    upjet.upbound.io/manual-intervention: Instance group name is generated
+#      (gke-instance-group-named-default-pool-eb15fe12-grp). Needs explicit
+#      reference
+#  labels:
+#    testing.upbound.io/example-name: instance-group-named-port
+#  name: instance-group-named-port
+#spec:
+#  forProvider:
+#    groupSelector:
+#      matchLabels:
+#        testing.upbound.io/example-name: instance-group-named-port
+#    name: http
+#    port: 8080
+#    zone: me-west1-a
+---
+apiVersion: compute.gcp.upbound.io/v1beta1
+kind: InstanceGroup
+metadata:
+  annotations:
+    meta.upbound.io/example-id: compute/v1beta1/instancegroup
+  labels:
+    testing.upbound.io/example-name: instance-group2
+  name: instance-group2
+spec:
+  forProvider:
+    description: Shit stuff
+    network: https://www.googleapis.com/compute/v1/projects/shared-v1/global/networks/my-gcp-network-s54fh-sjmgs
+#    TODO all other ways that do not work - all of them
+#    networkRef:
+#      name: https://www.googleapis.com/compute/v1/projects/shared-v1/global/networks/my-gcp-network-s54fh-sjmgs
+#      name: my-gcp-network
+#    networkSelector:
+#      matchLabels:
+#        crossplane.io/external-name: my-gcp-network-s54fh-sjmgs
+    zone: me-west1-a
+    instances:
+#      - terraform-20231203003803550700000001
+      - https://www.googleapis.com/compute/v1/projects/shared-v1/global/instanceTemplates/terraform-20231203003803550700000001
+#      - instance-from-template
+  reclaimPolicy: Delete

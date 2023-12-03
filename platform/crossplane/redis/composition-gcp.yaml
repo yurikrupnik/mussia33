@@ -1,0 +1,87 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: gcp.compositeredises.multicloud.platformref.yurikrupnik.com
+  labels:
+    provider: GCP
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+    kind: CompositeRedis
+  resources:
+    - base:
+        apiVersion: redis.gcp.upbound.io/v1beta1
+        kind: Instance
+#        metadata:
+#          annotations:
+#            meta.upbound.io/example-id: redis/v1beta1/instance
+#          labels:
+#            testing.upbound.io/example-name: redis-instance
+#          name: redis-instance
+        spec:
+          forProvider:
+            authEnabled: true
+            labels:
+              environment: dev
+            memorySizeGb: 5
+            region: us-west2
+            tier: BASIC
+#            works - creates secret with password and host
+          writeConnectionSecretToRef:
+#          publishConnectionDetailsTo:
+            name: redis-connection
+            namespace: crossplane-system
+      name: redis-instance
+      patches:
+        - fromFieldPath: spec.location
+          toFieldPath: spec.forProvider.region
+        - fromFieldPath: spec.tier
+          toFieldPath: spec.forProvider.tier
+          #           todo test it!
+#        - type: ToCompositeFieldPath
+#          fromFieldPath: status.atProvider.selfLink
+#          toFieldPath: status.shit
+##          next line does not sync
+#          toFieldPath: metadata.labels['self-link']
+        #           todo test it!
+#        - type: CombineToComposite
+#          combine:
+#            variables:
+#              - fromFieldPath: metadata.name
+#              - fromFieldPath: spec.forProvider.region
+#            strategy: string
+#            string:
+#              fmt: "https://%s.%s.com"
+#          toFieldPath: status.url
+#        - fromFieldPath: spec.labels
+#          toFieldPath: spec.forProvider.labels
+#        - fromFieldPath: spec.location
+#          toFieldPath: spec.writeConnectionSecretToRef.name
+#          transforms:
+#            - type: string
+#              string:
+#                fmt: "%s-secret2"
+      connectionDetails:
+        - fromFieldPath: "status.atProvider.id"
+          name: id
+        - fromFieldPath: "status.atProvider.nodes"
+          name: nodes
+        - fromFieldPath: "status.atProvider.port"
+          name: port
+        - fromFieldPath: "status.atProvider.region"
+          name: region
+#        - fromFieldPath: "status.atProvider.selfLink"
+#          name: selfLink
+#        - fromFieldPath: "spec.forProvider.project"
+#          name: project
+#          todo how does this work? - value is coming in same as in status.at|Provider.storageClass
+#        without passing through spec.forProvider.storageClass
+#        - fromFieldPath: "spec.forProvider.storageClass"
+#          name: storageClass
+#        - fromFieldPath: "status.atProvider.storageClass"
+#          name: class
+#        - fromFieldPath: "status.atProvider.url"
+#          name: url
+#        - fromConnectionSecretKey: "attribute.password"
+#          name: password

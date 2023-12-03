@@ -7,6 +7,8 @@ spec:
     kind: Registry
     plural: registrys
   group: multicloud.platformref.yurikrupnik.com
+  defaultCompositionRef:
+    name: gcp.compositeregistrys.multicloud.platformref.yurikrupnik.com
   names:
     kind: CompositeRegistry
     plural: compositeregistrys
@@ -21,6 +23,18 @@ spec:
             spec:
               type: object
               properties:
+                providerConfigRef:
+                  type: object
+                  description: "A reference to the ProviderConfig object that this registry will be used for."
+                  properties:
+                    name:
+                      type: string
+                      description: Name of the ProviderConfig object this ref points to.
+                  required:
+                    - name
+                id:
+                  type: string
+                  description: Id of the registry that should be created.
                 region:
                   type: string
                   description: ID of this Registry that other objects will use to refer to it.
@@ -33,6 +47,6 @@ spec:
 #                      description: ID of the Cluster object this ref points to.
 #                  required:
 #                    - id
-#              required:
-#                - id
+              required:
+                - id
 #                - clusterRef

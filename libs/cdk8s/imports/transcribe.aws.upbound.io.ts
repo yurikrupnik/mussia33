@@ -99,7 +99,7 @@ export function toJson_LanguageModelProps(obj: LanguageModelProps | undefined): 
  */
 export interface LanguageModelSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema LanguageModelSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface LanguageModelSpec {
   readonly forProvider: LanguageModelSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema LanguageModelSpec#managementPolicy
+   * @schema LanguageModelSpec#initProvider
    */
-  readonly managementPolicy?: LanguageModelSpecManagementPolicy;
+  readonly initProvider?: LanguageModelSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema LanguageModelSpec#managementPolicies
+   */
+  readonly managementPolicies?: LanguageModelSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface LanguageModelSpec {
    * @schema LanguageModelSpec#providerConfigRef
    */
   readonly providerConfigRef?: LanguageModelSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema LanguageModelSpec#providerRef
-   */
-  readonly providerRef?: LanguageModelSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_LanguageModelSpec(obj: LanguageModelSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_LanguageModelSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_LanguageModelSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_LanguageModelSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_LanguageModelSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_LanguageModelSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_LanguageModelSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_LanguageModelSpec(obj: LanguageModelSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema LanguageModelSpecDeletionPolicy
  */
@@ -239,17 +239,76 @@ export function toJson_LanguageModelSpecForProvider(obj: LanguageModelSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema LanguageModelSpecManagementPolicy
+ * @schema LanguageModelSpecInitProvider
  */
-export enum LanguageModelSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface LanguageModelSpecInitProvider {
+  /**
+   * Name of reference base model.
+   *
+   * @schema LanguageModelSpecInitProvider#baseModelName
+   */
+  readonly baseModelName?: string;
+
+  /**
+   * The input data config for the LanguageModel. See Input Data Config for more details.
+   *
+   * @schema LanguageModelSpecInitProvider#inputDataConfig
+   */
+  readonly inputDataConfig?: LanguageModelSpecInitProviderInputDataConfig[];
+
+  /**
+   * The language code you selected for your language model. Refer to the supported languages page for accepted codes.
+   *
+   * @schema LanguageModelSpecInitProvider#languageCode
+   */
+  readonly languageCode?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema LanguageModelSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'LanguageModelSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LanguageModelSpecInitProvider(obj: LanguageModelSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'baseModelName': obj.baseModelName,
+    'inputDataConfig': obj.inputDataConfig?.map(y => toJson_LanguageModelSpecInitProviderInputDataConfig(y)),
+    'languageCode': obj.languageCode,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema LanguageModelSpecManagementPolicies
+ */
+export enum LanguageModelSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -283,43 +342,6 @@ export function toJson_LanguageModelSpecProviderConfigRef(obj: LanguageModelSpec
   const result = {
     'name': obj.name,
     'policy': toJson_LanguageModelSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema LanguageModelSpecProviderRef
- */
-export interface LanguageModelSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema LanguageModelSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema LanguageModelSpecProviderRef#policy
-   */
-  readonly policy?: LanguageModelSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'LanguageModelSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LanguageModelSpecProviderRef(obj: LanguageModelSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_LanguageModelSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -438,7 +460,7 @@ export interface LanguageModelSpecForProviderInputDataConfig {
    *
    * @schema LanguageModelSpecForProviderInputDataConfig#s3Uri
    */
-  readonly s3Uri: string;
+  readonly s3Uri?: string;
 
   /**
    * S3 URI where tuning data is located.
@@ -459,6 +481,41 @@ export function toJson_LanguageModelSpecForProviderInputDataConfig(obj: Language
     'dataAccessRoleArn': obj.dataAccessRoleArn,
     'dataAccessRoleArnRef': toJson_LanguageModelSpecForProviderInputDataConfigDataAccessRoleArnRef(obj.dataAccessRoleArnRef),
     'dataAccessRoleArnSelector': toJson_LanguageModelSpecForProviderInputDataConfigDataAccessRoleArnSelector(obj.dataAccessRoleArnSelector),
+    's3Uri': obj.s3Uri,
+    'tuningDataS3Uri': obj.tuningDataS3Uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema LanguageModelSpecInitProviderInputDataConfig
+ */
+export interface LanguageModelSpecInitProviderInputDataConfig {
+  /**
+   * S3 URI where training data is located.
+   *
+   * @schema LanguageModelSpecInitProviderInputDataConfig#s3Uri
+   */
+  readonly s3Uri?: string;
+
+  /**
+   * S3 URI where tuning data is located.
+   *
+   * @schema LanguageModelSpecInitProviderInputDataConfig#tuningDataS3Uri
+   */
+  readonly tuningDataS3Uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'LanguageModelSpecInitProviderInputDataConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LanguageModelSpecInitProviderInputDataConfig(obj: LanguageModelSpecInitProviderInputDataConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
     's3Uri': obj.s3Uri,
     'tuningDataS3Uri': obj.tuningDataS3Uri,
   };
@@ -494,43 +551,6 @@ export interface LanguageModelSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_LanguageModelSpecProviderConfigRefPolicy(obj: LanguageModelSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema LanguageModelSpecProviderRefPolicy
- */
-export interface LanguageModelSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema LanguageModelSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: LanguageModelSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema LanguageModelSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: LanguageModelSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'LanguageModelSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LanguageModelSpecProviderRefPolicy(obj: LanguageModelSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -723,30 +743,6 @@ export enum LanguageModelSpecProviderConfigRefPolicyResolution {
  * @schema LanguageModelSpecProviderConfigRefPolicyResolve
  */
 export enum LanguageModelSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema LanguageModelSpecProviderRefPolicyResolution
- */
-export enum LanguageModelSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema LanguageModelSpecProviderRefPolicyResolve
- */
-export enum LanguageModelSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1033,7 +1029,7 @@ export function toJson_VocabularyProps(obj: VocabularyProps | undefined): Record
  */
 export interface VocabularySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VocabularySpec#deletionPolicy
    */
@@ -1045,11 +1041,18 @@ export interface VocabularySpec {
   readonly forProvider: VocabularySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema VocabularySpec#managementPolicy
+   * @schema VocabularySpec#initProvider
    */
-  readonly managementPolicy?: VocabularySpecManagementPolicy;
+  readonly initProvider?: VocabularySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema VocabularySpec#managementPolicies
+   */
+  readonly managementPolicies?: VocabularySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1057,13 +1060,6 @@ export interface VocabularySpec {
    * @schema VocabularySpec#providerConfigRef
    */
   readonly providerConfigRef?: VocabularySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema VocabularySpec#providerRef
-   */
-  readonly providerRef?: VocabularySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1090,9 +1086,9 @@ export function toJson_VocabularySpec(obj: VocabularySpec | undefined): Record<s
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VocabularySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_VocabularySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_VocabularySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_VocabularySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VocabularySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_VocabularySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1102,7 +1098,7 @@ export function toJson_VocabularySpec(obj: VocabularySpec | undefined): Record<s
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VocabularySpecDeletionPolicy
  */
@@ -1173,17 +1169,76 @@ export function toJson_VocabularySpecForProvider(obj: VocabularySpecForProvider 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema VocabularySpecManagementPolicy
+ * @schema VocabularySpecInitProvider
  */
-export enum VocabularySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface VocabularySpecInitProvider {
+  /**
+   * The language code you selected for your vocabulary.
+   *
+   * @schema VocabularySpecInitProvider#languageCode
+   */
+  readonly languageCode?: string;
+
+  /**
+   * - A list of terms to include in the vocabulary. Conflicts with vocabulary_file_uri
+   *
+   * @schema VocabularySpecInitProvider#phrases
+   */
+  readonly phrases?: string[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema VocabularySpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * The Amazon S3 location (URI) of the text file that contains your custom vocabulary.
+   *
+   * @schema VocabularySpecInitProvider#vocabularyFileUri
+   */
+  readonly vocabularyFileUri?: string;
+
+}
+
+/**
+ * Converts an object of type 'VocabularySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VocabularySpecInitProvider(obj: VocabularySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'languageCode': obj.languageCode,
+    'phrases': obj.phrases?.map(y => y),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'vocabularyFileUri': obj.vocabularyFileUri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema VocabularySpecManagementPolicies
+ */
+export enum VocabularySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1217,43 +1272,6 @@ export function toJson_VocabularySpecProviderConfigRef(obj: VocabularySpecProvid
   const result = {
     'name': obj.name,
     'policy': toJson_VocabularySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema VocabularySpecProviderRef
- */
-export interface VocabularySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema VocabularySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema VocabularySpecProviderRef#policy
-   */
-  readonly policy?: VocabularySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'VocabularySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VocabularySpecProviderRef(obj: VocabularySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_VocabularySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1380,43 +1398,6 @@ export function toJson_VocabularySpecProviderConfigRefPolicy(obj: VocabularySpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema VocabularySpecProviderRefPolicy
- */
-export interface VocabularySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema VocabularySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: VocabularySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema VocabularySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: VocabularySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'VocabularySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VocabularySpecProviderRefPolicy(obj: VocabularySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema VocabularySpecPublishConnectionDetailsToConfigRef
@@ -1516,30 +1497,6 @@ export enum VocabularySpecProviderConfigRefPolicyResolution {
  * @schema VocabularySpecProviderConfigRefPolicyResolve
  */
 export enum VocabularySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema VocabularySpecProviderRefPolicyResolution
- */
-export enum VocabularySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema VocabularySpecProviderRefPolicyResolve
- */
-export enum VocabularySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1704,7 +1661,7 @@ export function toJson_VocabularyFilterProps(obj: VocabularyFilterProps | undefi
  */
 export interface VocabularyFilterSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema VocabularyFilterSpec#deletionPolicy
    */
@@ -1716,11 +1673,18 @@ export interface VocabularyFilterSpec {
   readonly forProvider: VocabularyFilterSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema VocabularyFilterSpec#managementPolicy
+   * @schema VocabularyFilterSpec#initProvider
    */
-  readonly managementPolicy?: VocabularyFilterSpecManagementPolicy;
+  readonly initProvider?: VocabularyFilterSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema VocabularyFilterSpec#managementPolicies
+   */
+  readonly managementPolicies?: VocabularyFilterSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1728,13 +1692,6 @@ export interface VocabularyFilterSpec {
    * @schema VocabularyFilterSpec#providerConfigRef
    */
   readonly providerConfigRef?: VocabularyFilterSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema VocabularyFilterSpec#providerRef
-   */
-  readonly providerRef?: VocabularyFilterSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1761,9 +1718,9 @@ export function toJson_VocabularyFilterSpec(obj: VocabularyFilterSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_VocabularyFilterSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_VocabularyFilterSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_VocabularyFilterSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_VocabularyFilterSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_VocabularyFilterSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_VocabularyFilterSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1773,7 +1730,7 @@ export function toJson_VocabularyFilterSpec(obj: VocabularyFilterSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema VocabularyFilterSpecDeletionPolicy
  */
@@ -1844,17 +1801,76 @@ export function toJson_VocabularyFilterSpecForProvider(obj: VocabularyFilterSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema VocabularyFilterSpecManagementPolicy
+ * @schema VocabularyFilterSpecInitProvider
  */
-export enum VocabularyFilterSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface VocabularyFilterSpecInitProvider {
+  /**
+   * The language code you selected for your vocabulary filter. Refer to the supported languages page for accepted codes.
+   *
+   * @schema VocabularyFilterSpecInitProvider#languageCode
+   */
+  readonly languageCode?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema VocabularyFilterSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * The Amazon S3 location (URI) of the text file that contains your custom VocabularyFilter. Conflicts with words argument.
+   *
+   * @schema VocabularyFilterSpecInitProvider#vocabularyFilterFileUri
+   */
+  readonly vocabularyFilterFileUri?: string;
+
+  /**
+   * - A list of terms to include in the vocabulary. Conflicts with vocabulary_filter_file_uri argument.
+   *
+   * @schema VocabularyFilterSpecInitProvider#words
+   */
+  readonly words?: string[];
+
+}
+
+/**
+ * Converts an object of type 'VocabularyFilterSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_VocabularyFilterSpecInitProvider(obj: VocabularyFilterSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'languageCode': obj.languageCode,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'vocabularyFilterFileUri': obj.vocabularyFilterFileUri,
+    'words': obj.words?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema VocabularyFilterSpecManagementPolicies
+ */
+export enum VocabularyFilterSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1888,43 +1904,6 @@ export function toJson_VocabularyFilterSpecProviderConfigRef(obj: VocabularyFilt
   const result = {
     'name': obj.name,
     'policy': toJson_VocabularyFilterSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema VocabularyFilterSpecProviderRef
- */
-export interface VocabularyFilterSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema VocabularyFilterSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema VocabularyFilterSpecProviderRef#policy
-   */
-  readonly policy?: VocabularyFilterSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'VocabularyFilterSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VocabularyFilterSpecProviderRef(obj: VocabularyFilterSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_VocabularyFilterSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2051,43 +2030,6 @@ export function toJson_VocabularyFilterSpecProviderConfigRefPolicy(obj: Vocabula
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema VocabularyFilterSpecProviderRefPolicy
- */
-export interface VocabularyFilterSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema VocabularyFilterSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: VocabularyFilterSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema VocabularyFilterSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: VocabularyFilterSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'VocabularyFilterSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_VocabularyFilterSpecProviderRefPolicy(obj: VocabularyFilterSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema VocabularyFilterSpecPublishConnectionDetailsToConfigRef
@@ -2187,30 +2129,6 @@ export enum VocabularyFilterSpecProviderConfigRefPolicyResolution {
  * @schema VocabularyFilterSpecProviderConfigRefPolicyResolve
  */
 export enum VocabularyFilterSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema VocabularyFilterSpecProviderRefPolicyResolution
- */
-export enum VocabularyFilterSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema VocabularyFilterSpecProviderRefPolicyResolve
- */
-export enum VocabularyFilterSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

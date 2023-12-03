@@ -99,7 +99,7 @@ export function toJson_DirectoryProps(obj: DirectoryProps | undefined): Record<s
  */
 export interface DirectorySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DirectorySpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface DirectorySpec {
   readonly forProvider: DirectorySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DirectorySpec#managementPolicy
+   * @schema DirectorySpec#initProvider
    */
-  readonly managementPolicy?: DirectorySpecManagementPolicy;
+  readonly initProvider?: DirectorySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DirectorySpec#managementPolicies
+   */
+  readonly managementPolicies?: DirectorySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface DirectorySpec {
    * @schema DirectorySpec#providerConfigRef
    */
   readonly providerConfigRef?: DirectorySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DirectorySpec#providerRef
-   */
-  readonly providerRef?: DirectorySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_DirectorySpec(obj: DirectorySpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DirectorySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DirectorySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DirectorySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DirectorySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DirectorySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DirectorySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_DirectorySpec(obj: DirectorySpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DirectorySpecDeletionPolicy
  */
@@ -295,17 +295,84 @@ export function toJson_DirectorySpecForProvider(obj: DirectorySpecForProvider | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DirectorySpecManagementPolicy
+ * @schema DirectorySpecInitProvider
  */
-export enum DirectorySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DirectorySpecInitProvider {
+  /**
+   * The identifiers of the IP access control groups associated with the directory.
+   *
+   * @schema DirectorySpecInitProvider#ipGroupIds
+   */
+  readonly ipGroupIds?: string[];
+
+  /**
+   * service capabilities. Defined below.
+   *
+   * @schema DirectorySpecInitProvider#selfServicePermissions
+   */
+  readonly selfServicePermissions?: DirectorySpecInitProviderSelfServicePermissions[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema DirectorySpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * –  Specifies which devices and operating systems users can use to access their WorkSpaces. Defined below.
+   *
+   * @schema DirectorySpecInitProvider#workspaceAccessProperties
+   */
+  readonly workspaceAccessProperties?: DirectorySpecInitProviderWorkspaceAccessProperties[];
+
+  /**
+   * –  Default properties that are used for creating WorkSpaces. Defined below.
+   *
+   * @schema DirectorySpecInitProvider#workspaceCreationProperties
+   */
+  readonly workspaceCreationProperties?: DirectorySpecInitProviderWorkspaceCreationProperties[];
+
+}
+
+/**
+ * Converts an object of type 'DirectorySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DirectorySpecInitProvider(obj: DirectorySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ipGroupIds': obj.ipGroupIds?.map(y => y),
+    'selfServicePermissions': obj.selfServicePermissions?.map(y => toJson_DirectorySpecInitProviderSelfServicePermissions(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'workspaceAccessProperties': obj.workspaceAccessProperties?.map(y => toJson_DirectorySpecInitProviderWorkspaceAccessProperties(y)),
+    'workspaceCreationProperties': obj.workspaceCreationProperties?.map(y => toJson_DirectorySpecInitProviderWorkspaceCreationProperties(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DirectorySpecManagementPolicies
+ */
+export enum DirectorySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -339,43 +406,6 @@ export function toJson_DirectorySpecProviderConfigRef(obj: DirectorySpecProvider
   const result = {
     'name': obj.name,
     'policy': toJson_DirectorySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DirectorySpecProviderRef
- */
-export interface DirectorySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DirectorySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DirectorySpecProviderRef#policy
-   */
-  readonly policy?: DirectorySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DirectorySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DirectorySpecProviderRef(obj: DirectorySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DirectorySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -846,6 +876,199 @@ export function toJson_DirectorySpecForProviderWorkspaceCreationProperties(obj: 
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DirectorySpecInitProviderSelfServicePermissions
+ */
+export interface DirectorySpecInitProviderSelfServicePermissions {
+  /**
+   * –  Whether WorkSpaces directory users can change the compute type (bundle) for their workspace. Default false.
+   *
+   * @schema DirectorySpecInitProviderSelfServicePermissions#changeComputeType
+   */
+  readonly changeComputeType?: boolean;
+
+  /**
+   * –  Whether WorkSpaces directory users can increase the volume size of the drives on their workspace. Default false.
+   *
+   * @schema DirectorySpecInitProviderSelfServicePermissions#increaseVolumeSize
+   */
+  readonly increaseVolumeSize?: boolean;
+
+  /**
+   * –  Whether WorkSpaces directory users can rebuild the operating system of a workspace to its original state. Default false.
+   *
+   * @schema DirectorySpecInitProviderSelfServicePermissions#rebuildWorkspace
+   */
+  readonly rebuildWorkspace?: boolean;
+
+  /**
+   * –  Whether WorkSpaces directory users can restart their workspace. Default true.
+   *
+   * @schema DirectorySpecInitProviderSelfServicePermissions#restartWorkspace
+   */
+  readonly restartWorkspace?: boolean;
+
+  /**
+   * –  Whether WorkSpaces directory users can switch the running mode of their workspace. Default false.
+   *
+   * @schema DirectorySpecInitProviderSelfServicePermissions#switchRunningMode
+   */
+  readonly switchRunningMode?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DirectorySpecInitProviderSelfServicePermissions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DirectorySpecInitProviderSelfServicePermissions(obj: DirectorySpecInitProviderSelfServicePermissions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'changeComputeType': obj.changeComputeType,
+    'increaseVolumeSize': obj.increaseVolumeSize,
+    'rebuildWorkspace': obj.rebuildWorkspace,
+    'restartWorkspace': obj.restartWorkspace,
+    'switchRunningMode': obj.switchRunningMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DirectorySpecInitProviderWorkspaceAccessProperties
+ */
+export interface DirectorySpecInitProviderWorkspaceAccessProperties {
+  /**
+   * –  Indicates whether users can use Android devices to access their WorkSpaces.
+   *
+   * @schema DirectorySpecInitProviderWorkspaceAccessProperties#deviceTypeAndroid
+   */
+  readonly deviceTypeAndroid?: string;
+
+  /**
+   * –  Indicates whether users can use Chromebooks to access their WorkSpaces.
+   *
+   * @schema DirectorySpecInitProviderWorkspaceAccessProperties#deviceTypeChromeos
+   */
+  readonly deviceTypeChromeos?: string;
+
+  /**
+   * –  Indicates whether users can use iOS devices to access their WorkSpaces.
+   *
+   * @schema DirectorySpecInitProviderWorkspaceAccessProperties#deviceTypeIos
+   */
+  readonly deviceTypeIos?: string;
+
+  /**
+   * –  Indicates whether users can use Linux clients to access their WorkSpaces.
+   *
+   * @schema DirectorySpecInitProviderWorkspaceAccessProperties#deviceTypeLinux
+   */
+  readonly deviceTypeLinux?: string;
+
+  /**
+   * –  Indicates whether users can use macOS clients to access their WorkSpaces.
+   *
+   * @schema DirectorySpecInitProviderWorkspaceAccessProperties#deviceTypeOsx
+   */
+  readonly deviceTypeOsx?: string;
+
+  /**
+   * –  Indicates whether users can access their WorkSpaces through a web browser.
+   *
+   * @schema DirectorySpecInitProviderWorkspaceAccessProperties#deviceTypeWeb
+   */
+  readonly deviceTypeWeb?: string;
+
+  /**
+   * –  Indicates whether users can use Windows clients to access their WorkSpaces.
+   *
+   * @schema DirectorySpecInitProviderWorkspaceAccessProperties#deviceTypeWindows
+   */
+  readonly deviceTypeWindows?: string;
+
+  /**
+   * –  Indicates whether users can use zero client devices to access their WorkSpaces.
+   *
+   * @schema DirectorySpecInitProviderWorkspaceAccessProperties#deviceTypeZeroclient
+   */
+  readonly deviceTypeZeroclient?: string;
+
+}
+
+/**
+ * Converts an object of type 'DirectorySpecInitProviderWorkspaceAccessProperties' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DirectorySpecInitProviderWorkspaceAccessProperties(obj: DirectorySpecInitProviderWorkspaceAccessProperties | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deviceTypeAndroid': obj.deviceTypeAndroid,
+    'deviceTypeChromeos': obj.deviceTypeChromeos,
+    'deviceTypeIos': obj.deviceTypeIos,
+    'deviceTypeLinux': obj.deviceTypeLinux,
+    'deviceTypeOsx': obj.deviceTypeOsx,
+    'deviceTypeWeb': obj.deviceTypeWeb,
+    'deviceTypeWindows': obj.deviceTypeWindows,
+    'deviceTypeZeroclient': obj.deviceTypeZeroclient,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DirectorySpecInitProviderWorkspaceCreationProperties
+ */
+export interface DirectorySpecInitProviderWorkspaceCreationProperties {
+  /**
+   * –  The default organizational unit (OU) for your WorkSpace directories. Should conform "OU=<value>,DC=<value>,...,DC=<value>" pattern.
+   *
+   * @schema DirectorySpecInitProviderWorkspaceCreationProperties#defaultOu
+   */
+  readonly defaultOu?: string;
+
+  /**
+   * –  Indicates whether internet access is enabled for your WorkSpaces.
+   *
+   * @schema DirectorySpecInitProviderWorkspaceCreationProperties#enableInternetAccess
+   */
+  readonly enableInternetAccess?: boolean;
+
+  /**
+   * –  Indicates whether maintenance mode is enabled for your WorkSpaces. For more information, see WorkSpace Maintenance..
+   *
+   * @schema DirectorySpecInitProviderWorkspaceCreationProperties#enableMaintenanceMode
+   */
+  readonly enableMaintenanceMode?: boolean;
+
+  /**
+   * –  Indicates whether users are local administrators of their WorkSpaces.
+   *
+   * @schema DirectorySpecInitProviderWorkspaceCreationProperties#userEnabledAsLocalAdministrator
+   */
+  readonly userEnabledAsLocalAdministrator?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DirectorySpecInitProviderWorkspaceCreationProperties' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DirectorySpecInitProviderWorkspaceCreationProperties(obj: DirectorySpecInitProviderWorkspaceCreationProperties | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultOu': obj.defaultOu,
+    'enableInternetAccess': obj.enableInternetAccess,
+    'enableMaintenanceMode': obj.enableMaintenanceMode,
+    'userEnabledAsLocalAdministrator': obj.userEnabledAsLocalAdministrator,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema DirectorySpecProviderConfigRefPolicy
@@ -872,43 +1095,6 @@ export interface DirectorySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DirectorySpecProviderConfigRefPolicy(obj: DirectorySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema DirectorySpecProviderRefPolicy
- */
-export interface DirectorySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DirectorySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DirectorySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DirectorySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DirectorySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DirectorySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DirectorySpecProviderRefPolicy(obj: DirectorySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1249,30 +1435,6 @@ export enum DirectorySpecProviderConfigRefPolicyResolution {
  * @schema DirectorySpecProviderConfigRefPolicyResolve
  */
 export enum DirectorySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DirectorySpecProviderRefPolicyResolution
- */
-export enum DirectorySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DirectorySpecProviderRefPolicyResolve
- */
-export enum DirectorySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1655,7 +1817,7 @@ export function toJson_IpGroupProps(obj: IpGroupProps | undefined): Record<strin
  */
 export interface IpGroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema IpGroupSpec#deletionPolicy
    */
@@ -1667,11 +1829,18 @@ export interface IpGroupSpec {
   readonly forProvider: IpGroupSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema IpGroupSpec#managementPolicy
+   * @schema IpGroupSpec#initProvider
    */
-  readonly managementPolicy?: IpGroupSpecManagementPolicy;
+  readonly initProvider?: IpGroupSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema IpGroupSpec#managementPolicies
+   */
+  readonly managementPolicies?: IpGroupSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1679,13 +1848,6 @@ export interface IpGroupSpec {
    * @schema IpGroupSpec#providerConfigRef
    */
   readonly providerConfigRef?: IpGroupSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema IpGroupSpec#providerRef
-   */
-  readonly providerRef?: IpGroupSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1712,9 +1874,9 @@ export function toJson_IpGroupSpec(obj: IpGroupSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_IpGroupSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_IpGroupSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_IpGroupSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_IpGroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_IpGroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_IpGroupSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1724,7 +1886,7 @@ export function toJson_IpGroupSpec(obj: IpGroupSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema IpGroupSpecDeletionPolicy
  */
@@ -1795,17 +1957,76 @@ export function toJson_IpGroupSpecForProvider(obj: IpGroupSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema IpGroupSpecManagementPolicy
+ * @schema IpGroupSpecInitProvider
  */
-export enum IpGroupSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface IpGroupSpecInitProvider {
+  /**
+   * The description of the IP group.
+   *
+   * @schema IpGroupSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * The name of the IP group.
+   *
+   * @schema IpGroupSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * One or more pairs specifying the IP group rule (in CIDR format) from which web requests originate.
+   *
+   * @schema IpGroupSpecInitProvider#rules
+   */
+  readonly rules?: IpGroupSpecInitProviderRules[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema IpGroupSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'IpGroupSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IpGroupSpecInitProvider(obj: IpGroupSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'name': obj.name,
+    'rules': obj.rules?.map(y => toJson_IpGroupSpecInitProviderRules(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema IpGroupSpecManagementPolicies
+ */
+export enum IpGroupSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1839,43 +2060,6 @@ export function toJson_IpGroupSpecProviderConfigRef(obj: IpGroupSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_IpGroupSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema IpGroupSpecProviderRef
- */
-export interface IpGroupSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema IpGroupSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema IpGroupSpecProviderRef#policy
-   */
-  readonly policy?: IpGroupSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'IpGroupSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_IpGroupSpecProviderRef(obj: IpGroupSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_IpGroupSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1980,7 +2164,7 @@ export interface IpGroupSpecForProviderRules {
    *
    * @schema IpGroupSpecForProviderRules#source
    */
-  readonly source: string;
+  readonly source?: string;
 
 }
 
@@ -1989,6 +2173,41 @@ export interface IpGroupSpecForProviderRules {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_IpGroupSpecForProviderRules(obj: IpGroupSpecForProviderRules | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'source': obj.source,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IpGroupSpecInitProviderRules
+ */
+export interface IpGroupSpecInitProviderRules {
+  /**
+   * The description of the IP group.
+   *
+   * @schema IpGroupSpecInitProviderRules#description
+   */
+  readonly description?: string;
+
+  /**
+   * The IP address range, in CIDR notation, e.g., 10.0.0.0/16
+   *
+   * @schema IpGroupSpecInitProviderRules#source
+   */
+  readonly source?: string;
+
+}
+
+/**
+ * Converts an object of type 'IpGroupSpecInitProviderRules' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IpGroupSpecInitProviderRules(obj: IpGroupSpecInitProviderRules | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'description': obj.description,
@@ -2026,43 +2245,6 @@ export interface IpGroupSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_IpGroupSpecProviderConfigRefPolicy(obj: IpGroupSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema IpGroupSpecProviderRefPolicy
- */
-export interface IpGroupSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema IpGroupSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: IpGroupSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema IpGroupSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: IpGroupSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'IpGroupSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_IpGroupSpecProviderRefPolicy(obj: IpGroupSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2173,30 +2355,6 @@ export enum IpGroupSpecProviderConfigRefPolicyResolution {
  * @schema IpGroupSpecProviderConfigRefPolicyResolve
  */
 export enum IpGroupSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema IpGroupSpecProviderRefPolicyResolution
- */
-export enum IpGroupSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema IpGroupSpecProviderRefPolicyResolve
- */
-export enum IpGroupSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

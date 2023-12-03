@@ -99,7 +99,7 @@ export function toJson_ConnectionProfileProps(obj: ConnectionProfileProps | unde
  */
 export interface ConnectionProfileSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ConnectionProfileSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface ConnectionProfileSpec {
   readonly forProvider: ConnectionProfileSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ConnectionProfileSpec#managementPolicy
+   * @schema ConnectionProfileSpec#initProvider
    */
-  readonly managementPolicy?: ConnectionProfileSpecManagementPolicy;
+  readonly initProvider?: ConnectionProfileSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ConnectionProfileSpec#managementPolicies
+   */
+  readonly managementPolicies?: ConnectionProfileSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface ConnectionProfileSpec {
    * @schema ConnectionProfileSpec#providerConfigRef
    */
   readonly providerConfigRef?: ConnectionProfileSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ConnectionProfileSpec#providerRef
-   */
-  readonly providerRef?: ConnectionProfileSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_ConnectionProfileSpec(obj: ConnectionProfileSpec | undefi
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ConnectionProfileSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ConnectionProfileSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ConnectionProfileSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ConnectionProfileSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ConnectionProfileSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ConnectionProfileSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_ConnectionProfileSpec(obj: ConnectionProfileSpec | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ConnectionProfileSpecDeletionPolicy
  */
@@ -287,17 +287,124 @@ export function toJson_ConnectionProfileSpecForProvider(obj: ConnectionProfileSp
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ConnectionProfileSpecManagementPolicy
+ * @schema ConnectionProfileSpecInitProvider
  */
-export enum ConnectionProfileSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ConnectionProfileSpecInitProvider {
+  /**
+   * BigQuery warehouse profile.
+   *
+   * @schema ConnectionProfileSpecInitProvider#bigqueryProfile
+   */
+  readonly bigqueryProfile?: any[];
+
+  /**
+   * Display name.
+   *
+   * @schema ConnectionProfileSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * Forward SSH tunnel connectivity. Structure is documented below.
+   *
+   * @schema ConnectionProfileSpecInitProvider#forwardSshConnectivity
+   */
+  readonly forwardSshConnectivity?: ConnectionProfileSpecInitProviderForwardSshConnectivity[];
+
+  /**
+   * Cloud Storage bucket profile. Structure is documented below.
+   *
+   * @schema ConnectionProfileSpecInitProvider#gcsProfile
+   */
+  readonly gcsProfile?: ConnectionProfileSpecInitProviderGcsProfile[];
+
+  /**
+   * Labels.
+   *
+   * @schema ConnectionProfileSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * MySQL database profile. Structure is documented below.
+   *
+   * @schema ConnectionProfileSpecInitProvider#mysqlProfile
+   */
+  readonly mysqlProfile?: ConnectionProfileSpecInitProviderMysqlProfile[];
+
+  /**
+   * Oracle database profile. Structure is documented below.
+   *
+   * @schema ConnectionProfileSpecInitProvider#oracleProfile
+   */
+  readonly oracleProfile?: ConnectionProfileSpecInitProviderOracleProfile[];
+
+  /**
+   * PostgreSQL database profile. Structure is documented below.
+   *
+   * @schema ConnectionProfileSpecInitProvider#postgresqlProfile
+   */
+  readonly postgresqlProfile?: ConnectionProfileSpecInitProviderPostgresqlProfile[];
+
+  /**
+   * Private connectivity. Structure is documented below.
+   *
+   * @schema ConnectionProfileSpecInitProvider#privateConnectivity
+   */
+  readonly privateConnectivity?: any[];
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema ConnectionProfileSpecInitProvider#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'ConnectionProfileSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ConnectionProfileSpecInitProvider(obj: ConnectionProfileSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bigqueryProfile': obj.bigqueryProfile?.map(y => y),
+    'displayName': obj.displayName,
+    'forwardSshConnectivity': obj.forwardSshConnectivity?.map(y => toJson_ConnectionProfileSpecInitProviderForwardSshConnectivity(y)),
+    'gcsProfile': obj.gcsProfile?.map(y => toJson_ConnectionProfileSpecInitProviderGcsProfile(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'mysqlProfile': obj.mysqlProfile?.map(y => toJson_ConnectionProfileSpecInitProviderMysqlProfile(y)),
+    'oracleProfile': obj.oracleProfile?.map(y => toJson_ConnectionProfileSpecInitProviderOracleProfile(y)),
+    'postgresqlProfile': obj.postgresqlProfile?.map(y => toJson_ConnectionProfileSpecInitProviderPostgresqlProfile(y)),
+    'privateConnectivity': obj.privateConnectivity?.map(y => y),
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ConnectionProfileSpecManagementPolicies
+ */
+export enum ConnectionProfileSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -331,43 +438,6 @@ export function toJson_ConnectionProfileSpecProviderConfigRef(obj: ConnectionPro
   const result = {
     'name': obj.name,
     'policy': toJson_ConnectionProfileSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ConnectionProfileSpecProviderRef
- */
-export interface ConnectionProfileSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ConnectionProfileSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ConnectionProfileSpecProviderRef#policy
-   */
-  readonly policy?: ConnectionProfileSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ConnectionProfileSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ConnectionProfileSpecProviderRef(obj: ConnectionProfileSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ConnectionProfileSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -465,7 +535,7 @@ export interface ConnectionProfileSpecForProviderForwardSshConnectivity {
    *
    * @schema ConnectionProfileSpecForProviderForwardSshConnectivity#hostname
    */
-  readonly hostname: string;
+  readonly hostname?: string;
 
   /**
    * SSH password. Note: This property is sensitive and will not be displayed in the plan.
@@ -493,7 +563,7 @@ export interface ConnectionProfileSpecForProviderForwardSshConnectivity {
    *
    * @schema ConnectionProfileSpecForProviderForwardSshConnectivity#username
    */
-  readonly username: string;
+  readonly username?: string;
 
 }
 
@@ -524,7 +594,7 @@ export interface ConnectionProfileSpecForProviderGcsProfile {
    *
    * @schema ConnectionProfileSpecForProviderGcsProfile#bucket
    */
-  readonly bucket: string;
+  readonly bucket?: string;
 
   /**
    * The root path inside the Cloud Storage bucket.
@@ -559,7 +629,7 @@ export interface ConnectionProfileSpecForProviderMysqlProfile {
    *
    * @schema ConnectionProfileSpecForProviderMysqlProfile#hostname
    */
-  readonly hostname: string;
+  readonly hostname?: string;
 
   /**
    * Password for the MySQL connection. Note: This property is sensitive and will not be displayed in the plan.
@@ -587,7 +657,7 @@ export interface ConnectionProfileSpecForProviderMysqlProfile {
    *
    * @schema ConnectionProfileSpecForProviderMysqlProfile#username
    */
-  readonly username: string;
+  readonly username?: string;
 
 }
 
@@ -625,14 +695,14 @@ export interface ConnectionProfileSpecForProviderOracleProfile {
    *
    * @schema ConnectionProfileSpecForProviderOracleProfile#databaseService
    */
-  readonly databaseService: string;
+  readonly databaseService?: string;
 
   /**
    * Hostname for the Oracle connection.
    *
    * @schema ConnectionProfileSpecForProviderOracleProfile#hostname
    */
-  readonly hostname: string;
+  readonly hostname?: string;
 
   /**
    * Password for the Oracle connection. Note: This property is sensitive and will not be displayed in the plan.
@@ -653,7 +723,7 @@ export interface ConnectionProfileSpecForProviderOracleProfile {
    *
    * @schema ConnectionProfileSpecForProviderOracleProfile#username
    */
-  readonly username: string;
+  readonly username?: string;
 
 }
 
@@ -827,6 +897,221 @@ export function toJson_ConnectionProfileSpecForProviderPrivateConnectivity(obj: 
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ConnectionProfileSpecInitProviderForwardSshConnectivity
+ */
+export interface ConnectionProfileSpecInitProviderForwardSshConnectivity {
+  /**
+   * Hostname for the SSH tunnel.
+   *
+   * @schema ConnectionProfileSpecInitProviderForwardSshConnectivity#hostname
+   */
+  readonly hostname?: string;
+
+  /**
+   * Port for the SSH tunnel.
+   *
+   * @schema ConnectionProfileSpecInitProviderForwardSshConnectivity#port
+   */
+  readonly port?: number;
+
+  /**
+   * Username for the SSH tunnel.
+   *
+   * @schema ConnectionProfileSpecInitProviderForwardSshConnectivity#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'ConnectionProfileSpecInitProviderForwardSshConnectivity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ConnectionProfileSpecInitProviderForwardSshConnectivity(obj: ConnectionProfileSpecInitProviderForwardSshConnectivity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hostname': obj.hostname,
+    'port': obj.port,
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ConnectionProfileSpecInitProviderGcsProfile
+ */
+export interface ConnectionProfileSpecInitProviderGcsProfile {
+  /**
+   * The Cloud Storage bucket name.
+   *
+   * @schema ConnectionProfileSpecInitProviderGcsProfile#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * The root path inside the Cloud Storage bucket.
+   *
+   * @schema ConnectionProfileSpecInitProviderGcsProfile#rootPath
+   */
+  readonly rootPath?: string;
+
+}
+
+/**
+ * Converts an object of type 'ConnectionProfileSpecInitProviderGcsProfile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ConnectionProfileSpecInitProviderGcsProfile(obj: ConnectionProfileSpecInitProviderGcsProfile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'rootPath': obj.rootPath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ConnectionProfileSpecInitProviderMysqlProfile
+ */
+export interface ConnectionProfileSpecInitProviderMysqlProfile {
+  /**
+   * Hostname for the MySQL connection.
+   *
+   * @schema ConnectionProfileSpecInitProviderMysqlProfile#hostname
+   */
+  readonly hostname?: string;
+
+  /**
+   * Port for the MySQL connection.
+   *
+   * @schema ConnectionProfileSpecInitProviderMysqlProfile#port
+   */
+  readonly port?: number;
+
+  /**
+   * SSL configuration for the MySQL connection. Structure is documented below.
+   *
+   * @schema ConnectionProfileSpecInitProviderMysqlProfile#sslConfig
+   */
+  readonly sslConfig?: any[];
+
+  /**
+   * Username for the MySQL connection.
+   *
+   * @schema ConnectionProfileSpecInitProviderMysqlProfile#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'ConnectionProfileSpecInitProviderMysqlProfile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ConnectionProfileSpecInitProviderMysqlProfile(obj: ConnectionProfileSpecInitProviderMysqlProfile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hostname': obj.hostname,
+    'port': obj.port,
+    'sslConfig': obj.sslConfig?.map(y => y),
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ConnectionProfileSpecInitProviderOracleProfile
+ */
+export interface ConnectionProfileSpecInitProviderOracleProfile {
+  /**
+   * Connection string attributes
+   *
+   * @schema ConnectionProfileSpecInitProviderOracleProfile#connectionAttributes
+   */
+  readonly connectionAttributes?: { [key: string]: string };
+
+  /**
+   * Database for the Oracle connection.
+   *
+   * @schema ConnectionProfileSpecInitProviderOracleProfile#databaseService
+   */
+  readonly databaseService?: string;
+
+  /**
+   * Hostname for the Oracle connection.
+   *
+   * @schema ConnectionProfileSpecInitProviderOracleProfile#hostname
+   */
+  readonly hostname?: string;
+
+  /**
+   * Port for the Oracle connection.
+   *
+   * @schema ConnectionProfileSpecInitProviderOracleProfile#port
+   */
+  readonly port?: number;
+
+  /**
+   * Username for the Oracle connection.
+   *
+   * @schema ConnectionProfileSpecInitProviderOracleProfile#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'ConnectionProfileSpecInitProviderOracleProfile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ConnectionProfileSpecInitProviderOracleProfile(obj: ConnectionProfileSpecInitProviderOracleProfile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'connectionAttributes': ((obj.connectionAttributes) === undefined) ? undefined : (Object.entries(obj.connectionAttributes).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'databaseService': obj.databaseService,
+    'hostname': obj.hostname,
+    'port': obj.port,
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ConnectionProfileSpecInitProviderPostgresqlProfile
+ */
+export interface ConnectionProfileSpecInitProviderPostgresqlProfile {
+  /**
+   * Port for the PostgreSQL connection.
+   *
+   * @schema ConnectionProfileSpecInitProviderPostgresqlProfile#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'ConnectionProfileSpecInitProviderPostgresqlProfile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ConnectionProfileSpecInitProviderPostgresqlProfile(obj: ConnectionProfileSpecInitProviderPostgresqlProfile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ConnectionProfileSpecProviderConfigRefPolicy
@@ -853,43 +1138,6 @@ export interface ConnectionProfileSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ConnectionProfileSpecProviderConfigRefPolicy(obj: ConnectionProfileSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ConnectionProfileSpecProviderRefPolicy
- */
-export interface ConnectionProfileSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ConnectionProfileSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ConnectionProfileSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ConnectionProfileSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ConnectionProfileSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ConnectionProfileSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ConnectionProfileSpecProviderRefPolicy(obj: ConnectionProfileSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1596,30 +1844,6 @@ export enum ConnectionProfileSpecProviderConfigRefPolicyResolution {
  * @schema ConnectionProfileSpecProviderConfigRefPolicyResolve
  */
 export enum ConnectionProfileSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ConnectionProfileSpecProviderRefPolicyResolution
- */
-export enum ConnectionProfileSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ConnectionProfileSpecProviderRefPolicyResolve
- */
-export enum ConnectionProfileSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2407,7 +2631,7 @@ export function toJson_PrivateConnectionProps(obj: PrivateConnectionProps | unde
  */
 export interface PrivateConnectionSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PrivateConnectionSpec#deletionPolicy
    */
@@ -2419,11 +2643,18 @@ export interface PrivateConnectionSpec {
   readonly forProvider: PrivateConnectionSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema PrivateConnectionSpec#managementPolicy
+   * @schema PrivateConnectionSpec#initProvider
    */
-  readonly managementPolicy?: PrivateConnectionSpecManagementPolicy;
+  readonly initProvider?: PrivateConnectionSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema PrivateConnectionSpec#managementPolicies
+   */
+  readonly managementPolicies?: PrivateConnectionSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2431,13 +2662,6 @@ export interface PrivateConnectionSpec {
    * @schema PrivateConnectionSpec#providerConfigRef
    */
   readonly providerConfigRef?: PrivateConnectionSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema PrivateConnectionSpec#providerRef
-   */
-  readonly providerRef?: PrivateConnectionSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2464,9 +2688,9 @@ export function toJson_PrivateConnectionSpec(obj: PrivateConnectionSpec | undefi
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PrivateConnectionSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_PrivateConnectionSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_PrivateConnectionSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_PrivateConnectionSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PrivateConnectionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_PrivateConnectionSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2476,7 +2700,7 @@ export function toJson_PrivateConnectionSpec(obj: PrivateConnectionSpec | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PrivateConnectionSpecDeletionPolicy
  */
@@ -2547,17 +2771,76 @@ export function toJson_PrivateConnectionSpecForProvider(obj: PrivateConnectionSp
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema PrivateConnectionSpecManagementPolicy
+ * @schema PrivateConnectionSpecInitProvider
  */
-export enum PrivateConnectionSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface PrivateConnectionSpecInitProvider {
+  /**
+   * Display name.
+   *
+   * @schema PrivateConnectionSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * Labels.
+   *
+   * @schema PrivateConnectionSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema PrivateConnectionSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The VPC Peering configuration is used to create VPC peering between Datastream and the consumer's VPC. Structure is documented below.
+   *
+   * @schema PrivateConnectionSpecInitProvider#vpcPeeringConfig
+   */
+  readonly vpcPeeringConfig?: PrivateConnectionSpecInitProviderVpcPeeringConfig[];
+
+}
+
+/**
+ * Converts an object of type 'PrivateConnectionSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PrivateConnectionSpecInitProvider(obj: PrivateConnectionSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'displayName': obj.displayName,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'project': obj.project,
+    'vpcPeeringConfig': obj.vpcPeeringConfig?.map(y => toJson_PrivateConnectionSpecInitProviderVpcPeeringConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema PrivateConnectionSpecManagementPolicies
+ */
+export enum PrivateConnectionSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2591,43 +2874,6 @@ export function toJson_PrivateConnectionSpecProviderConfigRef(obj: PrivateConnec
   const result = {
     'name': obj.name,
     'policy': toJson_PrivateConnectionSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema PrivateConnectionSpecProviderRef
- */
-export interface PrivateConnectionSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema PrivateConnectionSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema PrivateConnectionSpecProviderRef#policy
-   */
-  readonly policy?: PrivateConnectionSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'PrivateConnectionSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PrivateConnectionSpecProviderRef(obj: PrivateConnectionSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_PrivateConnectionSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2725,7 +2971,7 @@ export interface PrivateConnectionSpecForProviderVpcPeeringConfig {
    *
    * @schema PrivateConnectionSpecForProviderVpcPeeringConfig#subnet
    */
-  readonly subnet: string;
+  readonly subnet?: string;
 
   /**
    * Fully qualified name of the VPC that Datastream will peer to. Format: projects/{project}/global/{networks}/{name}
@@ -2768,6 +3014,33 @@ export function toJson_PrivateConnectionSpecForProviderVpcPeeringConfig(obj: Pri
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema PrivateConnectionSpecInitProviderVpcPeeringConfig
+ */
+export interface PrivateConnectionSpecInitProviderVpcPeeringConfig {
+  /**
+   * A free subnet for peering. (CIDR of /29)
+   *
+   * @schema PrivateConnectionSpecInitProviderVpcPeeringConfig#subnet
+   */
+  readonly subnet?: string;
+
+}
+
+/**
+ * Converts an object of type 'PrivateConnectionSpecInitProviderVpcPeeringConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PrivateConnectionSpecInitProviderVpcPeeringConfig(obj: PrivateConnectionSpecInitProviderVpcPeeringConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'subnet': obj.subnet,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema PrivateConnectionSpecProviderConfigRefPolicy
@@ -2794,43 +3067,6 @@ export interface PrivateConnectionSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_PrivateConnectionSpecProviderConfigRefPolicy(obj: PrivateConnectionSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema PrivateConnectionSpecProviderRefPolicy
- */
-export interface PrivateConnectionSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema PrivateConnectionSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: PrivateConnectionSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema PrivateConnectionSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: PrivateConnectionSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'PrivateConnectionSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PrivateConnectionSpecProviderRefPolicy(obj: PrivateConnectionSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3023,30 +3259,6 @@ export enum PrivateConnectionSpecProviderConfigRefPolicyResolution {
  * @schema PrivateConnectionSpecProviderConfigRefPolicyResolve
  */
 export enum PrivateConnectionSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema PrivateConnectionSpecProviderRefPolicyResolution
- */
-export enum PrivateConnectionSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema PrivateConnectionSpecProviderRefPolicyResolve
- */
-export enum PrivateConnectionSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

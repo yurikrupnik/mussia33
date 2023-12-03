@@ -99,7 +99,7 @@ export function toJson_EventIntegrationProps(obj: EventIntegrationProps | undefi
  */
 export interface EventIntegrationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema EventIntegrationSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface EventIntegrationSpec {
   readonly forProvider: EventIntegrationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema EventIntegrationSpec#managementPolicy
+   * @schema EventIntegrationSpec#initProvider
    */
-  readonly managementPolicy?: EventIntegrationSpecManagementPolicy;
+  readonly initProvider?: EventIntegrationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema EventIntegrationSpec#managementPolicies
+   */
+  readonly managementPolicies?: EventIntegrationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface EventIntegrationSpec {
    * @schema EventIntegrationSpec#providerConfigRef
    */
   readonly providerConfigRef?: EventIntegrationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema EventIntegrationSpec#providerRef
-   */
-  readonly providerRef?: EventIntegrationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_EventIntegrationSpec(obj: EventIntegrationSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_EventIntegrationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_EventIntegrationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_EventIntegrationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_EventIntegrationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_EventIntegrationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_EventIntegrationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_EventIntegrationSpec(obj: EventIntegrationSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema EventIntegrationSpecDeletionPolicy
  */
@@ -239,17 +239,76 @@ export function toJson_EventIntegrationSpecForProvider(obj: EventIntegrationSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema EventIntegrationSpecManagementPolicy
+ * @schema EventIntegrationSpecInitProvider
  */
-export enum EventIntegrationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface EventIntegrationSpecInitProvider {
+  /**
+   * Description of the Event Integration.
+   *
+   * @schema EventIntegrationSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Block that defines the configuration information for the event filter. The Event Filter block is documented below.
+   *
+   * @schema EventIntegrationSpecInitProvider#eventFilter
+   */
+  readonly eventFilter?: EventIntegrationSpecInitProviderEventFilter[];
+
+  /**
+   * EventBridge bus.
+   *
+   * @schema EventIntegrationSpecInitProvider#eventbridgeBus
+   */
+  readonly eventbridgeBus?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema EventIntegrationSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'EventIntegrationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EventIntegrationSpecInitProvider(obj: EventIntegrationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'eventFilter': obj.eventFilter?.map(y => toJson_EventIntegrationSpecInitProviderEventFilter(y)),
+    'eventbridgeBus': obj.eventbridgeBus,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema EventIntegrationSpecManagementPolicies
+ */
+export enum EventIntegrationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -283,43 +342,6 @@ export function toJson_EventIntegrationSpecProviderConfigRef(obj: EventIntegrati
   const result = {
     'name': obj.name,
     'policy': toJson_EventIntegrationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema EventIntegrationSpecProviderRef
- */
-export interface EventIntegrationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema EventIntegrationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema EventIntegrationSpecProviderRef#policy
-   */
-  readonly policy?: EventIntegrationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'EventIntegrationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_EventIntegrationSpecProviderRef(obj: EventIntegrationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_EventIntegrationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -417,7 +439,7 @@ export interface EventIntegrationSpecForProviderEventFilter {
    *
    * @schema EventIntegrationSpecForProviderEventFilter#source
    */
-  readonly source: string;
+  readonly source?: string;
 
 }
 
@@ -426,6 +448,33 @@ export interface EventIntegrationSpecForProviderEventFilter {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_EventIntegrationSpecForProviderEventFilter(obj: EventIntegrationSpecForProviderEventFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'source': obj.source,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EventIntegrationSpecInitProviderEventFilter
+ */
+export interface EventIntegrationSpecInitProviderEventFilter {
+  /**
+   * Source of the events.
+   *
+   * @schema EventIntegrationSpecInitProviderEventFilter#source
+   */
+  readonly source?: string;
+
+}
+
+/**
+ * Converts an object of type 'EventIntegrationSpecInitProviderEventFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EventIntegrationSpecInitProviderEventFilter(obj: EventIntegrationSpecInitProviderEventFilter | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'source': obj.source,
@@ -462,43 +511,6 @@ export interface EventIntegrationSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_EventIntegrationSpecProviderConfigRefPolicy(obj: EventIntegrationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema EventIntegrationSpecProviderRefPolicy
- */
-export interface EventIntegrationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema EventIntegrationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: EventIntegrationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema EventIntegrationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: EventIntegrationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'EventIntegrationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_EventIntegrationSpecProviderRefPolicy(obj: EventIntegrationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -609,30 +621,6 @@ export enum EventIntegrationSpecProviderConfigRefPolicyResolution {
  * @schema EventIntegrationSpecProviderConfigRefPolicyResolve
  */
 export enum EventIntegrationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema EventIntegrationSpecProviderRefPolicyResolution
- */
-export enum EventIntegrationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema EventIntegrationSpecProviderRefPolicyResolve
- */
-export enum EventIntegrationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

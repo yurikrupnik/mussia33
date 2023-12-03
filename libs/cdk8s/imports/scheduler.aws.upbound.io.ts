@@ -99,7 +99,7 @@ export function toJson_ScheduleProps(obj: ScheduleProps | undefined): Record<str
  */
 export interface ScheduleSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ScheduleSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface ScheduleSpec {
   readonly forProvider: ScheduleSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ScheduleSpec#managementPolicy
+   * @schema ScheduleSpec#initProvider
    */
-  readonly managementPolicy?: ScheduleSpecManagementPolicy;
+  readonly initProvider?: ScheduleSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ScheduleSpec#managementPolicies
+   */
+  readonly managementPolicies?: ScheduleSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface ScheduleSpec {
    * @schema ScheduleSpec#providerConfigRef
    */
   readonly providerConfigRef?: ScheduleSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ScheduleSpec#providerRef
-   */
-  readonly providerRef?: ScheduleSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_ScheduleSpec(obj: ScheduleSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ScheduleSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ScheduleSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ScheduleSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ScheduleSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ScheduleSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ScheduleSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_ScheduleSpec(obj: ScheduleSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ScheduleSpecDeletionPolicy
  */
@@ -312,17 +312,125 @@ export function toJson_ScheduleSpecForProvider(obj: ScheduleSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ScheduleSpecManagementPolicy
+ * @schema ScheduleSpecInitProvider
  */
-export enum ScheduleSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ScheduleSpecInitProvider {
+  /**
+   * Brief description of the schedule.
+   *
+   * @schema ScheduleSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * The date, in UTC, before which the schedule can invoke its target. Depending on the schedule's recurrence expression, invocations might stop on, or before, the end date you specify. EventBridge Scheduler ignores the end date for one-time schedules. Example: 2030-01-01T01:00:00Z.
+   *
+   * @schema ScheduleSpecInitProvider#endDate
+   */
+  readonly endDate?: string;
+
+  /**
+   * Configures a time window during which EventBridge Scheduler invokes the schedule. Detailed below.
+   *
+   * @schema ScheduleSpecInitProvider#flexibleTimeWindow
+   */
+  readonly flexibleTimeWindow?: ScheduleSpecInitProviderFlexibleTimeWindow[];
+
+  /**
+   * Name of the schedule group to associate with this schedule. When omitted, the default schedule group is used.
+   *
+   * @schema ScheduleSpecInitProvider#groupName
+   */
+  readonly groupName?: string;
+
+  /**
+   * Name of the schedule. Conflicts with name_prefix.
+   *
+   * @schema ScheduleSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Defines when the schedule runs. Read more in Schedule types on EventBridge Scheduler.
+   *
+   * @schema ScheduleSpecInitProvider#scheduleExpression
+   */
+  readonly scheduleExpression?: string;
+
+  /**
+   * Timezone in which the scheduling expression is evaluated. Defaults to UTC. Example: Australia/Sydney.
+   *
+   * @default UTC. Example: Australia/Sydney.
+   * @schema ScheduleSpecInitProvider#scheduleExpressionTimezone
+   */
+  readonly scheduleExpressionTimezone?: string;
+
+  /**
+   * The date, in UTC, after which the schedule can begin invoking its target. Depending on the schedule's recurrence expression, invocations might occur on, or after, the start date you specify. EventBridge Scheduler ignores the start date for one-time schedules. Example: 2030-01-01T01:00:00Z.
+   *
+   * @schema ScheduleSpecInitProvider#startDate
+   */
+  readonly startDate?: string;
+
+  /**
+   * Specifies whether the schedule is enabled or disabled. One of: ENABLED (default), DISABLED.
+   *
+   * @schema ScheduleSpecInitProvider#state
+   */
+  readonly state?: string;
+
+  /**
+   * Configures the target of the schedule. Detailed below.
+   *
+   * @schema ScheduleSpecInitProvider#target
+   */
+  readonly target?: ScheduleSpecInitProviderTarget[];
+
+}
+
+/**
+ * Converts an object of type 'ScheduleSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduleSpecInitProvider(obj: ScheduleSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'endDate': obj.endDate,
+    'flexibleTimeWindow': obj.flexibleTimeWindow?.map(y => toJson_ScheduleSpecInitProviderFlexibleTimeWindow(y)),
+    'groupName': obj.groupName,
+    'name': obj.name,
+    'scheduleExpression': obj.scheduleExpression,
+    'scheduleExpressionTimezone': obj.scheduleExpressionTimezone,
+    'startDate': obj.startDate,
+    'state': obj.state,
+    'target': obj.target?.map(y => toJson_ScheduleSpecInitProviderTarget(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ScheduleSpecManagementPolicies
+ */
+export enum ScheduleSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -356,43 +464,6 @@ export function toJson_ScheduleSpecProviderConfigRef(obj: ScheduleSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_ScheduleSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ScheduleSpecProviderRef
- */
-export interface ScheduleSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ScheduleSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ScheduleSpecProviderRef#policy
-   */
-  readonly policy?: ScheduleSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ScheduleSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ScheduleSpecProviderRef(obj: ScheduleSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ScheduleSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -497,7 +568,7 @@ export interface ScheduleSpecForProviderFlexibleTimeWindow {
    *
    * @schema ScheduleSpecForProviderFlexibleTimeWindow#mode
    */
-  readonly mode: string;
+  readonly mode?: string;
 
 }
 
@@ -730,6 +801,124 @@ export function toJson_ScheduleSpecForProviderTarget(obj: ScheduleSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ScheduleSpecInitProviderFlexibleTimeWindow
+ */
+export interface ScheduleSpecInitProviderFlexibleTimeWindow {
+  /**
+   * Maximum time window during which a schedule can be invoked. Ranges from 1 to 1440 minutes.
+   *
+   * @schema ScheduleSpecInitProviderFlexibleTimeWindow#maximumWindowInMinutes
+   */
+  readonly maximumWindowInMinutes?: number;
+
+  /**
+   * Determines whether the schedule is invoked within a flexible time window. One of: OFF, FLEXIBLE.
+   *
+   * @schema ScheduleSpecInitProviderFlexibleTimeWindow#mode
+   */
+  readonly mode?: string;
+
+}
+
+/**
+ * Converts an object of type 'ScheduleSpecInitProviderFlexibleTimeWindow' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduleSpecInitProviderFlexibleTimeWindow(obj: ScheduleSpecInitProviderFlexibleTimeWindow | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maximumWindowInMinutes': obj.maximumWindowInMinutes,
+    'mode': obj.mode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScheduleSpecInitProviderTarget
+ */
+export interface ScheduleSpecInitProviderTarget {
+  /**
+   * Information about an Amazon SQS queue that EventBridge Scheduler uses as a dead-letter queue for your schedule. If specified, EventBridge Scheduler delivers failed events that could not be successfully delivered to a target to the queue. Detailed below.
+   *
+   * @schema ScheduleSpecInitProviderTarget#deadLetterConfig
+   */
+  readonly deadLetterConfig?: ScheduleSpecInitProviderTargetDeadLetterConfig[];
+
+  /**
+   * Templated target type for the Amazon ECS RunTask API operation. Detailed below.
+   *
+   * @schema ScheduleSpecInitProviderTarget#ecsParameters
+   */
+  readonly ecsParameters?: ScheduleSpecInitProviderTargetEcsParameters[];
+
+  /**
+   * Templated target type for the EventBridge PutEvents API operation. Detailed below.
+   *
+   * @schema ScheduleSpecInitProviderTarget#eventbridgeParameters
+   */
+  readonly eventbridgeParameters?: ScheduleSpecInitProviderTargetEventbridgeParameters[];
+
+  /**
+   * Text, or well-formed JSON, passed to the target. Read more in Universal target.
+   *
+   * @schema ScheduleSpecInitProviderTarget#input
+   */
+  readonly input?: string;
+
+  /**
+   * Templated target type for the Amazon Kinesis PutRecord API operation. Detailed below.
+   *
+   * @schema ScheduleSpecInitProviderTarget#kinesisParameters
+   */
+  readonly kinesisParameters?: ScheduleSpecInitProviderTargetKinesisParameters[];
+
+  /**
+   * Information about the retry policy settings. Detailed below.
+   *
+   * @schema ScheduleSpecInitProviderTarget#retryPolicy
+   */
+  readonly retryPolicy?: ScheduleSpecInitProviderTargetRetryPolicy[];
+
+  /**
+   * Templated target type for the Amazon SageMaker StartPipelineExecution API operation. Detailed below.
+   *
+   * @schema ScheduleSpecInitProviderTarget#sagemakerPipelineParameters
+   */
+  readonly sagemakerPipelineParameters?: ScheduleSpecInitProviderTargetSagemakerPipelineParameters[];
+
+  /**
+   * The templated target type for the Amazon SQS SendMessage API operation. Detailed below.
+   *
+   * @schema ScheduleSpecInitProviderTarget#sqsParameters
+   */
+  readonly sqsParameters?: ScheduleSpecInitProviderTargetSqsParameters[];
+
+}
+
+/**
+ * Converts an object of type 'ScheduleSpecInitProviderTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduleSpecInitProviderTarget(obj: ScheduleSpecInitProviderTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deadLetterConfig': obj.deadLetterConfig?.map(y => toJson_ScheduleSpecInitProviderTargetDeadLetterConfig(y)),
+    'ecsParameters': obj.ecsParameters?.map(y => toJson_ScheduleSpecInitProviderTargetEcsParameters(y)),
+    'eventbridgeParameters': obj.eventbridgeParameters?.map(y => toJson_ScheduleSpecInitProviderTargetEventbridgeParameters(y)),
+    'input': obj.input,
+    'kinesisParameters': obj.kinesisParameters?.map(y => toJson_ScheduleSpecInitProviderTargetKinesisParameters(y)),
+    'retryPolicy': obj.retryPolicy?.map(y => toJson_ScheduleSpecInitProviderTargetRetryPolicy(y)),
+    'sagemakerPipelineParameters': obj.sagemakerPipelineParameters?.map(y => toJson_ScheduleSpecInitProviderTargetSagemakerPipelineParameters(y)),
+    'sqsParameters': obj.sqsParameters?.map(y => toJson_ScheduleSpecInitProviderTargetSqsParameters(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ScheduleSpecProviderConfigRefPolicy
@@ -756,43 +945,6 @@ export interface ScheduleSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ScheduleSpecProviderConfigRefPolicy(obj: ScheduleSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ScheduleSpecProviderRefPolicy
- */
-export interface ScheduleSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ScheduleSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ScheduleSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ScheduleSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ScheduleSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ScheduleSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ScheduleSpecProviderRefPolicy(obj: ScheduleSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1050,7 +1202,7 @@ export interface ScheduleSpecForProviderTargetDeadLetterConfig {
    *
    * @schema ScheduleSpecForProviderTargetDeadLetterConfig#arn
    */
-  readonly arn: string;
+  readonly arn?: string;
 
 }
 
@@ -1168,7 +1320,7 @@ export interface ScheduleSpecForProviderTargetEcsParameters {
    *
    * @schema ScheduleSpecForProviderTargetEcsParameters#taskDefinitionArn
    */
-  readonly taskDefinitionArn: string;
+  readonly taskDefinitionArn?: string;
 
 }
 
@@ -1208,14 +1360,14 @@ export interface ScheduleSpecForProviderTargetEventbridgeParameters {
    *
    * @schema ScheduleSpecForProviderTargetEventbridgeParameters#detailType
    */
-  readonly detailType: string;
+  readonly detailType?: string;
 
   /**
    * Source of the event.
    *
    * @schema ScheduleSpecForProviderTargetEventbridgeParameters#source
    */
-  readonly source: string;
+  readonly source?: string;
 
 }
 
@@ -1243,7 +1395,7 @@ export interface ScheduleSpecForProviderTargetKinesisParameters {
    *
    * @schema ScheduleSpecForProviderTargetKinesisParameters#partitionKey
    */
-  readonly partitionKey: string;
+  readonly partitionKey?: string;
 
 }
 
@@ -1433,6 +1585,315 @@ export function toJson_ScheduleSpecForProviderTargetSqsParameters(obj: ScheduleS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ScheduleSpecInitProviderTargetDeadLetterConfig
+ */
+export interface ScheduleSpecInitProviderTargetDeadLetterConfig {
+  /**
+   * ARN of the target of this schedule, such as a SQS queue or ECS cluster. For universal targets, this is a Service ARN specific to the target service.
+   *
+   * @schema ScheduleSpecInitProviderTargetDeadLetterConfig#arn
+   */
+  readonly arn?: string;
+
+}
+
+/**
+ * Converts an object of type 'ScheduleSpecInitProviderTargetDeadLetterConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduleSpecInitProviderTargetDeadLetterConfig(obj: ScheduleSpecInitProviderTargetDeadLetterConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'arn': obj.arn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScheduleSpecInitProviderTargetEcsParameters
+ */
+export interface ScheduleSpecInitProviderTargetEcsParameters {
+  /**
+   * Up to 6 capacity provider strategies to use for the task. Detailed below.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParameters#capacityProviderStrategy
+   */
+  readonly capacityProviderStrategy?: ScheduleSpecInitProviderTargetEcsParametersCapacityProviderStrategy[];
+
+  /**
+   * Specifies whether to enable Amazon ECS managed tags for the task. For more information, see Tagging Your Amazon ECS Resources in the Amazon ECS Developer Guide.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParameters#enableEcsManagedTags
+   */
+  readonly enableEcsManagedTags?: boolean;
+
+  /**
+   * Specifies whether to enable the execute command functionality for the containers in this task.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParameters#enableExecuteCommand
+   */
+  readonly enableExecuteCommand?: boolean;
+
+  /**
+   * Specifies an ECS task group for the task. At most 255 characters.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParameters#group
+   */
+  readonly group?: string;
+
+  /**
+   * Specifies the launch type on which your task is running. The launch type that you specify here must match one of the launch type (compatibilities) of the target task. One of: EC2, FARGATE, EXTERNAL.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParameters#launchType
+   */
+  readonly launchType?: string;
+
+  /**
+   * Configures the networking associated with the task. Detailed below.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParameters#networkConfiguration
+   */
+  readonly networkConfiguration?: ScheduleSpecInitProviderTargetEcsParametersNetworkConfiguration[];
+
+  /**
+   * A set of up to 10 placement constraints to use for the task. Detailed below.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParameters#placementConstraints
+   */
+  readonly placementConstraints?: ScheduleSpecInitProviderTargetEcsParametersPlacementConstraints[];
+
+  /**
+   * A set of up to 5 placement strategies. Detailed below.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParameters#placementStrategy
+   */
+  readonly placementStrategy?: ScheduleSpecInitProviderTargetEcsParametersPlacementStrategy[];
+
+  /**
+   * Specifies the platform version for the task. Specify only the numeric portion of the platform version, such as 1.1.0.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParameters#platformVersion
+   */
+  readonly platformVersion?: string;
+
+  /**
+   * Specifies whether to propagate the tags from the task definition to the task. One of: TASK_DEFINITION.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParameters#propagateTags
+   */
+  readonly propagateTags?: string;
+
+  /**
+   * Reference ID to use for the task.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParameters#referenceId
+   */
+  readonly referenceId?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParameters#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * The number of tasks to create. Ranges from 1 (default) to 10.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParameters#taskCount
+   */
+  readonly taskCount?: number;
+
+  /**
+   * ARN of the task definition to use.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParameters#taskDefinitionArn
+   */
+  readonly taskDefinitionArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'ScheduleSpecInitProviderTargetEcsParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduleSpecInitProviderTargetEcsParameters(obj: ScheduleSpecInitProviderTargetEcsParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'capacityProviderStrategy': obj.capacityProviderStrategy?.map(y => toJson_ScheduleSpecInitProviderTargetEcsParametersCapacityProviderStrategy(y)),
+    'enableEcsManagedTags': obj.enableEcsManagedTags,
+    'enableExecuteCommand': obj.enableExecuteCommand,
+    'group': obj.group,
+    'launchType': obj.launchType,
+    'networkConfiguration': obj.networkConfiguration?.map(y => toJson_ScheduleSpecInitProviderTargetEcsParametersNetworkConfiguration(y)),
+    'placementConstraints': obj.placementConstraints?.map(y => toJson_ScheduleSpecInitProviderTargetEcsParametersPlacementConstraints(y)),
+    'placementStrategy': obj.placementStrategy?.map(y => toJson_ScheduleSpecInitProviderTargetEcsParametersPlacementStrategy(y)),
+    'platformVersion': obj.platformVersion,
+    'propagateTags': obj.propagateTags,
+    'referenceId': obj.referenceId,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'taskCount': obj.taskCount,
+    'taskDefinitionArn': obj.taskDefinitionArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScheduleSpecInitProviderTargetEventbridgeParameters
+ */
+export interface ScheduleSpecInitProviderTargetEventbridgeParameters {
+  /**
+   * Free-form string used to decide what fields to expect in the event detail. Up to 128 characters.
+   *
+   * @schema ScheduleSpecInitProviderTargetEventbridgeParameters#detailType
+   */
+  readonly detailType?: string;
+
+  /**
+   * Source of the event.
+   *
+   * @schema ScheduleSpecInitProviderTargetEventbridgeParameters#source
+   */
+  readonly source?: string;
+
+}
+
+/**
+ * Converts an object of type 'ScheduleSpecInitProviderTargetEventbridgeParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduleSpecInitProviderTargetEventbridgeParameters(obj: ScheduleSpecInitProviderTargetEventbridgeParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'detailType': obj.detailType,
+    'source': obj.source,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScheduleSpecInitProviderTargetKinesisParameters
+ */
+export interface ScheduleSpecInitProviderTargetKinesisParameters {
+  /**
+   * Specifies the shard to which EventBridge Scheduler sends the event. Up to 256 characters.
+   *
+   * @schema ScheduleSpecInitProviderTargetKinesisParameters#partitionKey
+   */
+  readonly partitionKey?: string;
+
+}
+
+/**
+ * Converts an object of type 'ScheduleSpecInitProviderTargetKinesisParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduleSpecInitProviderTargetKinesisParameters(obj: ScheduleSpecInitProviderTargetKinesisParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'partitionKey': obj.partitionKey,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScheduleSpecInitProviderTargetRetryPolicy
+ */
+export interface ScheduleSpecInitProviderTargetRetryPolicy {
+  /**
+   * Maximum amount of time, in seconds, to continue to make retry attempts. Ranges from 60 to 86400 (default).
+   *
+   * @schema ScheduleSpecInitProviderTargetRetryPolicy#maximumEventAgeInSeconds
+   */
+  readonly maximumEventAgeInSeconds?: number;
+
+  /**
+   * Maximum number of retry attempts to make before the request fails. Ranges from 0 to 185 (default).
+   *
+   * @schema ScheduleSpecInitProviderTargetRetryPolicy#maximumRetryAttempts
+   */
+  readonly maximumRetryAttempts?: number;
+
+}
+
+/**
+ * Converts an object of type 'ScheduleSpecInitProviderTargetRetryPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduleSpecInitProviderTargetRetryPolicy(obj: ScheduleSpecInitProviderTargetRetryPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maximumEventAgeInSeconds': obj.maximumEventAgeInSeconds,
+    'maximumRetryAttempts': obj.maximumRetryAttempts,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScheduleSpecInitProviderTargetSagemakerPipelineParameters
+ */
+export interface ScheduleSpecInitProviderTargetSagemakerPipelineParameters {
+  /**
+   * Set of up to 200 parameter names and values to use when executing the SageMaker Model Building Pipeline. Detailed below.
+   *
+   * @schema ScheduleSpecInitProviderTargetSagemakerPipelineParameters#pipelineParameter
+   */
+  readonly pipelineParameter?: ScheduleSpecInitProviderTargetSagemakerPipelineParametersPipelineParameter[];
+
+}
+
+/**
+ * Converts an object of type 'ScheduleSpecInitProviderTargetSagemakerPipelineParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduleSpecInitProviderTargetSagemakerPipelineParameters(obj: ScheduleSpecInitProviderTargetSagemakerPipelineParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'pipelineParameter': obj.pipelineParameter?.map(y => toJson_ScheduleSpecInitProviderTargetSagemakerPipelineParametersPipelineParameter(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScheduleSpecInitProviderTargetSqsParameters
+ */
+export interface ScheduleSpecInitProviderTargetSqsParameters {
+  /**
+   * FIFO message group ID to use as the target.
+   *
+   * @schema ScheduleSpecInitProviderTargetSqsParameters#messageGroupId
+   */
+  readonly messageGroupId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ScheduleSpecInitProviderTargetSqsParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduleSpecInitProviderTargetSqsParameters(obj: ScheduleSpecInitProviderTargetSqsParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'messageGroupId': obj.messageGroupId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema ScheduleSpecProviderConfigRefPolicyResolution
@@ -1450,30 +1911,6 @@ export enum ScheduleSpecProviderConfigRefPolicyResolution {
  * @schema ScheduleSpecProviderConfigRefPolicyResolve
  */
 export enum ScheduleSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ScheduleSpecProviderRefPolicyResolution
- */
-export enum ScheduleSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ScheduleSpecProviderRefPolicyResolve
- */
-export enum ScheduleSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1655,7 +2092,7 @@ export interface ScheduleSpecForProviderTargetEcsParametersCapacityProviderStrat
    *
    * @schema ScheduleSpecForProviderTargetEcsParametersCapacityProviderStrategy#capacityProvider
    */
-  readonly capacityProvider: string;
+  readonly capacityProvider?: string;
 
   /**
    * Designates the relative percentage of the total number of tasks launched that should use the specified capacity provider. The weight value is taken into consideration after the base value, if defined, is satisfied. Ranges from from 0 to 1000.
@@ -1705,7 +2142,7 @@ export interface ScheduleSpecForProviderTargetEcsParametersNetworkConfiguration 
    *
    * @schema ScheduleSpecForProviderTargetEcsParametersNetworkConfiguration#subnets
    */
-  readonly subnets: string[];
+  readonly subnets?: string[];
 
 }
 
@@ -1741,7 +2178,7 @@ export interface ScheduleSpecForProviderTargetEcsParametersPlacementConstraints 
    *
    * @schema ScheduleSpecForProviderTargetEcsParametersPlacementConstraints#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -1776,7 +2213,7 @@ export interface ScheduleSpecForProviderTargetEcsParametersPlacementStrategy {
    *
    * @schema ScheduleSpecForProviderTargetEcsParametersPlacementStrategy#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -1878,14 +2315,14 @@ export interface ScheduleSpecForProviderTargetSagemakerPipelineParametersPipelin
    *
    * @schema ScheduleSpecForProviderTargetSagemakerPipelineParametersPipelineParameter#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Value of parameter to start execution of a SageMaker Model Building Pipeline.
    *
    * @schema ScheduleSpecForProviderTargetSagemakerPipelineParametersPipelineParameter#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -1894,6 +2331,197 @@ export interface ScheduleSpecForProviderTargetSagemakerPipelineParametersPipelin
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ScheduleSpecForProviderTargetSagemakerPipelineParametersPipelineParameter(obj: ScheduleSpecForProviderTargetSagemakerPipelineParametersPipelineParameter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScheduleSpecInitProviderTargetEcsParametersCapacityProviderStrategy
+ */
+export interface ScheduleSpecInitProviderTargetEcsParametersCapacityProviderStrategy {
+  /**
+   * How many tasks, at a minimum, to run on the specified capacity provider. Only one capacity provider in a capacity provider strategy can have a base defined. Ranges from 0 (default) to 100000.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParametersCapacityProviderStrategy#base
+   */
+  readonly base?: number;
+
+  /**
+   * Short name of the capacity provider.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParametersCapacityProviderStrategy#capacityProvider
+   */
+  readonly capacityProvider?: string;
+
+  /**
+   * Designates the relative percentage of the total number of tasks launched that should use the specified capacity provider. The weight value is taken into consideration after the base value, if defined, is satisfied. Ranges from from 0 to 1000.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParametersCapacityProviderStrategy#weight
+   */
+  readonly weight?: number;
+
+}
+
+/**
+ * Converts an object of type 'ScheduleSpecInitProviderTargetEcsParametersCapacityProviderStrategy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduleSpecInitProviderTargetEcsParametersCapacityProviderStrategy(obj: ScheduleSpecInitProviderTargetEcsParametersCapacityProviderStrategy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'base': obj.base,
+    'capacityProvider': obj.capacityProvider,
+    'weight': obj.weight,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScheduleSpecInitProviderTargetEcsParametersNetworkConfiguration
+ */
+export interface ScheduleSpecInitProviderTargetEcsParametersNetworkConfiguration {
+  /**
+   * Specifies whether the task's elastic network interface receives a public IP address. This attribute is a boolean type, where true maps to ENABLED and false to DISABLED. You can specify true only when the launch_type is set to FARGATE.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParametersNetworkConfiguration#assignPublicIp
+   */
+  readonly assignPublicIp?: boolean;
+
+  /**
+   * Set of 1 to 5 Security Group ID-s to be associated with the task. These security groups must all be in the same VPC.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParametersNetworkConfiguration#securityGroups
+   */
+  readonly securityGroups?: string[];
+
+  /**
+   * Set of 1 to 16 subnets to be associated with the task. These subnets must all be in the same VPC.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParametersNetworkConfiguration#subnets
+   */
+  readonly subnets?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ScheduleSpecInitProviderTargetEcsParametersNetworkConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduleSpecInitProviderTargetEcsParametersNetworkConfiguration(obj: ScheduleSpecInitProviderTargetEcsParametersNetworkConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'assignPublicIp': obj.assignPublicIp,
+    'securityGroups': obj.securityGroups?.map(y => y),
+    'subnets': obj.subnets?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScheduleSpecInitProviderTargetEcsParametersPlacementConstraints
+ */
+export interface ScheduleSpecInitProviderTargetEcsParametersPlacementConstraints {
+  /**
+   * A cluster query language expression to apply to the constraint. You cannot specify an expression if the constraint type is distinctInstance. For more information, see Cluster query language in the Amazon ECS Developer Guide.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParametersPlacementConstraints#expression
+   */
+  readonly expression?: string;
+
+  /**
+   * The type of placement strategy. One of: random, spread, binpack.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParametersPlacementConstraints#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'ScheduleSpecInitProviderTargetEcsParametersPlacementConstraints' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduleSpecInitProviderTargetEcsParametersPlacementConstraints(obj: ScheduleSpecInitProviderTargetEcsParametersPlacementConstraints | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'expression': obj.expression,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScheduleSpecInitProviderTargetEcsParametersPlacementStrategy
+ */
+export interface ScheduleSpecInitProviderTargetEcsParametersPlacementStrategy {
+  /**
+   * The field to apply the placement strategy against.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParametersPlacementStrategy#field
+   */
+  readonly field?: string;
+
+  /**
+   * The type of placement strategy. One of: random, spread, binpack.
+   *
+   * @schema ScheduleSpecInitProviderTargetEcsParametersPlacementStrategy#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'ScheduleSpecInitProviderTargetEcsParametersPlacementStrategy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduleSpecInitProviderTargetEcsParametersPlacementStrategy(obj: ScheduleSpecInitProviderTargetEcsParametersPlacementStrategy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'field': obj.field,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScheduleSpecInitProviderTargetSagemakerPipelineParametersPipelineParameter
+ */
+export interface ScheduleSpecInitProviderTargetSagemakerPipelineParametersPipelineParameter {
+  /**
+   * Name of parameter to start execution of a SageMaker Model Building Pipeline.
+   *
+   * @schema ScheduleSpecInitProviderTargetSagemakerPipelineParametersPipelineParameter#name
+   */
+  readonly name?: string;
+
+  /**
+   * Value of parameter to start execution of a SageMaker Model Building Pipeline.
+   *
+   * @schema ScheduleSpecInitProviderTargetSagemakerPipelineParametersPipelineParameter#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ScheduleSpecInitProviderTargetSagemakerPipelineParametersPipelineParameter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduleSpecInitProviderTargetSagemakerPipelineParametersPipelineParameter(obj: ScheduleSpecInitProviderTargetSagemakerPipelineParametersPipelineParameter | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'name': obj.name,
@@ -2121,7 +2749,7 @@ export function toJson_ScheduleGroupProps(obj: ScheduleGroupProps | undefined): 
  */
 export interface ScheduleGroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ScheduleGroupSpec#deletionPolicy
    */
@@ -2133,11 +2761,18 @@ export interface ScheduleGroupSpec {
   readonly forProvider: ScheduleGroupSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ScheduleGroupSpec#managementPolicy
+   * @schema ScheduleGroupSpec#initProvider
    */
-  readonly managementPolicy?: ScheduleGroupSpecManagementPolicy;
+  readonly initProvider?: ScheduleGroupSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ScheduleGroupSpec#managementPolicies
+   */
+  readonly managementPolicies?: ScheduleGroupSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2145,13 +2780,6 @@ export interface ScheduleGroupSpec {
    * @schema ScheduleGroupSpec#providerConfigRef
    */
   readonly providerConfigRef?: ScheduleGroupSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ScheduleGroupSpec#providerRef
-   */
-  readonly providerRef?: ScheduleGroupSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2178,9 +2806,9 @@ export function toJson_ScheduleGroupSpec(obj: ScheduleGroupSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ScheduleGroupSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ScheduleGroupSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ScheduleGroupSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ScheduleGroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ScheduleGroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ScheduleGroupSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2190,7 +2818,7 @@ export function toJson_ScheduleGroupSpec(obj: ScheduleGroupSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ScheduleGroupSpecDeletionPolicy
  */
@@ -2245,17 +2873,60 @@ export function toJson_ScheduleGroupSpecForProvider(obj: ScheduleGroupSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ScheduleGroupSpecManagementPolicy
+ * @schema ScheduleGroupSpecInitProvider
  */
-export enum ScheduleGroupSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ScheduleGroupSpecInitProvider {
+  /**
+   * Name of the schedule group. Conflicts with name_prefix.
+   *
+   * @schema ScheduleGroupSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ScheduleGroupSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ScheduleGroupSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduleGroupSpecInitProvider(obj: ScheduleGroupSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ScheduleGroupSpecManagementPolicies
+ */
+export enum ScheduleGroupSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2289,43 +2960,6 @@ export function toJson_ScheduleGroupSpecProviderConfigRef(obj: ScheduleGroupSpec
   const result = {
     'name': obj.name,
     'policy': toJson_ScheduleGroupSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ScheduleGroupSpecProviderRef
- */
-export interface ScheduleGroupSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ScheduleGroupSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ScheduleGroupSpecProviderRef#policy
-   */
-  readonly policy?: ScheduleGroupSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ScheduleGroupSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ScheduleGroupSpecProviderRef(obj: ScheduleGroupSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ScheduleGroupSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2452,43 +3086,6 @@ export function toJson_ScheduleGroupSpecProviderConfigRefPolicy(obj: ScheduleGro
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ScheduleGroupSpecProviderRefPolicy
- */
-export interface ScheduleGroupSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ScheduleGroupSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ScheduleGroupSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ScheduleGroupSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ScheduleGroupSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ScheduleGroupSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ScheduleGroupSpecProviderRefPolicy(obj: ScheduleGroupSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ScheduleGroupSpecPublishConnectionDetailsToConfigRef
@@ -2588,30 +3185,6 @@ export enum ScheduleGroupSpecProviderConfigRefPolicyResolution {
  * @schema ScheduleGroupSpecProviderConfigRefPolicyResolve
  */
 export enum ScheduleGroupSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ScheduleGroupSpecProviderRefPolicyResolution
- */
-export enum ScheduleGroupSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ScheduleGroupSpecProviderRefPolicyResolve
- */
-export enum ScheduleGroupSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

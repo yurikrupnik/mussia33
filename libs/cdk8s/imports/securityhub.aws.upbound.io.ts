@@ -99,7 +99,7 @@ export function toJson_AccountProps(obj: AccountProps | undefined): Record<strin
  */
 export interface AccountSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AccountSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface AccountSpec {
   readonly forProvider: AccountSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema AccountSpec#managementPolicy
+   * @schema AccountSpec#initProvider
    */
-  readonly managementPolicy?: AccountSpecManagementPolicy;
+  readonly initProvider?: AccountSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema AccountSpec#managementPolicies
+   */
+  readonly managementPolicies?: AccountSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface AccountSpec {
    * @schema AccountSpec#providerConfigRef
    */
   readonly providerConfigRef?: AccountSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema AccountSpec#providerRef
-   */
-  readonly providerRef?: AccountSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_AccountSpec(obj: AccountSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AccountSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_AccountSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_AccountSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_AccountSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AccountSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_AccountSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_AccountSpec(obj: AccountSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AccountSpecDeletionPolicy
  */
@@ -232,17 +232,69 @@ export function toJson_AccountSpecForProvider(obj: AccountSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema AccountSpecManagementPolicy
+ * @schema AccountSpecInitProvider
  */
-export enum AccountSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface AccountSpecInitProvider {
+  /**
+   * Whether to automatically enable new controls when they are added to standards that are enabled. By default, this is set to true, and new controls are enabled automatically. To not automatically enable new controls, set this to false.
+   *
+   * @schema AccountSpecInitProvider#autoEnableControls
+   */
+  readonly autoEnableControls?: boolean;
+
+  /**
+   * Updates whether the calling account has consolidated control findings turned on. If the value for this field is set to SECURITY_CONTROL, Security Hub generates a single finding for a control check even when the check applies to multiple enabled standards. If the value for this field is set to STANDARD_CONTROL, Security Hub generates separate findings for a control check when the check applies to multiple enabled standards. For accounts that are part of an organization, this value can only be updated in the administrator account.
+   *
+   * @schema AccountSpecInitProvider#controlFindingGenerator
+   */
+  readonly controlFindingGenerator?: string;
+
+  /**
+   * Whether to enable the security standards that Security Hub has designated as automatically enabled including:  AWS Foundational Security Best Practices v1.0.0 and CIS AWS Foundations Benchmark v1.2.0. Defaults to true.
+   *
+   * @default true.
+   * @schema AccountSpecInitProvider#enableDefaultStandards
+   */
+  readonly enableDefaultStandards?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'AccountSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AccountSpecInitProvider(obj: AccountSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoEnableControls': obj.autoEnableControls,
+    'controlFindingGenerator': obj.controlFindingGenerator,
+    'enableDefaultStandards': obj.enableDefaultStandards,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema AccountSpecManagementPolicies
+ */
+export enum AccountSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -276,43 +328,6 @@ export function toJson_AccountSpecProviderConfigRef(obj: AccountSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_AccountSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema AccountSpecProviderRef
- */
-export interface AccountSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema AccountSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema AccountSpecProviderRef#policy
-   */
-  readonly policy?: AccountSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'AccountSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AccountSpecProviderRef(obj: AccountSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_AccountSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -439,43 +454,6 @@ export function toJson_AccountSpecProviderConfigRefPolicy(obj: AccountSpecProvid
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema AccountSpecProviderRefPolicy
- */
-export interface AccountSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema AccountSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: AccountSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema AccountSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: AccountSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'AccountSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AccountSpecProviderRefPolicy(obj: AccountSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema AccountSpecPublishConnectionDetailsToConfigRef
@@ -575,30 +553,6 @@ export enum AccountSpecProviderConfigRefPolicyResolution {
  * @schema AccountSpecProviderConfigRefPolicyResolve
  */
 export enum AccountSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema AccountSpecProviderRefPolicyResolution
- */
-export enum AccountSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema AccountSpecProviderRefPolicyResolve
- */
-export enum AccountSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -763,7 +717,7 @@ export function toJson_ActionTargetProps(obj: ActionTargetProps | undefined): Re
  */
 export interface ActionTargetSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ActionTargetSpec#deletionPolicy
    */
@@ -775,11 +729,18 @@ export interface ActionTargetSpec {
   readonly forProvider: ActionTargetSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ActionTargetSpec#managementPolicy
+   * @schema ActionTargetSpec#initProvider
    */
-  readonly managementPolicy?: ActionTargetSpecManagementPolicy;
+  readonly initProvider?: ActionTargetSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ActionTargetSpec#managementPolicies
+   */
+  readonly managementPolicies?: ActionTargetSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -787,13 +748,6 @@ export interface ActionTargetSpec {
    * @schema ActionTargetSpec#providerConfigRef
    */
   readonly providerConfigRef?: ActionTargetSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ActionTargetSpec#providerRef
-   */
-  readonly providerRef?: ActionTargetSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -820,9 +774,9 @@ export function toJson_ActionTargetSpec(obj: ActionTargetSpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ActionTargetSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ActionTargetSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ActionTargetSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ActionTargetSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ActionTargetSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ActionTargetSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -832,7 +786,7 @@ export function toJson_ActionTargetSpec(obj: ActionTargetSpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ActionTargetSpecDeletionPolicy
  */
@@ -887,17 +841,60 @@ export function toJson_ActionTargetSpecForProvider(obj: ActionTargetSpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ActionTargetSpecManagementPolicy
+ * @schema ActionTargetSpecInitProvider
  */
-export enum ActionTargetSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ActionTargetSpecInitProvider {
+  /**
+   * The name of the custom action target.
+   *
+   * @schema ActionTargetSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * The description for the custom action target.
+   *
+   * @schema ActionTargetSpecInitProvider#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'ActionTargetSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ActionTargetSpecInitProvider(obj: ActionTargetSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ActionTargetSpecManagementPolicies
+ */
+export enum ActionTargetSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -931,43 +928,6 @@ export function toJson_ActionTargetSpecProviderConfigRef(obj: ActionTargetSpecPr
   const result = {
     'name': obj.name,
     'policy': toJson_ActionTargetSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ActionTargetSpecProviderRef
- */
-export interface ActionTargetSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ActionTargetSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ActionTargetSpecProviderRef#policy
-   */
-  readonly policy?: ActionTargetSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ActionTargetSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ActionTargetSpecProviderRef(obj: ActionTargetSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ActionTargetSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1094,43 +1054,6 @@ export function toJson_ActionTargetSpecProviderConfigRefPolicy(obj: ActionTarget
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ActionTargetSpecProviderRefPolicy
- */
-export interface ActionTargetSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ActionTargetSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ActionTargetSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ActionTargetSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ActionTargetSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ActionTargetSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ActionTargetSpecProviderRefPolicy(obj: ActionTargetSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ActionTargetSpecPublishConnectionDetailsToConfigRef
@@ -1230,30 +1153,6 @@ export enum ActionTargetSpecProviderConfigRefPolicyResolution {
  * @schema ActionTargetSpecProviderConfigRefPolicyResolve
  */
 export enum ActionTargetSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ActionTargetSpecProviderRefPolicyResolution
- */
-export enum ActionTargetSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ActionTargetSpecProviderRefPolicyResolve
- */
-export enum ActionTargetSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1418,7 +1317,7 @@ export function toJson_FindingAggregatorProps(obj: FindingAggregatorProps | unde
  */
 export interface FindingAggregatorSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema FindingAggregatorSpec#deletionPolicy
    */
@@ -1430,11 +1329,18 @@ export interface FindingAggregatorSpec {
   readonly forProvider: FindingAggregatorSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema FindingAggregatorSpec#managementPolicy
+   * @schema FindingAggregatorSpec#initProvider
    */
-  readonly managementPolicy?: FindingAggregatorSpecManagementPolicy;
+  readonly initProvider?: FindingAggregatorSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema FindingAggregatorSpec#managementPolicies
+   */
+  readonly managementPolicies?: FindingAggregatorSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1442,13 +1348,6 @@ export interface FindingAggregatorSpec {
    * @schema FindingAggregatorSpec#providerConfigRef
    */
   readonly providerConfigRef?: FindingAggregatorSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema FindingAggregatorSpec#providerRef
-   */
-  readonly providerRef?: FindingAggregatorSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1475,9 +1374,9 @@ export function toJson_FindingAggregatorSpec(obj: FindingAggregatorSpec | undefi
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_FindingAggregatorSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_FindingAggregatorSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_FindingAggregatorSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_FindingAggregatorSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_FindingAggregatorSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_FindingAggregatorSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1487,7 +1386,7 @@ export function toJson_FindingAggregatorSpec(obj: FindingAggregatorSpec | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema FindingAggregatorSpecDeletionPolicy
  */
@@ -1542,17 +1441,60 @@ export function toJson_FindingAggregatorSpecForProvider(obj: FindingAggregatorSp
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema FindingAggregatorSpecManagementPolicy
+ * @schema FindingAggregatorSpecInitProvider
  */
-export enum FindingAggregatorSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface FindingAggregatorSpecInitProvider {
+  /**
+   * Indicates whether to aggregate findings from all of the available Regions or from a specified list. The options are ALL_REGIONS, ALL_REGIONS_EXCEPT_SPECIFIED or SPECIFIED_REGIONS. When ALL_REGIONS or ALL_REGIONS_EXCEPT_SPECIFIED are used, Security Hub will automatically aggregate findings from new Regions as Security Hub supports them and you opt into them.
+   *
+   * @schema FindingAggregatorSpecInitProvider#linkingMode
+   */
+  readonly linkingMode?: string;
+
+  /**
+   * List of regions to include or exclude
+   *
+   * @schema FindingAggregatorSpecInitProvider#specifiedRegions
+   */
+  readonly specifiedRegions?: string[];
+
+}
+
+/**
+ * Converts an object of type 'FindingAggregatorSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FindingAggregatorSpecInitProvider(obj: FindingAggregatorSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'linkingMode': obj.linkingMode,
+    'specifiedRegions': obj.specifiedRegions?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema FindingAggregatorSpecManagementPolicies
+ */
+export enum FindingAggregatorSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1586,43 +1528,6 @@ export function toJson_FindingAggregatorSpecProviderConfigRef(obj: FindingAggreg
   const result = {
     'name': obj.name,
     'policy': toJson_FindingAggregatorSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema FindingAggregatorSpecProviderRef
- */
-export interface FindingAggregatorSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema FindingAggregatorSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema FindingAggregatorSpecProviderRef#policy
-   */
-  readonly policy?: FindingAggregatorSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'FindingAggregatorSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FindingAggregatorSpecProviderRef(obj: FindingAggregatorSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_FindingAggregatorSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1749,43 +1654,6 @@ export function toJson_FindingAggregatorSpecProviderConfigRefPolicy(obj: Finding
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema FindingAggregatorSpecProviderRefPolicy
- */
-export interface FindingAggregatorSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema FindingAggregatorSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: FindingAggregatorSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema FindingAggregatorSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: FindingAggregatorSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'FindingAggregatorSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FindingAggregatorSpecProviderRefPolicy(obj: FindingAggregatorSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema FindingAggregatorSpecPublishConnectionDetailsToConfigRef
@@ -1885,30 +1753,6 @@ export enum FindingAggregatorSpecProviderConfigRefPolicyResolution {
  * @schema FindingAggregatorSpecProviderConfigRefPolicyResolve
  */
 export enum FindingAggregatorSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema FindingAggregatorSpecProviderRefPolicyResolution
- */
-export enum FindingAggregatorSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema FindingAggregatorSpecProviderRefPolicyResolve
- */
-export enum FindingAggregatorSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2073,7 +1917,7 @@ export function toJson_InsightProps(obj: InsightProps | undefined): Record<strin
  */
 export interface InsightSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema InsightSpec#deletionPolicy
    */
@@ -2085,11 +1929,18 @@ export interface InsightSpec {
   readonly forProvider: InsightSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema InsightSpec#managementPolicy
+   * @schema InsightSpec#initProvider
    */
-  readonly managementPolicy?: InsightSpecManagementPolicy;
+  readonly initProvider?: InsightSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema InsightSpec#managementPolicies
+   */
+  readonly managementPolicies?: InsightSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2097,13 +1948,6 @@ export interface InsightSpec {
    * @schema InsightSpec#providerConfigRef
    */
   readonly providerConfigRef?: InsightSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema InsightSpec#providerRef
-   */
-  readonly providerRef?: InsightSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2130,9 +1974,9 @@ export function toJson_InsightSpec(obj: InsightSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_InsightSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_InsightSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_InsightSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_InsightSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_InsightSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_InsightSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2142,7 +1986,7 @@ export function toJson_InsightSpec(obj: InsightSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema InsightSpecDeletionPolicy
  */
@@ -2205,17 +2049,68 @@ export function toJson_InsightSpecForProvider(obj: InsightSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema InsightSpecManagementPolicy
+ * @schema InsightSpecInitProvider
  */
-export enum InsightSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface InsightSpecInitProvider {
+  /**
+   * A configuration block including one or more (up to 10 distinct) attributes used to filter the findings included in the insight. The insight only includes findings that match criteria defined in the filters. See filters below for more details.
+   *
+   * @schema InsightSpecInitProvider#filters
+   */
+  readonly filters?: InsightSpecInitProviderFilters[];
+
+  /**
+   * The attribute used to group the findings for the insight e.g., if an insight is grouped by ResourceId, then the insight produces a list of resource identifiers.
+   *
+   * @schema InsightSpecInitProvider#groupByAttribute
+   */
+  readonly groupByAttribute?: string;
+
+  /**
+   * The name of the custom insight.
+   *
+   * @schema InsightSpecInitProvider#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProvider(obj: InsightSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'filters': obj.filters?.map(y => toJson_InsightSpecInitProviderFilters(y)),
+    'groupByAttribute': obj.groupByAttribute,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema InsightSpecManagementPolicies
+ */
+export enum InsightSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2249,43 +2144,6 @@ export function toJson_InsightSpecProviderConfigRef(obj: InsightSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_InsightSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema InsightSpecProviderRef
- */
-export interface InsightSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema InsightSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema InsightSpecProviderRef#policy
-   */
-  readonly policy?: InsightSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'InsightSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InsightSpecProviderRef(obj: InsightSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_InsightSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3098,6 +2956,729 @@ export function toJson_InsightSpecForProviderFilters(obj: InsightSpecForProvider
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema InsightSpecInitProviderFilters
+ */
+export interface InsightSpecInitProviderFilters {
+  /**
+   * AWS account ID that a finding is generated in. See String_Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#awsAccountId
+   */
+  readonly awsAccountId?: InsightSpecInitProviderFiltersAwsAccountId[];
+
+  /**
+   * The name of the findings provider (company) that owns the solution (product) that generates findings. See String_Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#companyName
+   */
+  readonly companyName?: InsightSpecInitProviderFiltersCompanyName[];
+
+  /**
+   * Exclusive to findings that are generated as the result of a check run against a specific rule in a supported standard, such as CIS AWS Foundations. Contains security standard-related finding details. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#complianceStatus
+   */
+  readonly complianceStatus?: InsightSpecInitProviderFiltersComplianceStatus[];
+
+  /**
+   * A finding's confidence. Confidence is defined as the likelihood that a finding accurately identifies the behavior or issue that it was intended to identify. Confidence is scored on a 0-100 basis using a ratio scale, where 0 means zero percent confidence and 100 means 100 percent confidence. See Number Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#confidence
+   */
+  readonly confidence?: InsightSpecInitProviderFiltersConfidence[];
+
+  /**
+   * An ISO8601-formatted timestamp that indicates when the security-findings provider captured the potential security issue that a finding captured. See Date Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#createdAt
+   */
+  readonly createdAt?: InsightSpecInitProviderFiltersCreatedAt[];
+
+  /**
+   * The level of importance assigned to the resources associated with the finding. A score of 0 means that the underlying resources have no criticality, and a score of 100 is reserved for the most critical resources. See Number Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#criticality
+   */
+  readonly criticality?: InsightSpecInitProviderFiltersCriticality[];
+
+  /**
+   * A finding's description. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#description
+   */
+  readonly description?: InsightSpecInitProviderFiltersDescription[];
+
+  /**
+   * The finding provider value for the finding confidence. Confidence is defined as the likelihood that a finding accurately identifies the behavior or issue that it was intended to identify. Confidence is scored on a 0-100 basis using a ratio scale, where 0 means zero percent confidence and 100 means 100 percent confidence. See Number Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#findingProviderFieldsConfidence
+   */
+  readonly findingProviderFieldsConfidence?: InsightSpecInitProviderFiltersFindingProviderFieldsConfidence[];
+
+  /**
+   * The finding provider value for the level of importance assigned to the resources associated with the findings. A score of 0 means that the underlying resources have no criticality, and a score of 100 is reserved for the most critical resources. See Number Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#findingProviderFieldsCriticality
+   */
+  readonly findingProviderFieldsCriticality?: InsightSpecInitProviderFiltersFindingProviderFieldsCriticality[];
+
+  /**
+   * The finding identifier of a related finding that is identified by the finding provider. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#findingProviderFieldsRelatedFindingsId
+   */
+  readonly findingProviderFieldsRelatedFindingsId?: InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsId[];
+
+  /**
+   * The ARN of the solution that generated a related finding that is identified by the finding provider. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#findingProviderFieldsRelatedFindingsProductArn
+   */
+  readonly findingProviderFieldsRelatedFindingsProductArn?: InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsProductArn[];
+
+  /**
+   * The finding provider value for the severity label. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#findingProviderFieldsSeverityLabel
+   */
+  readonly findingProviderFieldsSeverityLabel?: InsightSpecInitProviderFiltersFindingProviderFieldsSeverityLabel[];
+
+  /**
+   * The finding provider's original value for the severity. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#findingProviderFieldsSeverityOriginal
+   */
+  readonly findingProviderFieldsSeverityOriginal?: InsightSpecInitProviderFiltersFindingProviderFieldsSeverityOriginal[];
+
+  /**
+   * One or more finding types that the finding provider assigned to the finding. Uses the format of namespace/category/classifier that classify a finding. Valid namespace values include: Software and Configuration Checks, TTPs, Effects, Unusual Behaviors, and Sensitive Data Identifications. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#findingProviderFieldsTypes
+   */
+  readonly findingProviderFieldsTypes?: InsightSpecInitProviderFiltersFindingProviderFieldsTypes[];
+
+  /**
+   * An ISO8601-formatted timestamp that indicates when the security-findings provider first observed the potential security issue that a finding captured. See Date Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#firstObservedAt
+   */
+  readonly firstObservedAt?: InsightSpecInitProviderFiltersFirstObservedAt[];
+
+  /**
+   * The identifier for the solution-specific component (a discrete unit of logic) that generated a finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#generatorId
+   */
+  readonly generatorId?: InsightSpecInitProviderFiltersGeneratorId[];
+
+  /**
+   * The security findings provider-specific identifier for a finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#id
+   */
+  readonly id?: InsightSpecInitProviderFiltersId[];
+
+  /**
+   * A keyword for a finding. See Keyword Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#keyword
+   */
+  readonly keyword?: InsightSpecInitProviderFiltersKeyword[];
+
+  /**
+   * An ISO8601-formatted timestamp that indicates when the security-findings provider most recently observed the potential security issue that a finding captured. See Date Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#lastObservedAt
+   */
+  readonly lastObservedAt?: InsightSpecInitProviderFiltersLastObservedAt[];
+
+  /**
+   * The name of the malware that was observed. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#malwareName
+   */
+  readonly malwareName?: InsightSpecInitProviderFiltersMalwareName[];
+
+  /**
+   * The filesystem path of the malware that was observed. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#malwarePath
+   */
+  readonly malwarePath?: InsightSpecInitProviderFiltersMalwarePath[];
+
+  /**
+   * The state of the malware that was observed. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#malwareState
+   */
+  readonly malwareState?: InsightSpecInitProviderFiltersMalwareState[];
+
+  /**
+   * The type of the malware that was observed. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#malwareType
+   */
+  readonly malwareType?: InsightSpecInitProviderFiltersMalwareType[];
+
+  /**
+   * The destination domain of network-related information about a finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#networkDestinationDomain
+   */
+  readonly networkDestinationDomain?: InsightSpecInitProviderFiltersNetworkDestinationDomain[];
+
+  /**
+   * The destination IPv4 address of network-related information about a finding. See Ip Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#networkDestinationIpv4
+   */
+  readonly networkDestinationIpv4?: InsightSpecInitProviderFiltersNetworkDestinationIpv4[];
+
+  /**
+   * The destination IPv6 address of network-related information about a finding. See Ip Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#networkDestinationIpv6
+   */
+  readonly networkDestinationIpv6?: InsightSpecInitProviderFiltersNetworkDestinationIpv6[];
+
+  /**
+   * The destination port of network-related information about a finding. See Number Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#networkDestinationPort
+   */
+  readonly networkDestinationPort?: InsightSpecInitProviderFiltersNetworkDestinationPort[];
+
+  /**
+   * Indicates the direction of network traffic associated with a finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#networkDirection
+   */
+  readonly networkDirection?: InsightSpecInitProviderFiltersNetworkDirection[];
+
+  /**
+   * The protocol of network-related information about a finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#networkProtocol
+   */
+  readonly networkProtocol?: InsightSpecInitProviderFiltersNetworkProtocol[];
+
+  /**
+   * The source domain of network-related information about a finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#networkSourceDomain
+   */
+  readonly networkSourceDomain?: InsightSpecInitProviderFiltersNetworkSourceDomain[];
+
+  /**
+   * The source IPv4 address of network-related information about a finding. See Ip Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#networkSourceIpv4
+   */
+  readonly networkSourceIpv4?: InsightSpecInitProviderFiltersNetworkSourceIpv4[];
+
+  /**
+   * The source IPv6 address of network-related information about a finding. See Ip Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#networkSourceIpv6
+   */
+  readonly networkSourceIpv6?: InsightSpecInitProviderFiltersNetworkSourceIpv6[];
+
+  /**
+   * The source media access control (MAC) address of network-related information about a finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#networkSourceMac
+   */
+  readonly networkSourceMac?: InsightSpecInitProviderFiltersNetworkSourceMac[];
+
+  /**
+   * The source port of network-related information about a finding. See Number Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#networkSourcePort
+   */
+  readonly networkSourcePort?: InsightSpecInitProviderFiltersNetworkSourcePort[];
+
+  /**
+   * The text of a note. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#noteText
+   */
+  readonly noteText?: InsightSpecInitProviderFiltersNoteText[];
+
+  /**
+   * The timestamp of when the note was updated. See Date Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#noteUpdatedAt
+   */
+  readonly noteUpdatedAt?: InsightSpecInitProviderFiltersNoteUpdatedAt[];
+
+  /**
+   * The principal that created a note. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#noteUpdatedBy
+   */
+  readonly noteUpdatedBy?: InsightSpecInitProviderFiltersNoteUpdatedBy[];
+
+  /**
+   * The date/time that the process was launched. See Date Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#processLaunchedAt
+   */
+  readonly processLaunchedAt?: InsightSpecInitProviderFiltersProcessLaunchedAt[];
+
+  /**
+   * The name of the process. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#processName
+   */
+  readonly processName?: InsightSpecInitProviderFiltersProcessName[];
+
+  /**
+   * The parent process ID. See Number Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#processParentPid
+   */
+  readonly processParentPid?: InsightSpecInitProviderFiltersProcessParentPid[];
+
+  /**
+   * The path to the process executable. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#processPath
+   */
+  readonly processPath?: InsightSpecInitProviderFiltersProcessPath[];
+
+  /**
+   * The process ID. See Number Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#processPid
+   */
+  readonly processPid?: InsightSpecInitProviderFiltersProcessPid[];
+
+  /**
+   * The date/time that the process was terminated. See Date Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#processTerminatedAt
+   */
+  readonly processTerminatedAt?: InsightSpecInitProviderFiltersProcessTerminatedAt[];
+
+  /**
+   * The ARN generated by Security Hub that uniquely identifies a third-party company (security findings provider) after this provider's product (solution that generates findings) is registered with Security Hub. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#productArn
+   */
+  readonly productArn?: InsightSpecInitProviderFiltersProductArn[];
+
+  /**
+   * A data type where security-findings providers can include additional solution-specific details that aren't part of the defined AwsSecurityFinding format. See Map Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#productFields
+   */
+  readonly productFields?: InsightSpecInitProviderFiltersProductFields[];
+
+  /**
+   * The name of the solution (product) that generates findings. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#productName
+   */
+  readonly productName?: InsightSpecInitProviderFiltersProductName[];
+
+  /**
+   * The recommendation of what to do about the issue described in a finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#recommendationText
+   */
+  readonly recommendationText?: InsightSpecInitProviderFiltersRecommendationText[];
+
+  /**
+   * The updated record state for the finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#recordState
+   */
+  readonly recordState?: InsightSpecInitProviderFiltersRecordState[];
+
+  /**
+   * The solution-generated identifier for a related finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#relatedFindingsId
+   */
+  readonly relatedFindingsId?: InsightSpecInitProviderFiltersRelatedFindingsId[];
+
+  /**
+   * The ARN of the solution that generated a related finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#relatedFindingsProductArn
+   */
+  readonly relatedFindingsProductArn?: InsightSpecInitProviderFiltersRelatedFindingsProductArn[];
+
+  /**
+   * The IAM profile ARN of the instance. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceAwsEc2InstanceIamInstanceProfileArn
+   */
+  readonly resourceAwsEc2InstanceIamInstanceProfileArn?: InsightSpecInitProviderFiltersResourceAwsEc2InstanceIamInstanceProfileArn[];
+
+  /**
+   * The Amazon Machine Image (AMI) ID of the instance. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceAwsEc2InstanceImageId
+   */
+  readonly resourceAwsEc2InstanceImageId?: InsightSpecInitProviderFiltersResourceAwsEc2InstanceImageId[];
+
+  /**
+   * The IPv4 addresses associated with the instance. See Ip Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceAwsEc2InstanceIpv4Addresses
+   */
+  readonly resourceAwsEc2InstanceIpv4Addresses?: InsightSpecInitProviderFiltersResourceAwsEc2InstanceIpv4Addresses[];
+
+  /**
+   * The IPv6 addresses associated with the instance. See Ip Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceAwsEc2InstanceIpv6Addresses
+   */
+  readonly resourceAwsEc2InstanceIpv6Addresses?: InsightSpecInitProviderFiltersResourceAwsEc2InstanceIpv6Addresses[];
+
+  /**
+   * The key name associated with the instance. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceAwsEc2InstanceKeyName
+   */
+  readonly resourceAwsEc2InstanceKeyName?: InsightSpecInitProviderFiltersResourceAwsEc2InstanceKeyName[];
+
+  /**
+   * The date and time the instance was launched. See Date Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceAwsEc2InstanceLaunchedAt
+   */
+  readonly resourceAwsEc2InstanceLaunchedAt?: InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAt[];
+
+  /**
+   * The identifier of the subnet that the instance was launched in. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceAwsEc2InstanceSubnetId
+   */
+  readonly resourceAwsEc2InstanceSubnetId?: InsightSpecInitProviderFiltersResourceAwsEc2InstanceSubnetId[];
+
+  /**
+   * The instance type of the instance. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceAwsEc2InstanceType
+   */
+  readonly resourceAwsEc2InstanceType?: InsightSpecInitProviderFiltersResourceAwsEc2InstanceType[];
+
+  /**
+   * The identifier of the VPC that the instance was launched in. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceAwsEc2InstanceVpcId
+   */
+  readonly resourceAwsEc2InstanceVpcId?: InsightSpecInitProviderFiltersResourceAwsEc2InstanceVpcId[];
+
+  /**
+   * The creation date/time of the IAM access key related to a finding. See Date Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceAwsIamAccessKeyCreatedAt
+   */
+  readonly resourceAwsIamAccessKeyCreatedAt?: InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAt[];
+
+  /**
+   * The status of the IAM access key related to a finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceAwsIamAccessKeyStatus
+   */
+  readonly resourceAwsIamAccessKeyStatus?: InsightSpecInitProviderFiltersResourceAwsIamAccessKeyStatus[];
+
+  /**
+   * The user associated with the IAM access key related to a finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceAwsIamAccessKeyUserName
+   */
+  readonly resourceAwsIamAccessKeyUserName?: InsightSpecInitProviderFiltersResourceAwsIamAccessKeyUserName[];
+
+  /**
+   * The canonical user ID of the owner of the S3 bucket. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceAwsS3BucketOwnerId
+   */
+  readonly resourceAwsS3BucketOwnerId?: InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerId[];
+
+  /**
+   * The display name of the owner of the S3 bucket. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceAwsS3BucketOwnerName
+   */
+  readonly resourceAwsS3BucketOwnerName?: InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerName[];
+
+  /**
+   * The identifier of the image related to a finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceContainerImageId
+   */
+  readonly resourceContainerImageId?: InsightSpecInitProviderFiltersResourceContainerImageId[];
+
+  /**
+   * The name of the image related to a finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceContainerImageName
+   */
+  readonly resourceContainerImageName?: InsightSpecInitProviderFiltersResourceContainerImageName[];
+
+  /**
+   * The date/time that the container was started. See Date Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceContainerLaunchedAt
+   */
+  readonly resourceContainerLaunchedAt?: InsightSpecInitProviderFiltersResourceContainerLaunchedAt[];
+
+  /**
+   * The name of the container related to a finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceContainerName
+   */
+  readonly resourceContainerName?: InsightSpecInitProviderFiltersResourceContainerName[];
+
+  /**
+   * The details of a resource that doesn't have a specific subfield for the resource type defined. See Map Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceDetailsOther
+   */
+  readonly resourceDetailsOther?: InsightSpecInitProviderFiltersResourceDetailsOther[];
+
+  /**
+   * The canonical identifier for the given resource type. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceId
+   */
+  readonly resourceId?: InsightSpecInitProviderFiltersResourceId[];
+
+  /**
+   * The canonical AWS partition name that the Region is assigned to. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourcePartition
+   */
+  readonly resourcePartition?: InsightSpecInitProviderFiltersResourcePartition[];
+
+  /**
+   * The canonical AWS external Region name where this resource is located. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceRegion
+   */
+  readonly resourceRegion?: InsightSpecInitProviderFiltersResourceRegion[];
+
+  /**
+   * A list of AWS tags associated with a resource at the time the finding was processed. See Map Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceTags
+   */
+  readonly resourceTags?: InsightSpecInitProviderFiltersResourceTags[];
+
+  /**
+   * Specifies the type of the resource that details are provided for. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#resourceType
+   */
+  readonly resourceType?: InsightSpecInitProviderFiltersResourceType[];
+
+  /**
+   * The label of a finding's severity. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#severityLabel
+   */
+  readonly severityLabel?: InsightSpecInitProviderFiltersSeverityLabel[];
+
+  /**
+   * A URL that links to a page about the current finding in the security-findings provider's solution. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#sourceUrl
+   */
+  readonly sourceUrl?: InsightSpecInitProviderFiltersSourceUrl[];
+
+  /**
+   * The category of a threat intelligence indicator. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#threatIntelIndicatorCategory
+   */
+  readonly threatIntelIndicatorCategory?: InsightSpecInitProviderFiltersThreatIntelIndicatorCategory[];
+
+  /**
+   * The date/time of the last observation of a threat intelligence indicator. See Date Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#threatIntelIndicatorLastObservedAt
+   */
+  readonly threatIntelIndicatorLastObservedAt?: InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAt[];
+
+  /**
+   * The source of the threat intelligence. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#threatIntelIndicatorSource
+   */
+  readonly threatIntelIndicatorSource?: InsightSpecInitProviderFiltersThreatIntelIndicatorSource[];
+
+  /**
+   * The URL for more details from the source of the threat intelligence. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#threatIntelIndicatorSourceUrl
+   */
+  readonly threatIntelIndicatorSourceUrl?: InsightSpecInitProviderFiltersThreatIntelIndicatorSourceUrl[];
+
+  /**
+   * The type of a threat intelligence indicator. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#threatIntelIndicatorType
+   */
+  readonly threatIntelIndicatorType?: InsightSpecInitProviderFiltersThreatIntelIndicatorType[];
+
+  /**
+   * The value of a threat intelligence indicator. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#threatIntelIndicatorValue
+   */
+  readonly threatIntelIndicatorValue?: InsightSpecInitProviderFiltersThreatIntelIndicatorValue[];
+
+  /**
+   * A finding's title. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#title
+   */
+  readonly title?: InsightSpecInitProviderFiltersTitle[];
+
+  /**
+   * A finding type in the format of namespace/category/classifier that classifies a finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#type
+   */
+  readonly type?: InsightSpecInitProviderFiltersType[];
+
+  /**
+   * An ISO8601-formatted timestamp that indicates when the security-findings provider last updated the finding record. See Date Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#updatedAt
+   */
+  readonly updatedAt?: InsightSpecInitProviderFiltersUpdatedAt[];
+
+  /**
+   * A list of name/value string pairs associated with the finding. These are custom, user-defined fields added to a finding. See Map Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#userDefinedValues
+   */
+  readonly userDefinedValues?: InsightSpecInitProviderFiltersUserDefinedValues[];
+
+  /**
+   * The veracity of a finding. See String Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#verificationState
+   */
+  readonly verificationState?: InsightSpecInitProviderFiltersVerificationState[];
+
+  /**
+   * The status of the investigation into a finding. See Workflow Status Filter below for more details.
+   *
+   * @schema InsightSpecInitProviderFilters#workflowStatus
+   */
+  readonly workflowStatus?: InsightSpecInitProviderFiltersWorkflowStatus[];
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFilters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFilters(obj: InsightSpecInitProviderFilters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'awsAccountId': obj.awsAccountId?.map(y => toJson_InsightSpecInitProviderFiltersAwsAccountId(y)),
+    'companyName': obj.companyName?.map(y => toJson_InsightSpecInitProviderFiltersCompanyName(y)),
+    'complianceStatus': obj.complianceStatus?.map(y => toJson_InsightSpecInitProviderFiltersComplianceStatus(y)),
+    'confidence': obj.confidence?.map(y => toJson_InsightSpecInitProviderFiltersConfidence(y)),
+    'createdAt': obj.createdAt?.map(y => toJson_InsightSpecInitProviderFiltersCreatedAt(y)),
+    'criticality': obj.criticality?.map(y => toJson_InsightSpecInitProviderFiltersCriticality(y)),
+    'description': obj.description?.map(y => toJson_InsightSpecInitProviderFiltersDescription(y)),
+    'findingProviderFieldsConfidence': obj.findingProviderFieldsConfidence?.map(y => toJson_InsightSpecInitProviderFiltersFindingProviderFieldsConfidence(y)),
+    'findingProviderFieldsCriticality': obj.findingProviderFieldsCriticality?.map(y => toJson_InsightSpecInitProviderFiltersFindingProviderFieldsCriticality(y)),
+    'findingProviderFieldsRelatedFindingsId': obj.findingProviderFieldsRelatedFindingsId?.map(y => toJson_InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsId(y)),
+    'findingProviderFieldsRelatedFindingsProductArn': obj.findingProviderFieldsRelatedFindingsProductArn?.map(y => toJson_InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsProductArn(y)),
+    'findingProviderFieldsSeverityLabel': obj.findingProviderFieldsSeverityLabel?.map(y => toJson_InsightSpecInitProviderFiltersFindingProviderFieldsSeverityLabel(y)),
+    'findingProviderFieldsSeverityOriginal': obj.findingProviderFieldsSeverityOriginal?.map(y => toJson_InsightSpecInitProviderFiltersFindingProviderFieldsSeverityOriginal(y)),
+    'findingProviderFieldsTypes': obj.findingProviderFieldsTypes?.map(y => toJson_InsightSpecInitProviderFiltersFindingProviderFieldsTypes(y)),
+    'firstObservedAt': obj.firstObservedAt?.map(y => toJson_InsightSpecInitProviderFiltersFirstObservedAt(y)),
+    'generatorId': obj.generatorId?.map(y => toJson_InsightSpecInitProviderFiltersGeneratorId(y)),
+    'id': obj.id?.map(y => toJson_InsightSpecInitProviderFiltersId(y)),
+    'keyword': obj.keyword?.map(y => toJson_InsightSpecInitProviderFiltersKeyword(y)),
+    'lastObservedAt': obj.lastObservedAt?.map(y => toJson_InsightSpecInitProviderFiltersLastObservedAt(y)),
+    'malwareName': obj.malwareName?.map(y => toJson_InsightSpecInitProviderFiltersMalwareName(y)),
+    'malwarePath': obj.malwarePath?.map(y => toJson_InsightSpecInitProviderFiltersMalwarePath(y)),
+    'malwareState': obj.malwareState?.map(y => toJson_InsightSpecInitProviderFiltersMalwareState(y)),
+    'malwareType': obj.malwareType?.map(y => toJson_InsightSpecInitProviderFiltersMalwareType(y)),
+    'networkDestinationDomain': obj.networkDestinationDomain?.map(y => toJson_InsightSpecInitProviderFiltersNetworkDestinationDomain(y)),
+    'networkDestinationIpv4': obj.networkDestinationIpv4?.map(y => toJson_InsightSpecInitProviderFiltersNetworkDestinationIpv4(y)),
+    'networkDestinationIpv6': obj.networkDestinationIpv6?.map(y => toJson_InsightSpecInitProviderFiltersNetworkDestinationIpv6(y)),
+    'networkDestinationPort': obj.networkDestinationPort?.map(y => toJson_InsightSpecInitProviderFiltersNetworkDestinationPort(y)),
+    'networkDirection': obj.networkDirection?.map(y => toJson_InsightSpecInitProviderFiltersNetworkDirection(y)),
+    'networkProtocol': obj.networkProtocol?.map(y => toJson_InsightSpecInitProviderFiltersNetworkProtocol(y)),
+    'networkSourceDomain': obj.networkSourceDomain?.map(y => toJson_InsightSpecInitProviderFiltersNetworkSourceDomain(y)),
+    'networkSourceIpv4': obj.networkSourceIpv4?.map(y => toJson_InsightSpecInitProviderFiltersNetworkSourceIpv4(y)),
+    'networkSourceIpv6': obj.networkSourceIpv6?.map(y => toJson_InsightSpecInitProviderFiltersNetworkSourceIpv6(y)),
+    'networkSourceMac': obj.networkSourceMac?.map(y => toJson_InsightSpecInitProviderFiltersNetworkSourceMac(y)),
+    'networkSourcePort': obj.networkSourcePort?.map(y => toJson_InsightSpecInitProviderFiltersNetworkSourcePort(y)),
+    'noteText': obj.noteText?.map(y => toJson_InsightSpecInitProviderFiltersNoteText(y)),
+    'noteUpdatedAt': obj.noteUpdatedAt?.map(y => toJson_InsightSpecInitProviderFiltersNoteUpdatedAt(y)),
+    'noteUpdatedBy': obj.noteUpdatedBy?.map(y => toJson_InsightSpecInitProviderFiltersNoteUpdatedBy(y)),
+    'processLaunchedAt': obj.processLaunchedAt?.map(y => toJson_InsightSpecInitProviderFiltersProcessLaunchedAt(y)),
+    'processName': obj.processName?.map(y => toJson_InsightSpecInitProviderFiltersProcessName(y)),
+    'processParentPid': obj.processParentPid?.map(y => toJson_InsightSpecInitProviderFiltersProcessParentPid(y)),
+    'processPath': obj.processPath?.map(y => toJson_InsightSpecInitProviderFiltersProcessPath(y)),
+    'processPid': obj.processPid?.map(y => toJson_InsightSpecInitProviderFiltersProcessPid(y)),
+    'processTerminatedAt': obj.processTerminatedAt?.map(y => toJson_InsightSpecInitProviderFiltersProcessTerminatedAt(y)),
+    'productArn': obj.productArn?.map(y => toJson_InsightSpecInitProviderFiltersProductArn(y)),
+    'productFields': obj.productFields?.map(y => toJson_InsightSpecInitProviderFiltersProductFields(y)),
+    'productName': obj.productName?.map(y => toJson_InsightSpecInitProviderFiltersProductName(y)),
+    'recommendationText': obj.recommendationText?.map(y => toJson_InsightSpecInitProviderFiltersRecommendationText(y)),
+    'recordState': obj.recordState?.map(y => toJson_InsightSpecInitProviderFiltersRecordState(y)),
+    'relatedFindingsId': obj.relatedFindingsId?.map(y => toJson_InsightSpecInitProviderFiltersRelatedFindingsId(y)),
+    'relatedFindingsProductArn': obj.relatedFindingsProductArn?.map(y => toJson_InsightSpecInitProviderFiltersRelatedFindingsProductArn(y)),
+    'resourceAwsEc2InstanceIamInstanceProfileArn': obj.resourceAwsEc2InstanceIamInstanceProfileArn?.map(y => toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceIamInstanceProfileArn(y)),
+    'resourceAwsEc2InstanceImageId': obj.resourceAwsEc2InstanceImageId?.map(y => toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceImageId(y)),
+    'resourceAwsEc2InstanceIpv4Addresses': obj.resourceAwsEc2InstanceIpv4Addresses?.map(y => toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceIpv4Addresses(y)),
+    'resourceAwsEc2InstanceIpv6Addresses': obj.resourceAwsEc2InstanceIpv6Addresses?.map(y => toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceIpv6Addresses(y)),
+    'resourceAwsEc2InstanceKeyName': obj.resourceAwsEc2InstanceKeyName?.map(y => toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceKeyName(y)),
+    'resourceAwsEc2InstanceLaunchedAt': obj.resourceAwsEc2InstanceLaunchedAt?.map(y => toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAt(y)),
+    'resourceAwsEc2InstanceSubnetId': obj.resourceAwsEc2InstanceSubnetId?.map(y => toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceSubnetId(y)),
+    'resourceAwsEc2InstanceType': obj.resourceAwsEc2InstanceType?.map(y => toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceType(y)),
+    'resourceAwsEc2InstanceVpcId': obj.resourceAwsEc2InstanceVpcId?.map(y => toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceVpcId(y)),
+    'resourceAwsIamAccessKeyCreatedAt': obj.resourceAwsIamAccessKeyCreatedAt?.map(y => toJson_InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAt(y)),
+    'resourceAwsIamAccessKeyStatus': obj.resourceAwsIamAccessKeyStatus?.map(y => toJson_InsightSpecInitProviderFiltersResourceAwsIamAccessKeyStatus(y)),
+    'resourceAwsIamAccessKeyUserName': obj.resourceAwsIamAccessKeyUserName?.map(y => toJson_InsightSpecInitProviderFiltersResourceAwsIamAccessKeyUserName(y)),
+    'resourceAwsS3BucketOwnerId': obj.resourceAwsS3BucketOwnerId?.map(y => toJson_InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerId(y)),
+    'resourceAwsS3BucketOwnerName': obj.resourceAwsS3BucketOwnerName?.map(y => toJson_InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerName(y)),
+    'resourceContainerImageId': obj.resourceContainerImageId?.map(y => toJson_InsightSpecInitProviderFiltersResourceContainerImageId(y)),
+    'resourceContainerImageName': obj.resourceContainerImageName?.map(y => toJson_InsightSpecInitProviderFiltersResourceContainerImageName(y)),
+    'resourceContainerLaunchedAt': obj.resourceContainerLaunchedAt?.map(y => toJson_InsightSpecInitProviderFiltersResourceContainerLaunchedAt(y)),
+    'resourceContainerName': obj.resourceContainerName?.map(y => toJson_InsightSpecInitProviderFiltersResourceContainerName(y)),
+    'resourceDetailsOther': obj.resourceDetailsOther?.map(y => toJson_InsightSpecInitProviderFiltersResourceDetailsOther(y)),
+    'resourceId': obj.resourceId?.map(y => toJson_InsightSpecInitProviderFiltersResourceId(y)),
+    'resourcePartition': obj.resourcePartition?.map(y => toJson_InsightSpecInitProviderFiltersResourcePartition(y)),
+    'resourceRegion': obj.resourceRegion?.map(y => toJson_InsightSpecInitProviderFiltersResourceRegion(y)),
+    'resourceTags': obj.resourceTags?.map(y => toJson_InsightSpecInitProviderFiltersResourceTags(y)),
+    'resourceType': obj.resourceType?.map(y => toJson_InsightSpecInitProviderFiltersResourceType(y)),
+    'severityLabel': obj.severityLabel?.map(y => toJson_InsightSpecInitProviderFiltersSeverityLabel(y)),
+    'sourceUrl': obj.sourceUrl?.map(y => toJson_InsightSpecInitProviderFiltersSourceUrl(y)),
+    'threatIntelIndicatorCategory': obj.threatIntelIndicatorCategory?.map(y => toJson_InsightSpecInitProviderFiltersThreatIntelIndicatorCategory(y)),
+    'threatIntelIndicatorLastObservedAt': obj.threatIntelIndicatorLastObservedAt?.map(y => toJson_InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAt(y)),
+    'threatIntelIndicatorSource': obj.threatIntelIndicatorSource?.map(y => toJson_InsightSpecInitProviderFiltersThreatIntelIndicatorSource(y)),
+    'threatIntelIndicatorSourceUrl': obj.threatIntelIndicatorSourceUrl?.map(y => toJson_InsightSpecInitProviderFiltersThreatIntelIndicatorSourceUrl(y)),
+    'threatIntelIndicatorType': obj.threatIntelIndicatorType?.map(y => toJson_InsightSpecInitProviderFiltersThreatIntelIndicatorType(y)),
+    'threatIntelIndicatorValue': obj.threatIntelIndicatorValue?.map(y => toJson_InsightSpecInitProviderFiltersThreatIntelIndicatorValue(y)),
+    'title': obj.title?.map(y => toJson_InsightSpecInitProviderFiltersTitle(y)),
+    'type': obj.type?.map(y => toJson_InsightSpecInitProviderFiltersType(y)),
+    'updatedAt': obj.updatedAt?.map(y => toJson_InsightSpecInitProviderFiltersUpdatedAt(y)),
+    'userDefinedValues': obj.userDefinedValues?.map(y => toJson_InsightSpecInitProviderFiltersUserDefinedValues(y)),
+    'verificationState': obj.verificationState?.map(y => toJson_InsightSpecInitProviderFiltersVerificationState(y)),
+    'workflowStatus': obj.workflowStatus?.map(y => toJson_InsightSpecInitProviderFiltersWorkflowStatus(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema InsightSpecProviderConfigRefPolicy
@@ -3124,43 +3705,6 @@ export interface InsightSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_InsightSpecProviderConfigRefPolicy(obj: InsightSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema InsightSpecProviderRefPolicy
- */
-export interface InsightSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema InsightSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: InsightSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema InsightSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: InsightSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'InsightSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InsightSpecProviderRefPolicy(obj: InsightSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3262,14 +3806,14 @@ export interface InsightSpecForProviderFiltersAwsAccountId {
    *
    * @schema InsightSpecForProviderFiltersAwsAccountId#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersAwsAccountId#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -3297,14 +3841,14 @@ export interface InsightSpecForProviderFiltersCompanyName {
    *
    * @schema InsightSpecForProviderFiltersCompanyName#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersCompanyName#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -3332,14 +3876,14 @@ export interface InsightSpecForProviderFiltersComplianceStatus {
    *
    * @schema InsightSpecForProviderFiltersComplianceStatus#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersComplianceStatus#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -3496,14 +4040,14 @@ export interface InsightSpecForProviderFiltersDescription {
    *
    * @schema InsightSpecForProviderFiltersDescription#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersDescription#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -3617,14 +4161,14 @@ export interface InsightSpecForProviderFiltersFindingProviderFieldsRelatedFindin
    *
    * @schema InsightSpecForProviderFiltersFindingProviderFieldsRelatedFindingsId#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersFindingProviderFieldsRelatedFindingsId#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -3652,14 +4196,14 @@ export interface InsightSpecForProviderFiltersFindingProviderFieldsRelatedFindin
    *
    * @schema InsightSpecForProviderFiltersFindingProviderFieldsRelatedFindingsProductArn#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersFindingProviderFieldsRelatedFindingsProductArn#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -3687,14 +4231,14 @@ export interface InsightSpecForProviderFiltersFindingProviderFieldsSeverityLabel
    *
    * @schema InsightSpecForProviderFiltersFindingProviderFieldsSeverityLabel#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersFindingProviderFieldsSeverityLabel#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -3722,14 +4266,14 @@ export interface InsightSpecForProviderFiltersFindingProviderFieldsSeverityOrigi
    *
    * @schema InsightSpecForProviderFiltersFindingProviderFieldsSeverityOriginal#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersFindingProviderFieldsSeverityOriginal#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -3757,14 +4301,14 @@ export interface InsightSpecForProviderFiltersFindingProviderFieldsTypes {
    *
    * @schema InsightSpecForProviderFiltersFindingProviderFieldsTypes#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersFindingProviderFieldsTypes#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -3835,14 +4379,14 @@ export interface InsightSpecForProviderFiltersGeneratorId {
    *
    * @schema InsightSpecForProviderFiltersGeneratorId#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersGeneratorId#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -3870,14 +4414,14 @@ export interface InsightSpecForProviderFiltersId {
    *
    * @schema InsightSpecForProviderFiltersId#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersId#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -3905,7 +4449,7 @@ export interface InsightSpecForProviderFiltersKeyword {
    *
    * @schema InsightSpecForProviderFiltersKeyword#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -3975,14 +4519,14 @@ export interface InsightSpecForProviderFiltersMalwareName {
    *
    * @schema InsightSpecForProviderFiltersMalwareName#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersMalwareName#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4010,14 +4554,14 @@ export interface InsightSpecForProviderFiltersMalwarePath {
    *
    * @schema InsightSpecForProviderFiltersMalwarePath#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersMalwarePath#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4045,14 +4589,14 @@ export interface InsightSpecForProviderFiltersMalwareState {
    *
    * @schema InsightSpecForProviderFiltersMalwareState#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersMalwareState#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4080,14 +4624,14 @@ export interface InsightSpecForProviderFiltersMalwareType {
    *
    * @schema InsightSpecForProviderFiltersMalwareType#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersMalwareType#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4115,14 +4659,14 @@ export interface InsightSpecForProviderFiltersNetworkDestinationDomain {
    *
    * @schema InsightSpecForProviderFiltersNetworkDestinationDomain#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersNetworkDestinationDomain#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4150,7 +4694,7 @@ export interface InsightSpecForProviderFiltersNetworkDestinationIpv4 {
    *
    * @schema InsightSpecForProviderFiltersNetworkDestinationIpv4#cidr
    */
-  readonly cidr: string;
+  readonly cidr?: string;
 
 }
 
@@ -4177,7 +4721,7 @@ export interface InsightSpecForProviderFiltersNetworkDestinationIpv6 {
    *
    * @schema InsightSpecForProviderFiltersNetworkDestinationIpv6#cidr
    */
-  readonly cidr: string;
+  readonly cidr?: string;
 
 }
 
@@ -4247,14 +4791,14 @@ export interface InsightSpecForProviderFiltersNetworkDirection {
    *
    * @schema InsightSpecForProviderFiltersNetworkDirection#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersNetworkDirection#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4282,14 +4826,14 @@ export interface InsightSpecForProviderFiltersNetworkProtocol {
    *
    * @schema InsightSpecForProviderFiltersNetworkProtocol#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersNetworkProtocol#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4317,14 +4861,14 @@ export interface InsightSpecForProviderFiltersNetworkSourceDomain {
    *
    * @schema InsightSpecForProviderFiltersNetworkSourceDomain#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersNetworkSourceDomain#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4352,7 +4896,7 @@ export interface InsightSpecForProviderFiltersNetworkSourceIpv4 {
    *
    * @schema InsightSpecForProviderFiltersNetworkSourceIpv4#cidr
    */
-  readonly cidr: string;
+  readonly cidr?: string;
 
 }
 
@@ -4379,7 +4923,7 @@ export interface InsightSpecForProviderFiltersNetworkSourceIpv6 {
    *
    * @schema InsightSpecForProviderFiltersNetworkSourceIpv6#cidr
    */
-  readonly cidr: string;
+  readonly cidr?: string;
 
 }
 
@@ -4406,14 +4950,14 @@ export interface InsightSpecForProviderFiltersNetworkSourceMac {
    *
    * @schema InsightSpecForProviderFiltersNetworkSourceMac#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersNetworkSourceMac#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4484,14 +5028,14 @@ export interface InsightSpecForProviderFiltersNoteText {
    *
    * @schema InsightSpecForProviderFiltersNoteText#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersNoteText#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4562,14 +5106,14 @@ export interface InsightSpecForProviderFiltersNoteUpdatedBy {
    *
    * @schema InsightSpecForProviderFiltersNoteUpdatedBy#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersNoteUpdatedBy#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4640,14 +5184,14 @@ export interface InsightSpecForProviderFiltersProcessName {
    *
    * @schema InsightSpecForProviderFiltersProcessName#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersProcessName#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4718,14 +5262,14 @@ export interface InsightSpecForProviderFiltersProcessPath {
    *
    * @schema InsightSpecForProviderFiltersProcessPath#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersProcessPath#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4839,14 +5383,14 @@ export interface InsightSpecForProviderFiltersProductArn {
    *
    * @schema InsightSpecForProviderFiltersProductArn#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersProductArn#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4874,21 +5418,21 @@ export interface InsightSpecForProviderFiltersProductFields {
    *
    * @schema InsightSpecForProviderFiltersProductFields#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * The key of the map filter. For example, for ResourceTags, Key identifies the name of the tag. For UserDefinedFields, Key is the name of the field.
    *
    * @schema InsightSpecForProviderFiltersProductFields#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersProductFields#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4917,14 +5461,14 @@ export interface InsightSpecForProviderFiltersProductName {
    *
    * @schema InsightSpecForProviderFiltersProductName#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersProductName#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4952,14 +5496,14 @@ export interface InsightSpecForProviderFiltersRecommendationText {
    *
    * @schema InsightSpecForProviderFiltersRecommendationText#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersRecommendationText#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4987,14 +5531,14 @@ export interface InsightSpecForProviderFiltersRecordState {
    *
    * @schema InsightSpecForProviderFiltersRecordState#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersRecordState#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5022,14 +5566,14 @@ export interface InsightSpecForProviderFiltersRelatedFindingsId {
    *
    * @schema InsightSpecForProviderFiltersRelatedFindingsId#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersRelatedFindingsId#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5057,14 +5601,14 @@ export interface InsightSpecForProviderFiltersRelatedFindingsProductArn {
    *
    * @schema InsightSpecForProviderFiltersRelatedFindingsProductArn#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersRelatedFindingsProductArn#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5092,14 +5636,14 @@ export interface InsightSpecForProviderFiltersResourceAwsEc2InstanceIamInstanceP
    *
    * @schema InsightSpecForProviderFiltersResourceAwsEc2InstanceIamInstanceProfileArn#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceAwsEc2InstanceIamInstanceProfileArn#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5127,14 +5671,14 @@ export interface InsightSpecForProviderFiltersResourceAwsEc2InstanceImageId {
    *
    * @schema InsightSpecForProviderFiltersResourceAwsEc2InstanceImageId#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceAwsEc2InstanceImageId#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5162,7 +5706,7 @@ export interface InsightSpecForProviderFiltersResourceAwsEc2InstanceIpv4Addresse
    *
    * @schema InsightSpecForProviderFiltersResourceAwsEc2InstanceIpv4Addresses#cidr
    */
-  readonly cidr: string;
+  readonly cidr?: string;
 
 }
 
@@ -5189,7 +5733,7 @@ export interface InsightSpecForProviderFiltersResourceAwsEc2InstanceIpv6Addresse
    *
    * @schema InsightSpecForProviderFiltersResourceAwsEc2InstanceIpv6Addresses#cidr
    */
-  readonly cidr: string;
+  readonly cidr?: string;
 
 }
 
@@ -5216,14 +5760,14 @@ export interface InsightSpecForProviderFiltersResourceAwsEc2InstanceKeyName {
    *
    * @schema InsightSpecForProviderFiltersResourceAwsEc2InstanceKeyName#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceAwsEc2InstanceKeyName#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5294,14 +5838,14 @@ export interface InsightSpecForProviderFiltersResourceAwsEc2InstanceSubnetId {
    *
    * @schema InsightSpecForProviderFiltersResourceAwsEc2InstanceSubnetId#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceAwsEc2InstanceSubnetId#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5329,14 +5873,14 @@ export interface InsightSpecForProviderFiltersResourceAwsEc2InstanceType {
    *
    * @schema InsightSpecForProviderFiltersResourceAwsEc2InstanceType#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceAwsEc2InstanceType#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5364,14 +5908,14 @@ export interface InsightSpecForProviderFiltersResourceAwsEc2InstanceVpcId {
    *
    * @schema InsightSpecForProviderFiltersResourceAwsEc2InstanceVpcId#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceAwsEc2InstanceVpcId#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5442,14 +5986,14 @@ export interface InsightSpecForProviderFiltersResourceAwsIamAccessKeyStatus {
    *
    * @schema InsightSpecForProviderFiltersResourceAwsIamAccessKeyStatus#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceAwsIamAccessKeyStatus#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5477,14 +6021,14 @@ export interface InsightSpecForProviderFiltersResourceAwsIamAccessKeyUserName {
    *
    * @schema InsightSpecForProviderFiltersResourceAwsIamAccessKeyUserName#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceAwsIamAccessKeyUserName#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5512,14 +6056,14 @@ export interface InsightSpecForProviderFiltersResourceAwsS3BucketOwnerId {
    *
    * @schema InsightSpecForProviderFiltersResourceAwsS3BucketOwnerId#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceAwsS3BucketOwnerId#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5547,14 +6091,14 @@ export interface InsightSpecForProviderFiltersResourceAwsS3BucketOwnerName {
    *
    * @schema InsightSpecForProviderFiltersResourceAwsS3BucketOwnerName#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceAwsS3BucketOwnerName#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5582,14 +6126,14 @@ export interface InsightSpecForProviderFiltersResourceContainerImageId {
    *
    * @schema InsightSpecForProviderFiltersResourceContainerImageId#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceContainerImageId#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5617,14 +6161,14 @@ export interface InsightSpecForProviderFiltersResourceContainerImageName {
    *
    * @schema InsightSpecForProviderFiltersResourceContainerImageName#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceContainerImageName#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5695,14 +6239,14 @@ export interface InsightSpecForProviderFiltersResourceContainerName {
    *
    * @schema InsightSpecForProviderFiltersResourceContainerName#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceContainerName#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5730,21 +6274,21 @@ export interface InsightSpecForProviderFiltersResourceDetailsOther {
    *
    * @schema InsightSpecForProviderFiltersResourceDetailsOther#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * The key of the map filter. For example, for ResourceTags, Key identifies the name of the tag. For UserDefinedFields, Key is the name of the field.
    *
    * @schema InsightSpecForProviderFiltersResourceDetailsOther#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceDetailsOther#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5773,14 +6317,14 @@ export interface InsightSpecForProviderFiltersResourceId {
    *
    * @schema InsightSpecForProviderFiltersResourceId#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceId#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5808,14 +6352,14 @@ export interface InsightSpecForProviderFiltersResourcePartition {
    *
    * @schema InsightSpecForProviderFiltersResourcePartition#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourcePartition#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5843,14 +6387,14 @@ export interface InsightSpecForProviderFiltersResourceRegion {
    *
    * @schema InsightSpecForProviderFiltersResourceRegion#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceRegion#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5878,21 +6422,21 @@ export interface InsightSpecForProviderFiltersResourceTags {
    *
    * @schema InsightSpecForProviderFiltersResourceTags#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * The key of the map filter. For example, for ResourceTags, Key identifies the name of the tag. For UserDefinedFields, Key is the name of the field.
    *
    * @schema InsightSpecForProviderFiltersResourceTags#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceTags#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5921,14 +6465,14 @@ export interface InsightSpecForProviderFiltersResourceType {
    *
    * @schema InsightSpecForProviderFiltersResourceType#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceType#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5956,14 +6500,14 @@ export interface InsightSpecForProviderFiltersSeverityLabel {
    *
    * @schema InsightSpecForProviderFiltersSeverityLabel#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersSeverityLabel#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5991,14 +6535,14 @@ export interface InsightSpecForProviderFiltersSourceUrl {
    *
    * @schema InsightSpecForProviderFiltersSourceUrl#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersSourceUrl#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -6026,14 +6570,14 @@ export interface InsightSpecForProviderFiltersThreatIntelIndicatorCategory {
    *
    * @schema InsightSpecForProviderFiltersThreatIntelIndicatorCategory#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersThreatIntelIndicatorCategory#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -6104,14 +6648,14 @@ export interface InsightSpecForProviderFiltersThreatIntelIndicatorSource {
    *
    * @schema InsightSpecForProviderFiltersThreatIntelIndicatorSource#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersThreatIntelIndicatorSource#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -6139,14 +6683,14 @@ export interface InsightSpecForProviderFiltersThreatIntelIndicatorSourceUrl {
    *
    * @schema InsightSpecForProviderFiltersThreatIntelIndicatorSourceUrl#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersThreatIntelIndicatorSourceUrl#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -6174,14 +6718,14 @@ export interface InsightSpecForProviderFiltersThreatIntelIndicatorType {
    *
    * @schema InsightSpecForProviderFiltersThreatIntelIndicatorType#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersThreatIntelIndicatorType#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -6209,14 +6753,14 @@ export interface InsightSpecForProviderFiltersThreatIntelIndicatorValue {
    *
    * @schema InsightSpecForProviderFiltersThreatIntelIndicatorValue#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersThreatIntelIndicatorValue#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -6244,14 +6788,14 @@ export interface InsightSpecForProviderFiltersTitle {
    *
    * @schema InsightSpecForProviderFiltersTitle#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersTitle#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -6279,14 +6823,14 @@ export interface InsightSpecForProviderFiltersType {
    *
    * @schema InsightSpecForProviderFiltersType#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersType#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -6357,21 +6901,21 @@ export interface InsightSpecForProviderFiltersUserDefinedValues {
    *
    * @schema InsightSpecForProviderFiltersUserDefinedValues#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * The key of the map filter. For example, for ResourceTags, Key identifies the name of the tag. For UserDefinedFields, Key is the name of the field.
    *
    * @schema InsightSpecForProviderFiltersUserDefinedValues#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersUserDefinedValues#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -6400,14 +6944,14 @@ export interface InsightSpecForProviderFiltersVerificationState {
    *
    * @schema InsightSpecForProviderFiltersVerificationState#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersVerificationState#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -6435,14 +6979,14 @@ export interface InsightSpecForProviderFiltersWorkflowStatus {
    *
    * @schema InsightSpecForProviderFiltersWorkflowStatus#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersWorkflowStatus#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -6451,6 +6995,3214 @@ export interface InsightSpecForProviderFiltersWorkflowStatus {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_InsightSpecForProviderFiltersWorkflowStatus(obj: InsightSpecForProviderFiltersWorkflowStatus | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersAwsAccountId
+ */
+export interface InsightSpecInitProviderFiltersAwsAccountId {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersAwsAccountId#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersAwsAccountId#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersAwsAccountId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersAwsAccountId(obj: InsightSpecInitProviderFiltersAwsAccountId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersCompanyName
+ */
+export interface InsightSpecInitProviderFiltersCompanyName {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersCompanyName#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersCompanyName#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersCompanyName' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersCompanyName(obj: InsightSpecInitProviderFiltersCompanyName | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersComplianceStatus
+ */
+export interface InsightSpecInitProviderFiltersComplianceStatus {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersComplianceStatus#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersComplianceStatus#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersComplianceStatus' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersComplianceStatus(obj: InsightSpecInitProviderFiltersComplianceStatus | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersConfidence
+ */
+export interface InsightSpecInitProviderFiltersConfidence {
+  /**
+   * The equal-to condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersConfidence#eq
+   */
+  readonly eq?: string;
+
+  /**
+   * The greater-than-equal condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersConfidence#gte
+   */
+  readonly gte?: string;
+
+  /**
+   * The less-than-equal condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersConfidence#lte
+   */
+  readonly lte?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersConfidence' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersConfidence(obj: InsightSpecInitProviderFiltersConfidence | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eq': obj.eq,
+    'gte': obj.gte,
+    'lte': obj.lte,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersCreatedAt
+ */
+export interface InsightSpecInitProviderFiltersCreatedAt {
+  /**
+   * A configuration block of the date range for the date filter. See date_range below for more details.
+   *
+   * @schema InsightSpecInitProviderFiltersCreatedAt#dateRange
+   */
+  readonly dateRange?: InsightSpecInitProviderFiltersCreatedAtDateRange[];
+
+  /**
+   * An end date for the date filter. Required with start if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersCreatedAt#end
+   */
+  readonly end?: string;
+
+  /**
+   * A start date for the date filter. Required with end if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersCreatedAt#start
+   */
+  readonly start?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersCreatedAt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersCreatedAt(obj: InsightSpecInitProviderFiltersCreatedAt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dateRange': obj.dateRange?.map(y => toJson_InsightSpecInitProviderFiltersCreatedAtDateRange(y)),
+    'end': obj.end,
+    'start': obj.start,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersCriticality
+ */
+export interface InsightSpecInitProviderFiltersCriticality {
+  /**
+   * The equal-to condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersCriticality#eq
+   */
+  readonly eq?: string;
+
+  /**
+   * The greater-than-equal condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersCriticality#gte
+   */
+  readonly gte?: string;
+
+  /**
+   * The less-than-equal condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersCriticality#lte
+   */
+  readonly lte?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersCriticality' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersCriticality(obj: InsightSpecInitProviderFiltersCriticality | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eq': obj.eq,
+    'gte': obj.gte,
+    'lte': obj.lte,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersDescription
+ */
+export interface InsightSpecInitProviderFiltersDescription {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersDescription#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersDescription#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersDescription' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersDescription(obj: InsightSpecInitProviderFiltersDescription | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersFindingProviderFieldsConfidence
+ */
+export interface InsightSpecInitProviderFiltersFindingProviderFieldsConfidence {
+  /**
+   * The equal-to condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersFindingProviderFieldsConfidence#eq
+   */
+  readonly eq?: string;
+
+  /**
+   * The greater-than-equal condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersFindingProviderFieldsConfidence#gte
+   */
+  readonly gte?: string;
+
+  /**
+   * The less-than-equal condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersFindingProviderFieldsConfidence#lte
+   */
+  readonly lte?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersFindingProviderFieldsConfidence' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersFindingProviderFieldsConfidence(obj: InsightSpecInitProviderFiltersFindingProviderFieldsConfidence | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eq': obj.eq,
+    'gte': obj.gte,
+    'lte': obj.lte,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersFindingProviderFieldsCriticality
+ */
+export interface InsightSpecInitProviderFiltersFindingProviderFieldsCriticality {
+  /**
+   * The equal-to condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersFindingProviderFieldsCriticality#eq
+   */
+  readonly eq?: string;
+
+  /**
+   * The greater-than-equal condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersFindingProviderFieldsCriticality#gte
+   */
+  readonly gte?: string;
+
+  /**
+   * The less-than-equal condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersFindingProviderFieldsCriticality#lte
+   */
+  readonly lte?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersFindingProviderFieldsCriticality' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersFindingProviderFieldsCriticality(obj: InsightSpecInitProviderFiltersFindingProviderFieldsCriticality | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eq': obj.eq,
+    'gte': obj.gte,
+    'lte': obj.lte,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsId
+ */
+export interface InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsId {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsId#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsId#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsId(obj: InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsProductArn
+ */
+export interface InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsProductArn {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsProductArn#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsProductArn#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsProductArn' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsProductArn(obj: InsightSpecInitProviderFiltersFindingProviderFieldsRelatedFindingsProductArn | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersFindingProviderFieldsSeverityLabel
+ */
+export interface InsightSpecInitProviderFiltersFindingProviderFieldsSeverityLabel {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersFindingProviderFieldsSeverityLabel#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersFindingProviderFieldsSeverityLabel#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersFindingProviderFieldsSeverityLabel' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersFindingProviderFieldsSeverityLabel(obj: InsightSpecInitProviderFiltersFindingProviderFieldsSeverityLabel | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersFindingProviderFieldsSeverityOriginal
+ */
+export interface InsightSpecInitProviderFiltersFindingProviderFieldsSeverityOriginal {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersFindingProviderFieldsSeverityOriginal#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersFindingProviderFieldsSeverityOriginal#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersFindingProviderFieldsSeverityOriginal' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersFindingProviderFieldsSeverityOriginal(obj: InsightSpecInitProviderFiltersFindingProviderFieldsSeverityOriginal | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersFindingProviderFieldsTypes
+ */
+export interface InsightSpecInitProviderFiltersFindingProviderFieldsTypes {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersFindingProviderFieldsTypes#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersFindingProviderFieldsTypes#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersFindingProviderFieldsTypes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersFindingProviderFieldsTypes(obj: InsightSpecInitProviderFiltersFindingProviderFieldsTypes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersFirstObservedAt
+ */
+export interface InsightSpecInitProviderFiltersFirstObservedAt {
+  /**
+   * A configuration block of the date range for the date filter. See date_range below for more details.
+   *
+   * @schema InsightSpecInitProviderFiltersFirstObservedAt#dateRange
+   */
+  readonly dateRange?: InsightSpecInitProviderFiltersFirstObservedAtDateRange[];
+
+  /**
+   * An end date for the date filter. Required with start if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersFirstObservedAt#end
+   */
+  readonly end?: string;
+
+  /**
+   * A start date for the date filter. Required with end if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersFirstObservedAt#start
+   */
+  readonly start?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersFirstObservedAt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersFirstObservedAt(obj: InsightSpecInitProviderFiltersFirstObservedAt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dateRange': obj.dateRange?.map(y => toJson_InsightSpecInitProviderFiltersFirstObservedAtDateRange(y)),
+    'end': obj.end,
+    'start': obj.start,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersGeneratorId
+ */
+export interface InsightSpecInitProviderFiltersGeneratorId {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersGeneratorId#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersGeneratorId#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersGeneratorId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersGeneratorId(obj: InsightSpecInitProviderFiltersGeneratorId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersId
+ */
+export interface InsightSpecInitProviderFiltersId {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersId#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersId#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersId(obj: InsightSpecInitProviderFiltersId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersKeyword
+ */
+export interface InsightSpecInitProviderFiltersKeyword {
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersKeyword#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersKeyword' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersKeyword(obj: InsightSpecInitProviderFiltersKeyword | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersLastObservedAt
+ */
+export interface InsightSpecInitProviderFiltersLastObservedAt {
+  /**
+   * A configuration block of the date range for the date filter. See date_range below for more details.
+   *
+   * @schema InsightSpecInitProviderFiltersLastObservedAt#dateRange
+   */
+  readonly dateRange?: InsightSpecInitProviderFiltersLastObservedAtDateRange[];
+
+  /**
+   * An end date for the date filter. Required with start if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersLastObservedAt#end
+   */
+  readonly end?: string;
+
+  /**
+   * A start date for the date filter. Required with end if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersLastObservedAt#start
+   */
+  readonly start?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersLastObservedAt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersLastObservedAt(obj: InsightSpecInitProviderFiltersLastObservedAt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dateRange': obj.dateRange?.map(y => toJson_InsightSpecInitProviderFiltersLastObservedAtDateRange(y)),
+    'end': obj.end,
+    'start': obj.start,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersMalwareName
+ */
+export interface InsightSpecInitProviderFiltersMalwareName {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersMalwareName#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersMalwareName#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersMalwareName' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersMalwareName(obj: InsightSpecInitProviderFiltersMalwareName | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersMalwarePath
+ */
+export interface InsightSpecInitProviderFiltersMalwarePath {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersMalwarePath#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersMalwarePath#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersMalwarePath' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersMalwarePath(obj: InsightSpecInitProviderFiltersMalwarePath | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersMalwareState
+ */
+export interface InsightSpecInitProviderFiltersMalwareState {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersMalwareState#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersMalwareState#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersMalwareState' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersMalwareState(obj: InsightSpecInitProviderFiltersMalwareState | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersMalwareType
+ */
+export interface InsightSpecInitProviderFiltersMalwareType {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersMalwareType#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersMalwareType#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersMalwareType' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersMalwareType(obj: InsightSpecInitProviderFiltersMalwareType | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersNetworkDestinationDomain
+ */
+export interface InsightSpecInitProviderFiltersNetworkDestinationDomain {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkDestinationDomain#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkDestinationDomain#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersNetworkDestinationDomain' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersNetworkDestinationDomain(obj: InsightSpecInitProviderFiltersNetworkDestinationDomain | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersNetworkDestinationIpv4
+ */
+export interface InsightSpecInitProviderFiltersNetworkDestinationIpv4 {
+  /**
+   * A finding's CIDR value.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkDestinationIpv4#cidr
+   */
+  readonly cidr?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersNetworkDestinationIpv4' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersNetworkDestinationIpv4(obj: InsightSpecInitProviderFiltersNetworkDestinationIpv4 | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cidr': obj.cidr,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersNetworkDestinationIpv6
+ */
+export interface InsightSpecInitProviderFiltersNetworkDestinationIpv6 {
+  /**
+   * A finding's CIDR value.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkDestinationIpv6#cidr
+   */
+  readonly cidr?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersNetworkDestinationIpv6' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersNetworkDestinationIpv6(obj: InsightSpecInitProviderFiltersNetworkDestinationIpv6 | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cidr': obj.cidr,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersNetworkDestinationPort
+ */
+export interface InsightSpecInitProviderFiltersNetworkDestinationPort {
+  /**
+   * The equal-to condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkDestinationPort#eq
+   */
+  readonly eq?: string;
+
+  /**
+   * The greater-than-equal condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkDestinationPort#gte
+   */
+  readonly gte?: string;
+
+  /**
+   * The less-than-equal condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkDestinationPort#lte
+   */
+  readonly lte?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersNetworkDestinationPort' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersNetworkDestinationPort(obj: InsightSpecInitProviderFiltersNetworkDestinationPort | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eq': obj.eq,
+    'gte': obj.gte,
+    'lte': obj.lte,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersNetworkDirection
+ */
+export interface InsightSpecInitProviderFiltersNetworkDirection {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkDirection#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkDirection#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersNetworkDirection' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersNetworkDirection(obj: InsightSpecInitProviderFiltersNetworkDirection | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersNetworkProtocol
+ */
+export interface InsightSpecInitProviderFiltersNetworkProtocol {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkProtocol#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkProtocol#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersNetworkProtocol' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersNetworkProtocol(obj: InsightSpecInitProviderFiltersNetworkProtocol | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersNetworkSourceDomain
+ */
+export interface InsightSpecInitProviderFiltersNetworkSourceDomain {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkSourceDomain#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkSourceDomain#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersNetworkSourceDomain' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersNetworkSourceDomain(obj: InsightSpecInitProviderFiltersNetworkSourceDomain | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersNetworkSourceIpv4
+ */
+export interface InsightSpecInitProviderFiltersNetworkSourceIpv4 {
+  /**
+   * A finding's CIDR value.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkSourceIpv4#cidr
+   */
+  readonly cidr?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersNetworkSourceIpv4' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersNetworkSourceIpv4(obj: InsightSpecInitProviderFiltersNetworkSourceIpv4 | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cidr': obj.cidr,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersNetworkSourceIpv6
+ */
+export interface InsightSpecInitProviderFiltersNetworkSourceIpv6 {
+  /**
+   * A finding's CIDR value.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkSourceIpv6#cidr
+   */
+  readonly cidr?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersNetworkSourceIpv6' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersNetworkSourceIpv6(obj: InsightSpecInitProviderFiltersNetworkSourceIpv6 | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cidr': obj.cidr,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersNetworkSourceMac
+ */
+export interface InsightSpecInitProviderFiltersNetworkSourceMac {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkSourceMac#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkSourceMac#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersNetworkSourceMac' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersNetworkSourceMac(obj: InsightSpecInitProviderFiltersNetworkSourceMac | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersNetworkSourcePort
+ */
+export interface InsightSpecInitProviderFiltersNetworkSourcePort {
+  /**
+   * The equal-to condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkSourcePort#eq
+   */
+  readonly eq?: string;
+
+  /**
+   * The greater-than-equal condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkSourcePort#gte
+   */
+  readonly gte?: string;
+
+  /**
+   * The less-than-equal condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersNetworkSourcePort#lte
+   */
+  readonly lte?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersNetworkSourcePort' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersNetworkSourcePort(obj: InsightSpecInitProviderFiltersNetworkSourcePort | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eq': obj.eq,
+    'gte': obj.gte,
+    'lte': obj.lte,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersNoteText
+ */
+export interface InsightSpecInitProviderFiltersNoteText {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersNoteText#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersNoteText#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersNoteText' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersNoteText(obj: InsightSpecInitProviderFiltersNoteText | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersNoteUpdatedAt
+ */
+export interface InsightSpecInitProviderFiltersNoteUpdatedAt {
+  /**
+   * A configuration block of the date range for the date filter. See date_range below for more details.
+   *
+   * @schema InsightSpecInitProviderFiltersNoteUpdatedAt#dateRange
+   */
+  readonly dateRange?: InsightSpecInitProviderFiltersNoteUpdatedAtDateRange[];
+
+  /**
+   * An end date for the date filter. Required with start if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersNoteUpdatedAt#end
+   */
+  readonly end?: string;
+
+  /**
+   * A start date for the date filter. Required with end if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersNoteUpdatedAt#start
+   */
+  readonly start?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersNoteUpdatedAt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersNoteUpdatedAt(obj: InsightSpecInitProviderFiltersNoteUpdatedAt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dateRange': obj.dateRange?.map(y => toJson_InsightSpecInitProviderFiltersNoteUpdatedAtDateRange(y)),
+    'end': obj.end,
+    'start': obj.start,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersNoteUpdatedBy
+ */
+export interface InsightSpecInitProviderFiltersNoteUpdatedBy {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersNoteUpdatedBy#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersNoteUpdatedBy#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersNoteUpdatedBy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersNoteUpdatedBy(obj: InsightSpecInitProviderFiltersNoteUpdatedBy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersProcessLaunchedAt
+ */
+export interface InsightSpecInitProviderFiltersProcessLaunchedAt {
+  /**
+   * A configuration block of the date range for the date filter. See date_range below for more details.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessLaunchedAt#dateRange
+   */
+  readonly dateRange?: InsightSpecInitProviderFiltersProcessLaunchedAtDateRange[];
+
+  /**
+   * An end date for the date filter. Required with start if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessLaunchedAt#end
+   */
+  readonly end?: string;
+
+  /**
+   * A start date for the date filter. Required with end if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessLaunchedAt#start
+   */
+  readonly start?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersProcessLaunchedAt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersProcessLaunchedAt(obj: InsightSpecInitProviderFiltersProcessLaunchedAt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dateRange': obj.dateRange?.map(y => toJson_InsightSpecInitProviderFiltersProcessLaunchedAtDateRange(y)),
+    'end': obj.end,
+    'start': obj.start,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersProcessName
+ */
+export interface InsightSpecInitProviderFiltersProcessName {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessName#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessName#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersProcessName' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersProcessName(obj: InsightSpecInitProviderFiltersProcessName | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersProcessParentPid
+ */
+export interface InsightSpecInitProviderFiltersProcessParentPid {
+  /**
+   * The equal-to condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessParentPid#eq
+   */
+  readonly eq?: string;
+
+  /**
+   * The greater-than-equal condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessParentPid#gte
+   */
+  readonly gte?: string;
+
+  /**
+   * The less-than-equal condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessParentPid#lte
+   */
+  readonly lte?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersProcessParentPid' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersProcessParentPid(obj: InsightSpecInitProviderFiltersProcessParentPid | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eq': obj.eq,
+    'gte': obj.gte,
+    'lte': obj.lte,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersProcessPath
+ */
+export interface InsightSpecInitProviderFiltersProcessPath {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessPath#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessPath#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersProcessPath' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersProcessPath(obj: InsightSpecInitProviderFiltersProcessPath | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersProcessPid
+ */
+export interface InsightSpecInitProviderFiltersProcessPid {
+  /**
+   * The equal-to condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessPid#eq
+   */
+  readonly eq?: string;
+
+  /**
+   * The greater-than-equal condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessPid#gte
+   */
+  readonly gte?: string;
+
+  /**
+   * The less-than-equal condition to be applied to a single field when querying for findings, provided as a String.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessPid#lte
+   */
+  readonly lte?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersProcessPid' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersProcessPid(obj: InsightSpecInitProviderFiltersProcessPid | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eq': obj.eq,
+    'gte': obj.gte,
+    'lte': obj.lte,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersProcessTerminatedAt
+ */
+export interface InsightSpecInitProviderFiltersProcessTerminatedAt {
+  /**
+   * A configuration block of the date range for the date filter. See date_range below for more details.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessTerminatedAt#dateRange
+   */
+  readonly dateRange?: InsightSpecInitProviderFiltersProcessTerminatedAtDateRange[];
+
+  /**
+   * An end date for the date filter. Required with start if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessTerminatedAt#end
+   */
+  readonly end?: string;
+
+  /**
+   * A start date for the date filter. Required with end if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessTerminatedAt#start
+   */
+  readonly start?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersProcessTerminatedAt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersProcessTerminatedAt(obj: InsightSpecInitProviderFiltersProcessTerminatedAt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dateRange': obj.dateRange?.map(y => toJson_InsightSpecInitProviderFiltersProcessTerminatedAtDateRange(y)),
+    'end': obj.end,
+    'start': obj.start,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersProductArn
+ */
+export interface InsightSpecInitProviderFiltersProductArn {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersProductArn#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersProductArn#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersProductArn' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersProductArn(obj: InsightSpecInitProviderFiltersProductArn | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersProductFields
+ */
+export interface InsightSpecInitProviderFiltersProductFields {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersProductFields#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * The key of the map filter. For example, for ResourceTags, Key identifies the name of the tag. For UserDefinedFields, Key is the name of the field.
+   *
+   * @schema InsightSpecInitProviderFiltersProductFields#key
+   */
+  readonly key?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersProductFields#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersProductFields' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersProductFields(obj: InsightSpecInitProviderFiltersProductFields | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersProductName
+ */
+export interface InsightSpecInitProviderFiltersProductName {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersProductName#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersProductName#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersProductName' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersProductName(obj: InsightSpecInitProviderFiltersProductName | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersRecommendationText
+ */
+export interface InsightSpecInitProviderFiltersRecommendationText {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersRecommendationText#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersRecommendationText#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersRecommendationText' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersRecommendationText(obj: InsightSpecInitProviderFiltersRecommendationText | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersRecordState
+ */
+export interface InsightSpecInitProviderFiltersRecordState {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersRecordState#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersRecordState#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersRecordState' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersRecordState(obj: InsightSpecInitProviderFiltersRecordState | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersRelatedFindingsId
+ */
+export interface InsightSpecInitProviderFiltersRelatedFindingsId {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersRelatedFindingsId#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersRelatedFindingsId#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersRelatedFindingsId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersRelatedFindingsId(obj: InsightSpecInitProviderFiltersRelatedFindingsId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersRelatedFindingsProductArn
+ */
+export interface InsightSpecInitProviderFiltersRelatedFindingsProductArn {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersRelatedFindingsProductArn#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersRelatedFindingsProductArn#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersRelatedFindingsProductArn' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersRelatedFindingsProductArn(obj: InsightSpecInitProviderFiltersRelatedFindingsProductArn | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceIamInstanceProfileArn
+ */
+export interface InsightSpecInitProviderFiltersResourceAwsEc2InstanceIamInstanceProfileArn {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceIamInstanceProfileArn#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceIamInstanceProfileArn#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceAwsEc2InstanceIamInstanceProfileArn' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceIamInstanceProfileArn(obj: InsightSpecInitProviderFiltersResourceAwsEc2InstanceIamInstanceProfileArn | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceImageId
+ */
+export interface InsightSpecInitProviderFiltersResourceAwsEc2InstanceImageId {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceImageId#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceImageId#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceAwsEc2InstanceImageId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceImageId(obj: InsightSpecInitProviderFiltersResourceAwsEc2InstanceImageId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceIpv4Addresses
+ */
+export interface InsightSpecInitProviderFiltersResourceAwsEc2InstanceIpv4Addresses {
+  /**
+   * A finding's CIDR value.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceIpv4Addresses#cidr
+   */
+  readonly cidr?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceAwsEc2InstanceIpv4Addresses' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceIpv4Addresses(obj: InsightSpecInitProviderFiltersResourceAwsEc2InstanceIpv4Addresses | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cidr': obj.cidr,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceIpv6Addresses
+ */
+export interface InsightSpecInitProviderFiltersResourceAwsEc2InstanceIpv6Addresses {
+  /**
+   * A finding's CIDR value.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceIpv6Addresses#cidr
+   */
+  readonly cidr?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceAwsEc2InstanceIpv6Addresses' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceIpv6Addresses(obj: InsightSpecInitProviderFiltersResourceAwsEc2InstanceIpv6Addresses | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cidr': obj.cidr,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceKeyName
+ */
+export interface InsightSpecInitProviderFiltersResourceAwsEc2InstanceKeyName {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceKeyName#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceKeyName#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceAwsEc2InstanceKeyName' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceKeyName(obj: InsightSpecInitProviderFiltersResourceAwsEc2InstanceKeyName | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAt
+ */
+export interface InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAt {
+  /**
+   * A configuration block of the date range for the date filter. See date_range below for more details.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAt#dateRange
+   */
+  readonly dateRange?: InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAtDateRange[];
+
+  /**
+   * An end date for the date filter. Required with start if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAt#end
+   */
+  readonly end?: string;
+
+  /**
+   * A start date for the date filter. Required with end if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAt#start
+   */
+  readonly start?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAt(obj: InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dateRange': obj.dateRange?.map(y => toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAtDateRange(y)),
+    'end': obj.end,
+    'start': obj.start,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceSubnetId
+ */
+export interface InsightSpecInitProviderFiltersResourceAwsEc2InstanceSubnetId {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceSubnetId#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceSubnetId#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceAwsEc2InstanceSubnetId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceSubnetId(obj: InsightSpecInitProviderFiltersResourceAwsEc2InstanceSubnetId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceType
+ */
+export interface InsightSpecInitProviderFiltersResourceAwsEc2InstanceType {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceType#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceType#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceAwsEc2InstanceType' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceType(obj: InsightSpecInitProviderFiltersResourceAwsEc2InstanceType | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceVpcId
+ */
+export interface InsightSpecInitProviderFiltersResourceAwsEc2InstanceVpcId {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceVpcId#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceVpcId#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceAwsEc2InstanceVpcId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceVpcId(obj: InsightSpecInitProviderFiltersResourceAwsEc2InstanceVpcId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAt
+ */
+export interface InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAt {
+  /**
+   * A configuration block of the date range for the date filter. See date_range below for more details.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAt#dateRange
+   */
+  readonly dateRange?: InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAtDateRange[];
+
+  /**
+   * An end date for the date filter. Required with start if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAt#end
+   */
+  readonly end?: string;
+
+  /**
+   * A start date for the date filter. Required with end if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAt#start
+   */
+  readonly start?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAt(obj: InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dateRange': obj.dateRange?.map(y => toJson_InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAtDateRange(y)),
+    'end': obj.end,
+    'start': obj.start,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceAwsIamAccessKeyStatus
+ */
+export interface InsightSpecInitProviderFiltersResourceAwsIamAccessKeyStatus {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsIamAccessKeyStatus#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsIamAccessKeyStatus#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceAwsIamAccessKeyStatus' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceAwsIamAccessKeyStatus(obj: InsightSpecInitProviderFiltersResourceAwsIamAccessKeyStatus | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceAwsIamAccessKeyUserName
+ */
+export interface InsightSpecInitProviderFiltersResourceAwsIamAccessKeyUserName {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsIamAccessKeyUserName#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsIamAccessKeyUserName#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceAwsIamAccessKeyUserName' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceAwsIamAccessKeyUserName(obj: InsightSpecInitProviderFiltersResourceAwsIamAccessKeyUserName | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerId
+ */
+export interface InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerId {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerId#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerId#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerId(obj: InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerName
+ */
+export interface InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerName {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerName#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerName#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerName' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerName(obj: InsightSpecInitProviderFiltersResourceAwsS3BucketOwnerName | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceContainerImageId
+ */
+export interface InsightSpecInitProviderFiltersResourceContainerImageId {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceContainerImageId#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceContainerImageId#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceContainerImageId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceContainerImageId(obj: InsightSpecInitProviderFiltersResourceContainerImageId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceContainerImageName
+ */
+export interface InsightSpecInitProviderFiltersResourceContainerImageName {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceContainerImageName#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceContainerImageName#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceContainerImageName' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceContainerImageName(obj: InsightSpecInitProviderFiltersResourceContainerImageName | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceContainerLaunchedAt
+ */
+export interface InsightSpecInitProviderFiltersResourceContainerLaunchedAt {
+  /**
+   * A configuration block of the date range for the date filter. See date_range below for more details.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceContainerLaunchedAt#dateRange
+   */
+  readonly dateRange?: InsightSpecInitProviderFiltersResourceContainerLaunchedAtDateRange[];
+
+  /**
+   * An end date for the date filter. Required with start if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceContainerLaunchedAt#end
+   */
+  readonly end?: string;
+
+  /**
+   * A start date for the date filter. Required with end if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceContainerLaunchedAt#start
+   */
+  readonly start?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceContainerLaunchedAt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceContainerLaunchedAt(obj: InsightSpecInitProviderFiltersResourceContainerLaunchedAt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dateRange': obj.dateRange?.map(y => toJson_InsightSpecInitProviderFiltersResourceContainerLaunchedAtDateRange(y)),
+    'end': obj.end,
+    'start': obj.start,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceContainerName
+ */
+export interface InsightSpecInitProviderFiltersResourceContainerName {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceContainerName#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceContainerName#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceContainerName' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceContainerName(obj: InsightSpecInitProviderFiltersResourceContainerName | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceDetailsOther
+ */
+export interface InsightSpecInitProviderFiltersResourceDetailsOther {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceDetailsOther#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * The key of the map filter. For example, for ResourceTags, Key identifies the name of the tag. For UserDefinedFields, Key is the name of the field.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceDetailsOther#key
+   */
+  readonly key?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceDetailsOther#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceDetailsOther' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceDetailsOther(obj: InsightSpecInitProviderFiltersResourceDetailsOther | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceId
+ */
+export interface InsightSpecInitProviderFiltersResourceId {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceId#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceId#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceId(obj: InsightSpecInitProviderFiltersResourceId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourcePartition
+ */
+export interface InsightSpecInitProviderFiltersResourcePartition {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourcePartition#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourcePartition#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourcePartition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourcePartition(obj: InsightSpecInitProviderFiltersResourcePartition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceRegion
+ */
+export interface InsightSpecInitProviderFiltersResourceRegion {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceRegion#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceRegion#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceRegion' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceRegion(obj: InsightSpecInitProviderFiltersResourceRegion | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceTags
+ */
+export interface InsightSpecInitProviderFiltersResourceTags {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceTags#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * The key of the map filter. For example, for ResourceTags, Key identifies the name of the tag. For UserDefinedFields, Key is the name of the field.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceTags#key
+   */
+  readonly key?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceTags#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceTags' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceTags(obj: InsightSpecInitProviderFiltersResourceTags | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceType
+ */
+export interface InsightSpecInitProviderFiltersResourceType {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceType#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceType#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceType' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceType(obj: InsightSpecInitProviderFiltersResourceType | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersSeverityLabel
+ */
+export interface InsightSpecInitProviderFiltersSeverityLabel {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersSeverityLabel#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersSeverityLabel#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersSeverityLabel' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersSeverityLabel(obj: InsightSpecInitProviderFiltersSeverityLabel | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersSourceUrl
+ */
+export interface InsightSpecInitProviderFiltersSourceUrl {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersSourceUrl#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersSourceUrl#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersSourceUrl' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersSourceUrl(obj: InsightSpecInitProviderFiltersSourceUrl | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorCategory
+ */
+export interface InsightSpecInitProviderFiltersThreatIntelIndicatorCategory {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorCategory#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorCategory#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersThreatIntelIndicatorCategory' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersThreatIntelIndicatorCategory(obj: InsightSpecInitProviderFiltersThreatIntelIndicatorCategory | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAt
+ */
+export interface InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAt {
+  /**
+   * A configuration block of the date range for the date filter. See date_range below for more details.
+   *
+   * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAt#dateRange
+   */
+  readonly dateRange?: InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAtDateRange[];
+
+  /**
+   * An end date for the date filter. Required with start if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAt#end
+   */
+  readonly end?: string;
+
+  /**
+   * A start date for the date filter. Required with end if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAt#start
+   */
+  readonly start?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAt(obj: InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dateRange': obj.dateRange?.map(y => toJson_InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAtDateRange(y)),
+    'end': obj.end,
+    'start': obj.start,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorSource
+ */
+export interface InsightSpecInitProviderFiltersThreatIntelIndicatorSource {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorSource#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorSource#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersThreatIntelIndicatorSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersThreatIntelIndicatorSource(obj: InsightSpecInitProviderFiltersThreatIntelIndicatorSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorSourceUrl
+ */
+export interface InsightSpecInitProviderFiltersThreatIntelIndicatorSourceUrl {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorSourceUrl#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorSourceUrl#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersThreatIntelIndicatorSourceUrl' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersThreatIntelIndicatorSourceUrl(obj: InsightSpecInitProviderFiltersThreatIntelIndicatorSourceUrl | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorType
+ */
+export interface InsightSpecInitProviderFiltersThreatIntelIndicatorType {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorType#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorType#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersThreatIntelIndicatorType' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersThreatIntelIndicatorType(obj: InsightSpecInitProviderFiltersThreatIntelIndicatorType | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorValue
+ */
+export interface InsightSpecInitProviderFiltersThreatIntelIndicatorValue {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorValue#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorValue#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersThreatIntelIndicatorValue' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersThreatIntelIndicatorValue(obj: InsightSpecInitProviderFiltersThreatIntelIndicatorValue | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersTitle
+ */
+export interface InsightSpecInitProviderFiltersTitle {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersTitle#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersTitle#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersTitle' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersTitle(obj: InsightSpecInitProviderFiltersTitle | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersType
+ */
+export interface InsightSpecInitProviderFiltersType {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersType#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersType#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersType' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersType(obj: InsightSpecInitProviderFiltersType | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersUpdatedAt
+ */
+export interface InsightSpecInitProviderFiltersUpdatedAt {
+  /**
+   * A configuration block of the date range for the date filter. See date_range below for more details.
+   *
+   * @schema InsightSpecInitProviderFiltersUpdatedAt#dateRange
+   */
+  readonly dateRange?: InsightSpecInitProviderFiltersUpdatedAtDateRange[];
+
+  /**
+   * An end date for the date filter. Required with start if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersUpdatedAt#end
+   */
+  readonly end?: string;
+
+  /**
+   * A start date for the date filter. Required with end if date_range is not specified.
+   *
+   * @schema InsightSpecInitProviderFiltersUpdatedAt#start
+   */
+  readonly start?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersUpdatedAt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersUpdatedAt(obj: InsightSpecInitProviderFiltersUpdatedAt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dateRange': obj.dateRange?.map(y => toJson_InsightSpecInitProviderFiltersUpdatedAtDateRange(y)),
+    'end': obj.end,
+    'start': obj.start,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersUserDefinedValues
+ */
+export interface InsightSpecInitProviderFiltersUserDefinedValues {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersUserDefinedValues#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * The key of the map filter. For example, for ResourceTags, Key identifies the name of the tag. For UserDefinedFields, Key is the name of the field.
+   *
+   * @schema InsightSpecInitProviderFiltersUserDefinedValues#key
+   */
+  readonly key?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersUserDefinedValues#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersUserDefinedValues' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersUserDefinedValues(obj: InsightSpecInitProviderFiltersUserDefinedValues | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersVerificationState
+ */
+export interface InsightSpecInitProviderFiltersVerificationState {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersVerificationState#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersVerificationState#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersVerificationState' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersVerificationState(obj: InsightSpecInitProviderFiltersVerificationState | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparison': obj.comparison,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersWorkflowStatus
+ */
+export interface InsightSpecInitProviderFiltersWorkflowStatus {
+  /**
+   * The condition to apply to a string value when querying for findings. Valid values include: EQUALS and NOT_EQUALS.
+   *
+   * @schema InsightSpecInitProviderFiltersWorkflowStatus#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersWorkflowStatus#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersWorkflowStatus' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersWorkflowStatus(obj: InsightSpecInitProviderFiltersWorkflowStatus | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'comparison': obj.comparison,
@@ -6479,30 +10231,6 @@ export enum InsightSpecProviderConfigRefPolicyResolution {
  * @schema InsightSpecProviderConfigRefPolicyResolve
  */
 export enum InsightSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema InsightSpecProviderRefPolicyResolution
- */
-export enum InsightSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema InsightSpecProviderRefPolicyResolve
- */
-export enum InsightSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -6555,14 +10283,14 @@ export interface InsightSpecForProviderFiltersCreatedAtDateRange {
    *
    * @schema InsightSpecForProviderFiltersCreatedAtDateRange#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersCreatedAtDateRange#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -6590,14 +10318,14 @@ export interface InsightSpecForProviderFiltersFirstObservedAtDateRange {
    *
    * @schema InsightSpecForProviderFiltersFirstObservedAtDateRange#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersFirstObservedAtDateRange#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -6625,14 +10353,14 @@ export interface InsightSpecForProviderFiltersLastObservedAtDateRange {
    *
    * @schema InsightSpecForProviderFiltersLastObservedAtDateRange#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersLastObservedAtDateRange#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -6660,14 +10388,14 @@ export interface InsightSpecForProviderFiltersNoteUpdatedAtDateRange {
    *
    * @schema InsightSpecForProviderFiltersNoteUpdatedAtDateRange#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersNoteUpdatedAtDateRange#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -6695,14 +10423,14 @@ export interface InsightSpecForProviderFiltersProcessLaunchedAtDateRange {
    *
    * @schema InsightSpecForProviderFiltersProcessLaunchedAtDateRange#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersProcessLaunchedAtDateRange#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -6730,14 +10458,14 @@ export interface InsightSpecForProviderFiltersProcessTerminatedAtDateRange {
    *
    * @schema InsightSpecForProviderFiltersProcessTerminatedAtDateRange#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersProcessTerminatedAtDateRange#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -6765,14 +10493,14 @@ export interface InsightSpecForProviderFiltersResourceAwsEc2InstanceLaunchedAtDa
    *
    * @schema InsightSpecForProviderFiltersResourceAwsEc2InstanceLaunchedAtDateRange#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceAwsEc2InstanceLaunchedAtDateRange#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -6800,14 +10528,14 @@ export interface InsightSpecForProviderFiltersResourceAwsIamAccessKeyCreatedAtDa
    *
    * @schema InsightSpecForProviderFiltersResourceAwsIamAccessKeyCreatedAtDateRange#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceAwsIamAccessKeyCreatedAtDateRange#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -6835,14 +10563,14 @@ export interface InsightSpecForProviderFiltersResourceContainerLaunchedAtDateRan
    *
    * @schema InsightSpecForProviderFiltersResourceContainerLaunchedAtDateRange#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersResourceContainerLaunchedAtDateRange#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -6870,14 +10598,14 @@ export interface InsightSpecForProviderFiltersThreatIntelIndicatorLastObservedAt
    *
    * @schema InsightSpecForProviderFiltersThreatIntelIndicatorLastObservedAtDateRange#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersThreatIntelIndicatorLastObservedAtDateRange#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -6905,14 +10633,14 @@ export interface InsightSpecForProviderFiltersUpdatedAtDateRange {
    *
    * @schema InsightSpecForProviderFiltersUpdatedAtDateRange#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * A value for the keyword.
    *
    * @schema InsightSpecForProviderFiltersUpdatedAtDateRange#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -6921,6 +10649,391 @@ export interface InsightSpecForProviderFiltersUpdatedAtDateRange {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_InsightSpecForProviderFiltersUpdatedAtDateRange(obj: InsightSpecForProviderFiltersUpdatedAtDateRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersCreatedAtDateRange
+ */
+export interface InsightSpecInitProviderFiltersCreatedAtDateRange {
+  /**
+   * A date range unit for the date filter. Valid values: DAYS.
+   *
+   * @schema InsightSpecInitProviderFiltersCreatedAtDateRange#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersCreatedAtDateRange#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersCreatedAtDateRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersCreatedAtDateRange(obj: InsightSpecInitProviderFiltersCreatedAtDateRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersFirstObservedAtDateRange
+ */
+export interface InsightSpecInitProviderFiltersFirstObservedAtDateRange {
+  /**
+   * A date range unit for the date filter. Valid values: DAYS.
+   *
+   * @schema InsightSpecInitProviderFiltersFirstObservedAtDateRange#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersFirstObservedAtDateRange#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersFirstObservedAtDateRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersFirstObservedAtDateRange(obj: InsightSpecInitProviderFiltersFirstObservedAtDateRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersLastObservedAtDateRange
+ */
+export interface InsightSpecInitProviderFiltersLastObservedAtDateRange {
+  /**
+   * A date range unit for the date filter. Valid values: DAYS.
+   *
+   * @schema InsightSpecInitProviderFiltersLastObservedAtDateRange#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersLastObservedAtDateRange#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersLastObservedAtDateRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersLastObservedAtDateRange(obj: InsightSpecInitProviderFiltersLastObservedAtDateRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersNoteUpdatedAtDateRange
+ */
+export interface InsightSpecInitProviderFiltersNoteUpdatedAtDateRange {
+  /**
+   * A date range unit for the date filter. Valid values: DAYS.
+   *
+   * @schema InsightSpecInitProviderFiltersNoteUpdatedAtDateRange#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersNoteUpdatedAtDateRange#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersNoteUpdatedAtDateRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersNoteUpdatedAtDateRange(obj: InsightSpecInitProviderFiltersNoteUpdatedAtDateRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersProcessLaunchedAtDateRange
+ */
+export interface InsightSpecInitProviderFiltersProcessLaunchedAtDateRange {
+  /**
+   * A date range unit for the date filter. Valid values: DAYS.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessLaunchedAtDateRange#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessLaunchedAtDateRange#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersProcessLaunchedAtDateRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersProcessLaunchedAtDateRange(obj: InsightSpecInitProviderFiltersProcessLaunchedAtDateRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersProcessTerminatedAtDateRange
+ */
+export interface InsightSpecInitProviderFiltersProcessTerminatedAtDateRange {
+  /**
+   * A date range unit for the date filter. Valid values: DAYS.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessTerminatedAtDateRange#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersProcessTerminatedAtDateRange#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersProcessTerminatedAtDateRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersProcessTerminatedAtDateRange(obj: InsightSpecInitProviderFiltersProcessTerminatedAtDateRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAtDateRange
+ */
+export interface InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAtDateRange {
+  /**
+   * A date range unit for the date filter. Valid values: DAYS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAtDateRange#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAtDateRange#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAtDateRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAtDateRange(obj: InsightSpecInitProviderFiltersResourceAwsEc2InstanceLaunchedAtDateRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAtDateRange
+ */
+export interface InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAtDateRange {
+  /**
+   * A date range unit for the date filter. Valid values: DAYS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAtDateRange#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAtDateRange#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAtDateRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAtDateRange(obj: InsightSpecInitProviderFiltersResourceAwsIamAccessKeyCreatedAtDateRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersResourceContainerLaunchedAtDateRange
+ */
+export interface InsightSpecInitProviderFiltersResourceContainerLaunchedAtDateRange {
+  /**
+   * A date range unit for the date filter. Valid values: DAYS.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceContainerLaunchedAtDateRange#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersResourceContainerLaunchedAtDateRange#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersResourceContainerLaunchedAtDateRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersResourceContainerLaunchedAtDateRange(obj: InsightSpecInitProviderFiltersResourceContainerLaunchedAtDateRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAtDateRange
+ */
+export interface InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAtDateRange {
+  /**
+   * A date range unit for the date filter. Valid values: DAYS.
+   *
+   * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAtDateRange#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAtDateRange#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAtDateRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAtDateRange(obj: InsightSpecInitProviderFiltersThreatIntelIndicatorLastObservedAtDateRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InsightSpecInitProviderFiltersUpdatedAtDateRange
+ */
+export interface InsightSpecInitProviderFiltersUpdatedAtDateRange {
+  /**
+   * A date range unit for the date filter. Valid values: DAYS.
+   *
+   * @schema InsightSpecInitProviderFiltersUpdatedAtDateRange#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * A value for the keyword.
+   *
+   * @schema InsightSpecInitProviderFiltersUpdatedAtDateRange#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'InsightSpecInitProviderFiltersUpdatedAtDateRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InsightSpecInitProviderFiltersUpdatedAtDateRange(obj: InsightSpecInitProviderFiltersUpdatedAtDateRange | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'unit': obj.unit,
@@ -7052,7 +11165,7 @@ export function toJson_InviteAccepterProps(obj: InviteAccepterProps | undefined)
  */
 export interface InviteAccepterSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema InviteAccepterSpec#deletionPolicy
    */
@@ -7064,11 +11177,18 @@ export interface InviteAccepterSpec {
   readonly forProvider: InviteAccepterSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema InviteAccepterSpec#managementPolicy
+   * @schema InviteAccepterSpec#initProvider
    */
-  readonly managementPolicy?: InviteAccepterSpecManagementPolicy;
+  readonly initProvider?: any;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema InviteAccepterSpec#managementPolicies
+   */
+  readonly managementPolicies?: InviteAccepterSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7076,13 +11196,6 @@ export interface InviteAccepterSpec {
    * @schema InviteAccepterSpec#providerConfigRef
    */
   readonly providerConfigRef?: InviteAccepterSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema InviteAccepterSpec#providerRef
-   */
-  readonly providerRef?: InviteAccepterSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -7109,9 +11222,9 @@ export function toJson_InviteAccepterSpec(obj: InviteAccepterSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_InviteAccepterSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': obj.initProvider,
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_InviteAccepterSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_InviteAccepterSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_InviteAccepterSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_InviteAccepterSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -7121,7 +11234,7 @@ export function toJson_InviteAccepterSpec(obj: InviteAccepterSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema InviteAccepterSpecDeletionPolicy
  */
@@ -7184,17 +11297,23 @@ export function toJson_InviteAccepterSpecForProvider(obj: InviteAccepterSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
  *
- * @schema InviteAccepterSpecManagementPolicy
+ * @schema InviteAccepterSpecManagementPolicies
  */
-export enum InviteAccepterSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export enum InviteAccepterSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -7228,43 +11347,6 @@ export function toJson_InviteAccepterSpecProviderConfigRef(obj: InviteAccepterSp
   const result = {
     'name': obj.name,
     'policy': toJson_InviteAccepterSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema InviteAccepterSpecProviderRef
- */
-export interface InviteAccepterSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema InviteAccepterSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema InviteAccepterSpecProviderRef#policy
-   */
-  readonly policy?: InviteAccepterSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'InviteAccepterSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InviteAccepterSpecProviderRef(obj: InviteAccepterSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_InviteAccepterSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7473,43 +11555,6 @@ export function toJson_InviteAccepterSpecProviderConfigRefPolicy(obj: InviteAcce
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema InviteAccepterSpecProviderRefPolicy
- */
-export interface InviteAccepterSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema InviteAccepterSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: InviteAccepterSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema InviteAccepterSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: InviteAccepterSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'InviteAccepterSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InviteAccepterSpecProviderRefPolicy(obj: InviteAccepterSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema InviteAccepterSpecPublishConnectionDetailsToConfigRef
@@ -7683,30 +11728,6 @@ export enum InviteAccepterSpecProviderConfigRefPolicyResolution {
  * @schema InviteAccepterSpecProviderConfigRefPolicyResolve
  */
 export enum InviteAccepterSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema InviteAccepterSpecProviderRefPolicyResolution
- */
-export enum InviteAccepterSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema InviteAccepterSpecProviderRefPolicyResolve
- */
-export enum InviteAccepterSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -7919,7 +11940,7 @@ export function toJson_MemberProps(obj: MemberProps | undefined): Record<string,
  */
 export interface MemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MemberSpec#deletionPolicy
    */
@@ -7931,11 +11952,18 @@ export interface MemberSpec {
   readonly forProvider: MemberSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema MemberSpec#managementPolicy
+   * @schema MemberSpec#initProvider
    */
-  readonly managementPolicy?: MemberSpecManagementPolicy;
+  readonly initProvider?: MemberSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema MemberSpec#managementPolicies
+   */
+  readonly managementPolicies?: MemberSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7943,13 +11971,6 @@ export interface MemberSpec {
    * @schema MemberSpec#providerConfigRef
    */
   readonly providerConfigRef?: MemberSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema MemberSpec#providerRef
-   */
-  readonly providerRef?: MemberSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -7976,9 +11997,9 @@ export function toJson_MemberSpec(obj: MemberSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MemberSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_MemberSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_MemberSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_MemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_MemberSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -7988,7 +12009,7 @@ export function toJson_MemberSpec(obj: MemberSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MemberSpecDeletionPolicy
  */
@@ -8052,17 +12073,69 @@ export function toJson_MemberSpecForProvider(obj: MemberSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema MemberSpecManagementPolicy
+ * @schema MemberSpecInitProvider
  */
-export enum MemberSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface MemberSpecInitProvider {
+  /**
+   * The ID of the member AWS account.
+   *
+   * @schema MemberSpecInitProvider#accountId
+   */
+  readonly accountId?: string;
+
+  /**
+   * The email of the member AWS account.
+   *
+   * @schema MemberSpecInitProvider#email
+   */
+  readonly email?: string;
+
+  /**
+   * Boolean whether to invite the account to Security Hub as a member. Defaults to false.
+   *
+   * @default false.
+   * @schema MemberSpecInitProvider#invite
+   */
+  readonly invite?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'MemberSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MemberSpecInitProvider(obj: MemberSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountId': obj.accountId,
+    'email': obj.email,
+    'invite': obj.invite,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema MemberSpecManagementPolicies
+ */
+export enum MemberSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -8096,43 +12169,6 @@ export function toJson_MemberSpecProviderConfigRef(obj: MemberSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_MemberSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema MemberSpecProviderRef
- */
-export interface MemberSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema MemberSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema MemberSpecProviderRef#policy
-   */
-  readonly policy?: MemberSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'MemberSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MemberSpecProviderRef(obj: MemberSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_MemberSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8259,43 +12295,6 @@ export function toJson_MemberSpecProviderConfigRefPolicy(obj: MemberSpecProvider
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema MemberSpecProviderRefPolicy
- */
-export interface MemberSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema MemberSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: MemberSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema MemberSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: MemberSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'MemberSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MemberSpecProviderRefPolicy(obj: MemberSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema MemberSpecPublishConnectionDetailsToConfigRef
@@ -8395,30 +12394,6 @@ export enum MemberSpecProviderConfigRefPolicyResolution {
  * @schema MemberSpecProviderConfigRefPolicyResolve
  */
 export enum MemberSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema MemberSpecProviderRefPolicyResolution
- */
-export enum MemberSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema MemberSpecProviderRefPolicyResolve
- */
-export enum MemberSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -8583,7 +12558,7 @@ export function toJson_ProductSubscriptionProps(obj: ProductSubscriptionProps | 
  */
 export interface ProductSubscriptionSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ProductSubscriptionSpec#deletionPolicy
    */
@@ -8595,11 +12570,18 @@ export interface ProductSubscriptionSpec {
   readonly forProvider: ProductSubscriptionSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ProductSubscriptionSpec#managementPolicy
+   * @schema ProductSubscriptionSpec#initProvider
    */
-  readonly managementPolicy?: ProductSubscriptionSpecManagementPolicy;
+  readonly initProvider?: ProductSubscriptionSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ProductSubscriptionSpec#managementPolicies
+   */
+  readonly managementPolicies?: ProductSubscriptionSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -8607,13 +12589,6 @@ export interface ProductSubscriptionSpec {
    * @schema ProductSubscriptionSpec#providerConfigRef
    */
   readonly providerConfigRef?: ProductSubscriptionSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ProductSubscriptionSpec#providerRef
-   */
-  readonly providerRef?: ProductSubscriptionSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -8640,9 +12615,9 @@ export function toJson_ProductSubscriptionSpec(obj: ProductSubscriptionSpec | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ProductSubscriptionSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ProductSubscriptionSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ProductSubscriptionSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ProductSubscriptionSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ProductSubscriptionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ProductSubscriptionSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -8652,7 +12627,7 @@ export function toJson_ProductSubscriptionSpec(obj: ProductSubscriptionSpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ProductSubscriptionSpecDeletionPolicy
  */
@@ -8699,17 +12674,52 @@ export function toJson_ProductSubscriptionSpecForProvider(obj: ProductSubscripti
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ProductSubscriptionSpecManagementPolicy
+ * @schema ProductSubscriptionSpecInitProvider
  */
-export enum ProductSubscriptionSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ProductSubscriptionSpecInitProvider {
+  /**
+   * The ARN of the product that generates findings that you want to import into Security Hub - see below.
+   *
+   * @schema ProductSubscriptionSpecInitProvider#productArn
+   */
+  readonly productArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'ProductSubscriptionSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ProductSubscriptionSpecInitProvider(obj: ProductSubscriptionSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'productArn': obj.productArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ProductSubscriptionSpecManagementPolicies
+ */
+export enum ProductSubscriptionSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -8743,43 +12753,6 @@ export function toJson_ProductSubscriptionSpecProviderConfigRef(obj: ProductSubs
   const result = {
     'name': obj.name,
     'policy': toJson_ProductSubscriptionSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ProductSubscriptionSpecProviderRef
- */
-export interface ProductSubscriptionSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ProductSubscriptionSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ProductSubscriptionSpecProviderRef#policy
-   */
-  readonly policy?: ProductSubscriptionSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ProductSubscriptionSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ProductSubscriptionSpecProviderRef(obj: ProductSubscriptionSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ProductSubscriptionSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8906,43 +12879,6 @@ export function toJson_ProductSubscriptionSpecProviderConfigRefPolicy(obj: Produ
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ProductSubscriptionSpecProviderRefPolicy
- */
-export interface ProductSubscriptionSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ProductSubscriptionSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ProductSubscriptionSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ProductSubscriptionSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ProductSubscriptionSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ProductSubscriptionSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ProductSubscriptionSpecProviderRefPolicy(obj: ProductSubscriptionSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ProductSubscriptionSpecPublishConnectionDetailsToConfigRef
@@ -9042,30 +12978,6 @@ export enum ProductSubscriptionSpecProviderConfigRefPolicyResolution {
  * @schema ProductSubscriptionSpecProviderConfigRefPolicyResolve
  */
 export enum ProductSubscriptionSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ProductSubscriptionSpecProviderRefPolicyResolution
- */
-export enum ProductSubscriptionSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ProductSubscriptionSpecProviderRefPolicyResolve
- */
-export enum ProductSubscriptionSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -9230,7 +13142,7 @@ export function toJson_StandardsSubscriptionProps(obj: StandardsSubscriptionProp
  */
 export interface StandardsSubscriptionSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema StandardsSubscriptionSpec#deletionPolicy
    */
@@ -9242,11 +13154,18 @@ export interface StandardsSubscriptionSpec {
   readonly forProvider: StandardsSubscriptionSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema StandardsSubscriptionSpec#managementPolicy
+   * @schema StandardsSubscriptionSpec#initProvider
    */
-  readonly managementPolicy?: StandardsSubscriptionSpecManagementPolicy;
+  readonly initProvider?: StandardsSubscriptionSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema StandardsSubscriptionSpec#managementPolicies
+   */
+  readonly managementPolicies?: StandardsSubscriptionSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -9254,13 +13173,6 @@ export interface StandardsSubscriptionSpec {
    * @schema StandardsSubscriptionSpec#providerConfigRef
    */
   readonly providerConfigRef?: StandardsSubscriptionSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema StandardsSubscriptionSpec#providerRef
-   */
-  readonly providerRef?: StandardsSubscriptionSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -9287,9 +13199,9 @@ export function toJson_StandardsSubscriptionSpec(obj: StandardsSubscriptionSpec 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_StandardsSubscriptionSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_StandardsSubscriptionSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_StandardsSubscriptionSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_StandardsSubscriptionSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_StandardsSubscriptionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_StandardsSubscriptionSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -9299,7 +13211,7 @@ export function toJson_StandardsSubscriptionSpec(obj: StandardsSubscriptionSpec 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema StandardsSubscriptionSpecDeletionPolicy
  */
@@ -9346,17 +13258,52 @@ export function toJson_StandardsSubscriptionSpecForProvider(obj: StandardsSubscr
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema StandardsSubscriptionSpecManagementPolicy
+ * @schema StandardsSubscriptionSpecInitProvider
  */
-export enum StandardsSubscriptionSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface StandardsSubscriptionSpecInitProvider {
+  /**
+   * The ARN of a standard - see below.
+   *
+   * @schema StandardsSubscriptionSpecInitProvider#standardsArn
+   */
+  readonly standardsArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'StandardsSubscriptionSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StandardsSubscriptionSpecInitProvider(obj: StandardsSubscriptionSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'standardsArn': obj.standardsArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema StandardsSubscriptionSpecManagementPolicies
+ */
+export enum StandardsSubscriptionSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -9390,43 +13337,6 @@ export function toJson_StandardsSubscriptionSpecProviderConfigRef(obj: Standards
   const result = {
     'name': obj.name,
     'policy': toJson_StandardsSubscriptionSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema StandardsSubscriptionSpecProviderRef
- */
-export interface StandardsSubscriptionSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema StandardsSubscriptionSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema StandardsSubscriptionSpecProviderRef#policy
-   */
-  readonly policy?: StandardsSubscriptionSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'StandardsSubscriptionSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StandardsSubscriptionSpecProviderRef(obj: StandardsSubscriptionSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_StandardsSubscriptionSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -9553,43 +13463,6 @@ export function toJson_StandardsSubscriptionSpecProviderConfigRefPolicy(obj: Sta
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema StandardsSubscriptionSpecProviderRefPolicy
- */
-export interface StandardsSubscriptionSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema StandardsSubscriptionSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: StandardsSubscriptionSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema StandardsSubscriptionSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: StandardsSubscriptionSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'StandardsSubscriptionSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StandardsSubscriptionSpecProviderRefPolicy(obj: StandardsSubscriptionSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema StandardsSubscriptionSpecPublishConnectionDetailsToConfigRef
@@ -9689,30 +13562,6 @@ export enum StandardsSubscriptionSpecProviderConfigRefPolicyResolution {
  * @schema StandardsSubscriptionSpecProviderConfigRefPolicyResolve
  */
 export enum StandardsSubscriptionSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema StandardsSubscriptionSpecProviderRefPolicyResolution
- */
-export enum StandardsSubscriptionSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema StandardsSubscriptionSpecProviderRefPolicyResolve
- */
-export enum StandardsSubscriptionSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

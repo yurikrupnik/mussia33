@@ -99,7 +99,7 @@ export function toJson_JobProps(obj: JobProps | undefined): Record<string, any> 
  */
 export interface JobSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema JobSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface JobSpec {
   readonly forProvider: JobSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema JobSpec#managementPolicy
+   * @schema JobSpec#initProvider
    */
-  readonly managementPolicy?: JobSpecManagementPolicy;
+  readonly initProvider?: JobSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema JobSpec#managementPolicies
+   */
+  readonly managementPolicies?: JobSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface JobSpec {
    * @schema JobSpec#providerConfigRef
    */
   readonly providerConfigRef?: JobSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema JobSpec#providerRef
-   */
-  readonly providerRef?: JobSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_JobSpec(obj: JobSpec | undefined): Record<string, any> | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_JobSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_JobSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_JobSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_JobSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_JobSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_JobSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_JobSpec(obj: JobSpec | undefined): Record<string, any> | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema JobSpecDeletionPolicy
  */
@@ -359,17 +359,204 @@ export function toJson_JobSpecForProvider(obj: JobSpecForProvider | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema JobSpecManagementPolicy
+ * @schema JobSpecInitProvider
  */
-export enum JobSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface JobSpecInitProvider {
+  /**
+   * List of experiments that should be used by the job. An example value is ["enable_stackdriver_agent_metrics"].
+   *
+   * @schema JobSpecInitProvider#additionalExperiments
+   */
+  readonly additionalExperiments?: string[];
+
+  /**
+   * Enable/disable the use of Streaming Engine for the job. Note that Streaming Engine is enabled by default for pipelines developed against the Beam SDK for Python v2.21.0 or later when using Python 3.
+   *
+   * @schema JobSpecInitProvider#enableStreamingEngine
+   */
+  readonly enableStreamingEngine?: boolean;
+
+  /**
+   * The configuration for VM IPs.  Options are "WORKER_IP_PUBLIC" or "WORKER_IP_PRIVATE".
+   *
+   * @schema JobSpecInitProvider#ipConfiguration
+   */
+  readonly ipConfiguration?: string;
+
+  /**
+   * The name for the Cloud KMS key for the job. Key format is: projects/PROJECT_ID/locations/LOCATION/keyRings/KEY_RING/cryptoKeys/KEY
+   *
+   * @schema JobSpecInitProvider#kmsKeyName
+   */
+  readonly kmsKeyName?: string;
+
+  /**
+   * User labels to be specified for the job. Keys and values should follow the restrictions specified in the labeling restrictions page. NOTE: Google-provided Dataflow templates often provide default labels that begin with goog-dataflow-provided. Unless explicitly set in config, these labels will be ignored to prevent diffs on re-apply.
+   *
+   * @schema JobSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The machine type to use for the job.
+   *
+   * @schema JobSpecInitProvider#machineType
+   */
+  readonly machineType?: string;
+
+  /**
+   * The number of workers permitted to work on the job.  More workers may improve processing speed at additional cost.
+   *
+   * @schema JobSpecInitProvider#maxWorkers
+   */
+  readonly maxWorkers?: number;
+
+  /**
+   * A unique name for the resource, required by Dataflow.
+   *
+   * @schema JobSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The network to which VMs will be assigned. If it is not provided, "default" will be used.
+   *
+   * @schema JobSpecInitProvider#network
+   */
+  readonly network?: string;
+
+  /**
+   * One of "drain" or "cancel".  See above note.
+   *
+   * @schema JobSpecInitProvider#onDelete
+   */
+  readonly onDelete?: string;
+
+  /**
+   * Key/Value pairs to be passed to the Dataflow job (as used in the template).
+   *
+   * @schema JobSpecInitProvider#parameters
+   */
+  readonly parameters?: { [key: string]: string };
+
+  /**
+   * The project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema JobSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The region in which the created job should run.
+   *
+   * @schema JobSpecInitProvider#region
+   */
+  readonly region?: string;
+
+  /**
+   * The Service Account email used to create the job.
+   *
+   * @schema JobSpecInitProvider#serviceAccountEmail
+   */
+  readonly serviceAccountEmail?: string;
+
+  /**
+   * See above note.
+   *
+   * @schema JobSpecInitProvider#skipWaitOnJobTermination
+   */
+  readonly skipWaitOnJobTermination?: boolean;
+
+  /**
+   * The subnetwork to which VMs will be assigned. Should be of the form "regions/REGION/subnetworks/SUBNETWORK". If the subnetwork is located in a Shared VPC network, you must use the complete URL. For example "googleapis.com/compute/v1/projects/PROJECT_ID/regions/REGION/subnetworks/SUBNET_NAME"
+   *
+   * @schema JobSpecInitProvider#subnetwork
+   */
+  readonly subnetwork?: string;
+
+  /**
+   * A writeable location on GCS for the Dataflow job to dump its temporary data.
+   *
+   * @schema JobSpecInitProvider#tempGcsLocation
+   */
+  readonly tempGcsLocation?: string;
+
+  /**
+   * The GCS path to the Dataflow job template.
+   *
+   * @schema JobSpecInitProvider#templateGcsPath
+   */
+  readonly templateGcsPath?: string;
+
+  /**
+   * Only applicable when updating a pipeline. Map of transform name prefixes of the job to be replaced with the corresponding name prefixes of the new job. This field is not used outside of update.
+   *
+   * @schema JobSpecInitProvider#transformNameMapping
+   */
+  readonly transformNameMapping?: { [key: string]: string };
+
+  /**
+   * The zone in which the created job should run. If it is not provided, the provider zone is used.
+   *
+   * @schema JobSpecInitProvider#zone
+   */
+  readonly zone?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProvider(obj: JobSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'additionalExperiments': obj.additionalExperiments?.map(y => y),
+    'enableStreamingEngine': obj.enableStreamingEngine,
+    'ipConfiguration': obj.ipConfiguration,
+    'kmsKeyName': obj.kmsKeyName,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'machineType': obj.machineType,
+    'maxWorkers': obj.maxWorkers,
+    'name': obj.name,
+    'network': obj.network,
+    'onDelete': obj.onDelete,
+    'parameters': ((obj.parameters) === undefined) ? undefined : (Object.entries(obj.parameters).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'project': obj.project,
+    'region': obj.region,
+    'serviceAccountEmail': obj.serviceAccountEmail,
+    'skipWaitOnJobTermination': obj.skipWaitOnJobTermination,
+    'subnetwork': obj.subnetwork,
+    'tempGcsLocation': obj.tempGcsLocation,
+    'templateGcsPath': obj.templateGcsPath,
+    'transformNameMapping': ((obj.transformNameMapping) === undefined) ? undefined : (Object.entries(obj.transformNameMapping).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'zone': obj.zone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema JobSpecManagementPolicies
+ */
+export enum JobSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -403,43 +590,6 @@ export function toJson_JobSpecProviderConfigRef(obj: JobSpecProviderConfigRef | 
   const result = {
     'name': obj.name,
     'policy': toJson_JobSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema JobSpecProviderRef
- */
-export interface JobSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema JobSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema JobSpecProviderRef#policy
-   */
-  readonly policy?: JobSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'JobSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_JobSpecProviderRef(obj: JobSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_JobSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -566,43 +716,6 @@ export function toJson_JobSpecProviderConfigRefPolicy(obj: JobSpecProviderConfig
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema JobSpecProviderRefPolicy
- */
-export interface JobSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema JobSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: JobSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema JobSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: JobSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'JobSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_JobSpecProviderRefPolicy(obj: JobSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema JobSpecPublishConnectionDetailsToConfigRef
@@ -702,30 +815,6 @@ export enum JobSpecProviderConfigRefPolicyResolution {
  * @schema JobSpecProviderConfigRefPolicyResolve
  */
 export enum JobSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema JobSpecProviderRefPolicyResolution
- */
-export enum JobSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema JobSpecProviderRefPolicyResolve
- */
-export enum JobSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

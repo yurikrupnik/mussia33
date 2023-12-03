@@ -141,6 +141,13 @@ export interface ProviderConfigSpec {
   readonly skipMetadataApiCheck?: boolean;
 
   /**
+   * Whether to skip validation of provided region name. Useful for AWS-like implementations that use their own region names or to bypass the validation for regions that aren't publicly available yet.
+   *
+   * @schema ProviderConfigSpec#skip_region_validation
+   */
+  readonly skipRegionValidation?: boolean;
+
+  /**
    * Whether to skip requesting the account ID. Useful for AWS API implementations that do not have the IAM, STS API, or metadata API
    *
    * @schema ProviderConfigSpec#skip_requesting_account_id
@@ -162,6 +169,7 @@ export function toJson_ProviderConfigSpec(obj: ProviderConfigSpec | undefined): 
     's3_use_path_style': obj.s3UsePathStyle,
     'skip_credentials_validation': obj.skipCredentialsValidation,
     'skip_metadata_api_check': obj.skipMetadataApiCheck,
+    'skip_region_validation': obj.skipRegionValidation,
     'skip_requesting_account_id': obj.skipRequestingAccountId,
   };
   // filter undefined values
@@ -1133,13 +1141,6 @@ export interface StoreConfigSpec {
    */
   readonly type?: StoreConfigSpecType;
 
-  /**
-   * Vault configures a Vault secret store. Deprecated: This API is scheduled to be removed in a future release. Vault should be used as a plugin going forward. See https://github.com/crossplane-contrib/ess-plugin-vault for more information.
-   *
-   * @schema StoreConfigSpec#vault
-   */
-  readonly vault?: StoreConfigSpecVault;
-
 }
 
 /**
@@ -1153,7 +1154,6 @@ export function toJson_StoreConfigSpec(obj: StoreConfigSpec | undefined): Record
     'kubernetes': toJson_StoreConfigSpecKubernetes(obj.kubernetes),
     'plugin': toJson_StoreConfigSpecPlugin(obj.plugin),
     'type': obj.type,
-    'vault': toJson_StoreConfigSpecVault(obj.vault),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1240,67 +1240,6 @@ export enum StoreConfigSpecType {
   /** Plugin */
   PLUGIN = "Plugin",
 }
-
-/**
- * Vault configures a Vault secret store. Deprecated: This API is scheduled to be removed in a future release. Vault should be used as a plugin going forward. See https://github.com/crossplane-contrib/ess-plugin-vault for more information.
- *
- * @schema StoreConfigSpecVault
- */
-export interface StoreConfigSpecVault {
-  /**
-   * Auth configures an authentication method for Vault.
-   *
-   * @schema StoreConfigSpecVault#auth
-   */
-  readonly auth: StoreConfigSpecVaultAuth;
-
-  /**
-   * CABundle configures CA bundle for Vault Server.
-   *
-   * @schema StoreConfigSpecVault#caBundle
-   */
-  readonly caBundle?: StoreConfigSpecVaultCaBundle;
-
-  /**
-   * MountPath is the mount path of the KV secrets engine.
-   *
-   * @schema StoreConfigSpecVault#mountPath
-   */
-  readonly mountPath: string;
-
-  /**
-   * Server is the url of the Vault server, e.g. "https://vault.acme.org"
-   *
-   * @schema StoreConfigSpecVault#server
-   */
-  readonly server: string;
-
-  /**
-   * Version of the KV Secrets engine of Vault. https://www.vaultproject.io/docs/secrets/kv
-   *
-   * @schema StoreConfigSpecVault#version
-   */
-  readonly version?: string;
-
-}
-
-/**
- * Converts an object of type 'StoreConfigSpecVault' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StoreConfigSpecVault(obj: StoreConfigSpecVault | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'auth': toJson_StoreConfigSpecVaultAuth(obj.auth),
-    'caBundle': toJson_StoreConfigSpecVaultCaBundle(obj.caBundle),
-    'mountPath': obj.mountPath,
-    'server': obj.server,
-    'version': obj.version,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
 
 /**
  * Credentials used to connect to the Kubernetes API.
@@ -1394,96 +1333,6 @@ export function toJson_StoreConfigSpecPluginConfigRef(obj: StoreConfigSpecPlugin
     'apiVersion': obj.apiVersion,
     'kind': obj.kind,
     'name': obj.name,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Auth configures an authentication method for Vault.
- *
- * @schema StoreConfigSpecVaultAuth
- */
-export interface StoreConfigSpecVaultAuth {
-  /**
-   * Method configures which auth method will be used.
-   *
-   * @schema StoreConfigSpecVaultAuth#method
-   */
-  readonly method: string;
-
-  /**
-   * Token configures Token Auth for Vault.
-   *
-   * @schema StoreConfigSpecVaultAuth#token
-   */
-  readonly token?: StoreConfigSpecVaultAuthToken;
-
-}
-
-/**
- * Converts an object of type 'StoreConfigSpecVaultAuth' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StoreConfigSpecVaultAuth(obj: StoreConfigSpecVaultAuth | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'method': obj.method,
-    'token': toJson_StoreConfigSpecVaultAuthToken(obj.token),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * CABundle configures CA bundle for Vault Server.
- *
- * @schema StoreConfigSpecVaultCaBundle
- */
-export interface StoreConfigSpecVaultCaBundle {
-  /**
-   * Env is a reference to an environment variable that contains credentials that must be used to connect to the provider.
-   *
-   * @schema StoreConfigSpecVaultCaBundle#env
-   */
-  readonly env?: StoreConfigSpecVaultCaBundleEnv;
-
-  /**
-   * Fs is a reference to a filesystem location that contains credentials that must be used to connect to the provider.
-   *
-   * @schema StoreConfigSpecVaultCaBundle#fs
-   */
-  readonly fs?: StoreConfigSpecVaultCaBundleFs;
-
-  /**
-   * A SecretRef is a reference to a secret key that contains the credentials that must be used to connect to the provider.
-   *
-   * @schema StoreConfigSpecVaultCaBundle#secretRef
-   */
-  readonly secretRef?: StoreConfigSpecVaultCaBundleSecretRef;
-
-  /**
-   * Source of the credentials.
-   *
-   * @schema StoreConfigSpecVaultCaBundle#source
-   */
-  readonly source: StoreConfigSpecVaultCaBundleSource;
-
-}
-
-/**
- * Converts an object of type 'StoreConfigSpecVaultCaBundle' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StoreConfigSpecVaultCaBundle(obj: StoreConfigSpecVaultCaBundle | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'env': toJson_StoreConfigSpecVaultCaBundleEnv(obj.env),
-    'fs': toJson_StoreConfigSpecVaultCaBundleFs(obj.fs),
-    'secretRef': toJson_StoreConfigSpecVaultCaBundleSecretRef(obj.secretRef),
-    'source': obj.source,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1599,297 +1448,6 @@ export function toJson_StoreConfigSpecKubernetesAuthSecretRef(obj: StoreConfigSp
  * @schema StoreConfigSpecKubernetesAuthSource
  */
 export enum StoreConfigSpecKubernetesAuthSource {
-  /** None */
-  NONE = "None",
-  /** Secret */
-  SECRET = "Secret",
-  /** Environment */
-  ENVIRONMENT = "Environment",
-  /** Filesystem */
-  FILESYSTEM = "Filesystem",
-}
-
-/**
- * Token configures Token Auth for Vault.
- *
- * @schema StoreConfigSpecVaultAuthToken
- */
-export interface StoreConfigSpecVaultAuthToken {
-  /**
-   * Env is a reference to an environment variable that contains credentials that must be used to connect to the provider.
-   *
-   * @schema StoreConfigSpecVaultAuthToken#env
-   */
-  readonly env?: StoreConfigSpecVaultAuthTokenEnv;
-
-  /**
-   * Fs is a reference to a filesystem location that contains credentials that must be used to connect to the provider.
-   *
-   * @schema StoreConfigSpecVaultAuthToken#fs
-   */
-  readonly fs?: StoreConfigSpecVaultAuthTokenFs;
-
-  /**
-   * A SecretRef is a reference to a secret key that contains the credentials that must be used to connect to the provider.
-   *
-   * @schema StoreConfigSpecVaultAuthToken#secretRef
-   */
-  readonly secretRef?: StoreConfigSpecVaultAuthTokenSecretRef;
-
-  /**
-   * Source of the credentials.
-   *
-   * @schema StoreConfigSpecVaultAuthToken#source
-   */
-  readonly source: StoreConfigSpecVaultAuthTokenSource;
-
-}
-
-/**
- * Converts an object of type 'StoreConfigSpecVaultAuthToken' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StoreConfigSpecVaultAuthToken(obj: StoreConfigSpecVaultAuthToken | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'env': toJson_StoreConfigSpecVaultAuthTokenEnv(obj.env),
-    'fs': toJson_StoreConfigSpecVaultAuthTokenFs(obj.fs),
-    'secretRef': toJson_StoreConfigSpecVaultAuthTokenSecretRef(obj.secretRef),
-    'source': obj.source,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Env is a reference to an environment variable that contains credentials that must be used to connect to the provider.
- *
- * @schema StoreConfigSpecVaultCaBundleEnv
- */
-export interface StoreConfigSpecVaultCaBundleEnv {
-  /**
-   * Name is the name of an environment variable.
-   *
-   * @schema StoreConfigSpecVaultCaBundleEnv#name
-   */
-  readonly name: string;
-
-}
-
-/**
- * Converts an object of type 'StoreConfigSpecVaultCaBundleEnv' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StoreConfigSpecVaultCaBundleEnv(obj: StoreConfigSpecVaultCaBundleEnv | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Fs is a reference to a filesystem location that contains credentials that must be used to connect to the provider.
- *
- * @schema StoreConfigSpecVaultCaBundleFs
- */
-export interface StoreConfigSpecVaultCaBundleFs {
-  /**
-   * Path is a filesystem path.
-   *
-   * @schema StoreConfigSpecVaultCaBundleFs#path
-   */
-  readonly path: string;
-
-}
-
-/**
- * Converts an object of type 'StoreConfigSpecVaultCaBundleFs' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StoreConfigSpecVaultCaBundleFs(obj: StoreConfigSpecVaultCaBundleFs | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'path': obj.path,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * A SecretRef is a reference to a secret key that contains the credentials that must be used to connect to the provider.
- *
- * @schema StoreConfigSpecVaultCaBundleSecretRef
- */
-export interface StoreConfigSpecVaultCaBundleSecretRef {
-  /**
-   * The key to select.
-   *
-   * @schema StoreConfigSpecVaultCaBundleSecretRef#key
-   */
-  readonly key: string;
-
-  /**
-   * Name of the secret.
-   *
-   * @schema StoreConfigSpecVaultCaBundleSecretRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Namespace of the secret.
-   *
-   * @schema StoreConfigSpecVaultCaBundleSecretRef#namespace
-   */
-  readonly namespace: string;
-
-}
-
-/**
- * Converts an object of type 'StoreConfigSpecVaultCaBundleSecretRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StoreConfigSpecVaultCaBundleSecretRef(obj: StoreConfigSpecVaultCaBundleSecretRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'key': obj.key,
-    'name': obj.name,
-    'namespace': obj.namespace,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Source of the credentials.
- *
- * @schema StoreConfigSpecVaultCaBundleSource
- */
-export enum StoreConfigSpecVaultCaBundleSource {
-  /** None */
-  NONE = "None",
-  /** Secret */
-  SECRET = "Secret",
-  /** Environment */
-  ENVIRONMENT = "Environment",
-  /** Filesystem */
-  FILESYSTEM = "Filesystem",
-}
-
-/**
- * Env is a reference to an environment variable that contains credentials that must be used to connect to the provider.
- *
- * @schema StoreConfigSpecVaultAuthTokenEnv
- */
-export interface StoreConfigSpecVaultAuthTokenEnv {
-  /**
-   * Name is the name of an environment variable.
-   *
-   * @schema StoreConfigSpecVaultAuthTokenEnv#name
-   */
-  readonly name: string;
-
-}
-
-/**
- * Converts an object of type 'StoreConfigSpecVaultAuthTokenEnv' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StoreConfigSpecVaultAuthTokenEnv(obj: StoreConfigSpecVaultAuthTokenEnv | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Fs is a reference to a filesystem location that contains credentials that must be used to connect to the provider.
- *
- * @schema StoreConfigSpecVaultAuthTokenFs
- */
-export interface StoreConfigSpecVaultAuthTokenFs {
-  /**
-   * Path is a filesystem path.
-   *
-   * @schema StoreConfigSpecVaultAuthTokenFs#path
-   */
-  readonly path: string;
-
-}
-
-/**
- * Converts an object of type 'StoreConfigSpecVaultAuthTokenFs' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StoreConfigSpecVaultAuthTokenFs(obj: StoreConfigSpecVaultAuthTokenFs | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'path': obj.path,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * A SecretRef is a reference to a secret key that contains the credentials that must be used to connect to the provider.
- *
- * @schema StoreConfigSpecVaultAuthTokenSecretRef
- */
-export interface StoreConfigSpecVaultAuthTokenSecretRef {
-  /**
-   * The key to select.
-   *
-   * @schema StoreConfigSpecVaultAuthTokenSecretRef#key
-   */
-  readonly key: string;
-
-  /**
-   * Name of the secret.
-   *
-   * @schema StoreConfigSpecVaultAuthTokenSecretRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Namespace of the secret.
-   *
-   * @schema StoreConfigSpecVaultAuthTokenSecretRef#namespace
-   */
-  readonly namespace: string;
-
-}
-
-/**
- * Converts an object of type 'StoreConfigSpecVaultAuthTokenSecretRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StoreConfigSpecVaultAuthTokenSecretRef(obj: StoreConfigSpecVaultAuthTokenSecretRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'key': obj.key,
-    'name': obj.name,
-    'namespace': obj.namespace,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Source of the credentials.
- *
- * @schema StoreConfigSpecVaultAuthTokenSource
- */
-export enum StoreConfigSpecVaultAuthTokenSource {
   /** None */
   NONE = "None",
   /** Secret */

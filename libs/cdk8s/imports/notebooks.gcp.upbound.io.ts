@@ -99,7 +99,7 @@ export function toJson_EnvironmentProps(obj: EnvironmentProps | undefined): Reco
  */
 export interface EnvironmentSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema EnvironmentSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface EnvironmentSpec {
   readonly forProvider: EnvironmentSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema EnvironmentSpec#managementPolicy
+   * @schema EnvironmentSpec#initProvider
    */
-  readonly managementPolicy?: EnvironmentSpecManagementPolicy;
+  readonly initProvider?: EnvironmentSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema EnvironmentSpec#managementPolicies
+   */
+  readonly managementPolicies?: EnvironmentSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface EnvironmentSpec {
    * @schema EnvironmentSpec#providerConfigRef
    */
   readonly providerConfigRef?: EnvironmentSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema EnvironmentSpec#providerRef
-   */
-  readonly providerRef?: EnvironmentSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_EnvironmentSpec(obj: EnvironmentSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_EnvironmentSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_EnvironmentSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_EnvironmentSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_EnvironmentSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_EnvironmentSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_EnvironmentSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_EnvironmentSpec(obj: EnvironmentSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema EnvironmentSpecDeletionPolicy
  */
@@ -255,17 +255,92 @@ export function toJson_EnvironmentSpecForProvider(obj: EnvironmentSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema EnvironmentSpecManagementPolicy
+ * @schema EnvironmentSpecInitProvider
  */
-export enum EnvironmentSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface EnvironmentSpecInitProvider {
+  /**
+   * Use a container image to start the notebook instance. Structure is documented below.
+   *
+   * @schema EnvironmentSpecInitProvider#containerImage
+   */
+  readonly containerImage?: EnvironmentSpecInitProviderContainerImage[];
+
+  /**
+   * A brief description of this environment.
+   *
+   * @schema EnvironmentSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Display name of this environment for the UI.
+   *
+   * @schema EnvironmentSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * Path to a Bash script that automatically runs after a notebook instance fully boots up. The path must be a URL or Cloud Storage path. Example: "gs://path-to-file/file-name"
+   *
+   * @schema EnvironmentSpecInitProvider#postStartupScript
+   */
+  readonly postStartupScript?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema EnvironmentSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * Use a Compute Engine VM image to start the notebook instance. Structure is documented below.
+   *
+   * @schema EnvironmentSpecInitProvider#vmImage
+   */
+  readonly vmImage?: EnvironmentSpecInitProviderVmImage[];
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProvider(obj: EnvironmentSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'containerImage': obj.containerImage?.map(y => toJson_EnvironmentSpecInitProviderContainerImage(y)),
+    'description': obj.description,
+    'displayName': obj.displayName,
+    'postStartupScript': obj.postStartupScript,
+    'project': obj.project,
+    'vmImage': obj.vmImage?.map(y => toJson_EnvironmentSpecInitProviderVmImage(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema EnvironmentSpecManagementPolicies
+ */
+export enum EnvironmentSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -299,43 +374,6 @@ export function toJson_EnvironmentSpecProviderConfigRef(obj: EnvironmentSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_EnvironmentSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema EnvironmentSpecProviderRef
- */
-export interface EnvironmentSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema EnvironmentSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema EnvironmentSpecProviderRef#policy
-   */
-  readonly policy?: EnvironmentSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'EnvironmentSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_EnvironmentSpecProviderRef(obj: EnvironmentSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_EnvironmentSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -433,7 +471,7 @@ export interface EnvironmentSpecForProviderContainerImage {
    *
    * @schema EnvironmentSpecForProviderContainerImage#repository
    */
-  readonly repository: string;
+  readonly repository?: string;
 
   /**
    * The tag of the container image. If not specified, this defaults to the latest tag.
@@ -482,7 +520,7 @@ export interface EnvironmentSpecForProviderVmImage {
    *
    * @schema EnvironmentSpecForProviderVmImage#project
    */
-  readonly project: string;
+  readonly project?: string;
 
 }
 
@@ -491,6 +529,84 @@ export interface EnvironmentSpecForProviderVmImage {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_EnvironmentSpecForProviderVmImage(obj: EnvironmentSpecForProviderVmImage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'imageFamily': obj.imageFamily,
+    'imageName': obj.imageName,
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderContainerImage
+ */
+export interface EnvironmentSpecInitProviderContainerImage {
+  /**
+   * The path to the container image repository. For example: gcr.io/{project_id}/{imageName}
+   *
+   * @schema EnvironmentSpecInitProviderContainerImage#repository
+   */
+  readonly repository?: string;
+
+  /**
+   * The tag of the container image. If not specified, this defaults to the latest tag.
+   *
+   * @schema EnvironmentSpecInitProviderContainerImage#tag
+   */
+  readonly tag?: string;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderContainerImage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderContainerImage(obj: EnvironmentSpecInitProviderContainerImage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'repository': obj.repository,
+    'tag': obj.tag,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderVmImage
+ */
+export interface EnvironmentSpecInitProviderVmImage {
+  /**
+   * Use this VM image family to find the image; the newest image in this family will be used.
+   *
+   * @schema EnvironmentSpecInitProviderVmImage#imageFamily
+   */
+  readonly imageFamily?: string;
+
+  /**
+   * Use VM image name to find the image.
+   *
+   * @schema EnvironmentSpecInitProviderVmImage#imageName
+   */
+  readonly imageName?: string;
+
+  /**
+   * The name of the Google Cloud project that this VM image belongs to. Format: projects/{project_id}
+   *
+   * @schema EnvironmentSpecInitProviderVmImage#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderVmImage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderVmImage(obj: EnvironmentSpecInitProviderVmImage | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'imageFamily': obj.imageFamily,
@@ -529,43 +645,6 @@ export interface EnvironmentSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_EnvironmentSpecProviderConfigRefPolicy(obj: EnvironmentSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema EnvironmentSpecProviderRefPolicy
- */
-export interface EnvironmentSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema EnvironmentSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: EnvironmentSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema EnvironmentSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: EnvironmentSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'EnvironmentSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_EnvironmentSpecProviderRefPolicy(obj: EnvironmentSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -676,30 +755,6 @@ export enum EnvironmentSpecProviderConfigRefPolicyResolution {
  * @schema EnvironmentSpecProviderConfigRefPolicyResolve
  */
 export enum EnvironmentSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema EnvironmentSpecProviderRefPolicyResolution
- */
-export enum EnvironmentSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema EnvironmentSpecProviderRefPolicyResolve
- */
-export enum EnvironmentSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -864,7 +919,7 @@ export function toJson_InstanceProps(obj: InstanceProps | undefined): Record<str
  */
 export interface InstanceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema InstanceSpec#deletionPolicy
    */
@@ -876,11 +931,18 @@ export interface InstanceSpec {
   readonly forProvider: InstanceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema InstanceSpec#managementPolicy
+   * @schema InstanceSpec#initProvider
    */
-  readonly managementPolicy?: InstanceSpecManagementPolicy;
+  readonly initProvider?: InstanceSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema InstanceSpec#managementPolicies
+   */
+  readonly managementPolicies?: InstanceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -888,13 +950,6 @@ export interface InstanceSpec {
    * @schema InstanceSpec#providerConfigRef
    */
   readonly providerConfigRef?: InstanceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema InstanceSpec#providerRef
-   */
-  readonly providerRef?: InstanceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -921,9 +976,9 @@ export function toJson_InstanceSpec(obj: InstanceSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_InstanceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_InstanceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_InstanceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_InstanceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_InstanceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_InstanceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -933,7 +988,7 @@ export function toJson_InstanceSpec(obj: InstanceSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema InstanceSpecDeletionPolicy
  */
@@ -1196,17 +1251,268 @@ export function toJson_InstanceSpecForProvider(obj: InstanceSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema InstanceSpecManagementPolicy
+ * @schema InstanceSpecInitProvider
  */
-export enum InstanceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface InstanceSpecInitProvider {
+  /**
+   * The hardware accelerator used on this instance. If you use accelerators, make sure that your configuration has enough vCPUs and memory to support the machineType you have selected. Structure is documented below.
+   *
+   * @schema InstanceSpecInitProvider#acceleratorConfig
+   */
+  readonly acceleratorConfig?: InstanceSpecInitProviderAcceleratorConfig[];
+
+  /**
+   * The size of the boot disk in GB attached to this instance, up to a maximum of 64000 GB (64 TB). The minimum recommended value is 100 GB. If not specified, this defaults to 100.
+   *
+   * @schema InstanceSpecInitProvider#bootDiskSizeGb
+   */
+  readonly bootDiskSizeGb?: number;
+
+  /**
+   * Possible disk types for notebook instances. Possible values are: DISK_TYPE_UNSPECIFIED, PD_STANDARD, PD_SSD, PD_BALANCED, PD_EXTREME.
+   *
+   * @schema InstanceSpecInitProvider#bootDiskType
+   */
+  readonly bootDiskType?: string;
+
+  /**
+   * Use a container image to start the notebook instance. Structure is documented below.
+   *
+   * @schema InstanceSpecInitProvider#containerImage
+   */
+  readonly containerImage?: InstanceSpecInitProviderContainerImage[];
+
+  /**
+   * Specify a custom Cloud Storage path where the GPU driver is stored. If not specified, we'll automatically choose from official GPU drivers.
+   *
+   * @schema InstanceSpecInitProvider#customGpuDriverPath
+   */
+  readonly customGpuDriverPath?: string;
+
+  /**
+   * The size of the data disk in GB attached to this instance, up to a maximum of 64000 GB (64 TB). You can choose the size of the data disk based on how big your notebooks and data are. If not specified, this defaults to 100.
+   *
+   * @schema InstanceSpecInitProvider#dataDiskSizeGb
+   */
+  readonly dataDiskSizeGb?: number;
+
+  /**
+   * Possible disk types for notebook instances. Possible values are: DISK_TYPE_UNSPECIFIED, PD_STANDARD, PD_SSD, PD_BALANCED, PD_EXTREME.
+   *
+   * @schema InstanceSpecInitProvider#dataDiskType
+   */
+  readonly dataDiskType?: string;
+
+  /**
+   * Disk encryption method used on the boot and data disks, defaults to GMEK. Possible values are: DISK_ENCRYPTION_UNSPECIFIED, GMEK, CMEK.
+   *
+   * @schema InstanceSpecInitProvider#diskEncryption
+   */
+  readonly diskEncryption?: string;
+
+  /**
+   * Whether the end user authorizes Google Cloud to install GPU driver on this instance. If this field is empty or set to false, the GPU driver won't be installed. Only applicable to instances with GPUs.
+   *
+   * @schema InstanceSpecInitProvider#installGpuDriver
+   */
+  readonly installGpuDriver?: boolean;
+
+  /**
+   * The list of owners of this instance after creation. Format: alias@example.com. Currently supports one owner only. If not specified, all of the service account users of your VM instance's service account can use the instance.
+   *
+   * @schema InstanceSpecInitProvider#instanceOwners
+   */
+  readonly instanceOwners?: string[];
+
+  /**
+   * The KMS key used to encrypt the disks, only applicable if diskEncryption is CMEK. Format: projects/{project_id}/locations/{location}/keyRings/{key_ring_id}/cryptoKeys/{key_id}
+   *
+   * @schema InstanceSpecInitProvider#kmsKey
+   */
+  readonly kmsKey?: string;
+
+  /**
+   * Labels to apply to this instance. These can be later modified by the setLabels method. An object containing a list of "key": value pairs. Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
+   *
+   * @schema InstanceSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * A reference to a machine type which defines VM kind.
+   *
+   * @schema InstanceSpecInitProvider#machineType
+   */
+  readonly machineType?: string;
+
+  /**
+   * Custom metadata to apply to this instance. An object containing a list of "key": value pairs. Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
+   *
+   * @schema InstanceSpecInitProvider#metadata
+   */
+  readonly metadata?: { [key: string]: string };
+
+  /**
+   * The name of the VPC that this instance is in. Format: projects/{project_id}/global/networks/{network_id}
+   *
+   * @schema InstanceSpecInitProvider#network
+   */
+  readonly network?: string;
+
+  /**
+   * The type of vNIC driver. Possible values are: UNSPECIFIED_NIC_TYPE, VIRTIO_NET, GVNIC.
+   *
+   * @schema InstanceSpecInitProvider#nicType
+   */
+  readonly nicType?: string;
+
+  /**
+   * The notebook instance will not register with the proxy..
+   *
+   * @schema InstanceSpecInitProvider#noProxyAccess
+   */
+  readonly noProxyAccess?: boolean;
+
+  /**
+   * No public IP will be assigned to this instance.
+   *
+   * @schema InstanceSpecInitProvider#noPublicIp
+   */
+  readonly noPublicIp?: boolean;
+
+  /**
+   * If true, the data disk will not be auto deleted when deleting the instance.
+   *
+   * @schema InstanceSpecInitProvider#noRemoveDataDisk
+   */
+  readonly noRemoveDataDisk?: boolean;
+
+  /**
+   * Path to a Bash script that automatically runs after a notebook instance fully boots up. The path must be a URL or Cloud Storage path (gs://path-to-file/file-name).
+   *
+   * @schema InstanceSpecInitProvider#postStartupScript
+   */
+  readonly postStartupScript?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema InstanceSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * Reservation Affinity for consuming Zonal reservation. Structure is documented below.
+   *
+   * @schema InstanceSpecInitProvider#reservationAffinity
+   */
+  readonly reservationAffinity?: InstanceSpecInitProviderReservationAffinity[];
+
+  /**
+   * The service account on this instance, giving access to other Google Cloud services. You can use any service account within the same project, but you must have the service account user permission to use the instance. If not specified, the Compute Engine default service account is used.
+   *
+   * @schema InstanceSpecInitProvider#serviceAccount
+   */
+  readonly serviceAccount?: string;
+
+  /**
+   * Optional. The URIs of service account scopes to be included in Compute Engine instances. If not specified, the following scopes are defined:
+   *
+   * @schema InstanceSpecInitProvider#serviceAccountScopes
+   */
+  readonly serviceAccountScopes?: string[];
+
+  /**
+   * A set of Shielded Instance options. Check [Images using supported Shielded VM features] Not all combinations are valid Structure is documented below.
+   *
+   * @schema InstanceSpecInitProvider#shieldedInstanceConfig
+   */
+  readonly shieldedInstanceConfig?: InstanceSpecInitProviderShieldedInstanceConfig[];
+
+  /**
+   * The name of the subnet that this instance is in. Format: projects/{project_id}/regions/{region}/subnetworks/{subnetwork_id}
+   *
+   * @schema InstanceSpecInitProvider#subnet
+   */
+  readonly subnet?: string;
+
+  /**
+   * The Compute Engine tags to add to instance.
+   *
+   * @schema InstanceSpecInitProvider#tags
+   */
+  readonly tags?: string[];
+
+  /**
+   * Use a Compute Engine VM image to start the notebook instance. Structure is documented below.
+   *
+   * @schema InstanceSpecInitProvider#vmImage
+   */
+  readonly vmImage?: InstanceSpecInitProviderVmImage[];
+
+}
+
+/**
+ * Converts an object of type 'InstanceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceSpecInitProvider(obj: InstanceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acceleratorConfig': obj.acceleratorConfig?.map(y => toJson_InstanceSpecInitProviderAcceleratorConfig(y)),
+    'bootDiskSizeGb': obj.bootDiskSizeGb,
+    'bootDiskType': obj.bootDiskType,
+    'containerImage': obj.containerImage?.map(y => toJson_InstanceSpecInitProviderContainerImage(y)),
+    'customGpuDriverPath': obj.customGpuDriverPath,
+    'dataDiskSizeGb': obj.dataDiskSizeGb,
+    'dataDiskType': obj.dataDiskType,
+    'diskEncryption': obj.diskEncryption,
+    'installGpuDriver': obj.installGpuDriver,
+    'instanceOwners': obj.instanceOwners?.map(y => y),
+    'kmsKey': obj.kmsKey,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'machineType': obj.machineType,
+    'metadata': ((obj.metadata) === undefined) ? undefined : (Object.entries(obj.metadata).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'network': obj.network,
+    'nicType': obj.nicType,
+    'noProxyAccess': obj.noProxyAccess,
+    'noPublicIp': obj.noPublicIp,
+    'noRemoveDataDisk': obj.noRemoveDataDisk,
+    'postStartupScript': obj.postStartupScript,
+    'project': obj.project,
+    'reservationAffinity': obj.reservationAffinity?.map(y => toJson_InstanceSpecInitProviderReservationAffinity(y)),
+    'serviceAccount': obj.serviceAccount,
+    'serviceAccountScopes': obj.serviceAccountScopes?.map(y => y),
+    'shieldedInstanceConfig': obj.shieldedInstanceConfig?.map(y => toJson_InstanceSpecInitProviderShieldedInstanceConfig(y)),
+    'subnet': obj.subnet,
+    'tags': obj.tags?.map(y => y),
+    'vmImage': obj.vmImage?.map(y => toJson_InstanceSpecInitProviderVmImage(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema InstanceSpecManagementPolicies
+ */
+export enum InstanceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1240,43 +1546,6 @@ export function toJson_InstanceSpecProviderConfigRef(obj: InstanceSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_InstanceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema InstanceSpecProviderRef
- */
-export interface InstanceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema InstanceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema InstanceSpecProviderRef#policy
-   */
-  readonly policy?: InstanceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'InstanceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InstanceSpecProviderRef(obj: InstanceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_InstanceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1374,14 +1643,14 @@ export interface InstanceSpecForProviderAcceleratorConfig {
    *
    * @schema InstanceSpecForProviderAcceleratorConfig#coreCount
    */
-  readonly coreCount: number;
+  readonly coreCount?: number;
 
   /**
    * Type of this accelerator. Possible values are: ACCELERATOR_TYPE_UNSPECIFIED, NVIDIA_TESLA_K80, NVIDIA_TESLA_P100, NVIDIA_TESLA_V100, NVIDIA_TESLA_P4, NVIDIA_TESLA_T4, NVIDIA_TESLA_T4_VWS, NVIDIA_TESLA_P100_VWS, NVIDIA_TESLA_P4_VWS, NVIDIA_TESLA_A100, TPU_V2, TPU_V3.
    *
    * @schema InstanceSpecForProviderAcceleratorConfig#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -1409,7 +1678,7 @@ export interface InstanceSpecForProviderContainerImage {
    *
    * @schema InstanceSpecForProviderContainerImage#repository
    */
-  readonly repository: string;
+  readonly repository?: string;
 
   /**
    * The tag of the container image. If not specified, this defaults to the latest tag.
@@ -1444,7 +1713,7 @@ export interface InstanceSpecForProviderReservationAffinity {
    *
    * @schema InstanceSpecForProviderReservationAffinity#consumeReservationType
    */
-  readonly consumeReservationType: string;
+  readonly consumeReservationType?: string;
 
   /**
    * Corresponds to the label key of reservation resource.
@@ -1544,7 +1813,7 @@ export interface InstanceSpecForProviderVmImage {
    *
    * @schema InstanceSpecForProviderVmImage#project
    */
-  readonly project: string;
+  readonly project?: string;
 
 }
 
@@ -1553,6 +1822,205 @@ export interface InstanceSpecForProviderVmImage {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_InstanceSpecForProviderVmImage(obj: InstanceSpecForProviderVmImage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'imageFamily': obj.imageFamily,
+    'imageName': obj.imageName,
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InstanceSpecInitProviderAcceleratorConfig
+ */
+export interface InstanceSpecInitProviderAcceleratorConfig {
+  /**
+   * Count of cores of this accelerator.
+   *
+   * @schema InstanceSpecInitProviderAcceleratorConfig#coreCount
+   */
+  readonly coreCount?: number;
+
+  /**
+   * Type of this accelerator. Possible values are: ACCELERATOR_TYPE_UNSPECIFIED, NVIDIA_TESLA_K80, NVIDIA_TESLA_P100, NVIDIA_TESLA_V100, NVIDIA_TESLA_P4, NVIDIA_TESLA_T4, NVIDIA_TESLA_T4_VWS, NVIDIA_TESLA_P100_VWS, NVIDIA_TESLA_P4_VWS, NVIDIA_TESLA_A100, TPU_V2, TPU_V3.
+   *
+   * @schema InstanceSpecInitProviderAcceleratorConfig#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'InstanceSpecInitProviderAcceleratorConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceSpecInitProviderAcceleratorConfig(obj: InstanceSpecInitProviderAcceleratorConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'coreCount': obj.coreCount,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InstanceSpecInitProviderContainerImage
+ */
+export interface InstanceSpecInitProviderContainerImage {
+  /**
+   * The path to the container image repository. For example: gcr.io/{project_id}/{imageName}
+   *
+   * @schema InstanceSpecInitProviderContainerImage#repository
+   */
+  readonly repository?: string;
+
+  /**
+   * The tag of the container image. If not specified, this defaults to the latest tag.
+   *
+   * @schema InstanceSpecInitProviderContainerImage#tag
+   */
+  readonly tag?: string;
+
+}
+
+/**
+ * Converts an object of type 'InstanceSpecInitProviderContainerImage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceSpecInitProviderContainerImage(obj: InstanceSpecInitProviderContainerImage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'repository': obj.repository,
+    'tag': obj.tag,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InstanceSpecInitProviderReservationAffinity
+ */
+export interface InstanceSpecInitProviderReservationAffinity {
+  /**
+   * The type of Compute Reservation. Possible values are: NO_RESERVATION, ANY_RESERVATION, SPECIFIC_RESERVATION.
+   *
+   * @schema InstanceSpecInitProviderReservationAffinity#consumeReservationType
+   */
+  readonly consumeReservationType?: string;
+
+  /**
+   * Corresponds to the label key of reservation resource.
+   *
+   * @schema InstanceSpecInitProviderReservationAffinity#key
+   */
+  readonly key?: string;
+
+  /**
+   * Corresponds to the label values of reservation resource.
+   *
+   * @schema InstanceSpecInitProviderReservationAffinity#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'InstanceSpecInitProviderReservationAffinity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceSpecInitProviderReservationAffinity(obj: InstanceSpecInitProviderReservationAffinity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'consumeReservationType': obj.consumeReservationType,
+    'key': obj.key,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InstanceSpecInitProviderShieldedInstanceConfig
+ */
+export interface InstanceSpecInitProviderShieldedInstanceConfig {
+  /**
+   * Defines whether the instance has integrity monitoring enabled. Enables monitoring and attestation of the boot integrity of the instance. The attestation is performed against the integrity policy baseline. This baseline is initially derived from the implicitly trusted boot image when the instance is created. Enabled by default.
+   *
+   * @schema InstanceSpecInitProviderShieldedInstanceConfig#enableIntegrityMonitoring
+   */
+  readonly enableIntegrityMonitoring?: boolean;
+
+  /**
+   * Defines whether the instance has Secure Boot enabled. Secure Boot helps ensure that the system only runs authentic software by verifying the digital signature of all boot components, and halting the boot process if signature verification fails. Disabled by default.
+   *
+   * @schema InstanceSpecInitProviderShieldedInstanceConfig#enableSecureBoot
+   */
+  readonly enableSecureBoot?: boolean;
+
+  /**
+   * Defines whether the instance has the vTPM enabled. Enabled by default.
+   *
+   * @schema InstanceSpecInitProviderShieldedInstanceConfig#enableVtpm
+   */
+  readonly enableVtpm?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'InstanceSpecInitProviderShieldedInstanceConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceSpecInitProviderShieldedInstanceConfig(obj: InstanceSpecInitProviderShieldedInstanceConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableIntegrityMonitoring': obj.enableIntegrityMonitoring,
+    'enableSecureBoot': obj.enableSecureBoot,
+    'enableVtpm': obj.enableVtpm,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InstanceSpecInitProviderVmImage
+ */
+export interface InstanceSpecInitProviderVmImage {
+  /**
+   * Use this VM image family to find the image; the newest image in this family will be used.
+   *
+   * @schema InstanceSpecInitProviderVmImage#imageFamily
+   */
+  readonly imageFamily?: string;
+
+  /**
+   * Use VM image name to find the image.
+   *
+   * @schema InstanceSpecInitProviderVmImage#imageName
+   */
+  readonly imageName?: string;
+
+  /**
+   * The name of the Google Cloud project that this VM image belongs to. Format: projects/{project_id}
+   *
+   * @schema InstanceSpecInitProviderVmImage#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'InstanceSpecInitProviderVmImage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceSpecInitProviderVmImage(obj: InstanceSpecInitProviderVmImage | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'imageFamily': obj.imageFamily,
@@ -1591,43 +2059,6 @@ export interface InstanceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_InstanceSpecProviderConfigRefPolicy(obj: InstanceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema InstanceSpecProviderRefPolicy
- */
-export interface InstanceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema InstanceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: InstanceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema InstanceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: InstanceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'InstanceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InstanceSpecProviderRefPolicy(obj: InstanceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1738,30 +2169,6 @@ export enum InstanceSpecProviderConfigRefPolicyResolution {
  * @schema InstanceSpecProviderConfigRefPolicyResolve
  */
 export enum InstanceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema InstanceSpecProviderRefPolicyResolution
- */
-export enum InstanceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema InstanceSpecProviderRefPolicyResolve
- */
-export enum InstanceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1926,7 +2333,7 @@ export function toJson_InstanceIamMemberProps(obj: InstanceIamMemberProps | unde
  */
 export interface InstanceIamMemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema InstanceIamMemberSpec#deletionPolicy
    */
@@ -1938,11 +2345,18 @@ export interface InstanceIamMemberSpec {
   readonly forProvider: InstanceIamMemberSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema InstanceIamMemberSpec#managementPolicy
+   * @schema InstanceIamMemberSpec#initProvider
    */
-  readonly managementPolicy?: InstanceIamMemberSpecManagementPolicy;
+  readonly initProvider?: InstanceIamMemberSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema InstanceIamMemberSpec#managementPolicies
+   */
+  readonly managementPolicies?: InstanceIamMemberSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1950,13 +2364,6 @@ export interface InstanceIamMemberSpec {
    * @schema InstanceIamMemberSpec#providerConfigRef
    */
   readonly providerConfigRef?: InstanceIamMemberSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema InstanceIamMemberSpec#providerRef
-   */
-  readonly providerRef?: InstanceIamMemberSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1983,9 +2390,9 @@ export function toJson_InstanceIamMemberSpec(obj: InstanceIamMemberSpec | undefi
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_InstanceIamMemberSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_InstanceIamMemberSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_InstanceIamMemberSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_InstanceIamMemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_InstanceIamMemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_InstanceIamMemberSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1995,7 +2402,7 @@ export function toJson_InstanceIamMemberSpec(obj: InstanceIamMemberSpec | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema InstanceIamMemberSpecDeletionPolicy
  */
@@ -2078,17 +2485,74 @@ export function toJson_InstanceIamMemberSpecForProvider(obj: InstanceIamMemberSp
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema InstanceIamMemberSpecManagementPolicy
+ * @schema InstanceIamMemberSpecInitProvider
  */
-export enum InstanceIamMemberSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface InstanceIamMemberSpecInitProvider {
+  /**
+   * @schema InstanceIamMemberSpecInitProvider#condition
+   */
+  readonly condition?: InstanceIamMemberSpecInitProviderCondition[];
+
+  /**
+   * @schema InstanceIamMemberSpecInitProvider#location
+   */
+  readonly location?: string;
+
+  /**
+   * @schema InstanceIamMemberSpecInitProvider#member
+   */
+  readonly member?: string;
+
+  /**
+   * @schema InstanceIamMemberSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * @schema InstanceIamMemberSpecInitProvider#role
+   */
+  readonly role?: string;
+
+}
+
+/**
+ * Converts an object of type 'InstanceIamMemberSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceIamMemberSpecInitProvider(obj: InstanceIamMemberSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'condition': obj.condition?.map(y => toJson_InstanceIamMemberSpecInitProviderCondition(y)),
+    'location': obj.location,
+    'member': obj.member,
+    'project': obj.project,
+    'role': obj.role,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema InstanceIamMemberSpecManagementPolicies
+ */
+export enum InstanceIamMemberSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2122,43 +2586,6 @@ export function toJson_InstanceIamMemberSpecProviderConfigRef(obj: InstanceIamMe
   const result = {
     'name': obj.name,
     'policy': toJson_InstanceIamMemberSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema InstanceIamMemberSpecProviderRef
- */
-export interface InstanceIamMemberSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema InstanceIamMemberSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema InstanceIamMemberSpecProviderRef#policy
-   */
-  readonly policy?: InstanceIamMemberSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'InstanceIamMemberSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InstanceIamMemberSpecProviderRef(obj: InstanceIamMemberSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_InstanceIamMemberSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2259,12 +2686,12 @@ export interface InstanceIamMemberSpecForProviderCondition {
   /**
    * @schema InstanceIamMemberSpecForProviderCondition#expression
    */
-  readonly expression: string;
+  readonly expression?: string;
 
   /**
    * @schema InstanceIamMemberSpecForProviderCondition#title
    */
-  readonly title: string;
+  readonly title?: string;
 
 }
 
@@ -2367,6 +2794,43 @@ export function toJson_InstanceIamMemberSpecForProviderInstanceNameSelector(obj:
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema InstanceIamMemberSpecInitProviderCondition
+ */
+export interface InstanceIamMemberSpecInitProviderCondition {
+  /**
+   * @schema InstanceIamMemberSpecInitProviderCondition#description
+   */
+  readonly description?: string;
+
+  /**
+   * @schema InstanceIamMemberSpecInitProviderCondition#expression
+   */
+  readonly expression?: string;
+
+  /**
+   * @schema InstanceIamMemberSpecInitProviderCondition#title
+   */
+  readonly title?: string;
+
+}
+
+/**
+ * Converts an object of type 'InstanceIamMemberSpecInitProviderCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceIamMemberSpecInitProviderCondition(obj: InstanceIamMemberSpecInitProviderCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'expression': obj.expression,
+    'title': obj.title,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema InstanceIamMemberSpecProviderConfigRefPolicy
@@ -2393,43 +2857,6 @@ export interface InstanceIamMemberSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_InstanceIamMemberSpecProviderConfigRefPolicy(obj: InstanceIamMemberSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema InstanceIamMemberSpecProviderRefPolicy
- */
-export interface InstanceIamMemberSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema InstanceIamMemberSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: InstanceIamMemberSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema InstanceIamMemberSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: InstanceIamMemberSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'InstanceIamMemberSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InstanceIamMemberSpecProviderRefPolicy(obj: InstanceIamMemberSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2614,30 +3041,6 @@ export enum InstanceIamMemberSpecProviderConfigRefPolicyResolution {
  * @schema InstanceIamMemberSpecProviderConfigRefPolicyResolve
  */
 export enum InstanceIamMemberSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema InstanceIamMemberSpecProviderRefPolicyResolution
- */
-export enum InstanceIamMemberSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema InstanceIamMemberSpecProviderRefPolicyResolve
- */
-export enum InstanceIamMemberSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2850,7 +3253,7 @@ export function toJson_RuntimeProps(obj: RuntimeProps | undefined): Record<strin
  */
 export interface RuntimeSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RuntimeSpec#deletionPolicy
    */
@@ -2862,11 +3265,18 @@ export interface RuntimeSpec {
   readonly forProvider: RuntimeSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema RuntimeSpec#managementPolicy
+   * @schema RuntimeSpec#initProvider
    */
-  readonly managementPolicy?: RuntimeSpecManagementPolicy;
+  readonly initProvider?: RuntimeSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema RuntimeSpec#managementPolicies
+   */
+  readonly managementPolicies?: RuntimeSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2874,13 +3284,6 @@ export interface RuntimeSpec {
    * @schema RuntimeSpec#providerConfigRef
    */
   readonly providerConfigRef?: RuntimeSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema RuntimeSpec#providerRef
-   */
-  readonly providerRef?: RuntimeSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2907,9 +3310,9 @@ export function toJson_RuntimeSpec(obj: RuntimeSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RuntimeSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_RuntimeSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_RuntimeSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_RuntimeSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RuntimeSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_RuntimeSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2919,7 +3322,7 @@ export function toJson_RuntimeSpec(obj: RuntimeSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RuntimeSpecDeletionPolicy
  */
@@ -2990,17 +3393,76 @@ export function toJson_RuntimeSpecForProvider(obj: RuntimeSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema RuntimeSpecManagementPolicy
+ * @schema RuntimeSpecInitProvider
  */
-export enum RuntimeSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface RuntimeSpecInitProvider {
+  /**
+   * The config settings for accessing runtime. Structure is documented below.
+   *
+   * @schema RuntimeSpecInitProvider#accessConfig
+   */
+  readonly accessConfig?: RuntimeSpecInitProviderAccessConfig[];
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema RuntimeSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The config settings for software inside the runtime. Structure is documented below.
+   *
+   * @schema RuntimeSpecInitProvider#softwareConfig
+   */
+  readonly softwareConfig?: RuntimeSpecInitProviderSoftwareConfig[];
+
+  /**
+   * Use a Compute Engine VM image to start the managed notebook instance. Structure is documented below.
+   *
+   * @schema RuntimeSpecInitProvider#virtualMachine
+   */
+  readonly virtualMachine?: RuntimeSpecInitProviderVirtualMachine[];
+
+}
+
+/**
+ * Converts an object of type 'RuntimeSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuntimeSpecInitProvider(obj: RuntimeSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessConfig': obj.accessConfig?.map(y => toJson_RuntimeSpecInitProviderAccessConfig(y)),
+    'project': obj.project,
+    'softwareConfig': obj.softwareConfig?.map(y => toJson_RuntimeSpecInitProviderSoftwareConfig(y)),
+    'virtualMachine': obj.virtualMachine?.map(y => toJson_RuntimeSpecInitProviderVirtualMachine(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema RuntimeSpecManagementPolicies
+ */
+export enum RuntimeSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3034,43 +3496,6 @@ export function toJson_RuntimeSpecProviderConfigRef(obj: RuntimeSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_RuntimeSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema RuntimeSpecProviderRef
- */
-export interface RuntimeSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema RuntimeSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema RuntimeSpecProviderRef#policy
-   */
-  readonly policy?: RuntimeSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'RuntimeSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RuntimeSpecProviderRef(obj: RuntimeSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_RuntimeSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3313,6 +3738,159 @@ export function toJson_RuntimeSpecForProviderVirtualMachine(obj: RuntimeSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RuntimeSpecInitProviderAccessConfig
+ */
+export interface RuntimeSpecInitProviderAccessConfig {
+  /**
+   * The type of access mode this instance. For valid values, see https://cloud.google.com/vertex-ai/docs/workbench/reference/ rest/v1/projects.locations.runtimes#RuntimeAccessType.
+   *
+   * @schema RuntimeSpecInitProviderAccessConfig#accessType
+   */
+  readonly accessType?: string;
+
+  /**
+   * The owner of this runtime after creation. Format: alias@example.com. Currently supports one owner only.
+   *
+   * @schema RuntimeSpecInitProviderAccessConfig#runtimeOwner
+   */
+  readonly runtimeOwner?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuntimeSpecInitProviderAccessConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuntimeSpecInitProviderAccessConfig(obj: RuntimeSpecInitProviderAccessConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessType': obj.accessType,
+    'runtimeOwner': obj.runtimeOwner,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuntimeSpecInitProviderSoftwareConfig
+ */
+export interface RuntimeSpecInitProviderSoftwareConfig {
+  /**
+   * Specify a custom Cloud Storage path where the GPU driver is stored. If not specified, we'll automatically choose from official GPU drivers.
+   *
+   * @schema RuntimeSpecInitProviderSoftwareConfig#customGpuDriverPath
+   */
+  readonly customGpuDriverPath?: string;
+
+  /**
+   * Verifies core internal services are running. Default: True.
+   *
+   * @schema RuntimeSpecInitProviderSoftwareConfig#enableHealthMonitoring
+   */
+  readonly enableHealthMonitoring?: boolean;
+
+  /**
+   * Runtime will automatically shutdown after idle_shutdown_time. Default: True
+   *
+   * @schema RuntimeSpecInitProviderSoftwareConfig#idleShutdown
+   */
+  readonly idleShutdown?: boolean;
+
+  /**
+   * Time in minutes to wait before shuting down runtime. Default: 180 minutes
+   *
+   * @schema RuntimeSpecInitProviderSoftwareConfig#idleShutdownTimeout
+   */
+  readonly idleShutdownTimeout?: number;
+
+  /**
+   * Install Nvidia Driver automatically.
+   *
+   * @schema RuntimeSpecInitProviderSoftwareConfig#installGpuDriver
+   */
+  readonly installGpuDriver?: boolean;
+
+  /**
+   * Use a list of container images to use as Kernels in the notebook instance. Structure is documented below.
+   *
+   * @schema RuntimeSpecInitProviderSoftwareConfig#kernels
+   */
+  readonly kernels?: RuntimeSpecInitProviderSoftwareConfigKernels[];
+
+  /**
+   * Cron expression in UTC timezone for schedule instance auto upgrade. Please follow the cron format.
+   *
+   * @schema RuntimeSpecInitProviderSoftwareConfig#notebookUpgradeSchedule
+   */
+  readonly notebookUpgradeSchedule?: string;
+
+  /**
+   * Path to a Bash script that automatically runs after a notebook instance fully boots up. The path must be a URL or Cloud Storage path (gs://path-to-file/file-name).
+   *
+   * @schema RuntimeSpecInitProviderSoftwareConfig#postStartupScript
+   */
+  readonly postStartupScript?: string;
+
+  /**
+   * Behavior for the post startup script. Possible values are: POST_STARTUP_SCRIPT_BEHAVIOR_UNSPECIFIED, RUN_EVERY_START, DOWNLOAD_AND_RUN_EVERY_START.
+   *
+   * @schema RuntimeSpecInitProviderSoftwareConfig#postStartupScriptBehavior
+   */
+  readonly postStartupScriptBehavior?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuntimeSpecInitProviderSoftwareConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuntimeSpecInitProviderSoftwareConfig(obj: RuntimeSpecInitProviderSoftwareConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customGpuDriverPath': obj.customGpuDriverPath,
+    'enableHealthMonitoring': obj.enableHealthMonitoring,
+    'idleShutdown': obj.idleShutdown,
+    'idleShutdownTimeout': obj.idleShutdownTimeout,
+    'installGpuDriver': obj.installGpuDriver,
+    'kernels': obj.kernels?.map(y => toJson_RuntimeSpecInitProviderSoftwareConfigKernels(y)),
+    'notebookUpgradeSchedule': obj.notebookUpgradeSchedule,
+    'postStartupScript': obj.postStartupScript,
+    'postStartupScriptBehavior': obj.postStartupScriptBehavior,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuntimeSpecInitProviderVirtualMachine
+ */
+export interface RuntimeSpecInitProviderVirtualMachine {
+  /**
+   * Virtual Machine configuration settings. Structure is documented below.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachine#virtualMachineConfig
+   */
+  readonly virtualMachineConfig?: RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig[];
+
+}
+
+/**
+ * Converts an object of type 'RuntimeSpecInitProviderVirtualMachine' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuntimeSpecInitProviderVirtualMachine(obj: RuntimeSpecInitProviderVirtualMachine | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'virtualMachineConfig': obj.virtualMachineConfig?.map(y => toJson_RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema RuntimeSpecProviderConfigRefPolicy
@@ -3339,43 +3917,6 @@ export interface RuntimeSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_RuntimeSpecProviderConfigRefPolicy(obj: RuntimeSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema RuntimeSpecProviderRefPolicy
- */
-export interface RuntimeSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema RuntimeSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: RuntimeSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema RuntimeSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: RuntimeSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'RuntimeSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RuntimeSpecProviderRefPolicy(obj: RuntimeSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3477,7 +4018,7 @@ export interface RuntimeSpecForProviderSoftwareConfigKernels {
    *
    * @schema RuntimeSpecForProviderSoftwareConfigKernels#repository
    */
-  readonly repository: string;
+  readonly repository?: string;
 
   /**
    * The tag of the container image. If not specified, this defaults to the latest tag.
@@ -3526,7 +4067,7 @@ export interface RuntimeSpecForProviderVirtualMachineVirtualMachineConfig {
    *
    * @schema RuntimeSpecForProviderVirtualMachineVirtualMachineConfig#dataDisk
    */
-  readonly dataDisk: RuntimeSpecForProviderVirtualMachineVirtualMachineConfigDataDisk[];
+  readonly dataDisk?: RuntimeSpecForProviderVirtualMachineVirtualMachineConfigDataDisk[];
 
   /**
    * Encryption settings for virtual machine data disk. Structure is documented below.
@@ -3554,7 +4095,7 @@ export interface RuntimeSpecForProviderVirtualMachineVirtualMachineConfig {
    *
    * @schema RuntimeSpecForProviderVirtualMachineVirtualMachineConfig#machineType
    */
-  readonly machineType: string;
+  readonly machineType?: string;
 
   /**
    * The Compute Engine metadata entries to add to virtual machine. (see [Project and instance metadata](https://cloud.google.com /compute/docs/storing-retrieving-metadata#project_and_instance _metadata)).
@@ -3635,6 +4176,172 @@ export function toJson_RuntimeSpecForProviderVirtualMachineVirtualMachineConfig(
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RuntimeSpecInitProviderSoftwareConfigKernels
+ */
+export interface RuntimeSpecInitProviderSoftwareConfigKernels {
+  /**
+   * The path to the container image repository. For example: gcr.io/{project_id}/{imageName}
+   *
+   * @schema RuntimeSpecInitProviderSoftwareConfigKernels#repository
+   */
+  readonly repository?: string;
+
+  /**
+   * The tag of the container image. If not specified, this defaults to the latest tag.
+   *
+   * @schema RuntimeSpecInitProviderSoftwareConfigKernels#tag
+   */
+  readonly tag?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuntimeSpecInitProviderSoftwareConfigKernels' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuntimeSpecInitProviderSoftwareConfigKernels(obj: RuntimeSpecInitProviderSoftwareConfigKernels | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'repository': obj.repository,
+    'tag': obj.tag,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig
+ */
+export interface RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig {
+  /**
+   * The Compute Engine accelerator configuration for this runtime. Structure is documented below.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig#acceleratorConfig
+   */
+  readonly acceleratorConfig?: RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigAcceleratorConfig[];
+
+  /**
+   * Use a list of container images to start the notebook instance. Structure is documented below.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig#containerImages
+   */
+  readonly containerImages?: RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigContainerImages[];
+
+  /**
+   * Data disk option configuration settings. Structure is documented below.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig#dataDisk
+   */
+  readonly dataDisk?: RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDisk[];
+
+  /**
+   * Encryption settings for virtual machine data disk. Structure is documented below.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig#encryptionConfig
+   */
+  readonly encryptionConfig?: RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigEncryptionConfig[];
+
+  /**
+   * If true, runtime will only have internal IP addresses. By default, runtimes are not restricted to internal IP addresses, and will have ephemeral external IP addresses assigned to each vm. This internal_ip_only restriction can only be enabled for subnetwork enabled networks, and all dependencies must be configured to be accessible without external IP addresses.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig#internalIpOnly
+   */
+  readonly internalIpOnly?: boolean;
+
+  /**
+   * The labels to associate with this runtime. Label keys must contain 1 to 63 characters, and must conform to [RFC 1035] (https://www.ietf.org/rfc/rfc1035.txt). Label values may be empty, but, if present, must contain 1 to 63 characters, and must conform to RFC 1035. No more than 32 labels can be associated with a cluster.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The Compute Engine machine type used for runtimes.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig#machineType
+   */
+  readonly machineType?: string;
+
+  /**
+   * The Compute Engine metadata entries to add to virtual machine. (see [Project and instance metadata](https://cloud.google.com /compute/docs/storing-retrieving-metadata#project_and_instance _metadata)).
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig#metadata
+   */
+  readonly metadata?: { [key: string]: string };
+
+  /**
+   * The Compute Engine network to be used for machine communications. Cannot be specified with subnetwork. If neither network nor subnet is specified, the "default" network of the project is used, if it exists. A full URL or partial URI. Examples:
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig#network
+   */
+  readonly network?: string;
+
+  /**
+   * The type of vNIC to be used on this interface. This may be gVNIC or VirtioNet. Possible values are: UNSPECIFIED_NIC_TYPE, VIRTIO_NET, GVNIC.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig#nicType
+   */
+  readonly nicType?: string;
+
+  /**
+   * Reserved IP Range name is used for VPC Peering. The subnetwork allocation will use the range name if it's assigned.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig#reservedIpRange
+   */
+  readonly reservedIpRange?: string;
+
+  /**
+   * Shielded VM Instance configuration settings. Structure is documented below.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig#shieldedInstanceConfig
+   */
+  readonly shieldedInstanceConfig?: RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigShieldedInstanceConfig[];
+
+  /**
+   * The Compute Engine subnetwork to be used for machine communications. Cannot be specified with network. A full URL or partial URI are valid. Examples:
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig#subnet
+   */
+  readonly subnet?: string;
+
+  /**
+   * The Compute Engine tags to add to runtime (see [Tagging instances] (https://cloud.google.com/compute/docs/ label-or-tag-resources#tags)).
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig#tags
+   */
+  readonly tags?: string[];
+
+}
+
+/**
+ * Converts an object of type 'RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig(obj: RuntimeSpecInitProviderVirtualMachineVirtualMachineConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acceleratorConfig': obj.acceleratorConfig?.map(y => toJson_RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigAcceleratorConfig(y)),
+    'containerImages': obj.containerImages?.map(y => toJson_RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigContainerImages(y)),
+    'dataDisk': obj.dataDisk?.map(y => toJson_RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDisk(y)),
+    'encryptionConfig': obj.encryptionConfig?.map(y => toJson_RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigEncryptionConfig(y)),
+    'internalIpOnly': obj.internalIpOnly,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'machineType': obj.machineType,
+    'metadata': ((obj.metadata) === undefined) ? undefined : (Object.entries(obj.metadata).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'network': obj.network,
+    'nicType': obj.nicType,
+    'reservedIpRange': obj.reservedIpRange,
+    'shieldedInstanceConfig': obj.shieldedInstanceConfig?.map(y => toJson_RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigShieldedInstanceConfig(y)),
+    'subnet': obj.subnet,
+    'tags': obj.tags?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema RuntimeSpecProviderConfigRefPolicyResolution
@@ -3652,30 +4359,6 @@ export enum RuntimeSpecProviderConfigRefPolicyResolution {
  * @schema RuntimeSpecProviderConfigRefPolicyResolve
  */
 export enum RuntimeSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema RuntimeSpecProviderRefPolicyResolution
- */
-export enum RuntimeSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema RuntimeSpecProviderRefPolicyResolve
- */
-export enum RuntimeSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3763,7 +4446,7 @@ export interface RuntimeSpecForProviderVirtualMachineVirtualMachineConfigContain
    *
    * @schema RuntimeSpecForProviderVirtualMachineVirtualMachineConfigContainerImages#repository
    */
-  readonly repository: string;
+  readonly repository?: string;
 
   /**
    * The tag of the container image. If not specified, this defaults to the latest tag.
@@ -3919,6 +4602,205 @@ export function toJson_RuntimeSpecForProviderVirtualMachineVirtualMachineConfigS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigAcceleratorConfig
+ */
+export interface RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigAcceleratorConfig {
+  /**
+   * Count of cores of this accelerator.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigAcceleratorConfig#coreCount
+   */
+  readonly coreCount?: number;
+
+  /**
+   * Specifies the type of the disk, either SCRATCH or PERSISTENT. If not specified, the default is PERSISTENT.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigAcceleratorConfig#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigAcceleratorConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigAcceleratorConfig(obj: RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigAcceleratorConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'coreCount': obj.coreCount,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigContainerImages
+ */
+export interface RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigContainerImages {
+  /**
+   * The path to the container image repository. For example: gcr.io/{project_id}/{imageName}
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigContainerImages#repository
+   */
+  readonly repository?: string;
+
+  /**
+   * The tag of the container image. If not specified, this defaults to the latest tag.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigContainerImages#tag
+   */
+  readonly tag?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigContainerImages' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigContainerImages(obj: RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigContainerImages | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'repository': obj.repository,
+    'tag': obj.tag,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDisk
+ */
+export interface RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDisk {
+  /**
+   * Input only. Specifies the parameters for a new disk that will be created alongside the new instance. Use initialization parameters to create boot disks or local SSDs attached to the new instance. This property is mutually exclusive with the source property; you can only define one or the other, but not both. Structure is documented below.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDisk#initializeParams
+   */
+  readonly initializeParams?: RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDiskInitializeParams[];
+
+  /**
+   * "Specifies the disk interface to use for attaching this disk, which is either SCSI or NVME. The default is SCSI. Persistent disks must always use SCSI and the request will fail if you attempt to attach a persistent disk in any other format than SCSI. Local SSDs can use either NVME or SCSI. For performance characteristics of SCSI over NVMe, see Local SSD performance. Valid values: * NVME * SCSI".
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDisk#interface
+   */
+  readonly interface?: string;
+
+  /**
+   * The mode in which to attach this disk, either READ_WRITE or READ_ONLY. If not specified, the default is to attach the disk in READ_WRITE mode.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDisk#mode
+   */
+  readonly mode?: string;
+
+  /**
+   * Specifies a valid partial or full URL to an existing Persistent Disk resource.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDisk#source
+   */
+  readonly source?: string;
+
+  /**
+   * Specifies the type of the disk, either SCRATCH or PERSISTENT. If not specified, the default is PERSISTENT.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDisk#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDisk' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDisk(obj: RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDisk | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'initializeParams': obj.initializeParams?.map(y => toJson_RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDiskInitializeParams(y)),
+    'interface': obj.interface,
+    'mode': obj.mode,
+    'source': obj.source,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigEncryptionConfig
+ */
+export interface RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigEncryptionConfig {
+  /**
+   * The Cloud KMS resource identifier of the customer-managed encryption key used to protect a resource, such as a disks. It has the following format: projects/{PROJECT_ID}/locations/{REGION}/keyRings/ {KEY_RING_NAME}/cryptoKeys/{KEY_NAME}
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigEncryptionConfig#kmsKey
+   */
+  readonly kmsKey?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigEncryptionConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigEncryptionConfig(obj: RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigEncryptionConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kmsKey': obj.kmsKey,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigShieldedInstanceConfig
+ */
+export interface RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigShieldedInstanceConfig {
+  /**
+   * Defines whether the instance has integrity monitoring enabled. Enables monitoring and attestation of the boot integrity of the instance. The attestation is performed against the integrity policy baseline. This baseline is initially derived from the implicitly trusted boot image when the instance is created. Enabled by default.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigShieldedInstanceConfig#enableIntegrityMonitoring
+   */
+  readonly enableIntegrityMonitoring?: boolean;
+
+  /**
+   * Defines whether the instance has Secure Boot enabled.Secure Boot helps ensure that the system only runs authentic software by verifying the digital signature of all boot components, and halting the boot process if signature verification fails. Disabled by default.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigShieldedInstanceConfig#enableSecureBoot
+   */
+  readonly enableSecureBoot?: boolean;
+
+  /**
+   * Defines whether the instance has the vTPM enabled. Enabled by default.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigShieldedInstanceConfig#enableVtpm
+   */
+  readonly enableVtpm?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigShieldedInstanceConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigShieldedInstanceConfig(obj: RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigShieldedInstanceConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableIntegrityMonitoring': obj.enableIntegrityMonitoring,
+    'enableSecureBoot': obj.enableSecureBoot,
+    'enableVtpm': obj.enableVtpm,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema RuntimeSpecPublishConnectionDetailsToConfigRefPolicyResolution
@@ -3988,6 +4870,65 @@ export interface RuntimeSpecForProviderVirtualMachineVirtualMachineConfigDataDis
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_RuntimeSpecForProviderVirtualMachineVirtualMachineConfigDataDiskInitializeParams(obj: RuntimeSpecForProviderVirtualMachineVirtualMachineConfigDataDiskInitializeParams | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'diskName': obj.diskName,
+    'diskSizeGb': obj.diskSizeGb,
+    'diskType': obj.diskType,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDiskInitializeParams
+ */
+export interface RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDiskInitializeParams {
+  /**
+   * Provide this property when creating the disk.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDiskInitializeParams#description
+   */
+  readonly description?: string;
+
+  /**
+   * Specifies the disk name. If not specified, the default is to use the name of the instance. If the disk with the instance name exists already in the given zone/region, a new name will be automatically generated.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDiskInitializeParams#diskName
+   */
+  readonly diskName?: string;
+
+  /**
+   * Specifies the size of the disk in base-2 GB. If not specified, the disk will be the same size as the image (usually 10GB). If specified, the size must be equal to or larger than 10GB. Default 100 GB.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDiskInitializeParams#diskSizeGb
+   */
+  readonly diskSizeGb?: number;
+
+  /**
+   * The type of the boot disk attached to this runtime, defaults to standard persistent disk. For valid values, see https://cloud.google.com/vertex-ai/docs/workbench/ reference/rest/v1/projects.locations.runtimes#disktype
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDiskInitializeParams#diskType
+   */
+  readonly diskType?: string;
+
+  /**
+   * The labels to associate with this runtime. Label keys must contain 1 to 63 characters, and must conform to [RFC 1035] (https://www.ietf.org/rfc/rfc1035.txt). Label values may be empty, but, if present, must contain 1 to 63 characters, and must conform to RFC 1035. No more than 32 labels can be associated with a cluster.
+   *
+   * @schema RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDiskInitializeParams#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDiskInitializeParams' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDiskInitializeParams(obj: RuntimeSpecInitProviderVirtualMachineVirtualMachineConfigDataDiskInitializeParams | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'description': obj.description,
@@ -4098,7 +5039,7 @@ export function toJson_RuntimeIamMemberProps(obj: RuntimeIamMemberProps | undefi
  */
 export interface RuntimeIamMemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RuntimeIamMemberSpec#deletionPolicy
    */
@@ -4110,11 +5051,18 @@ export interface RuntimeIamMemberSpec {
   readonly forProvider: RuntimeIamMemberSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema RuntimeIamMemberSpec#managementPolicy
+   * @schema RuntimeIamMemberSpec#initProvider
    */
-  readonly managementPolicy?: RuntimeIamMemberSpecManagementPolicy;
+  readonly initProvider?: RuntimeIamMemberSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema RuntimeIamMemberSpec#managementPolicies
+   */
+  readonly managementPolicies?: RuntimeIamMemberSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4122,13 +5070,6 @@ export interface RuntimeIamMemberSpec {
    * @schema RuntimeIamMemberSpec#providerConfigRef
    */
   readonly providerConfigRef?: RuntimeIamMemberSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema RuntimeIamMemberSpec#providerRef
-   */
-  readonly providerRef?: RuntimeIamMemberSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -4155,9 +5096,9 @@ export function toJson_RuntimeIamMemberSpec(obj: RuntimeIamMemberSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RuntimeIamMemberSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_RuntimeIamMemberSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_RuntimeIamMemberSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_RuntimeIamMemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RuntimeIamMemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_RuntimeIamMemberSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -4167,7 +5108,7 @@ export function toJson_RuntimeIamMemberSpec(obj: RuntimeIamMemberSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RuntimeIamMemberSpecDeletionPolicy
  */
@@ -4250,17 +5191,74 @@ export function toJson_RuntimeIamMemberSpecForProvider(obj: RuntimeIamMemberSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema RuntimeIamMemberSpecManagementPolicy
+ * @schema RuntimeIamMemberSpecInitProvider
  */
-export enum RuntimeIamMemberSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface RuntimeIamMemberSpecInitProvider {
+  /**
+   * @schema RuntimeIamMemberSpecInitProvider#condition
+   */
+  readonly condition?: RuntimeIamMemberSpecInitProviderCondition[];
+
+  /**
+   * @schema RuntimeIamMemberSpecInitProvider#location
+   */
+  readonly location?: string;
+
+  /**
+   * @schema RuntimeIamMemberSpecInitProvider#member
+   */
+  readonly member?: string;
+
+  /**
+   * @schema RuntimeIamMemberSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * @schema RuntimeIamMemberSpecInitProvider#role
+   */
+  readonly role?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuntimeIamMemberSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuntimeIamMemberSpecInitProvider(obj: RuntimeIamMemberSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'condition': obj.condition?.map(y => toJson_RuntimeIamMemberSpecInitProviderCondition(y)),
+    'location': obj.location,
+    'member': obj.member,
+    'project': obj.project,
+    'role': obj.role,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema RuntimeIamMemberSpecManagementPolicies
+ */
+export enum RuntimeIamMemberSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4294,43 +5292,6 @@ export function toJson_RuntimeIamMemberSpecProviderConfigRef(obj: RuntimeIamMemb
   const result = {
     'name': obj.name,
     'policy': toJson_RuntimeIamMemberSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema RuntimeIamMemberSpecProviderRef
- */
-export interface RuntimeIamMemberSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema RuntimeIamMemberSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema RuntimeIamMemberSpecProviderRef#policy
-   */
-  readonly policy?: RuntimeIamMemberSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'RuntimeIamMemberSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RuntimeIamMemberSpecProviderRef(obj: RuntimeIamMemberSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_RuntimeIamMemberSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4431,12 +5392,12 @@ export interface RuntimeIamMemberSpecForProviderCondition {
   /**
    * @schema RuntimeIamMemberSpecForProviderCondition#expression
    */
-  readonly expression: string;
+  readonly expression?: string;
 
   /**
    * @schema RuntimeIamMemberSpecForProviderCondition#title
    */
-  readonly title: string;
+  readonly title?: string;
 
 }
 
@@ -4539,6 +5500,43 @@ export function toJson_RuntimeIamMemberSpecForProviderRuntimeNameSelector(obj: R
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RuntimeIamMemberSpecInitProviderCondition
+ */
+export interface RuntimeIamMemberSpecInitProviderCondition {
+  /**
+   * @schema RuntimeIamMemberSpecInitProviderCondition#description
+   */
+  readonly description?: string;
+
+  /**
+   * @schema RuntimeIamMemberSpecInitProviderCondition#expression
+   */
+  readonly expression?: string;
+
+  /**
+   * @schema RuntimeIamMemberSpecInitProviderCondition#title
+   */
+  readonly title?: string;
+
+}
+
+/**
+ * Converts an object of type 'RuntimeIamMemberSpecInitProviderCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RuntimeIamMemberSpecInitProviderCondition(obj: RuntimeIamMemberSpecInitProviderCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'expression': obj.expression,
+    'title': obj.title,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema RuntimeIamMemberSpecProviderConfigRefPolicy
@@ -4565,43 +5563,6 @@ export interface RuntimeIamMemberSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_RuntimeIamMemberSpecProviderConfigRefPolicy(obj: RuntimeIamMemberSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema RuntimeIamMemberSpecProviderRefPolicy
- */
-export interface RuntimeIamMemberSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema RuntimeIamMemberSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: RuntimeIamMemberSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema RuntimeIamMemberSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: RuntimeIamMemberSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'RuntimeIamMemberSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RuntimeIamMemberSpecProviderRefPolicy(obj: RuntimeIamMemberSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -4786,30 +5747,6 @@ export enum RuntimeIamMemberSpecProviderConfigRefPolicyResolution {
  * @schema RuntimeIamMemberSpecProviderConfigRefPolicyResolve
  */
 export enum RuntimeIamMemberSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema RuntimeIamMemberSpecProviderRefPolicyResolution
- */
-export enum RuntimeIamMemberSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema RuntimeIamMemberSpecProviderRefPolicyResolve
- */
-export enum RuntimeIamMemberSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

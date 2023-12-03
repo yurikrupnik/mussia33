@@ -99,7 +99,7 @@ export function toJson_ApplicationProps(obj: ApplicationProps | undefined): Reco
  */
 export interface ApplicationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ApplicationSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface ApplicationSpec {
   readonly forProvider: ApplicationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ApplicationSpec#managementPolicy
+   * @schema ApplicationSpec#initProvider
    */
-  readonly managementPolicy?: ApplicationSpecManagementPolicy;
+  readonly initProvider?: ApplicationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ApplicationSpec#managementPolicies
+   */
+  readonly managementPolicies?: ApplicationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface ApplicationSpec {
    * @schema ApplicationSpec#providerConfigRef
    */
   readonly providerConfigRef?: ApplicationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ApplicationSpec#providerRef
-   */
-  readonly providerRef?: ApplicationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_ApplicationSpec(obj: ApplicationSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ApplicationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ApplicationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ApplicationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ApplicationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ApplicationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ApplicationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_ApplicationSpec(obj: ApplicationSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ApplicationSpecDeletionPolicy
  */
@@ -351,17 +351,172 @@ export function toJson_ApplicationSpecForProvider(obj: ApplicationSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ApplicationSpecManagementPolicy
+ * @schema ApplicationSpecInitProvider
  */
-export enum ApplicationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ApplicationSpecInitProvider {
+  /**
+   * SCM configuration of the app as described below.
+   *
+   * @schema ApplicationSpecInitProvider#appSource
+   */
+  readonly appSource?: ApplicationSpecInitProviderAppSource[];
+
+  /**
+   * Run bundle install when deploying for application of type rails.
+   *
+   * @schema ApplicationSpecInitProvider#autoBundleOnDeploy
+   */
+  readonly autoBundleOnDeploy?: string;
+
+  /**
+   * Specify activity and workflow workers for your app using the aws-flow gem.
+   *
+   * @schema ApplicationSpecInitProvider#awsFlowRubySettings
+   */
+  readonly awsFlowRubySettings?: string;
+
+  /**
+   * The data source's ARN.
+   *
+   * @schema ApplicationSpecInitProvider#dataSourceArn
+   */
+  readonly dataSourceArn?: string;
+
+  /**
+   * The database name.
+   *
+   * @schema ApplicationSpecInitProvider#dataSourceDatabaseName
+   */
+  readonly dataSourceDatabaseName?: string;
+
+  /**
+   * The data source's type one of AutoSelectOpsworksMysqlInstance, OpsworksMysqlInstance, or RdsDbInstance.
+   *
+   * @schema ApplicationSpecInitProvider#dataSourceType
+   */
+  readonly dataSourceType?: string;
+
+  /**
+   * A description of the app.
+   *
+   * @schema ApplicationSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Subfolder for the document root for application of type rails.
+   *
+   * @schema ApplicationSpecInitProvider#documentRoot
+   */
+  readonly documentRoot?: string;
+
+  /**
+   * A list of virtual host alias.
+   *
+   * @schema ApplicationSpecInitProvider#domains
+   */
+  readonly domains?: string[];
+
+  /**
+   * Whether to enable SSL for the app. This must be set in order to let ssl_configuration.private_key, ssl_configuration.certificate and ssl_configuration.chain take effect.
+   *
+   * @schema ApplicationSpecInitProvider#enableSsl
+   */
+  readonly enableSsl?: boolean;
+
+  /**
+   * Object to define environment variables.  Object is described below.
+   *
+   * @schema ApplicationSpecInitProvider#environment
+   */
+  readonly environment?: ApplicationSpecInitProviderEnvironment[];
+
+  /**
+   * A human-readable name for the application.
+   *
+   * @schema ApplicationSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The name of the Rails environment for application of type rails.
+   *
+   * @schema ApplicationSpecInitProvider#railsEnv
+   */
+  readonly railsEnv?: string;
+
+  /**
+   * A short, machine-readable name for the application. This can only be defined on resource creation and ignored on resource update.
+   *
+   * @schema ApplicationSpecInitProvider#shortName
+   */
+  readonly shortName?: string;
+
+  /**
+   * The SSL configuration of the app. Object is described below.
+   *
+   * @schema ApplicationSpecInitProvider#sslConfiguration
+   */
+  readonly sslConfiguration?: ApplicationSpecInitProviderSslConfiguration[];
+
+  /**
+   * Opsworks application type. One of aws-flow-ruby, java, rails, php, nodejs, static or other.
+   *
+   * @schema ApplicationSpecInitProvider#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProvider(obj: ApplicationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'appSource': obj.appSource?.map(y => toJson_ApplicationSpecInitProviderAppSource(y)),
+    'autoBundleOnDeploy': obj.autoBundleOnDeploy,
+    'awsFlowRubySettings': obj.awsFlowRubySettings,
+    'dataSourceArn': obj.dataSourceArn,
+    'dataSourceDatabaseName': obj.dataSourceDatabaseName,
+    'dataSourceType': obj.dataSourceType,
+    'description': obj.description,
+    'documentRoot': obj.documentRoot,
+    'domains': obj.domains?.map(y => y),
+    'enableSsl': obj.enableSsl,
+    'environment': obj.environment?.map(y => toJson_ApplicationSpecInitProviderEnvironment(y)),
+    'name': obj.name,
+    'railsEnv': obj.railsEnv,
+    'shortName': obj.shortName,
+    'sslConfiguration': obj.sslConfiguration?.map(y => toJson_ApplicationSpecInitProviderSslConfiguration(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ApplicationSpecManagementPolicies
+ */
+export enum ApplicationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -395,43 +550,6 @@ export function toJson_ApplicationSpecProviderConfigRef(obj: ApplicationSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_ApplicationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ApplicationSpecProviderRef
- */
-export interface ApplicationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ApplicationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ApplicationSpecProviderRef#policy
-   */
-  readonly policy?: ApplicationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ApplicationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ApplicationSpecProviderRef(obj: ApplicationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ApplicationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -550,7 +668,7 @@ export interface ApplicationSpecForProviderAppSource {
    *
    * @schema ApplicationSpecForProviderAppSource#type
    */
-  readonly type: string;
+  readonly type?: string;
 
   /**
    * The URL where the app resource can be found.
@@ -596,7 +714,7 @@ export interface ApplicationSpecForProviderEnvironment {
    *
    * @schema ApplicationSpecForProviderEnvironment#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * Set visibility of the variable value to true or false.
@@ -610,7 +728,7 @@ export interface ApplicationSpecForProviderEnvironment {
    *
    * @schema ApplicationSpecForProviderEnvironment#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -639,7 +757,7 @@ export interface ApplicationSpecForProviderSslConfiguration {
    *
    * @schema ApplicationSpecForProviderSslConfiguration#certificate
    */
-  readonly certificate: string;
+  readonly certificate?: string;
 
   /**
    * Can be used to specify an intermediate certificate authority key or client authentication.
@@ -756,6 +874,135 @@ export function toJson_ApplicationSpecForProviderStackIdSelector(obj: Applicatio
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ApplicationSpecInitProviderAppSource
+ */
+export interface ApplicationSpecInitProviderAppSource {
+  /**
+   * For sources that are version-aware, the revision to use.
+   *
+   * @schema ApplicationSpecInitProviderAppSource#revision
+   */
+  readonly revision?: string;
+
+  /**
+   * The type of source to use. For example, "archive".
+   *
+   * @schema ApplicationSpecInitProviderAppSource#type
+   */
+  readonly type?: string;
+
+  /**
+   * The URL where the app resource can be found.
+   *
+   * @schema ApplicationSpecInitProviderAppSource#url
+   */
+  readonly url?: string;
+
+  /**
+   * Username to use when authenticating to the source.
+   *
+   * @schema ApplicationSpecInitProviderAppSource#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderAppSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderAppSource(obj: ApplicationSpecInitProviderAppSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'revision': obj.revision,
+    'type': obj.type,
+    'url': obj.url,
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderEnvironment
+ */
+export interface ApplicationSpecInitProviderEnvironment {
+  /**
+   * Variable name.
+   *
+   * @schema ApplicationSpecInitProviderEnvironment#key
+   */
+  readonly key?: string;
+
+  /**
+   * Set visibility of the variable value to true or false.
+   *
+   * @schema ApplicationSpecInitProviderEnvironment#secure
+   */
+  readonly secure?: boolean;
+
+  /**
+   * Variable value.
+   *
+   * @schema ApplicationSpecInitProviderEnvironment#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderEnvironment' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderEnvironment(obj: ApplicationSpecInitProviderEnvironment | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'secure': obj.secure,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ApplicationSpecInitProviderSslConfiguration
+ */
+export interface ApplicationSpecInitProviderSslConfiguration {
+  /**
+   * The contents of the certificate's domain.crt file.
+   *
+   * @schema ApplicationSpecInitProviderSslConfiguration#certificate
+   */
+  readonly certificate?: string;
+
+  /**
+   * Can be used to specify an intermediate certificate authority key or client authentication.
+   *
+   * @schema ApplicationSpecInitProviderSslConfiguration#chain
+   */
+  readonly chain?: string;
+
+}
+
+/**
+ * Converts an object of type 'ApplicationSpecInitProviderSslConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ApplicationSpecInitProviderSslConfiguration(obj: ApplicationSpecInitProviderSslConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificate': obj.certificate,
+    'chain': obj.chain,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ApplicationSpecProviderConfigRefPolicy
@@ -782,43 +1029,6 @@ export interface ApplicationSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ApplicationSpecProviderConfigRefPolicy(obj: ApplicationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ApplicationSpecProviderRefPolicy
- */
-export interface ApplicationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ApplicationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ApplicationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ApplicationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ApplicationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ApplicationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ApplicationSpecProviderRefPolicy(obj: ApplicationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1145,30 +1355,6 @@ export enum ApplicationSpecProviderConfigRefPolicyResolve {
 }
 
 /**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ApplicationSpecProviderRefPolicyResolution
- */
-export enum ApplicationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ApplicationSpecProviderRefPolicyResolve
- */
-export enum ApplicationSpecProviderRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
  * Policies for referencing.
  *
  * @schema ApplicationSpecPublishConnectionDetailsToConfigRefPolicy
@@ -1374,7 +1560,7 @@ export function toJson_CustomLayerProps(obj: CustomLayerProps | undefined): Reco
  */
 export interface CustomLayerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CustomLayerSpec#deletionPolicy
    */
@@ -1386,11 +1572,18 @@ export interface CustomLayerSpec {
   readonly forProvider: CustomLayerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema CustomLayerSpec#managementPolicy
+   * @schema CustomLayerSpec#initProvider
    */
-  readonly managementPolicy?: CustomLayerSpecManagementPolicy;
+  readonly initProvider?: CustomLayerSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema CustomLayerSpec#managementPolicies
+   */
+  readonly managementPolicies?: CustomLayerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1398,13 +1591,6 @@ export interface CustomLayerSpec {
    * @schema CustomLayerSpec#providerConfigRef
    */
   readonly providerConfigRef?: CustomLayerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema CustomLayerSpec#providerRef
-   */
-  readonly providerRef?: CustomLayerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1431,9 +1617,9 @@ export function toJson_CustomLayerSpec(obj: CustomLayerSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CustomLayerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_CustomLayerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_CustomLayerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_CustomLayerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CustomLayerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_CustomLayerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1443,7 +1629,7 @@ export function toJson_CustomLayerSpec(obj: CustomLayerSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CustomLayerSpecDeletionPolicy
  */
@@ -1688,17 +1874,210 @@ export function toJson_CustomLayerSpecForProvider(obj: CustomLayerSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema CustomLayerSpecManagementPolicy
+ * @schema CustomLayerSpecInitProvider
  */
-export enum CustomLayerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface CustomLayerSpecInitProvider {
+  /**
+   * Whether to automatically assign an elastic IP address to the layer's instances.
+   *
+   * @schema CustomLayerSpecInitProvider#autoAssignElasticIps
+   */
+  readonly autoAssignElasticIps?: boolean;
+
+  /**
+   * For stacks belonging to a VPC, whether to automatically assign a public IP address to each of the layer's instances.
+   *
+   * @schema CustomLayerSpecInitProvider#autoAssignPublicIps
+   */
+  readonly autoAssignPublicIps?: boolean;
+
+  /**
+   * Whether to enable auto-healing for the layer.
+   *
+   * @schema CustomLayerSpecInitProvider#autoHealing
+   */
+  readonly autoHealing?: boolean;
+
+  /**
+   * Will create an EBS volume and connect it to the layer's instances. See Cloudwatch Configuration.
+   *
+   * @schema CustomLayerSpecInitProvider#cloudwatchConfiguration
+   */
+  readonly cloudwatchConfiguration?: CustomLayerSpecInitProviderCloudwatchConfiguration[];
+
+  /**
+   * @schema CustomLayerSpecInitProvider#customConfigureRecipes
+   */
+  readonly customConfigureRecipes?: string[];
+
+  /**
+   * @schema CustomLayerSpecInitProvider#customDeployRecipes
+   */
+  readonly customDeployRecipes?: string[];
+
+  /**
+   * The ARN of an IAM profile that will be used for the layer's instances.
+   *
+   * @schema CustomLayerSpecInitProvider#customInstanceProfileArn
+   */
+  readonly customInstanceProfileArn?: string;
+
+  /**
+   * Custom JSON attributes to apply to the layer.
+   *
+   * @schema CustomLayerSpecInitProvider#customJson
+   */
+  readonly customJson?: string;
+
+  /**
+   * @schema CustomLayerSpecInitProvider#customSetupRecipes
+   */
+  readonly customSetupRecipes?: string[];
+
+  /**
+   * @schema CustomLayerSpecInitProvider#customShutdownRecipes
+   */
+  readonly customShutdownRecipes?: string[];
+
+  /**
+   * @schema CustomLayerSpecInitProvider#customUndeployRecipes
+   */
+  readonly customUndeployRecipes?: string[];
+
+  /**
+   * Whether to enable Elastic Load Balancing connection draining.
+   *
+   * @schema CustomLayerSpecInitProvider#drainElbOnShutdown
+   */
+  readonly drainElbOnShutdown?: boolean;
+
+  /**
+   * Will create an EBS volume and connect it to the layer's instances. See EBS Volume.
+   *
+   * @schema CustomLayerSpecInitProvider#ebsVolume
+   */
+  readonly ebsVolume?: CustomLayerSpecInitProviderEbsVolume[];
+
+  /**
+   * Name of an Elastic Load Balancer to attach to this layer
+   *
+   * @schema CustomLayerSpecInitProvider#elasticLoadBalancer
+   */
+  readonly elasticLoadBalancer?: string;
+
+  /**
+   * Whether to install OS and package updates on each instance when it boots.
+   *
+   * @schema CustomLayerSpecInitProvider#installUpdatesOnBoot
+   */
+  readonly installUpdatesOnBoot?: boolean;
+
+  /**
+   * The time, in seconds, that OpsWorks will wait for Chef to complete after triggering the Shutdown event.
+   *
+   * @schema CustomLayerSpecInitProvider#instanceShutdownTimeout
+   */
+  readonly instanceShutdownTimeout?: number;
+
+  /**
+   * Load-based auto scaling configuration. See Load Based AutoScaling
+   *
+   * @schema CustomLayerSpecInitProvider#loadBasedAutoScaling
+   */
+  readonly loadBasedAutoScaling?: CustomLayerSpecInitProviderLoadBasedAutoScaling[];
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema CustomLayerSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * A short, machine-readable name for the layer, which will be used to identify it in the Chef node JSON.
+   *
+   * @schema CustomLayerSpecInitProvider#shortName
+   */
+  readonly shortName?: string;
+
+  /**
+   * Names of a set of system packages to install on the layer's instances.
+   *
+   * @schema CustomLayerSpecInitProvider#systemPackages
+   */
+  readonly systemPackages?: string[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema CustomLayerSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Whether to use EBS-optimized instances.
+   *
+   * @schema CustomLayerSpecInitProvider#useEbsOptimizedInstances
+   */
+  readonly useEbsOptimizedInstances?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'CustomLayerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CustomLayerSpecInitProvider(obj: CustomLayerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoAssignElasticIps': obj.autoAssignElasticIps,
+    'autoAssignPublicIps': obj.autoAssignPublicIps,
+    'autoHealing': obj.autoHealing,
+    'cloudwatchConfiguration': obj.cloudwatchConfiguration?.map(y => toJson_CustomLayerSpecInitProviderCloudwatchConfiguration(y)),
+    'customConfigureRecipes': obj.customConfigureRecipes?.map(y => y),
+    'customDeployRecipes': obj.customDeployRecipes?.map(y => y),
+    'customInstanceProfileArn': obj.customInstanceProfileArn,
+    'customJson': obj.customJson,
+    'customSetupRecipes': obj.customSetupRecipes?.map(y => y),
+    'customShutdownRecipes': obj.customShutdownRecipes?.map(y => y),
+    'customUndeployRecipes': obj.customUndeployRecipes?.map(y => y),
+    'drainElbOnShutdown': obj.drainElbOnShutdown,
+    'ebsVolume': obj.ebsVolume?.map(y => toJson_CustomLayerSpecInitProviderEbsVolume(y)),
+    'elasticLoadBalancer': obj.elasticLoadBalancer,
+    'installUpdatesOnBoot': obj.installUpdatesOnBoot,
+    'instanceShutdownTimeout': obj.instanceShutdownTimeout,
+    'loadBasedAutoScaling': obj.loadBasedAutoScaling?.map(y => toJson_CustomLayerSpecInitProviderLoadBasedAutoScaling(y)),
+    'name': obj.name,
+    'shortName': obj.shortName,
+    'systemPackages': obj.systemPackages?.map(y => y),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'useEbsOptimizedInstances': obj.useEbsOptimizedInstances,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema CustomLayerSpecManagementPolicies
+ */
+export enum CustomLayerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1732,43 +2111,6 @@ export function toJson_CustomLayerSpecProviderConfigRef(obj: CustomLayerSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_CustomLayerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema CustomLayerSpecProviderRef
- */
-export interface CustomLayerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema CustomLayerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema CustomLayerSpecProviderRef#policy
-   */
-  readonly policy?: CustomLayerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'CustomLayerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CustomLayerSpecProviderRef(obj: CustomLayerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_CustomLayerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1995,14 +2337,14 @@ export interface CustomLayerSpecForProviderEbsVolume {
    *
    * @schema CustomLayerSpecForProviderEbsVolume#mountPoint
    */
-  readonly mountPoint: string;
+  readonly mountPoint?: string;
 
   /**
    * The number of disks to use for the EBS volume.
    *
    * @schema CustomLayerSpecForProviderEbsVolume#numberOfDisks
    */
-  readonly numberOfDisks: number;
+  readonly numberOfDisks?: number;
 
   /**
    * The RAID level to use for the volume.
@@ -2016,7 +2358,7 @@ export interface CustomLayerSpecForProviderEbsVolume {
    *
    * @schema CustomLayerSpecForProviderEbsVolume#size
    */
-  readonly size: number;
+  readonly size?: number;
 
   /**
    * The type of volume to create. This may be standard (the default), io1 or gp2.
@@ -2173,6 +2515,157 @@ export function toJson_CustomLayerSpecForProviderStackIdSelector(obj: CustomLaye
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema CustomLayerSpecInitProviderCloudwatchConfiguration
+ */
+export interface CustomLayerSpecInitProviderCloudwatchConfiguration {
+  /**
+   * @schema CustomLayerSpecInitProviderCloudwatchConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * A block the specifies how an opsworks logs look like. See Log Streams.
+   *
+   * @schema CustomLayerSpecInitProviderCloudwatchConfiguration#logStreams
+   */
+  readonly logStreams?: CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams[];
+
+}
+
+/**
+ * Converts an object of type 'CustomLayerSpecInitProviderCloudwatchConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CustomLayerSpecInitProviderCloudwatchConfiguration(obj: CustomLayerSpecInitProviderCloudwatchConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logStreams': obj.logStreams?.map(y => toJson_CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CustomLayerSpecInitProviderEbsVolume
+ */
+export interface CustomLayerSpecInitProviderEbsVolume {
+  /**
+   * Encrypt the volume.
+   *
+   * @schema CustomLayerSpecInitProviderEbsVolume#encrypted
+   */
+  readonly encrypted?: boolean;
+
+  /**
+   * For PIOPS volumes, the IOPS per disk.
+   *
+   * @schema CustomLayerSpecInitProviderEbsVolume#iops
+   */
+  readonly iops?: number;
+
+  /**
+   * The path to mount the EBS volume on the layer's instances.
+   *
+   * @schema CustomLayerSpecInitProviderEbsVolume#mountPoint
+   */
+  readonly mountPoint?: string;
+
+  /**
+   * The number of disks to use for the EBS volume.
+   *
+   * @schema CustomLayerSpecInitProviderEbsVolume#numberOfDisks
+   */
+  readonly numberOfDisks?: number;
+
+  /**
+   * The RAID level to use for the volume.
+   *
+   * @schema CustomLayerSpecInitProviderEbsVolume#raidLevel
+   */
+  readonly raidLevel?: string;
+
+  /**
+   * The size of the volume in gigabytes.
+   *
+   * @schema CustomLayerSpecInitProviderEbsVolume#size
+   */
+  readonly size?: number;
+
+  /**
+   * The type of volume to create. This may be standard (the default), io1 or gp2.
+   *
+   * @schema CustomLayerSpecInitProviderEbsVolume#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'CustomLayerSpecInitProviderEbsVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CustomLayerSpecInitProviderEbsVolume(obj: CustomLayerSpecInitProviderEbsVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'encrypted': obj.encrypted,
+    'iops': obj.iops,
+    'mountPoint': obj.mountPoint,
+    'numberOfDisks': obj.numberOfDisks,
+    'raidLevel': obj.raidLevel,
+    'size': obj.size,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CustomLayerSpecInitProviderLoadBasedAutoScaling
+ */
+export interface CustomLayerSpecInitProviderLoadBasedAutoScaling {
+  /**
+   * The downscaling settings, as defined below, used for load-based autoscaling
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScaling#downscaling
+   */
+  readonly downscaling?: CustomLayerSpecInitProviderLoadBasedAutoScalingDownscaling[];
+
+  /**
+   * Whether load-based auto scaling is enabled for the layer.
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScaling#enable
+   */
+  readonly enable?: boolean;
+
+  /**
+   * The upscaling settings, as defined below, used for load-based autoscaling
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScaling#upscaling
+   */
+  readonly upscaling?: CustomLayerSpecInitProviderLoadBasedAutoScalingUpscaling[];
+
+}
+
+/**
+ * Converts an object of type 'CustomLayerSpecInitProviderLoadBasedAutoScaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CustomLayerSpecInitProviderLoadBasedAutoScaling(obj: CustomLayerSpecInitProviderLoadBasedAutoScaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'downscaling': obj.downscaling?.map(y => toJson_CustomLayerSpecInitProviderLoadBasedAutoScalingDownscaling(y)),
+    'enable': obj.enable,
+    'upscaling': obj.upscaling?.map(y => toJson_CustomLayerSpecInitProviderLoadBasedAutoScalingUpscaling(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema CustomLayerSpecProviderConfigRefPolicy
@@ -2199,43 +2692,6 @@ export interface CustomLayerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CustomLayerSpecProviderConfigRefPolicy(obj: CustomLayerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema CustomLayerSpecProviderRefPolicy
- */
-export interface CustomLayerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema CustomLayerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: CustomLayerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema CustomLayerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: CustomLayerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'CustomLayerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CustomLayerSpecProviderRefPolicy(obj: CustomLayerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2372,7 +2828,7 @@ export interface CustomLayerSpecForProviderCloudwatchConfigurationLogStreams {
    *
    * @schema CustomLayerSpecForProviderCloudwatchConfigurationLogStreams#file
    */
-  readonly file: string;
+  readonly file?: string;
 
   /**
    * Specifies the range of lines for identifying a file. The valid values are one number, or two dash-delimited numbers, such as 1, 2-5. The default value is 1.
@@ -2393,7 +2849,7 @@ export interface CustomLayerSpecForProviderCloudwatchConfigurationLogStreams {
    *
    * @schema CustomLayerSpecForProviderCloudwatchConfigurationLogStreams#logGroupName
    */
-  readonly logGroupName: string;
+  readonly logGroupName?: string;
 
   /**
    * Specifies the pattern for identifying the start of a log message.
@@ -2734,6 +3190,263 @@ export function toJson_CustomLayerSpecForProviderStackIdSelectorPolicy(obj: Cust
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams
+ */
+export interface CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams {
+  /**
+   * Specifies the max number of log events in a batch, up to 10000. The default value is 1000.
+   *
+   * @schema CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchCount
+   */
+  readonly batchCount?: number;
+
+  /**
+   * Specifies the maximum size of log events in a batch, in bytes, up to 1048576 bytes. The default value is 32768 bytes.
+   *
+   * @schema CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchSize
+   */
+  readonly batchSize?: number;
+
+  /**
+   * Specifies the time duration for the batching of log events. The minimum value is 5000 and default value is 5000.
+   *
+   * @schema CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams#bufferDuration
+   */
+  readonly bufferDuration?: number;
+
+  /**
+   * Specifies how the timestamp is extracted from logs. For more information, see the CloudWatch Logs Agent Reference (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/AgentReference.html).
+   *
+   * @schema CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams#datetimeFormat
+   */
+  readonly datetimeFormat?: string;
+
+  /**
+   * Specifies the encoding of the log file so that the file can be read correctly. The default is utf_8.
+   *
+   * @schema CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams#encoding
+   */
+  readonly encoding?: string;
+
+  /**
+   * Specifies log files that you want to push to CloudWatch Logs. File can point to a specific file or multiple files (by using wild card characters such as /var/log/system.log*).
+   *
+   * @schema CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams#file
+   */
+  readonly file?: string;
+
+  /**
+   * Specifies the range of lines for identifying a file. The valid values are one number, or two dash-delimited numbers, such as 1, 2-5. The default value is 1.
+   *
+   * @schema CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
+   */
+  readonly fileFingerprintLines?: string;
+
+  /**
+   * Specifies where to start to read data (start_of_file or end_of_file). The default is start_of_file.
+   *
+   * @schema CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams#initialPosition
+   */
+  readonly initialPosition?: string;
+
+  /**
+   * Specifies the destination log group. A log group is created automatically if it doesn't already exist.
+   *
+   * @schema CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * Specifies the pattern for identifying the start of a log message.
+   *
+   * @schema CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams#multilineStartPattern
+   */
+  readonly multilineStartPattern?: string;
+
+  /**
+   * Specifies the time zone of log event time stamps.
+   *
+   * @schema CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams#timeZone
+   */
+  readonly timeZone?: string;
+
+}
+
+/**
+ * Converts an object of type 'CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams(obj: CustomLayerSpecInitProviderCloudwatchConfigurationLogStreams | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'batchCount': obj.batchCount,
+    'batchSize': obj.batchSize,
+    'bufferDuration': obj.bufferDuration,
+    'datetimeFormat': obj.datetimeFormat,
+    'encoding': obj.encoding,
+    'file': obj.file,
+    'fileFingerprintLines': obj.fileFingerprintLines,
+    'initialPosition': obj.initialPosition,
+    'logGroupName': obj.logGroupName,
+    'multilineStartPattern': obj.multilineStartPattern,
+    'timeZone': obj.timeZone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CustomLayerSpecInitProviderLoadBasedAutoScalingDownscaling
+ */
+export interface CustomLayerSpecInitProviderLoadBasedAutoScalingDownscaling {
+  /**
+   * Custom Cloudwatch auto scaling alarms, to be used as thresholds. This parameter takes a list of up to five alarm names, which are case sensitive and must be in the same region as the stack.
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScalingDownscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * The CPU utilization threshold, as a percent of the available CPU. A value of -1 disables the threshold.
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScalingDownscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * The amount of time (in minutes) after a scaling event occurs that AWS OpsWorks Stacks should ignore metrics and suppress additional scaling events.
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScalingDownscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * The number of instances to add or remove when the load exceeds a threshold.
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScalingDownscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * The load threshold. A value of -1 disables the threshold.
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScalingDownscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * The memory utilization threshold, as a percent of the available memory. A value of -1 disables the threshold.
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScalingDownscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * The amount of time, in minutes, that the load must exceed a threshold before more instances are added or removed.
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScalingDownscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'CustomLayerSpecInitProviderLoadBasedAutoScalingDownscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CustomLayerSpecInitProviderLoadBasedAutoScalingDownscaling(obj: CustomLayerSpecInitProviderLoadBasedAutoScalingDownscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CustomLayerSpecInitProviderLoadBasedAutoScalingUpscaling
+ */
+export interface CustomLayerSpecInitProviderLoadBasedAutoScalingUpscaling {
+  /**
+   * Custom Cloudwatch auto scaling alarms, to be used as thresholds. This parameter takes a list of up to five alarm names, which are case sensitive and must be in the same region as the stack.
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScalingUpscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * The CPU utilization threshold, as a percent of the available CPU. A value of -1 disables the threshold.
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScalingUpscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * The amount of time (in minutes) after a scaling event occurs that AWS OpsWorks Stacks should ignore metrics and suppress additional scaling events.
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScalingUpscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * The number of instances to add or remove when the load exceeds a threshold.
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScalingUpscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * The load threshold. A value of -1 disables the threshold.
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScalingUpscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * The memory utilization threshold, as a percent of the available memory. A value of -1 disables the threshold.
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScalingUpscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * The amount of time, in minutes, that the load must exceed a threshold before more instances are added or removed.
+   *
+   * @schema CustomLayerSpecInitProviderLoadBasedAutoScalingUpscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'CustomLayerSpecInitProviderLoadBasedAutoScalingUpscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CustomLayerSpecInitProviderLoadBasedAutoScalingUpscaling(obj: CustomLayerSpecInitProviderLoadBasedAutoScalingUpscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema CustomLayerSpecProviderConfigRefPolicyResolution
@@ -2751,30 +3464,6 @@ export enum CustomLayerSpecProviderConfigRefPolicyResolution {
  * @schema CustomLayerSpecProviderConfigRefPolicyResolve
  */
 export enum CustomLayerSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema CustomLayerSpecProviderRefPolicyResolution
- */
-export enum CustomLayerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema CustomLayerSpecProviderRefPolicyResolve
- */
-export enum CustomLayerSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3035,7 +3724,7 @@ export function toJson_EcsClusterLayerProps(obj: EcsClusterLayerProps | undefine
  */
 export interface EcsClusterLayerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema EcsClusterLayerSpec#deletionPolicy
    */
@@ -3047,11 +3736,18 @@ export interface EcsClusterLayerSpec {
   readonly forProvider: EcsClusterLayerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema EcsClusterLayerSpec#managementPolicy
+   * @schema EcsClusterLayerSpec#initProvider
    */
-  readonly managementPolicy?: EcsClusterLayerSpecManagementPolicy;
+  readonly initProvider?: EcsClusterLayerSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema EcsClusterLayerSpec#managementPolicies
+   */
+  readonly managementPolicies?: EcsClusterLayerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3059,13 +3755,6 @@ export interface EcsClusterLayerSpec {
    * @schema EcsClusterLayerSpec#providerConfigRef
    */
   readonly providerConfigRef?: EcsClusterLayerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema EcsClusterLayerSpec#providerRef
-   */
-  readonly providerRef?: EcsClusterLayerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3092,9 +3781,9 @@ export function toJson_EcsClusterLayerSpec(obj: EcsClusterLayerSpec | undefined)
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_EcsClusterLayerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_EcsClusterLayerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_EcsClusterLayerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_EcsClusterLayerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_EcsClusterLayerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_EcsClusterLayerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3104,7 +3793,7 @@ export function toJson_EcsClusterLayerSpec(obj: EcsClusterLayerSpec | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema EcsClusterLayerSpecDeletionPolicy
  */
@@ -3361,17 +4050,198 @@ export function toJson_EcsClusterLayerSpecForProvider(obj: EcsClusterLayerSpecFo
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema EcsClusterLayerSpecManagementPolicy
+ * @schema EcsClusterLayerSpecInitProvider
  */
-export enum EcsClusterLayerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface EcsClusterLayerSpecInitProvider {
+  /**
+   * Whether to automatically assign an elastic IP address to the layer's instances.
+   *
+   * @schema EcsClusterLayerSpecInitProvider#autoAssignElasticIps
+   */
+  readonly autoAssignElasticIps?: boolean;
+
+  /**
+   * For stacks belonging to a VPC, whether to automatically assign a public IP address to each of the layer's instances.
+   *
+   * @schema EcsClusterLayerSpecInitProvider#autoAssignPublicIps
+   */
+  readonly autoAssignPublicIps?: boolean;
+
+  /**
+   * Whether to enable auto-healing for the layer.
+   *
+   * @schema EcsClusterLayerSpecInitProvider#autoHealing
+   */
+  readonly autoHealing?: boolean;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProvider#cloudwatchConfiguration
+   */
+  readonly cloudwatchConfiguration?: EcsClusterLayerSpecInitProviderCloudwatchConfiguration[];
+
+  /**
+   * @schema EcsClusterLayerSpecInitProvider#customConfigureRecipes
+   */
+  readonly customConfigureRecipes?: string[];
+
+  /**
+   * @schema EcsClusterLayerSpecInitProvider#customDeployRecipes
+   */
+  readonly customDeployRecipes?: string[];
+
+  /**
+   * The ARN of an IAM profile that will be used for the layer's instances.
+   *
+   * @schema EcsClusterLayerSpecInitProvider#customInstanceProfileArn
+   */
+  readonly customInstanceProfileArn?: string;
+
+  /**
+   * Custom JSON attributes to apply to the layer.
+   *
+   * @schema EcsClusterLayerSpecInitProvider#customJson
+   */
+  readonly customJson?: string;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProvider#customSetupRecipes
+   */
+  readonly customSetupRecipes?: string[];
+
+  /**
+   * @schema EcsClusterLayerSpecInitProvider#customShutdownRecipes
+   */
+  readonly customShutdownRecipes?: string[];
+
+  /**
+   * @schema EcsClusterLayerSpecInitProvider#customUndeployRecipes
+   */
+  readonly customUndeployRecipes?: string[];
+
+  /**
+   * Whether to enable Elastic Load Balancing connection draining.
+   *
+   * @schema EcsClusterLayerSpecInitProvider#drainElbOnShutdown
+   */
+  readonly drainElbOnShutdown?: boolean;
+
+  /**
+   * ebs_volume blocks, as described below, will each create an EBS volume and connect it to the layer's instances.
+   *
+   * @schema EcsClusterLayerSpecInitProvider#ebsVolume
+   */
+  readonly ebsVolume?: EcsClusterLayerSpecInitProviderEbsVolume[];
+
+  /**
+   * Name of an Elastic Load Balancer to attach to this layer
+   *
+   * @schema EcsClusterLayerSpecInitProvider#elasticLoadBalancer
+   */
+  readonly elasticLoadBalancer?: string;
+
+  /**
+   * Whether to install OS and package updates on each instance when it boots.
+   *
+   * @schema EcsClusterLayerSpecInitProvider#installUpdatesOnBoot
+   */
+  readonly installUpdatesOnBoot?: boolean;
+
+  /**
+   * The time, in seconds, that OpsWorks will wait for Chef to complete after triggering the Shutdown event.
+   *
+   * @schema EcsClusterLayerSpecInitProvider#instanceShutdownTimeout
+   */
+  readonly instanceShutdownTimeout?: number;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProvider#loadBasedAutoScaling
+   */
+  readonly loadBasedAutoScaling?: EcsClusterLayerSpecInitProviderLoadBasedAutoScaling[];
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema EcsClusterLayerSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Names of a set of system packages to install on the layer's instances.
+   *
+   * @schema EcsClusterLayerSpecInitProvider#systemPackages
+   */
+  readonly systemPackages?: string[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema EcsClusterLayerSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Whether to use EBS-optimized instances.
+   *
+   * @schema EcsClusterLayerSpecInitProvider#useEbsOptimizedInstances
+   */
+  readonly useEbsOptimizedInstances?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'EcsClusterLayerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EcsClusterLayerSpecInitProvider(obj: EcsClusterLayerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoAssignElasticIps': obj.autoAssignElasticIps,
+    'autoAssignPublicIps': obj.autoAssignPublicIps,
+    'autoHealing': obj.autoHealing,
+    'cloudwatchConfiguration': obj.cloudwatchConfiguration?.map(y => toJson_EcsClusterLayerSpecInitProviderCloudwatchConfiguration(y)),
+    'customConfigureRecipes': obj.customConfigureRecipes?.map(y => y),
+    'customDeployRecipes': obj.customDeployRecipes?.map(y => y),
+    'customInstanceProfileArn': obj.customInstanceProfileArn,
+    'customJson': obj.customJson,
+    'customSetupRecipes': obj.customSetupRecipes?.map(y => y),
+    'customShutdownRecipes': obj.customShutdownRecipes?.map(y => y),
+    'customUndeployRecipes': obj.customUndeployRecipes?.map(y => y),
+    'drainElbOnShutdown': obj.drainElbOnShutdown,
+    'ebsVolume': obj.ebsVolume?.map(y => toJson_EcsClusterLayerSpecInitProviderEbsVolume(y)),
+    'elasticLoadBalancer': obj.elasticLoadBalancer,
+    'installUpdatesOnBoot': obj.installUpdatesOnBoot,
+    'instanceShutdownTimeout': obj.instanceShutdownTimeout,
+    'loadBasedAutoScaling': obj.loadBasedAutoScaling?.map(y => toJson_EcsClusterLayerSpecInitProviderLoadBasedAutoScaling(y)),
+    'name': obj.name,
+    'systemPackages': obj.systemPackages?.map(y => y),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'useEbsOptimizedInstances': obj.useEbsOptimizedInstances,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema EcsClusterLayerSpecManagementPolicies
+ */
+export enum EcsClusterLayerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3405,43 +4275,6 @@ export function toJson_EcsClusterLayerSpecProviderConfigRef(obj: EcsClusterLayer
   const result = {
     'name': obj.name,
     'policy': toJson_EcsClusterLayerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema EcsClusterLayerSpecProviderRef
- */
-export interface EcsClusterLayerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema EcsClusterLayerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema EcsClusterLayerSpecProviderRef#policy
-   */
-  readonly policy?: EcsClusterLayerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'EcsClusterLayerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_EcsClusterLayerSpecProviderRef(obj: EcsClusterLayerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_EcsClusterLayerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3664,14 +4497,14 @@ export interface EcsClusterLayerSpecForProviderEbsVolume {
    *
    * @schema EcsClusterLayerSpecForProviderEbsVolume#mountPoint
    */
-  readonly mountPoint: string;
+  readonly mountPoint?: string;
 
   /**
    * The number of disks to use for the EBS volume.
    *
    * @schema EcsClusterLayerSpecForProviderEbsVolume#numberOfDisks
    */
-  readonly numberOfDisks: number;
+  readonly numberOfDisks?: number;
 
   /**
    * The RAID level to use for the volume.
@@ -3685,7 +4518,7 @@ export interface EcsClusterLayerSpecForProviderEbsVolume {
    *
    * @schema EcsClusterLayerSpecForProviderEbsVolume#size
    */
-  readonly size: number;
+  readonly size?: number;
 
   /**
    * The type of volume to create. This may be standard (the default), io1 or gp2.
@@ -3918,6 +4751,147 @@ export function toJson_EcsClusterLayerSpecForProviderStackIdSelector(obj: EcsClu
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema EcsClusterLayerSpecInitProviderCloudwatchConfiguration
+ */
+export interface EcsClusterLayerSpecInitProviderCloudwatchConfiguration {
+  /**
+   * @schema EcsClusterLayerSpecInitProviderCloudwatchConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderCloudwatchConfiguration#logStreams
+   */
+  readonly logStreams?: EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams[];
+
+}
+
+/**
+ * Converts an object of type 'EcsClusterLayerSpecInitProviderCloudwatchConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EcsClusterLayerSpecInitProviderCloudwatchConfiguration(obj: EcsClusterLayerSpecInitProviderCloudwatchConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logStreams': obj.logStreams?.map(y => toJson_EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EcsClusterLayerSpecInitProviderEbsVolume
+ */
+export interface EcsClusterLayerSpecInitProviderEbsVolume {
+  /**
+   * @schema EcsClusterLayerSpecInitProviderEbsVolume#encrypted
+   */
+  readonly encrypted?: boolean;
+
+  /**
+   * For PIOPS volumes, the IOPS per disk.
+   *
+   * @schema EcsClusterLayerSpecInitProviderEbsVolume#iops
+   */
+  readonly iops?: number;
+
+  /**
+   * The path to mount the EBS volume on the layer's instances.
+   *
+   * @schema EcsClusterLayerSpecInitProviderEbsVolume#mountPoint
+   */
+  readonly mountPoint?: string;
+
+  /**
+   * The number of disks to use for the EBS volume.
+   *
+   * @schema EcsClusterLayerSpecInitProviderEbsVolume#numberOfDisks
+   */
+  readonly numberOfDisks?: number;
+
+  /**
+   * The RAID level to use for the volume.
+   *
+   * @schema EcsClusterLayerSpecInitProviderEbsVolume#raidLevel
+   */
+  readonly raidLevel?: string;
+
+  /**
+   * The size of the volume in gigabytes.
+   *
+   * @schema EcsClusterLayerSpecInitProviderEbsVolume#size
+   */
+  readonly size?: number;
+
+  /**
+   * The type of volume to create. This may be standard (the default), io1 or gp2.
+   *
+   * @schema EcsClusterLayerSpecInitProviderEbsVolume#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'EcsClusterLayerSpecInitProviderEbsVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EcsClusterLayerSpecInitProviderEbsVolume(obj: EcsClusterLayerSpecInitProviderEbsVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'encrypted': obj.encrypted,
+    'iops': obj.iops,
+    'mountPoint': obj.mountPoint,
+    'numberOfDisks': obj.numberOfDisks,
+    'raidLevel': obj.raidLevel,
+    'size': obj.size,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScaling
+ */
+export interface EcsClusterLayerSpecInitProviderLoadBasedAutoScaling {
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScaling#downscaling
+   */
+  readonly downscaling?: EcsClusterLayerSpecInitProviderLoadBasedAutoScalingDownscaling[];
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScaling#enable
+   */
+  readonly enable?: boolean;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScaling#upscaling
+   */
+  readonly upscaling?: EcsClusterLayerSpecInitProviderLoadBasedAutoScalingUpscaling[];
+
+}
+
+/**
+ * Converts an object of type 'EcsClusterLayerSpecInitProviderLoadBasedAutoScaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EcsClusterLayerSpecInitProviderLoadBasedAutoScaling(obj: EcsClusterLayerSpecInitProviderLoadBasedAutoScaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'downscaling': obj.downscaling?.map(y => toJson_EcsClusterLayerSpecInitProviderLoadBasedAutoScalingDownscaling(y)),
+    'enable': obj.enable,
+    'upscaling': obj.upscaling?.map(y => toJson_EcsClusterLayerSpecInitProviderLoadBasedAutoScalingUpscaling(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema EcsClusterLayerSpecProviderConfigRefPolicy
@@ -3944,43 +4918,6 @@ export interface EcsClusterLayerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_EcsClusterLayerSpecProviderConfigRefPolicy(obj: EcsClusterLayerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema EcsClusterLayerSpecProviderRefPolicy
- */
-export interface EcsClusterLayerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema EcsClusterLayerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: EcsClusterLayerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema EcsClusterLayerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: EcsClusterLayerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'EcsClusterLayerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_EcsClusterLayerSpecProviderRefPolicy(obj: EcsClusterLayerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -4105,7 +5042,7 @@ export interface EcsClusterLayerSpecForProviderCloudwatchConfigurationLogStreams
   /**
    * @schema EcsClusterLayerSpecForProviderCloudwatchConfigurationLogStreams#file
    */
-  readonly file: string;
+  readonly file?: string;
 
   /**
    * @schema EcsClusterLayerSpecForProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
@@ -4122,7 +5059,7 @@ export interface EcsClusterLayerSpecForProviderCloudwatchConfigurationLogStreams
    *
    * @schema EcsClusterLayerSpecForProviderCloudwatchConfigurationLogStreams#logGroupName
    */
-  readonly logGroupName: string;
+  readonly logGroupName?: string;
 
   /**
    * @schema EcsClusterLayerSpecForProviderCloudwatchConfigurationLogStreams#multilineStartPattern
@@ -4505,6 +5442,215 @@ export function toJson_EcsClusterLayerSpecForProviderStackIdSelectorPolicy(obj: 
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams
+ */
+export interface EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams {
+  /**
+   * @schema EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchCount
+   */
+  readonly batchCount?: number;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchSize
+   */
+  readonly batchSize?: number;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams#bufferDuration
+   */
+  readonly bufferDuration?: number;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams#datetimeFormat
+   */
+  readonly datetimeFormat?: string;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams#encoding
+   */
+  readonly encoding?: string;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams#file
+   */
+  readonly file?: string;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
+   */
+  readonly fileFingerprintLines?: string;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams#initialPosition
+   */
+  readonly initialPosition?: string;
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams#multilineStartPattern
+   */
+  readonly multilineStartPattern?: string;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams#timeZone
+   */
+  readonly timeZone?: string;
+
+}
+
+/**
+ * Converts an object of type 'EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams(obj: EcsClusterLayerSpecInitProviderCloudwatchConfigurationLogStreams | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'batchCount': obj.batchCount,
+    'batchSize': obj.batchSize,
+    'bufferDuration': obj.bufferDuration,
+    'datetimeFormat': obj.datetimeFormat,
+    'encoding': obj.encoding,
+    'file': obj.file,
+    'fileFingerprintLines': obj.fileFingerprintLines,
+    'initialPosition': obj.initialPosition,
+    'logGroupName': obj.logGroupName,
+    'multilineStartPattern': obj.multilineStartPattern,
+    'timeZone': obj.timeZone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScalingDownscaling
+ */
+export interface EcsClusterLayerSpecInitProviderLoadBasedAutoScalingDownscaling {
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScalingDownscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScalingDownscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScalingDownscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScalingDownscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScalingDownscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScalingDownscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScalingDownscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'EcsClusterLayerSpecInitProviderLoadBasedAutoScalingDownscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EcsClusterLayerSpecInitProviderLoadBasedAutoScalingDownscaling(obj: EcsClusterLayerSpecInitProviderLoadBasedAutoScalingDownscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScalingUpscaling
+ */
+export interface EcsClusterLayerSpecInitProviderLoadBasedAutoScalingUpscaling {
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScalingUpscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScalingUpscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScalingUpscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScalingUpscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScalingUpscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScalingUpscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema EcsClusterLayerSpecInitProviderLoadBasedAutoScalingUpscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'EcsClusterLayerSpecInitProviderLoadBasedAutoScalingUpscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EcsClusterLayerSpecInitProviderLoadBasedAutoScalingUpscaling(obj: EcsClusterLayerSpecInitProviderLoadBasedAutoScalingUpscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema EcsClusterLayerSpecProviderConfigRefPolicyResolution
@@ -4522,30 +5668,6 @@ export enum EcsClusterLayerSpecProviderConfigRefPolicyResolution {
  * @schema EcsClusterLayerSpecProviderConfigRefPolicyResolve
  */
 export enum EcsClusterLayerSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema EcsClusterLayerSpecProviderRefPolicyResolution
- */
-export enum EcsClusterLayerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema EcsClusterLayerSpecProviderRefPolicyResolve
- */
-export enum EcsClusterLayerSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -4854,7 +5976,7 @@ export function toJson_GangliaLayerProps(obj: GangliaLayerProps | undefined): Re
  */
 export interface GangliaLayerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema GangliaLayerSpec#deletionPolicy
    */
@@ -4866,11 +5988,18 @@ export interface GangliaLayerSpec {
   readonly forProvider: GangliaLayerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema GangliaLayerSpec#managementPolicy
+   * @schema GangliaLayerSpec#initProvider
    */
-  readonly managementPolicy?: GangliaLayerSpecManagementPolicy;
+  readonly initProvider?: GangliaLayerSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema GangliaLayerSpec#managementPolicies
+   */
+  readonly managementPolicies?: GangliaLayerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4878,13 +6007,6 @@ export interface GangliaLayerSpec {
    * @schema GangliaLayerSpec#providerConfigRef
    */
   readonly providerConfigRef?: GangliaLayerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema GangliaLayerSpec#providerRef
-   */
-  readonly providerRef?: GangliaLayerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -4911,9 +6033,9 @@ export function toJson_GangliaLayerSpec(obj: GangliaLayerSpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_GangliaLayerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_GangliaLayerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_GangliaLayerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_GangliaLayerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_GangliaLayerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_GangliaLayerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -4923,7 +6045,7 @@ export function toJson_GangliaLayerSpec(obj: GangliaLayerSpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema GangliaLayerSpecDeletionPolicy
  */
@@ -5182,17 +6304,224 @@ export function toJson_GangliaLayerSpecForProvider(obj: GangliaLayerSpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema GangliaLayerSpecManagementPolicy
+ * @schema GangliaLayerSpecInitProvider
  */
-export enum GangliaLayerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface GangliaLayerSpecInitProvider {
+  /**
+   * Whether to automatically assign an elastic IP address to the layer's instances.
+   *
+   * @schema GangliaLayerSpecInitProvider#autoAssignElasticIps
+   */
+  readonly autoAssignElasticIps?: boolean;
+
+  /**
+   * For stacks belonging to a VPC, whether to automatically assign a public IP address to each of the layer's instances.
+   *
+   * @schema GangliaLayerSpecInitProvider#autoAssignPublicIps
+   */
+  readonly autoAssignPublicIps?: boolean;
+
+  /**
+   * Whether to enable auto-healing for the layer.
+   *
+   * @schema GangliaLayerSpecInitProvider#autoHealing
+   */
+  readonly autoHealing?: boolean;
+
+  /**
+   * @schema GangliaLayerSpecInitProvider#cloudwatchConfiguration
+   */
+  readonly cloudwatchConfiguration?: GangliaLayerSpecInitProviderCloudwatchConfiguration[];
+
+  /**
+   * @schema GangliaLayerSpecInitProvider#customConfigureRecipes
+   */
+  readonly customConfigureRecipes?: string[];
+
+  /**
+   * @schema GangliaLayerSpecInitProvider#customDeployRecipes
+   */
+  readonly customDeployRecipes?: string[];
+
+  /**
+   * The ARN of an IAM profile that will be used for the layer's instances.
+   *
+   * @schema GangliaLayerSpecInitProvider#customInstanceProfileArn
+   */
+  readonly customInstanceProfileArn?: string;
+
+  /**
+   * Custom JSON attributes to apply to the layer.
+   *
+   * @schema GangliaLayerSpecInitProvider#customJson
+   */
+  readonly customJson?: string;
+
+  /**
+   * @schema GangliaLayerSpecInitProvider#customSetupRecipes
+   */
+  readonly customSetupRecipes?: string[];
+
+  /**
+   * @schema GangliaLayerSpecInitProvider#customShutdownRecipes
+   */
+  readonly customShutdownRecipes?: string[];
+
+  /**
+   * @schema GangliaLayerSpecInitProvider#customUndeployRecipes
+   */
+  readonly customUndeployRecipes?: string[];
+
+  /**
+   * Whether to enable Elastic Load Balancing connection draining.
+   *
+   * @schema GangliaLayerSpecInitProvider#drainElbOnShutdown
+   */
+  readonly drainElbOnShutdown?: boolean;
+
+  /**
+   * ebs_volume blocks, as described below, will each create an EBS volume and connect it to the layer's instances.
+   *
+   * @schema GangliaLayerSpecInitProvider#ebsVolume
+   */
+  readonly ebsVolume?: GangliaLayerSpecInitProviderEbsVolume[];
+
+  /**
+   * Name of an Elastic Load Balancer to attach to this layer
+   *
+   * @schema GangliaLayerSpecInitProvider#elasticLoadBalancer
+   */
+  readonly elasticLoadBalancer?: string;
+
+  /**
+   * Whether to install OS and package updates on each instance when it boots.
+   *
+   * @schema GangliaLayerSpecInitProvider#installUpdatesOnBoot
+   */
+  readonly installUpdatesOnBoot?: boolean;
+
+  /**
+   * The time, in seconds, that OpsWorks will wait for Chef to complete after triggering the Shutdown event.
+   *
+   * @schema GangliaLayerSpecInitProvider#instanceShutdownTimeout
+   */
+  readonly instanceShutdownTimeout?: number;
+
+  /**
+   * @schema GangliaLayerSpecInitProvider#loadBasedAutoScaling
+   */
+  readonly loadBasedAutoScaling?: GangliaLayerSpecInitProviderLoadBasedAutoScaling[];
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema GangliaLayerSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The password to use for Ganglia.
+   *
+   * @schema GangliaLayerSpecInitProvider#password
+   */
+  readonly password?: string;
+
+  /**
+   * Names of a set of system packages to install on the layer's instances.
+   *
+   * @schema GangliaLayerSpecInitProvider#systemPackages
+   */
+  readonly systemPackages?: string[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema GangliaLayerSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * The URL path to use for Ganglia. Defaults to "/ganglia".
+   *
+   * @default ganglia".
+   * @schema GangliaLayerSpecInitProvider#url
+   */
+  readonly url?: string;
+
+  /**
+   * Whether to use EBS-optimized instances.
+   *
+   * @schema GangliaLayerSpecInitProvider#useEbsOptimizedInstances
+   */
+  readonly useEbsOptimizedInstances?: boolean;
+
+  /**
+   * (Optiona) The username to use for Ganglia. Defaults to "opsworks".
+   *
+   * @default opsworks".
+   * @schema GangliaLayerSpecInitProvider#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'GangliaLayerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GangliaLayerSpecInitProvider(obj: GangliaLayerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoAssignElasticIps': obj.autoAssignElasticIps,
+    'autoAssignPublicIps': obj.autoAssignPublicIps,
+    'autoHealing': obj.autoHealing,
+    'cloudwatchConfiguration': obj.cloudwatchConfiguration?.map(y => toJson_GangliaLayerSpecInitProviderCloudwatchConfiguration(y)),
+    'customConfigureRecipes': obj.customConfigureRecipes?.map(y => y),
+    'customDeployRecipes': obj.customDeployRecipes?.map(y => y),
+    'customInstanceProfileArn': obj.customInstanceProfileArn,
+    'customJson': obj.customJson,
+    'customSetupRecipes': obj.customSetupRecipes?.map(y => y),
+    'customShutdownRecipes': obj.customShutdownRecipes?.map(y => y),
+    'customUndeployRecipes': obj.customUndeployRecipes?.map(y => y),
+    'drainElbOnShutdown': obj.drainElbOnShutdown,
+    'ebsVolume': obj.ebsVolume?.map(y => toJson_GangliaLayerSpecInitProviderEbsVolume(y)),
+    'elasticLoadBalancer': obj.elasticLoadBalancer,
+    'installUpdatesOnBoot': obj.installUpdatesOnBoot,
+    'instanceShutdownTimeout': obj.instanceShutdownTimeout,
+    'loadBasedAutoScaling': obj.loadBasedAutoScaling?.map(y => toJson_GangliaLayerSpecInitProviderLoadBasedAutoScaling(y)),
+    'name': obj.name,
+    'password': obj.password,
+    'systemPackages': obj.systemPackages?.map(y => y),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'url': obj.url,
+    'useEbsOptimizedInstances': obj.useEbsOptimizedInstances,
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema GangliaLayerSpecManagementPolicies
+ */
+export enum GangliaLayerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -5226,43 +6555,6 @@ export function toJson_GangliaLayerSpecProviderConfigRef(obj: GangliaLayerSpecPr
   const result = {
     'name': obj.name,
     'policy': toJson_GangliaLayerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema GangliaLayerSpecProviderRef
- */
-export interface GangliaLayerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema GangliaLayerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema GangliaLayerSpecProviderRef#policy
-   */
-  readonly policy?: GangliaLayerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'GangliaLayerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_GangliaLayerSpecProviderRef(obj: GangliaLayerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_GangliaLayerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5485,14 +6777,14 @@ export interface GangliaLayerSpecForProviderEbsVolume {
    *
    * @schema GangliaLayerSpecForProviderEbsVolume#mountPoint
    */
-  readonly mountPoint: string;
+  readonly mountPoint?: string;
 
   /**
    * The number of disks to use for the EBS volume.
    *
    * @schema GangliaLayerSpecForProviderEbsVolume#numberOfDisks
    */
-  readonly numberOfDisks: number;
+  readonly numberOfDisks?: number;
 
   /**
    * The RAID level to use for the volume.
@@ -5506,7 +6798,7 @@ export interface GangliaLayerSpecForProviderEbsVolume {
    *
    * @schema GangliaLayerSpecForProviderEbsVolume#size
    */
-  readonly size: number;
+  readonly size?: number;
 
   /**
    * The type of volume to create. This may be standard (the default), io1 or gp2.
@@ -5657,6 +6949,147 @@ export function toJson_GangliaLayerSpecForProviderStackIdSelector(obj: GangliaLa
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema GangliaLayerSpecInitProviderCloudwatchConfiguration
+ */
+export interface GangliaLayerSpecInitProviderCloudwatchConfiguration {
+  /**
+   * @schema GangliaLayerSpecInitProviderCloudwatchConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderCloudwatchConfiguration#logStreams
+   */
+  readonly logStreams?: GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams[];
+
+}
+
+/**
+ * Converts an object of type 'GangliaLayerSpecInitProviderCloudwatchConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GangliaLayerSpecInitProviderCloudwatchConfiguration(obj: GangliaLayerSpecInitProviderCloudwatchConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logStreams': obj.logStreams?.map(y => toJson_GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GangliaLayerSpecInitProviderEbsVolume
+ */
+export interface GangliaLayerSpecInitProviderEbsVolume {
+  /**
+   * @schema GangliaLayerSpecInitProviderEbsVolume#encrypted
+   */
+  readonly encrypted?: boolean;
+
+  /**
+   * For PIOPS volumes, the IOPS per disk.
+   *
+   * @schema GangliaLayerSpecInitProviderEbsVolume#iops
+   */
+  readonly iops?: number;
+
+  /**
+   * The path to mount the EBS volume on the layer's instances.
+   *
+   * @schema GangliaLayerSpecInitProviderEbsVolume#mountPoint
+   */
+  readonly mountPoint?: string;
+
+  /**
+   * The number of disks to use for the EBS volume.
+   *
+   * @schema GangliaLayerSpecInitProviderEbsVolume#numberOfDisks
+   */
+  readonly numberOfDisks?: number;
+
+  /**
+   * The RAID level to use for the volume.
+   *
+   * @schema GangliaLayerSpecInitProviderEbsVolume#raidLevel
+   */
+  readonly raidLevel?: string;
+
+  /**
+   * The size of the volume in gigabytes.
+   *
+   * @schema GangliaLayerSpecInitProviderEbsVolume#size
+   */
+  readonly size?: number;
+
+  /**
+   * The type of volume to create. This may be standard (the default), io1 or gp2.
+   *
+   * @schema GangliaLayerSpecInitProviderEbsVolume#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'GangliaLayerSpecInitProviderEbsVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GangliaLayerSpecInitProviderEbsVolume(obj: GangliaLayerSpecInitProviderEbsVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'encrypted': obj.encrypted,
+    'iops': obj.iops,
+    'mountPoint': obj.mountPoint,
+    'numberOfDisks': obj.numberOfDisks,
+    'raidLevel': obj.raidLevel,
+    'size': obj.size,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GangliaLayerSpecInitProviderLoadBasedAutoScaling
+ */
+export interface GangliaLayerSpecInitProviderLoadBasedAutoScaling {
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScaling#downscaling
+   */
+  readonly downscaling?: GangliaLayerSpecInitProviderLoadBasedAutoScalingDownscaling[];
+
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScaling#enable
+   */
+  readonly enable?: boolean;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScaling#upscaling
+   */
+  readonly upscaling?: GangliaLayerSpecInitProviderLoadBasedAutoScalingUpscaling[];
+
+}
+
+/**
+ * Converts an object of type 'GangliaLayerSpecInitProviderLoadBasedAutoScaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GangliaLayerSpecInitProviderLoadBasedAutoScaling(obj: GangliaLayerSpecInitProviderLoadBasedAutoScaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'downscaling': obj.downscaling?.map(y => toJson_GangliaLayerSpecInitProviderLoadBasedAutoScalingDownscaling(y)),
+    'enable': obj.enable,
+    'upscaling': obj.upscaling?.map(y => toJson_GangliaLayerSpecInitProviderLoadBasedAutoScalingUpscaling(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema GangliaLayerSpecProviderConfigRefPolicy
@@ -5683,43 +7116,6 @@ export interface GangliaLayerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_GangliaLayerSpecProviderConfigRefPolicy(obj: GangliaLayerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema GangliaLayerSpecProviderRefPolicy
- */
-export interface GangliaLayerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema GangliaLayerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: GangliaLayerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema GangliaLayerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: GangliaLayerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'GangliaLayerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_GangliaLayerSpecProviderRefPolicy(obj: GangliaLayerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -5844,7 +7240,7 @@ export interface GangliaLayerSpecForProviderCloudwatchConfigurationLogStreams {
   /**
    * @schema GangliaLayerSpecForProviderCloudwatchConfigurationLogStreams#file
    */
-  readonly file: string;
+  readonly file?: string;
 
   /**
    * @schema GangliaLayerSpecForProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
@@ -5861,7 +7257,7 @@ export interface GangliaLayerSpecForProviderCloudwatchConfigurationLogStreams {
    *
    * @schema GangliaLayerSpecForProviderCloudwatchConfigurationLogStreams#logGroupName
    */
-  readonly logGroupName: string;
+  readonly logGroupName?: string;
 
   /**
    * @schema GangliaLayerSpecForProviderCloudwatchConfigurationLogStreams#multilineStartPattern
@@ -6170,6 +7566,215 @@ export function toJson_GangliaLayerSpecForProviderStackIdSelectorPolicy(obj: Gan
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams
+ */
+export interface GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams {
+  /**
+   * @schema GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchCount
+   */
+  readonly batchCount?: number;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchSize
+   */
+  readonly batchSize?: number;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams#bufferDuration
+   */
+  readonly bufferDuration?: number;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams#datetimeFormat
+   */
+  readonly datetimeFormat?: string;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams#encoding
+   */
+  readonly encoding?: string;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams#file
+   */
+  readonly file?: string;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
+   */
+  readonly fileFingerprintLines?: string;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams#initialPosition
+   */
+  readonly initialPosition?: string;
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams#multilineStartPattern
+   */
+  readonly multilineStartPattern?: string;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams#timeZone
+   */
+  readonly timeZone?: string;
+
+}
+
+/**
+ * Converts an object of type 'GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams(obj: GangliaLayerSpecInitProviderCloudwatchConfigurationLogStreams | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'batchCount': obj.batchCount,
+    'batchSize': obj.batchSize,
+    'bufferDuration': obj.bufferDuration,
+    'datetimeFormat': obj.datetimeFormat,
+    'encoding': obj.encoding,
+    'file': obj.file,
+    'fileFingerprintLines': obj.fileFingerprintLines,
+    'initialPosition': obj.initialPosition,
+    'logGroupName': obj.logGroupName,
+    'multilineStartPattern': obj.multilineStartPattern,
+    'timeZone': obj.timeZone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GangliaLayerSpecInitProviderLoadBasedAutoScalingDownscaling
+ */
+export interface GangliaLayerSpecInitProviderLoadBasedAutoScalingDownscaling {
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScalingDownscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScalingDownscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScalingDownscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScalingDownscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScalingDownscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScalingDownscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScalingDownscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'GangliaLayerSpecInitProviderLoadBasedAutoScalingDownscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GangliaLayerSpecInitProviderLoadBasedAutoScalingDownscaling(obj: GangliaLayerSpecInitProviderLoadBasedAutoScalingDownscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema GangliaLayerSpecInitProviderLoadBasedAutoScalingUpscaling
+ */
+export interface GangliaLayerSpecInitProviderLoadBasedAutoScalingUpscaling {
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScalingUpscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScalingUpscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScalingUpscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScalingUpscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScalingUpscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScalingUpscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema GangliaLayerSpecInitProviderLoadBasedAutoScalingUpscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'GangliaLayerSpecInitProviderLoadBasedAutoScalingUpscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GangliaLayerSpecInitProviderLoadBasedAutoScalingUpscaling(obj: GangliaLayerSpecInitProviderLoadBasedAutoScalingUpscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema GangliaLayerSpecProviderConfigRefPolicyResolution
@@ -6187,30 +7792,6 @@ export enum GangliaLayerSpecProviderConfigRefPolicyResolution {
  * @schema GangliaLayerSpecProviderConfigRefPolicyResolve
  */
 export enum GangliaLayerSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema GangliaLayerSpecProviderRefPolicyResolution
- */
-export enum GangliaLayerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema GangliaLayerSpecProviderRefPolicyResolve
- */
-export enum GangliaLayerSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -6471,7 +8052,7 @@ export function toJson_HaProxyLayerProps(obj: HaProxyLayerProps | undefined): Re
  */
 export interface HaProxyLayerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema HaProxyLayerSpec#deletionPolicy
    */
@@ -6483,11 +8064,18 @@ export interface HaProxyLayerSpec {
   readonly forProvider: HaProxyLayerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema HaProxyLayerSpec#managementPolicy
+   * @schema HaProxyLayerSpec#initProvider
    */
-  readonly managementPolicy?: HaProxyLayerSpecManagementPolicy;
+  readonly initProvider?: HaProxyLayerSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema HaProxyLayerSpec#managementPolicies
+   */
+  readonly managementPolicies?: HaProxyLayerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6495,13 +8083,6 @@ export interface HaProxyLayerSpec {
    * @schema HaProxyLayerSpec#providerConfigRef
    */
   readonly providerConfigRef?: HaProxyLayerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema HaProxyLayerSpec#providerRef
-   */
-  readonly providerRef?: HaProxyLayerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -6528,9 +8109,9 @@ export function toJson_HaProxyLayerSpec(obj: HaProxyLayerSpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_HaProxyLayerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_HaProxyLayerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_HaProxyLayerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_HaProxyLayerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_HaProxyLayerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_HaProxyLayerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -6540,7 +8121,7 @@ export function toJson_HaProxyLayerSpec(obj: HaProxyLayerSpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema HaProxyLayerSpecDeletionPolicy
  */
@@ -6825,17 +8406,250 @@ export function toJson_HaProxyLayerSpecForProvider(obj: HaProxyLayerSpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema HaProxyLayerSpecManagementPolicy
+ * @schema HaProxyLayerSpecInitProvider
  */
-export enum HaProxyLayerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface HaProxyLayerSpecInitProvider {
+  /**
+   * Whether to automatically assign an elastic IP address to the layer's instances.
+   *
+   * @schema HaProxyLayerSpecInitProvider#autoAssignElasticIps
+   */
+  readonly autoAssignElasticIps?: boolean;
+
+  /**
+   * For stacks belonging to a VPC, whether to automatically assign a public IP address to each of the layer's instances.
+   *
+   * @schema HaProxyLayerSpecInitProvider#autoAssignPublicIps
+   */
+  readonly autoAssignPublicIps?: boolean;
+
+  /**
+   * Whether to enable auto-healing for the layer.
+   *
+   * @schema HaProxyLayerSpecInitProvider#autoHealing
+   */
+  readonly autoHealing?: boolean;
+
+  /**
+   * @schema HaProxyLayerSpecInitProvider#cloudwatchConfiguration
+   */
+  readonly cloudwatchConfiguration?: HaProxyLayerSpecInitProviderCloudwatchConfiguration[];
+
+  /**
+   * @schema HaProxyLayerSpecInitProvider#customConfigureRecipes
+   */
+  readonly customConfigureRecipes?: string[];
+
+  /**
+   * @schema HaProxyLayerSpecInitProvider#customDeployRecipes
+   */
+  readonly customDeployRecipes?: string[];
+
+  /**
+   * The ARN of an IAM profile that will be used for the layer's instances.
+   *
+   * @schema HaProxyLayerSpecInitProvider#customInstanceProfileArn
+   */
+  readonly customInstanceProfileArn?: string;
+
+  /**
+   * Custom JSON attributes to apply to the layer.
+   *
+   * @schema HaProxyLayerSpecInitProvider#customJson
+   */
+  readonly customJson?: string;
+
+  /**
+   * @schema HaProxyLayerSpecInitProvider#customSetupRecipes
+   */
+  readonly customSetupRecipes?: string[];
+
+  /**
+   * @schema HaProxyLayerSpecInitProvider#customShutdownRecipes
+   */
+  readonly customShutdownRecipes?: string[];
+
+  /**
+   * @schema HaProxyLayerSpecInitProvider#customUndeployRecipes
+   */
+  readonly customUndeployRecipes?: string[];
+
+  /**
+   * Whether to enable Elastic Load Balancing connection draining.
+   *
+   * @schema HaProxyLayerSpecInitProvider#drainElbOnShutdown
+   */
+  readonly drainElbOnShutdown?: boolean;
+
+  /**
+   * ebs_volume blocks, as described below, will each create an EBS volume and connect it to the layer's instances.
+   *
+   * @schema HaProxyLayerSpecInitProvider#ebsVolume
+   */
+  readonly ebsVolume?: HaProxyLayerSpecInitProviderEbsVolume[];
+
+  /**
+   * Name of an Elastic Load Balancer to attach to this layer
+   *
+   * @schema HaProxyLayerSpecInitProvider#elasticLoadBalancer
+   */
+  readonly elasticLoadBalancer?: string;
+
+  /**
+   * HTTP method to use for instance healthchecks. Defaults to "OPTIONS".
+   *
+   * @default OPTIONS".
+   * @schema HaProxyLayerSpecInitProvider#healthcheckMethod
+   */
+  readonly healthcheckMethod?: string;
+
+  /**
+   * URL path to use for instance healthchecks. Defaults to "/".
+   *
+   * @default .
+   * @schema HaProxyLayerSpecInitProvider#healthcheckUrl
+   */
+  readonly healthcheckUrl?: string;
+
+  /**
+   * Whether to install OS and package updates on each instance when it boots.
+   *
+   * @schema HaProxyLayerSpecInitProvider#installUpdatesOnBoot
+   */
+  readonly installUpdatesOnBoot?: boolean;
+
+  /**
+   * The time, in seconds, that OpsWorks will wait for Chef to complete after triggering the Shutdown event.
+   *
+   * @schema HaProxyLayerSpecInitProvider#instanceShutdownTimeout
+   */
+  readonly instanceShutdownTimeout?: number;
+
+  /**
+   * @schema HaProxyLayerSpecInitProvider#loadBasedAutoScaling
+   */
+  readonly loadBasedAutoScaling?: HaProxyLayerSpecInitProviderLoadBasedAutoScaling[];
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema HaProxyLayerSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Whether to enable HAProxy stats.
+   *
+   * @schema HaProxyLayerSpecInitProvider#statsEnabled
+   */
+  readonly statsEnabled?: boolean;
+
+  /**
+   * The password to use for HAProxy stats.
+   *
+   * @schema HaProxyLayerSpecInitProvider#statsPassword
+   */
+  readonly statsPassword?: string;
+
+  /**
+   * The HAProxy stats URL. Defaults to "/haproxy?stats".
+   *
+   * @default haproxy?stats".
+   * @schema HaProxyLayerSpecInitProvider#statsUrl
+   */
+  readonly statsUrl?: string;
+
+  /**
+   * The username for HAProxy stats. Defaults to "opsworks".
+   *
+   * @default opsworks".
+   * @schema HaProxyLayerSpecInitProvider#statsUser
+   */
+  readonly statsUser?: string;
+
+  /**
+   * Names of a set of system packages to install on the layer's instances.
+   *
+   * @schema HaProxyLayerSpecInitProvider#systemPackages
+   */
+  readonly systemPackages?: string[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema HaProxyLayerSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Whether to use EBS-optimized instances.
+   *
+   * @schema HaProxyLayerSpecInitProvider#useEbsOptimizedInstances
+   */
+  readonly useEbsOptimizedInstances?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'HaProxyLayerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_HaProxyLayerSpecInitProvider(obj: HaProxyLayerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoAssignElasticIps': obj.autoAssignElasticIps,
+    'autoAssignPublicIps': obj.autoAssignPublicIps,
+    'autoHealing': obj.autoHealing,
+    'cloudwatchConfiguration': obj.cloudwatchConfiguration?.map(y => toJson_HaProxyLayerSpecInitProviderCloudwatchConfiguration(y)),
+    'customConfigureRecipes': obj.customConfigureRecipes?.map(y => y),
+    'customDeployRecipes': obj.customDeployRecipes?.map(y => y),
+    'customInstanceProfileArn': obj.customInstanceProfileArn,
+    'customJson': obj.customJson,
+    'customSetupRecipes': obj.customSetupRecipes?.map(y => y),
+    'customShutdownRecipes': obj.customShutdownRecipes?.map(y => y),
+    'customUndeployRecipes': obj.customUndeployRecipes?.map(y => y),
+    'drainElbOnShutdown': obj.drainElbOnShutdown,
+    'ebsVolume': obj.ebsVolume?.map(y => toJson_HaProxyLayerSpecInitProviderEbsVolume(y)),
+    'elasticLoadBalancer': obj.elasticLoadBalancer,
+    'healthcheckMethod': obj.healthcheckMethod,
+    'healthcheckUrl': obj.healthcheckUrl,
+    'installUpdatesOnBoot': obj.installUpdatesOnBoot,
+    'instanceShutdownTimeout': obj.instanceShutdownTimeout,
+    'loadBasedAutoScaling': obj.loadBasedAutoScaling?.map(y => toJson_HaProxyLayerSpecInitProviderLoadBasedAutoScaling(y)),
+    'name': obj.name,
+    'statsEnabled': obj.statsEnabled,
+    'statsPassword': obj.statsPassword,
+    'statsUrl': obj.statsUrl,
+    'statsUser': obj.statsUser,
+    'systemPackages': obj.systemPackages?.map(y => y),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'useEbsOptimizedInstances': obj.useEbsOptimizedInstances,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema HaProxyLayerSpecManagementPolicies
+ */
+export enum HaProxyLayerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -6869,43 +8683,6 @@ export function toJson_HaProxyLayerSpecProviderConfigRef(obj: HaProxyLayerSpecPr
   const result = {
     'name': obj.name,
     'policy': toJson_HaProxyLayerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema HaProxyLayerSpecProviderRef
- */
-export interface HaProxyLayerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema HaProxyLayerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema HaProxyLayerSpecProviderRef#policy
-   */
-  readonly policy?: HaProxyLayerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'HaProxyLayerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_HaProxyLayerSpecProviderRef(obj: HaProxyLayerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_HaProxyLayerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7128,14 +8905,14 @@ export interface HaProxyLayerSpecForProviderEbsVolume {
    *
    * @schema HaProxyLayerSpecForProviderEbsVolume#mountPoint
    */
-  readonly mountPoint: string;
+  readonly mountPoint?: string;
 
   /**
    * The number of disks to use for the EBS volume.
    *
    * @schema HaProxyLayerSpecForProviderEbsVolume#numberOfDisks
    */
-  readonly numberOfDisks: number;
+  readonly numberOfDisks?: number;
 
   /**
    * The RAID level to use for the volume.
@@ -7149,7 +8926,7 @@ export interface HaProxyLayerSpecForProviderEbsVolume {
    *
    * @schema HaProxyLayerSpecForProviderEbsVolume#size
    */
-  readonly size: number;
+  readonly size?: number;
 
   /**
    * The type of volume to create. This may be standard (the default), io1 or gp2.
@@ -7300,6 +9077,147 @@ export function toJson_HaProxyLayerSpecForProviderStackIdSelector(obj: HaProxyLa
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema HaProxyLayerSpecInitProviderCloudwatchConfiguration
+ */
+export interface HaProxyLayerSpecInitProviderCloudwatchConfiguration {
+  /**
+   * @schema HaProxyLayerSpecInitProviderCloudwatchConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderCloudwatchConfiguration#logStreams
+   */
+  readonly logStreams?: HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams[];
+
+}
+
+/**
+ * Converts an object of type 'HaProxyLayerSpecInitProviderCloudwatchConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_HaProxyLayerSpecInitProviderCloudwatchConfiguration(obj: HaProxyLayerSpecInitProviderCloudwatchConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logStreams': obj.logStreams?.map(y => toJson_HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema HaProxyLayerSpecInitProviderEbsVolume
+ */
+export interface HaProxyLayerSpecInitProviderEbsVolume {
+  /**
+   * @schema HaProxyLayerSpecInitProviderEbsVolume#encrypted
+   */
+  readonly encrypted?: boolean;
+
+  /**
+   * For PIOPS volumes, the IOPS per disk.
+   *
+   * @schema HaProxyLayerSpecInitProviderEbsVolume#iops
+   */
+  readonly iops?: number;
+
+  /**
+   * The path to mount the EBS volume on the layer's instances.
+   *
+   * @schema HaProxyLayerSpecInitProviderEbsVolume#mountPoint
+   */
+  readonly mountPoint?: string;
+
+  /**
+   * The number of disks to use for the EBS volume.
+   *
+   * @schema HaProxyLayerSpecInitProviderEbsVolume#numberOfDisks
+   */
+  readonly numberOfDisks?: number;
+
+  /**
+   * The RAID level to use for the volume.
+   *
+   * @schema HaProxyLayerSpecInitProviderEbsVolume#raidLevel
+   */
+  readonly raidLevel?: string;
+
+  /**
+   * The size of the volume in gigabytes.
+   *
+   * @schema HaProxyLayerSpecInitProviderEbsVolume#size
+   */
+  readonly size?: number;
+
+  /**
+   * The type of volume to create. This may be standard (the default), io1 or gp2.
+   *
+   * @schema HaProxyLayerSpecInitProviderEbsVolume#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'HaProxyLayerSpecInitProviderEbsVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_HaProxyLayerSpecInitProviderEbsVolume(obj: HaProxyLayerSpecInitProviderEbsVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'encrypted': obj.encrypted,
+    'iops': obj.iops,
+    'mountPoint': obj.mountPoint,
+    'numberOfDisks': obj.numberOfDisks,
+    'raidLevel': obj.raidLevel,
+    'size': obj.size,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScaling
+ */
+export interface HaProxyLayerSpecInitProviderLoadBasedAutoScaling {
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScaling#downscaling
+   */
+  readonly downscaling?: HaProxyLayerSpecInitProviderLoadBasedAutoScalingDownscaling[];
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScaling#enable
+   */
+  readonly enable?: boolean;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScaling#upscaling
+   */
+  readonly upscaling?: HaProxyLayerSpecInitProviderLoadBasedAutoScalingUpscaling[];
+
+}
+
+/**
+ * Converts an object of type 'HaProxyLayerSpecInitProviderLoadBasedAutoScaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_HaProxyLayerSpecInitProviderLoadBasedAutoScaling(obj: HaProxyLayerSpecInitProviderLoadBasedAutoScaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'downscaling': obj.downscaling?.map(y => toJson_HaProxyLayerSpecInitProviderLoadBasedAutoScalingDownscaling(y)),
+    'enable': obj.enable,
+    'upscaling': obj.upscaling?.map(y => toJson_HaProxyLayerSpecInitProviderLoadBasedAutoScalingUpscaling(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema HaProxyLayerSpecProviderConfigRefPolicy
@@ -7326,43 +9244,6 @@ export interface HaProxyLayerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_HaProxyLayerSpecProviderConfigRefPolicy(obj: HaProxyLayerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema HaProxyLayerSpecProviderRefPolicy
- */
-export interface HaProxyLayerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema HaProxyLayerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: HaProxyLayerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema HaProxyLayerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: HaProxyLayerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'HaProxyLayerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_HaProxyLayerSpecProviderRefPolicy(obj: HaProxyLayerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -7487,7 +9368,7 @@ export interface HaProxyLayerSpecForProviderCloudwatchConfigurationLogStreams {
   /**
    * @schema HaProxyLayerSpecForProviderCloudwatchConfigurationLogStreams#file
    */
-  readonly file: string;
+  readonly file?: string;
 
   /**
    * @schema HaProxyLayerSpecForProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
@@ -7504,7 +9385,7 @@ export interface HaProxyLayerSpecForProviderCloudwatchConfigurationLogStreams {
    *
    * @schema HaProxyLayerSpecForProviderCloudwatchConfigurationLogStreams#logGroupName
    */
-  readonly logGroupName: string;
+  readonly logGroupName?: string;
 
   /**
    * @schema HaProxyLayerSpecForProviderCloudwatchConfigurationLogStreams#multilineStartPattern
@@ -7813,6 +9694,215 @@ export function toJson_HaProxyLayerSpecForProviderStackIdSelectorPolicy(obj: HaP
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams
+ */
+export interface HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams {
+  /**
+   * @schema HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchCount
+   */
+  readonly batchCount?: number;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchSize
+   */
+  readonly batchSize?: number;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams#bufferDuration
+   */
+  readonly bufferDuration?: number;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams#datetimeFormat
+   */
+  readonly datetimeFormat?: string;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams#encoding
+   */
+  readonly encoding?: string;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams#file
+   */
+  readonly file?: string;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
+   */
+  readonly fileFingerprintLines?: string;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams#initialPosition
+   */
+  readonly initialPosition?: string;
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams#multilineStartPattern
+   */
+  readonly multilineStartPattern?: string;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams#timeZone
+   */
+  readonly timeZone?: string;
+
+}
+
+/**
+ * Converts an object of type 'HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams(obj: HaProxyLayerSpecInitProviderCloudwatchConfigurationLogStreams | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'batchCount': obj.batchCount,
+    'batchSize': obj.batchSize,
+    'bufferDuration': obj.bufferDuration,
+    'datetimeFormat': obj.datetimeFormat,
+    'encoding': obj.encoding,
+    'file': obj.file,
+    'fileFingerprintLines': obj.fileFingerprintLines,
+    'initialPosition': obj.initialPosition,
+    'logGroupName': obj.logGroupName,
+    'multilineStartPattern': obj.multilineStartPattern,
+    'timeZone': obj.timeZone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScalingDownscaling
+ */
+export interface HaProxyLayerSpecInitProviderLoadBasedAutoScalingDownscaling {
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScalingDownscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScalingDownscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScalingDownscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScalingDownscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScalingDownscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScalingDownscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScalingDownscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'HaProxyLayerSpecInitProviderLoadBasedAutoScalingDownscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_HaProxyLayerSpecInitProviderLoadBasedAutoScalingDownscaling(obj: HaProxyLayerSpecInitProviderLoadBasedAutoScalingDownscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScalingUpscaling
+ */
+export interface HaProxyLayerSpecInitProviderLoadBasedAutoScalingUpscaling {
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScalingUpscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScalingUpscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScalingUpscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScalingUpscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScalingUpscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScalingUpscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema HaProxyLayerSpecInitProviderLoadBasedAutoScalingUpscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'HaProxyLayerSpecInitProviderLoadBasedAutoScalingUpscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_HaProxyLayerSpecInitProviderLoadBasedAutoScalingUpscaling(obj: HaProxyLayerSpecInitProviderLoadBasedAutoScalingUpscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema HaProxyLayerSpecProviderConfigRefPolicyResolution
@@ -7830,30 +9920,6 @@ export enum HaProxyLayerSpecProviderConfigRefPolicyResolution {
  * @schema HaProxyLayerSpecProviderConfigRefPolicyResolve
  */
 export enum HaProxyLayerSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema HaProxyLayerSpecProviderRefPolicyResolution
- */
-export enum HaProxyLayerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema HaProxyLayerSpecProviderRefPolicyResolve
- */
-export enum HaProxyLayerSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -8114,7 +10180,7 @@ export function toJson_InstanceProps(obj: InstanceProps | undefined): Record<str
  */
 export interface InstanceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema InstanceSpec#deletionPolicy
    */
@@ -8126,11 +10192,18 @@ export interface InstanceSpec {
   readonly forProvider: InstanceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema InstanceSpec#managementPolicy
+   * @schema InstanceSpec#initProvider
    */
-  readonly managementPolicy?: InstanceSpecManagementPolicy;
+  readonly initProvider?: InstanceSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema InstanceSpec#managementPolicies
+   */
+  readonly managementPolicies?: InstanceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -8138,13 +10211,6 @@ export interface InstanceSpec {
    * @schema InstanceSpec#providerConfigRef
    */
   readonly providerConfigRef?: InstanceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema InstanceSpec#providerRef
-   */
-  readonly providerRef?: InstanceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -8171,9 +10237,9 @@ export function toJson_InstanceSpec(obj: InstanceSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_InstanceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_InstanceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_InstanceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_InstanceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_InstanceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_InstanceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -8183,7 +10249,7 @@ export function toJson_InstanceSpec(obj: InstanceSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema InstanceSpecDeletionPolicy
  */
@@ -8521,17 +10587,255 @@ export function toJson_InstanceSpecForProvider(obj: InstanceSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema InstanceSpecManagementPolicy
+ * @schema InstanceSpecInitProvider
  */
-export enum InstanceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface InstanceSpecInitProvider {
+  /**
+   * OpsWorks agent to install. Default is INHERIT.
+   *
+   * @default INHERIT.
+   * @schema InstanceSpecInitProvider#agentVersion
+   */
+  readonly agentVersion?: string;
+
+  /**
+   * AMI to use for the instance.  If an AMI is specified, os must be Custom.
+   *
+   * @schema InstanceSpecInitProvider#amiId
+   */
+  readonly amiId?: string;
+
+  /**
+   * Machine architecture for created instances.  Valid values are x86_64 or i386. The default is x86_64.
+   *
+   * @schema InstanceSpecInitProvider#architecture
+   */
+  readonly architecture?: string;
+
+  /**
+   * Creates load-based or time-based instances.  Valid values are load, timer.
+   *
+   * @schema InstanceSpecInitProvider#autoScalingType
+   */
+  readonly autoScalingType?: string;
+
+  /**
+   * Name of the availability zone where instances will be created by default.
+   *
+   * @schema InstanceSpecInitProvider#availabilityZone
+   */
+  readonly availabilityZone?: string;
+
+  /**
+   * Time that the instance was created.
+   *
+   * @schema InstanceSpecInitProvider#createdAt
+   */
+  readonly createdAt?: string;
+
+  /**
+   * Whether to delete EBS volume on deletion. Default is true.
+   *
+   * @default true.
+   * @schema InstanceSpecInitProvider#deleteEbs
+   */
+  readonly deleteEbs?: boolean;
+
+  /**
+   * Whether to delete the Elastic IP on deletion.
+   *
+   * @schema InstanceSpecInitProvider#deleteEip
+   */
+  readonly deleteEip?: boolean;
+
+  /**
+   * Configuration block for additional EBS block devices to attach to the instance. See Block Devices below.
+   *
+   * @schema InstanceSpecInitProvider#ebsBlockDevice
+   */
+  readonly ebsBlockDevice?: InstanceSpecInitProviderEbsBlockDevice[];
+
+  /**
+   * Whether the launched EC2 instance will be EBS-optimized.
+   *
+   * @schema InstanceSpecInitProvider#ebsOptimized
+   */
+  readonly ebsOptimized?: boolean;
+
+  /**
+   * ECS cluster's ARN for container instances.
+   *
+   * @schema InstanceSpecInitProvider#ecsClusterArn
+   */
+  readonly ecsClusterArn?: string;
+
+  /**
+   * Instance Elastic IP address.
+   *
+   * @schema InstanceSpecInitProvider#elasticIp
+   */
+  readonly elasticIp?: string;
+
+  /**
+   * Configuration block for ephemeral (also known as "Instance Store") volumes on the instance. See Block Devices below.
+   *
+   * @schema InstanceSpecInitProvider#ephemeralBlockDevice
+   */
+  readonly ephemeralBlockDevice?: InstanceSpecInitProviderEphemeralBlockDevice[];
+
+  /**
+   * Instance's host name.
+   *
+   * @schema InstanceSpecInitProvider#hostname
+   */
+  readonly hostname?: string;
+
+  /**
+   * For registered instances, infrastructure class: ec2 or on-premises.
+   *
+   * @schema InstanceSpecInitProvider#infrastructureClass
+   */
+  readonly infrastructureClass?: string;
+
+  /**
+   * Controls where to install OS and package updates when the instance boots.  Default is true.
+   *
+   * @default true.
+   * @schema InstanceSpecInitProvider#installUpdatesOnBoot
+   */
+  readonly installUpdatesOnBoot?: boolean;
+
+  /**
+   * ARN of the instance's IAM profile.
+   *
+   * @schema InstanceSpecInitProvider#instanceProfileArn
+   */
+  readonly instanceProfileArn?: string;
+
+  /**
+   * Type of instance to start.
+   *
+   * @schema InstanceSpecInitProvider#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * Name of operating system that will be installed.
+   *
+   * @schema InstanceSpecInitProvider#os
+   */
+  readonly os?: string;
+
+  /**
+   * Configuration block for the root block device of the instance. See Block Devices below.
+   *
+   * @schema InstanceSpecInitProvider#rootBlockDevice
+   */
+  readonly rootBlockDevice?: InstanceSpecInitProviderRootBlockDevice[];
+
+  /**
+   * Name of the type of root device instances will have by default. Valid values are ebs or instance-store.
+   *
+   * @schema InstanceSpecInitProvider#rootDeviceType
+   */
+  readonly rootDeviceType?: string;
+
+  /**
+   * Name of the SSH keypair that instances will have by default.
+   *
+   * @schema InstanceSpecInitProvider#sshKeyName
+   */
+  readonly sshKeyName?: string;
+
+  /**
+   * Desired state of the instance. Valid values are running or stopped.
+   *
+   * @schema InstanceSpecInitProvider#state
+   */
+  readonly state?: string;
+
+  /**
+   * Instance status. Will be one of booting, connection_lost, online, pending, rebooting, requested, running_setup, setup_failed, shutting_down, start_failed, stop_failed, stopped, stopping, terminated, or terminating.
+   *
+   * @schema InstanceSpecInitProvider#status
+   */
+  readonly status?: string;
+
+  /**
+   * Instance tenancy to use. Valid values are default, dedicated or host.
+   *
+   * @schema InstanceSpecInitProvider#tenancy
+   */
+  readonly tenancy?: string;
+
+  /**
+   * Keyword to choose what virtualization mode created instances will use. Valid values are paravirtual or hvm.
+   *
+   * @schema InstanceSpecInitProvider#virtualizationType
+   */
+  readonly virtualizationType?: string;
+
+}
+
+/**
+ * Converts an object of type 'InstanceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceSpecInitProvider(obj: InstanceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'agentVersion': obj.agentVersion,
+    'amiId': obj.amiId,
+    'architecture': obj.architecture,
+    'autoScalingType': obj.autoScalingType,
+    'availabilityZone': obj.availabilityZone,
+    'createdAt': obj.createdAt,
+    'deleteEbs': obj.deleteEbs,
+    'deleteEip': obj.deleteEip,
+    'ebsBlockDevice': obj.ebsBlockDevice?.map(y => toJson_InstanceSpecInitProviderEbsBlockDevice(y)),
+    'ebsOptimized': obj.ebsOptimized,
+    'ecsClusterArn': obj.ecsClusterArn,
+    'elasticIp': obj.elasticIp,
+    'ephemeralBlockDevice': obj.ephemeralBlockDevice?.map(y => toJson_InstanceSpecInitProviderEphemeralBlockDevice(y)),
+    'hostname': obj.hostname,
+    'infrastructureClass': obj.infrastructureClass,
+    'installUpdatesOnBoot': obj.installUpdatesOnBoot,
+    'instanceProfileArn': obj.instanceProfileArn,
+    'instanceType': obj.instanceType,
+    'os': obj.os,
+    'rootBlockDevice': obj.rootBlockDevice?.map(y => toJson_InstanceSpecInitProviderRootBlockDevice(y)),
+    'rootDeviceType': obj.rootDeviceType,
+    'sshKeyName': obj.sshKeyName,
+    'state': obj.state,
+    'status': obj.status,
+    'tenancy': obj.tenancy,
+    'virtualizationType': obj.virtualizationType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema InstanceSpecManagementPolicies
+ */
+export enum InstanceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -8565,43 +10869,6 @@ export function toJson_InstanceSpecProviderConfigRef(obj: InstanceSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_InstanceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema InstanceSpecProviderRef
- */
-export interface InstanceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema InstanceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema InstanceSpecProviderRef#policy
-   */
-  readonly policy?: InstanceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'InstanceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InstanceSpecProviderRef(obj: InstanceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_InstanceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8707,7 +10974,7 @@ export interface InstanceSpecForProviderEbsBlockDevice {
    *
    * @schema InstanceSpecForProviderEbsBlockDevice#deviceName
    */
-  readonly deviceName: string;
+  readonly deviceName?: string;
 
   /**
    * Amount of provisioned IOPS. This must be set with a volume_type of io1.
@@ -8768,14 +11035,14 @@ export interface InstanceSpecForProviderEphemeralBlockDevice {
    *
    * @schema InstanceSpecForProviderEphemeralBlockDevice#deviceName
    */
-  readonly deviceName: string;
+  readonly deviceName?: string;
 
   /**
    * The Instance Store Device Name (e.g., ephemeral0).
    *
    * @schema InstanceSpecForProviderEphemeralBlockDevice#virtualName
    */
-  readonly virtualName: string;
+  readonly virtualName?: string;
 
 }
 
@@ -9176,6 +11443,163 @@ export function toJson_InstanceSpecForProviderSubnetIdSelector(obj: InstanceSpec
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema InstanceSpecInitProviderEbsBlockDevice
+ */
+export interface InstanceSpecInitProviderEbsBlockDevice {
+  /**
+   * Whether the volume should be destroyed on instance termination. Default is true.
+   *
+   * @default true.
+   * @schema InstanceSpecInitProviderEbsBlockDevice#deleteOnTermination
+   */
+  readonly deleteOnTermination?: boolean;
+
+  /**
+   * Name of the device to mount.
+   *
+   * @schema InstanceSpecInitProviderEbsBlockDevice#deviceName
+   */
+  readonly deviceName?: string;
+
+  /**
+   * Amount of provisioned IOPS. This must be set with a volume_type of io1.
+   *
+   * @schema InstanceSpecInitProviderEbsBlockDevice#iops
+   */
+  readonly iops?: number;
+
+  /**
+   * Snapshot ID to mount.
+   *
+   * @schema InstanceSpecInitProviderEbsBlockDevice#snapshotId
+   */
+  readonly snapshotId?: string;
+
+  /**
+   * Size of the volume in gigabytes.
+   *
+   * @schema InstanceSpecInitProviderEbsBlockDevice#volumeSize
+   */
+  readonly volumeSize?: number;
+
+  /**
+   * Type of volume. Valid values are standard, gp2, or io1. Default is standard.
+   *
+   * @default standard.
+   * @schema InstanceSpecInitProviderEbsBlockDevice#volumeType
+   */
+  readonly volumeType?: string;
+
+}
+
+/**
+ * Converts an object of type 'InstanceSpecInitProviderEbsBlockDevice' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceSpecInitProviderEbsBlockDevice(obj: InstanceSpecInitProviderEbsBlockDevice | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deleteOnTermination': obj.deleteOnTermination,
+    'deviceName': obj.deviceName,
+    'iops': obj.iops,
+    'snapshotId': obj.snapshotId,
+    'volumeSize': obj.volumeSize,
+    'volumeType': obj.volumeType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InstanceSpecInitProviderEphemeralBlockDevice
+ */
+export interface InstanceSpecInitProviderEphemeralBlockDevice {
+  /**
+   * Name of the block device to mount on the instance.
+   *
+   * @schema InstanceSpecInitProviderEphemeralBlockDevice#deviceName
+   */
+  readonly deviceName?: string;
+
+  /**
+   * The Instance Store Device Name (e.g., ephemeral0).
+   *
+   * @schema InstanceSpecInitProviderEphemeralBlockDevice#virtualName
+   */
+  readonly virtualName?: string;
+
+}
+
+/**
+ * Converts an object of type 'InstanceSpecInitProviderEphemeralBlockDevice' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceSpecInitProviderEphemeralBlockDevice(obj: InstanceSpecInitProviderEphemeralBlockDevice | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deviceName': obj.deviceName,
+    'virtualName': obj.virtualName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InstanceSpecInitProviderRootBlockDevice
+ */
+export interface InstanceSpecInitProviderRootBlockDevice {
+  /**
+   * Whether the volume should be destroyed on instance termination. Default is true.
+   *
+   * @default true.
+   * @schema InstanceSpecInitProviderRootBlockDevice#deleteOnTermination
+   */
+  readonly deleteOnTermination?: boolean;
+
+  /**
+   * Amount of provisioned IOPS. This must be set with a volume_type of io1.
+   *
+   * @schema InstanceSpecInitProviderRootBlockDevice#iops
+   */
+  readonly iops?: number;
+
+  /**
+   * Size of the volume in gigabytes.
+   *
+   * @schema InstanceSpecInitProviderRootBlockDevice#volumeSize
+   */
+  readonly volumeSize?: number;
+
+  /**
+   * Type of volume. Valid values are standard, gp2, or io1. Default is standard.
+   *
+   * @default standard.
+   * @schema InstanceSpecInitProviderRootBlockDevice#volumeType
+   */
+  readonly volumeType?: string;
+
+}
+
+/**
+ * Converts an object of type 'InstanceSpecInitProviderRootBlockDevice' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceSpecInitProviderRootBlockDevice(obj: InstanceSpecInitProviderRootBlockDevice | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'deleteOnTermination': obj.deleteOnTermination,
+    'iops': obj.iops,
+    'volumeSize': obj.volumeSize,
+    'volumeType': obj.volumeType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema InstanceSpecProviderConfigRefPolicy
@@ -9202,43 +11626,6 @@ export interface InstanceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_InstanceSpecProviderConfigRefPolicy(obj: InstanceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema InstanceSpecProviderRefPolicy
- */
-export interface InstanceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema InstanceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: InstanceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema InstanceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: InstanceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'InstanceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InstanceSpecProviderRefPolicy(obj: InstanceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -9652,30 +12039,6 @@ export enum InstanceSpecProviderConfigRefPolicyResolve {
 }
 
 /**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema InstanceSpecProviderRefPolicyResolution
- */
-export enum InstanceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema InstanceSpecProviderRefPolicyResolve
- */
-export enum InstanceSpecProviderRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
  * Policies for referencing.
  *
  * @schema InstanceSpecPublishConnectionDetailsToConfigRefPolicy
@@ -10025,7 +12388,7 @@ export function toJson_JavaAppLayerProps(obj: JavaAppLayerProps | undefined): Re
  */
 export interface JavaAppLayerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema JavaAppLayerSpec#deletionPolicy
    */
@@ -10037,11 +12400,18 @@ export interface JavaAppLayerSpec {
   readonly forProvider: JavaAppLayerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema JavaAppLayerSpec#managementPolicy
+   * @schema JavaAppLayerSpec#initProvider
    */
-  readonly managementPolicy?: JavaAppLayerSpecManagementPolicy;
+  readonly initProvider?: JavaAppLayerSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema JavaAppLayerSpec#managementPolicies
+   */
+  readonly managementPolicies?: JavaAppLayerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -10049,13 +12419,6 @@ export interface JavaAppLayerSpec {
    * @schema JavaAppLayerSpec#providerConfigRef
    */
   readonly providerConfigRef?: JavaAppLayerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema JavaAppLayerSpec#providerRef
-   */
-  readonly providerRef?: JavaAppLayerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -10082,9 +12445,9 @@ export function toJson_JavaAppLayerSpec(obj: JavaAppLayerSpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_JavaAppLayerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_JavaAppLayerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_JavaAppLayerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_JavaAppLayerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_JavaAppLayerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_JavaAppLayerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -10094,7 +12457,7 @@ export function toJson_JavaAppLayerSpec(obj: JavaAppLayerSpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema JavaAppLayerSpecDeletionPolicy
  */
@@ -10371,17 +12734,242 @@ export function toJson_JavaAppLayerSpecForProvider(obj: JavaAppLayerSpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema JavaAppLayerSpecManagementPolicy
+ * @schema JavaAppLayerSpecInitProvider
  */
-export enum JavaAppLayerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface JavaAppLayerSpecInitProvider {
+  /**
+   * Keyword for the application container to use. Defaults to "tomcat".
+   *
+   * @default tomcat".
+   * @schema JavaAppLayerSpecInitProvider#appServer
+   */
+  readonly appServer?: string;
+
+  /**
+   * Version of the selected application container to use. Defaults to "7".
+   *
+   * @default 7".
+   * @schema JavaAppLayerSpecInitProvider#appServerVersion
+   */
+  readonly appServerVersion?: string;
+
+  /**
+   * Whether to automatically assign an elastic IP address to the layer's instances.
+   *
+   * @schema JavaAppLayerSpecInitProvider#autoAssignElasticIps
+   */
+  readonly autoAssignElasticIps?: boolean;
+
+  /**
+   * For stacks belonging to a VPC, whether to automatically assign a public IP address to each of the layer's instances.
+   *
+   * @schema JavaAppLayerSpecInitProvider#autoAssignPublicIps
+   */
+  readonly autoAssignPublicIps?: boolean;
+
+  /**
+   * Whether to enable auto-healing for the layer.
+   *
+   * @schema JavaAppLayerSpecInitProvider#autoHealing
+   */
+  readonly autoHealing?: boolean;
+
+  /**
+   * @schema JavaAppLayerSpecInitProvider#cloudwatchConfiguration
+   */
+  readonly cloudwatchConfiguration?: JavaAppLayerSpecInitProviderCloudwatchConfiguration[];
+
+  /**
+   * @schema JavaAppLayerSpecInitProvider#customConfigureRecipes
+   */
+  readonly customConfigureRecipes?: string[];
+
+  /**
+   * @schema JavaAppLayerSpecInitProvider#customDeployRecipes
+   */
+  readonly customDeployRecipes?: string[];
+
+  /**
+   * The ARN of an IAM profile that will be used for the layer's instances.
+   *
+   * @schema JavaAppLayerSpecInitProvider#customInstanceProfileArn
+   */
+  readonly customInstanceProfileArn?: string;
+
+  /**
+   * Custom JSON attributes to apply to the layer.
+   *
+   * @schema JavaAppLayerSpecInitProvider#customJson
+   */
+  readonly customJson?: string;
+
+  /**
+   * @schema JavaAppLayerSpecInitProvider#customSetupRecipes
+   */
+  readonly customSetupRecipes?: string[];
+
+  /**
+   * @schema JavaAppLayerSpecInitProvider#customShutdownRecipes
+   */
+  readonly customShutdownRecipes?: string[];
+
+  /**
+   * @schema JavaAppLayerSpecInitProvider#customUndeployRecipes
+   */
+  readonly customUndeployRecipes?: string[];
+
+  /**
+   * Whether to enable Elastic Load Balancing connection draining.
+   *
+   * @schema JavaAppLayerSpecInitProvider#drainElbOnShutdown
+   */
+  readonly drainElbOnShutdown?: boolean;
+
+  /**
+   * ebs_volume blocks, as described below, will each create an EBS volume and connect it to the layer's instances.
+   *
+   * @schema JavaAppLayerSpecInitProvider#ebsVolume
+   */
+  readonly ebsVolume?: JavaAppLayerSpecInitProviderEbsVolume[];
+
+  /**
+   * Name of an Elastic Load Balancer to attach to this layer
+   *
+   * @schema JavaAppLayerSpecInitProvider#elasticLoadBalancer
+   */
+  readonly elasticLoadBalancer?: string;
+
+  /**
+   * Whether to install OS and package updates on each instance when it boots.
+   *
+   * @schema JavaAppLayerSpecInitProvider#installUpdatesOnBoot
+   */
+  readonly installUpdatesOnBoot?: boolean;
+
+  /**
+   * The time, in seconds, that OpsWorks will wait for Chef to complete after triggering the Shutdown event.
+   *
+   * @schema JavaAppLayerSpecInitProvider#instanceShutdownTimeout
+   */
+  readonly instanceShutdownTimeout?: number;
+
+  /**
+   * Options to set for the JVM.
+   *
+   * @schema JavaAppLayerSpecInitProvider#jvmOptions
+   */
+  readonly jvmOptions?: string;
+
+  /**
+   * Keyword for the type of JVM to use. Defaults to openjdk.
+   *
+   * @default openjdk.
+   * @schema JavaAppLayerSpecInitProvider#jvmType
+   */
+  readonly jvmType?: string;
+
+  /**
+   * Version of JVM to use. Defaults to "7".
+   *
+   * @default 7".
+   * @schema JavaAppLayerSpecInitProvider#jvmVersion
+   */
+  readonly jvmVersion?: string;
+
+  /**
+   * @schema JavaAppLayerSpecInitProvider#loadBasedAutoScaling
+   */
+  readonly loadBasedAutoScaling?: JavaAppLayerSpecInitProviderLoadBasedAutoScaling[];
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema JavaAppLayerSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Names of a set of system packages to install on the layer's instances.
+   *
+   * @schema JavaAppLayerSpecInitProvider#systemPackages
+   */
+  readonly systemPackages?: string[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema JavaAppLayerSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Whether to use EBS-optimized instances.
+   *
+   * @schema JavaAppLayerSpecInitProvider#useEbsOptimizedInstances
+   */
+  readonly useEbsOptimizedInstances?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'JavaAppLayerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JavaAppLayerSpecInitProvider(obj: JavaAppLayerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'appServer': obj.appServer,
+    'appServerVersion': obj.appServerVersion,
+    'autoAssignElasticIps': obj.autoAssignElasticIps,
+    'autoAssignPublicIps': obj.autoAssignPublicIps,
+    'autoHealing': obj.autoHealing,
+    'cloudwatchConfiguration': obj.cloudwatchConfiguration?.map(y => toJson_JavaAppLayerSpecInitProviderCloudwatchConfiguration(y)),
+    'customConfigureRecipes': obj.customConfigureRecipes?.map(y => y),
+    'customDeployRecipes': obj.customDeployRecipes?.map(y => y),
+    'customInstanceProfileArn': obj.customInstanceProfileArn,
+    'customJson': obj.customJson,
+    'customSetupRecipes': obj.customSetupRecipes?.map(y => y),
+    'customShutdownRecipes': obj.customShutdownRecipes?.map(y => y),
+    'customUndeployRecipes': obj.customUndeployRecipes?.map(y => y),
+    'drainElbOnShutdown': obj.drainElbOnShutdown,
+    'ebsVolume': obj.ebsVolume?.map(y => toJson_JavaAppLayerSpecInitProviderEbsVolume(y)),
+    'elasticLoadBalancer': obj.elasticLoadBalancer,
+    'installUpdatesOnBoot': obj.installUpdatesOnBoot,
+    'instanceShutdownTimeout': obj.instanceShutdownTimeout,
+    'jvmOptions': obj.jvmOptions,
+    'jvmType': obj.jvmType,
+    'jvmVersion': obj.jvmVersion,
+    'loadBasedAutoScaling': obj.loadBasedAutoScaling?.map(y => toJson_JavaAppLayerSpecInitProviderLoadBasedAutoScaling(y)),
+    'name': obj.name,
+    'systemPackages': obj.systemPackages?.map(y => y),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'useEbsOptimizedInstances': obj.useEbsOptimizedInstances,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema JavaAppLayerSpecManagementPolicies
+ */
+export enum JavaAppLayerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -10415,43 +13003,6 @@ export function toJson_JavaAppLayerSpecProviderConfigRef(obj: JavaAppLayerSpecPr
   const result = {
     'name': obj.name,
     'policy': toJson_JavaAppLayerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema JavaAppLayerSpecProviderRef
- */
-export interface JavaAppLayerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema JavaAppLayerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema JavaAppLayerSpecProviderRef#policy
-   */
-  readonly policy?: JavaAppLayerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'JavaAppLayerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_JavaAppLayerSpecProviderRef(obj: JavaAppLayerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_JavaAppLayerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -10674,14 +13225,14 @@ export interface JavaAppLayerSpecForProviderEbsVolume {
    *
    * @schema JavaAppLayerSpecForProviderEbsVolume#mountPoint
    */
-  readonly mountPoint: string;
+  readonly mountPoint?: string;
 
   /**
    * The number of disks to use for the EBS volume.
    *
    * @schema JavaAppLayerSpecForProviderEbsVolume#numberOfDisks
    */
-  readonly numberOfDisks: number;
+  readonly numberOfDisks?: number;
 
   /**
    * The RAID level to use for the volume.
@@ -10695,7 +13246,7 @@ export interface JavaAppLayerSpecForProviderEbsVolume {
    *
    * @schema JavaAppLayerSpecForProviderEbsVolume#size
    */
-  readonly size: number;
+  readonly size?: number;
 
   /**
    * The type of volume to create. This may be standard (the default), io1 or gp2.
@@ -10846,6 +13397,147 @@ export function toJson_JavaAppLayerSpecForProviderStackIdSelector(obj: JavaAppLa
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema JavaAppLayerSpecInitProviderCloudwatchConfiguration
+ */
+export interface JavaAppLayerSpecInitProviderCloudwatchConfiguration {
+  /**
+   * @schema JavaAppLayerSpecInitProviderCloudwatchConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderCloudwatchConfiguration#logStreams
+   */
+  readonly logStreams?: JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams[];
+
+}
+
+/**
+ * Converts an object of type 'JavaAppLayerSpecInitProviderCloudwatchConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JavaAppLayerSpecInitProviderCloudwatchConfiguration(obj: JavaAppLayerSpecInitProviderCloudwatchConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logStreams': obj.logStreams?.map(y => toJson_JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JavaAppLayerSpecInitProviderEbsVolume
+ */
+export interface JavaAppLayerSpecInitProviderEbsVolume {
+  /**
+   * @schema JavaAppLayerSpecInitProviderEbsVolume#encrypted
+   */
+  readonly encrypted?: boolean;
+
+  /**
+   * For PIOPS volumes, the IOPS per disk.
+   *
+   * @schema JavaAppLayerSpecInitProviderEbsVolume#iops
+   */
+  readonly iops?: number;
+
+  /**
+   * The path to mount the EBS volume on the layer's instances.
+   *
+   * @schema JavaAppLayerSpecInitProviderEbsVolume#mountPoint
+   */
+  readonly mountPoint?: string;
+
+  /**
+   * The number of disks to use for the EBS volume.
+   *
+   * @schema JavaAppLayerSpecInitProviderEbsVolume#numberOfDisks
+   */
+  readonly numberOfDisks?: number;
+
+  /**
+   * The RAID level to use for the volume.
+   *
+   * @schema JavaAppLayerSpecInitProviderEbsVolume#raidLevel
+   */
+  readonly raidLevel?: string;
+
+  /**
+   * The size of the volume in gigabytes.
+   *
+   * @schema JavaAppLayerSpecInitProviderEbsVolume#size
+   */
+  readonly size?: number;
+
+  /**
+   * The type of volume to create. This may be standard (the default), io1 or gp2.
+   *
+   * @schema JavaAppLayerSpecInitProviderEbsVolume#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'JavaAppLayerSpecInitProviderEbsVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JavaAppLayerSpecInitProviderEbsVolume(obj: JavaAppLayerSpecInitProviderEbsVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'encrypted': obj.encrypted,
+    'iops': obj.iops,
+    'mountPoint': obj.mountPoint,
+    'numberOfDisks': obj.numberOfDisks,
+    'raidLevel': obj.raidLevel,
+    'size': obj.size,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScaling
+ */
+export interface JavaAppLayerSpecInitProviderLoadBasedAutoScaling {
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScaling#downscaling
+   */
+  readonly downscaling?: JavaAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling[];
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScaling#enable
+   */
+  readonly enable?: boolean;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScaling#upscaling
+   */
+  readonly upscaling?: JavaAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling[];
+
+}
+
+/**
+ * Converts an object of type 'JavaAppLayerSpecInitProviderLoadBasedAutoScaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JavaAppLayerSpecInitProviderLoadBasedAutoScaling(obj: JavaAppLayerSpecInitProviderLoadBasedAutoScaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'downscaling': obj.downscaling?.map(y => toJson_JavaAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling(y)),
+    'enable': obj.enable,
+    'upscaling': obj.upscaling?.map(y => toJson_JavaAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema JavaAppLayerSpecProviderConfigRefPolicy
@@ -10872,43 +13564,6 @@ export interface JavaAppLayerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_JavaAppLayerSpecProviderConfigRefPolicy(obj: JavaAppLayerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema JavaAppLayerSpecProviderRefPolicy
- */
-export interface JavaAppLayerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema JavaAppLayerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: JavaAppLayerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema JavaAppLayerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: JavaAppLayerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'JavaAppLayerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_JavaAppLayerSpecProviderRefPolicy(obj: JavaAppLayerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -11033,7 +13688,7 @@ export interface JavaAppLayerSpecForProviderCloudwatchConfigurationLogStreams {
   /**
    * @schema JavaAppLayerSpecForProviderCloudwatchConfigurationLogStreams#file
    */
-  readonly file: string;
+  readonly file?: string;
 
   /**
    * @schema JavaAppLayerSpecForProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
@@ -11050,7 +13705,7 @@ export interface JavaAppLayerSpecForProviderCloudwatchConfigurationLogStreams {
    *
    * @schema JavaAppLayerSpecForProviderCloudwatchConfigurationLogStreams#logGroupName
    */
-  readonly logGroupName: string;
+  readonly logGroupName?: string;
 
   /**
    * @schema JavaAppLayerSpecForProviderCloudwatchConfigurationLogStreams#multilineStartPattern
@@ -11359,6 +14014,215 @@ export function toJson_JavaAppLayerSpecForProviderStackIdSelectorPolicy(obj: Jav
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams
+ */
+export interface JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams {
+  /**
+   * @schema JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchCount
+   */
+  readonly batchCount?: number;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchSize
+   */
+  readonly batchSize?: number;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#bufferDuration
+   */
+  readonly bufferDuration?: number;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#datetimeFormat
+   */
+  readonly datetimeFormat?: string;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#encoding
+   */
+  readonly encoding?: string;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#file
+   */
+  readonly file?: string;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
+   */
+  readonly fileFingerprintLines?: string;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#initialPosition
+   */
+  readonly initialPosition?: string;
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#multilineStartPattern
+   */
+  readonly multilineStartPattern?: string;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#timeZone
+   */
+  readonly timeZone?: string;
+
+}
+
+/**
+ * Converts an object of type 'JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams(obj: JavaAppLayerSpecInitProviderCloudwatchConfigurationLogStreams | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'batchCount': obj.batchCount,
+    'batchSize': obj.batchSize,
+    'bufferDuration': obj.bufferDuration,
+    'datetimeFormat': obj.datetimeFormat,
+    'encoding': obj.encoding,
+    'file': obj.file,
+    'fileFingerprintLines': obj.fileFingerprintLines,
+    'initialPosition': obj.initialPosition,
+    'logGroupName': obj.logGroupName,
+    'multilineStartPattern': obj.multilineStartPattern,
+    'timeZone': obj.timeZone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling
+ */
+export interface JavaAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling {
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'JavaAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JavaAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling(obj: JavaAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling
+ */
+export interface JavaAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling {
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema JavaAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'JavaAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JavaAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling(obj: JavaAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema JavaAppLayerSpecProviderConfigRefPolicyResolution
@@ -11376,30 +14240,6 @@ export enum JavaAppLayerSpecProviderConfigRefPolicyResolution {
  * @schema JavaAppLayerSpecProviderConfigRefPolicyResolve
  */
 export enum JavaAppLayerSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema JavaAppLayerSpecProviderRefPolicyResolution
- */
-export enum JavaAppLayerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema JavaAppLayerSpecProviderRefPolicyResolve
- */
-export enum JavaAppLayerSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -11660,7 +14500,7 @@ export function toJson_MemcachedLayerProps(obj: MemcachedLayerProps | undefined)
  */
 export interface MemcachedLayerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MemcachedLayerSpec#deletionPolicy
    */
@@ -11672,11 +14512,18 @@ export interface MemcachedLayerSpec {
   readonly forProvider: MemcachedLayerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema MemcachedLayerSpec#managementPolicy
+   * @schema MemcachedLayerSpec#initProvider
    */
-  readonly managementPolicy?: MemcachedLayerSpecManagementPolicy;
+  readonly initProvider?: MemcachedLayerSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema MemcachedLayerSpec#managementPolicies
+   */
+  readonly managementPolicies?: MemcachedLayerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -11684,13 +14531,6 @@ export interface MemcachedLayerSpec {
    * @schema MemcachedLayerSpec#providerConfigRef
    */
   readonly providerConfigRef?: MemcachedLayerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema MemcachedLayerSpec#providerRef
-   */
-  readonly providerRef?: MemcachedLayerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -11717,9 +14557,9 @@ export function toJson_MemcachedLayerSpec(obj: MemcachedLayerSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MemcachedLayerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_MemcachedLayerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_MemcachedLayerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_MemcachedLayerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MemcachedLayerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_MemcachedLayerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -11729,7 +14569,7 @@ export function toJson_MemcachedLayerSpec(obj: MemcachedLayerSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MemcachedLayerSpecDeletionPolicy
  */
@@ -11971,17 +14811,207 @@ export function toJson_MemcachedLayerSpecForProvider(obj: MemcachedLayerSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema MemcachedLayerSpecManagementPolicy
+ * @schema MemcachedLayerSpecInitProvider
  */
-export enum MemcachedLayerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface MemcachedLayerSpecInitProvider {
+  /**
+   * Amount of memory to allocate for the cache on each instance, in megabytes. Defaults to 512MB.
+   *
+   * @default 512MB.
+   * @schema MemcachedLayerSpecInitProvider#allocatedMemory
+   */
+  readonly allocatedMemory?: number;
+
+  /**
+   * Whether to automatically assign an elastic IP address to the layer's instances.
+   *
+   * @schema MemcachedLayerSpecInitProvider#autoAssignElasticIps
+   */
+  readonly autoAssignElasticIps?: boolean;
+
+  /**
+   * For stacks belonging to a VPC, whether to automatically assign a public IP address to each of the layer's instances.
+   *
+   * @schema MemcachedLayerSpecInitProvider#autoAssignPublicIps
+   */
+  readonly autoAssignPublicIps?: boolean;
+
+  /**
+   * Whether to enable auto-healing for the layer.
+   *
+   * @schema MemcachedLayerSpecInitProvider#autoHealing
+   */
+  readonly autoHealing?: boolean;
+
+  /**
+   * @schema MemcachedLayerSpecInitProvider#cloudwatchConfiguration
+   */
+  readonly cloudwatchConfiguration?: MemcachedLayerSpecInitProviderCloudwatchConfiguration[];
+
+  /**
+   * @schema MemcachedLayerSpecInitProvider#customConfigureRecipes
+   */
+  readonly customConfigureRecipes?: string[];
+
+  /**
+   * @schema MemcachedLayerSpecInitProvider#customDeployRecipes
+   */
+  readonly customDeployRecipes?: string[];
+
+  /**
+   * The ARN of an IAM profile that will be used for the layer's instances.
+   *
+   * @schema MemcachedLayerSpecInitProvider#customInstanceProfileArn
+   */
+  readonly customInstanceProfileArn?: string;
+
+  /**
+   * Custom JSON attributes to apply to the layer.
+   *
+   * @schema MemcachedLayerSpecInitProvider#customJson
+   */
+  readonly customJson?: string;
+
+  /**
+   * @schema MemcachedLayerSpecInitProvider#customSetupRecipes
+   */
+  readonly customSetupRecipes?: string[];
+
+  /**
+   * @schema MemcachedLayerSpecInitProvider#customShutdownRecipes
+   */
+  readonly customShutdownRecipes?: string[];
+
+  /**
+   * @schema MemcachedLayerSpecInitProvider#customUndeployRecipes
+   */
+  readonly customUndeployRecipes?: string[];
+
+  /**
+   * Whether to enable Elastic Load Balancing connection draining.
+   *
+   * @schema MemcachedLayerSpecInitProvider#drainElbOnShutdown
+   */
+  readonly drainElbOnShutdown?: boolean;
+
+  /**
+   * ebs_volume blocks, as described below, will each create an EBS volume and connect it to the layer's instances.
+   *
+   * @schema MemcachedLayerSpecInitProvider#ebsVolume
+   */
+  readonly ebsVolume?: MemcachedLayerSpecInitProviderEbsVolume[];
+
+  /**
+   * Name of an Elastic Load Balancer to attach to this layer
+   *
+   * @schema MemcachedLayerSpecInitProvider#elasticLoadBalancer
+   */
+  readonly elasticLoadBalancer?: string;
+
+  /**
+   * Whether to install OS and package updates on each instance when it boots.
+   *
+   * @schema MemcachedLayerSpecInitProvider#installUpdatesOnBoot
+   */
+  readonly installUpdatesOnBoot?: boolean;
+
+  /**
+   * The time, in seconds, that OpsWorks will wait for Chef to complete after triggering the Shutdown event.
+   *
+   * @schema MemcachedLayerSpecInitProvider#instanceShutdownTimeout
+   */
+  readonly instanceShutdownTimeout?: number;
+
+  /**
+   * @schema MemcachedLayerSpecInitProvider#loadBasedAutoScaling
+   */
+  readonly loadBasedAutoScaling?: MemcachedLayerSpecInitProviderLoadBasedAutoScaling[];
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema MemcachedLayerSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Names of a set of system packages to install on the layer's instances.
+   *
+   * @schema MemcachedLayerSpecInitProvider#systemPackages
+   */
+  readonly systemPackages?: string[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema MemcachedLayerSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Whether to use EBS-optimized instances.
+   *
+   * @schema MemcachedLayerSpecInitProvider#useEbsOptimizedInstances
+   */
+  readonly useEbsOptimizedInstances?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'MemcachedLayerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MemcachedLayerSpecInitProvider(obj: MemcachedLayerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allocatedMemory': obj.allocatedMemory,
+    'autoAssignElasticIps': obj.autoAssignElasticIps,
+    'autoAssignPublicIps': obj.autoAssignPublicIps,
+    'autoHealing': obj.autoHealing,
+    'cloudwatchConfiguration': obj.cloudwatchConfiguration?.map(y => toJson_MemcachedLayerSpecInitProviderCloudwatchConfiguration(y)),
+    'customConfigureRecipes': obj.customConfigureRecipes?.map(y => y),
+    'customDeployRecipes': obj.customDeployRecipes?.map(y => y),
+    'customInstanceProfileArn': obj.customInstanceProfileArn,
+    'customJson': obj.customJson,
+    'customSetupRecipes': obj.customSetupRecipes?.map(y => y),
+    'customShutdownRecipes': obj.customShutdownRecipes?.map(y => y),
+    'customUndeployRecipes': obj.customUndeployRecipes?.map(y => y),
+    'drainElbOnShutdown': obj.drainElbOnShutdown,
+    'ebsVolume': obj.ebsVolume?.map(y => toJson_MemcachedLayerSpecInitProviderEbsVolume(y)),
+    'elasticLoadBalancer': obj.elasticLoadBalancer,
+    'installUpdatesOnBoot': obj.installUpdatesOnBoot,
+    'instanceShutdownTimeout': obj.instanceShutdownTimeout,
+    'loadBasedAutoScaling': obj.loadBasedAutoScaling?.map(y => toJson_MemcachedLayerSpecInitProviderLoadBasedAutoScaling(y)),
+    'name': obj.name,
+    'systemPackages': obj.systemPackages?.map(y => y),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'useEbsOptimizedInstances': obj.useEbsOptimizedInstances,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema MemcachedLayerSpecManagementPolicies
+ */
+export enum MemcachedLayerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -12015,43 +15045,6 @@ export function toJson_MemcachedLayerSpecProviderConfigRef(obj: MemcachedLayerSp
   const result = {
     'name': obj.name,
     'policy': toJson_MemcachedLayerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema MemcachedLayerSpecProviderRef
- */
-export interface MemcachedLayerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema MemcachedLayerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema MemcachedLayerSpecProviderRef#policy
-   */
-  readonly policy?: MemcachedLayerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'MemcachedLayerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MemcachedLayerSpecProviderRef(obj: MemcachedLayerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_MemcachedLayerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -12274,14 +15267,14 @@ export interface MemcachedLayerSpecForProviderEbsVolume {
    *
    * @schema MemcachedLayerSpecForProviderEbsVolume#mountPoint
    */
-  readonly mountPoint: string;
+  readonly mountPoint?: string;
 
   /**
    * The number of disks to use for the EBS volume.
    *
    * @schema MemcachedLayerSpecForProviderEbsVolume#numberOfDisks
    */
-  readonly numberOfDisks: number;
+  readonly numberOfDisks?: number;
 
   /**
    * The RAID level to use for the volume.
@@ -12295,7 +15288,7 @@ export interface MemcachedLayerSpecForProviderEbsVolume {
    *
    * @schema MemcachedLayerSpecForProviderEbsVolume#size
    */
-  readonly size: number;
+  readonly size?: number;
 
   /**
    * The type of volume to create. This may be standard (the default), io1 or gp2.
@@ -12446,6 +15439,147 @@ export function toJson_MemcachedLayerSpecForProviderStackIdSelector(obj: Memcach
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema MemcachedLayerSpecInitProviderCloudwatchConfiguration
+ */
+export interface MemcachedLayerSpecInitProviderCloudwatchConfiguration {
+  /**
+   * @schema MemcachedLayerSpecInitProviderCloudwatchConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderCloudwatchConfiguration#logStreams
+   */
+  readonly logStreams?: MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams[];
+
+}
+
+/**
+ * Converts an object of type 'MemcachedLayerSpecInitProviderCloudwatchConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MemcachedLayerSpecInitProviderCloudwatchConfiguration(obj: MemcachedLayerSpecInitProviderCloudwatchConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logStreams': obj.logStreams?.map(y => toJson_MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MemcachedLayerSpecInitProviderEbsVolume
+ */
+export interface MemcachedLayerSpecInitProviderEbsVolume {
+  /**
+   * @schema MemcachedLayerSpecInitProviderEbsVolume#encrypted
+   */
+  readonly encrypted?: boolean;
+
+  /**
+   * For PIOPS volumes, the IOPS per disk.
+   *
+   * @schema MemcachedLayerSpecInitProviderEbsVolume#iops
+   */
+  readonly iops?: number;
+
+  /**
+   * The path to mount the EBS volume on the layer's instances.
+   *
+   * @schema MemcachedLayerSpecInitProviderEbsVolume#mountPoint
+   */
+  readonly mountPoint?: string;
+
+  /**
+   * The number of disks to use for the EBS volume.
+   *
+   * @schema MemcachedLayerSpecInitProviderEbsVolume#numberOfDisks
+   */
+  readonly numberOfDisks?: number;
+
+  /**
+   * The RAID level to use for the volume.
+   *
+   * @schema MemcachedLayerSpecInitProviderEbsVolume#raidLevel
+   */
+  readonly raidLevel?: string;
+
+  /**
+   * The size of the volume in gigabytes.
+   *
+   * @schema MemcachedLayerSpecInitProviderEbsVolume#size
+   */
+  readonly size?: number;
+
+  /**
+   * The type of volume to create. This may be standard (the default), io1 or gp2.
+   *
+   * @schema MemcachedLayerSpecInitProviderEbsVolume#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'MemcachedLayerSpecInitProviderEbsVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MemcachedLayerSpecInitProviderEbsVolume(obj: MemcachedLayerSpecInitProviderEbsVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'encrypted': obj.encrypted,
+    'iops': obj.iops,
+    'mountPoint': obj.mountPoint,
+    'numberOfDisks': obj.numberOfDisks,
+    'raidLevel': obj.raidLevel,
+    'size': obj.size,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScaling
+ */
+export interface MemcachedLayerSpecInitProviderLoadBasedAutoScaling {
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScaling#downscaling
+   */
+  readonly downscaling?: MemcachedLayerSpecInitProviderLoadBasedAutoScalingDownscaling[];
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScaling#enable
+   */
+  readonly enable?: boolean;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScaling#upscaling
+   */
+  readonly upscaling?: MemcachedLayerSpecInitProviderLoadBasedAutoScalingUpscaling[];
+
+}
+
+/**
+ * Converts an object of type 'MemcachedLayerSpecInitProviderLoadBasedAutoScaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MemcachedLayerSpecInitProviderLoadBasedAutoScaling(obj: MemcachedLayerSpecInitProviderLoadBasedAutoScaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'downscaling': obj.downscaling?.map(y => toJson_MemcachedLayerSpecInitProviderLoadBasedAutoScalingDownscaling(y)),
+    'enable': obj.enable,
+    'upscaling': obj.upscaling?.map(y => toJson_MemcachedLayerSpecInitProviderLoadBasedAutoScalingUpscaling(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema MemcachedLayerSpecProviderConfigRefPolicy
@@ -12472,43 +15606,6 @@ export interface MemcachedLayerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_MemcachedLayerSpecProviderConfigRefPolicy(obj: MemcachedLayerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema MemcachedLayerSpecProviderRefPolicy
- */
-export interface MemcachedLayerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema MemcachedLayerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: MemcachedLayerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema MemcachedLayerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: MemcachedLayerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'MemcachedLayerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MemcachedLayerSpecProviderRefPolicy(obj: MemcachedLayerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -12633,7 +15730,7 @@ export interface MemcachedLayerSpecForProviderCloudwatchConfigurationLogStreams 
   /**
    * @schema MemcachedLayerSpecForProviderCloudwatchConfigurationLogStreams#file
    */
-  readonly file: string;
+  readonly file?: string;
 
   /**
    * @schema MemcachedLayerSpecForProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
@@ -12650,7 +15747,7 @@ export interface MemcachedLayerSpecForProviderCloudwatchConfigurationLogStreams 
    *
    * @schema MemcachedLayerSpecForProviderCloudwatchConfigurationLogStreams#logGroupName
    */
-  readonly logGroupName: string;
+  readonly logGroupName?: string;
 
   /**
    * @schema MemcachedLayerSpecForProviderCloudwatchConfigurationLogStreams#multilineStartPattern
@@ -12959,6 +16056,215 @@ export function toJson_MemcachedLayerSpecForProviderStackIdSelectorPolicy(obj: M
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams
+ */
+export interface MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams {
+  /**
+   * @schema MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchCount
+   */
+  readonly batchCount?: number;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchSize
+   */
+  readonly batchSize?: number;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams#bufferDuration
+   */
+  readonly bufferDuration?: number;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams#datetimeFormat
+   */
+  readonly datetimeFormat?: string;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams#encoding
+   */
+  readonly encoding?: string;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams#file
+   */
+  readonly file?: string;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
+   */
+  readonly fileFingerprintLines?: string;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams#initialPosition
+   */
+  readonly initialPosition?: string;
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams#multilineStartPattern
+   */
+  readonly multilineStartPattern?: string;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams#timeZone
+   */
+  readonly timeZone?: string;
+
+}
+
+/**
+ * Converts an object of type 'MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams(obj: MemcachedLayerSpecInitProviderCloudwatchConfigurationLogStreams | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'batchCount': obj.batchCount,
+    'batchSize': obj.batchSize,
+    'bufferDuration': obj.bufferDuration,
+    'datetimeFormat': obj.datetimeFormat,
+    'encoding': obj.encoding,
+    'file': obj.file,
+    'fileFingerprintLines': obj.fileFingerprintLines,
+    'initialPosition': obj.initialPosition,
+    'logGroupName': obj.logGroupName,
+    'multilineStartPattern': obj.multilineStartPattern,
+    'timeZone': obj.timeZone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScalingDownscaling
+ */
+export interface MemcachedLayerSpecInitProviderLoadBasedAutoScalingDownscaling {
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScalingDownscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScalingDownscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScalingDownscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScalingDownscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScalingDownscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScalingDownscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScalingDownscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'MemcachedLayerSpecInitProviderLoadBasedAutoScalingDownscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MemcachedLayerSpecInitProviderLoadBasedAutoScalingDownscaling(obj: MemcachedLayerSpecInitProviderLoadBasedAutoScalingDownscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScalingUpscaling
+ */
+export interface MemcachedLayerSpecInitProviderLoadBasedAutoScalingUpscaling {
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScalingUpscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScalingUpscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScalingUpscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScalingUpscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScalingUpscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScalingUpscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema MemcachedLayerSpecInitProviderLoadBasedAutoScalingUpscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'MemcachedLayerSpecInitProviderLoadBasedAutoScalingUpscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MemcachedLayerSpecInitProviderLoadBasedAutoScalingUpscaling(obj: MemcachedLayerSpecInitProviderLoadBasedAutoScalingUpscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema MemcachedLayerSpecProviderConfigRefPolicyResolution
@@ -12976,30 +16282,6 @@ export enum MemcachedLayerSpecProviderConfigRefPolicyResolution {
  * @schema MemcachedLayerSpecProviderConfigRefPolicyResolve
  */
 export enum MemcachedLayerSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema MemcachedLayerSpecProviderRefPolicyResolution
- */
-export enum MemcachedLayerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema MemcachedLayerSpecProviderRefPolicyResolve
- */
-export enum MemcachedLayerSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -13260,7 +16542,7 @@ export function toJson_MySqlLayerProps(obj: MySqlLayerProps | undefined): Record
  */
 export interface MySqlLayerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MySqlLayerSpec#deletionPolicy
    */
@@ -13272,11 +16554,18 @@ export interface MySqlLayerSpec {
   readonly forProvider: MySqlLayerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema MySqlLayerSpec#managementPolicy
+   * @schema MySqlLayerSpec#initProvider
    */
-  readonly managementPolicy?: MySqlLayerSpecManagementPolicy;
+  readonly initProvider?: MySqlLayerSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema MySqlLayerSpec#managementPolicies
+   */
+  readonly managementPolicies?: MySqlLayerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -13284,13 +16573,6 @@ export interface MySqlLayerSpec {
    * @schema MySqlLayerSpec#providerConfigRef
    */
   readonly providerConfigRef?: MySqlLayerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema MySqlLayerSpec#providerRef
-   */
-  readonly providerRef?: MySqlLayerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -13317,9 +16599,9 @@ export function toJson_MySqlLayerSpec(obj: MySqlLayerSpec | undefined): Record<s
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MySqlLayerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_MySqlLayerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_MySqlLayerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_MySqlLayerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MySqlLayerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_MySqlLayerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -13329,7 +16611,7 @@ export function toJson_MySqlLayerSpec(obj: MySqlLayerSpec | undefined): Record<s
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MySqlLayerSpecDeletionPolicy
  */
@@ -13578,17 +16860,214 @@ export function toJson_MySqlLayerSpecForProvider(obj: MySqlLayerSpecForProvider 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema MySqlLayerSpecManagementPolicy
+ * @schema MySqlLayerSpecInitProvider
  */
-export enum MySqlLayerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface MySqlLayerSpecInitProvider {
+  /**
+   * Whether to automatically assign an elastic IP address to the layer's instances.
+   *
+   * @schema MySqlLayerSpecInitProvider#autoAssignElasticIps
+   */
+  readonly autoAssignElasticIps?: boolean;
+
+  /**
+   * For stacks belonging to a VPC, whether to automatically assign a public IP address to each of the layer's instances.
+   *
+   * @schema MySqlLayerSpecInitProvider#autoAssignPublicIps
+   */
+  readonly autoAssignPublicIps?: boolean;
+
+  /**
+   * Whether to enable auto-healing for the layer.
+   *
+   * @schema MySqlLayerSpecInitProvider#autoHealing
+   */
+  readonly autoHealing?: boolean;
+
+  /**
+   * @schema MySqlLayerSpecInitProvider#cloudwatchConfiguration
+   */
+  readonly cloudwatchConfiguration?: MySqlLayerSpecInitProviderCloudwatchConfiguration[];
+
+  /**
+   * @schema MySqlLayerSpecInitProvider#customConfigureRecipes
+   */
+  readonly customConfigureRecipes?: string[];
+
+  /**
+   * @schema MySqlLayerSpecInitProvider#customDeployRecipes
+   */
+  readonly customDeployRecipes?: string[];
+
+  /**
+   * The ARN of an IAM profile that will be used for the layer's instances.
+   *
+   * @schema MySqlLayerSpecInitProvider#customInstanceProfileArn
+   */
+  readonly customInstanceProfileArn?: string;
+
+  /**
+   * Custom JSON attributes to apply to the layer.
+   *
+   * @schema MySqlLayerSpecInitProvider#customJson
+   */
+  readonly customJson?: string;
+
+  /**
+   * @schema MySqlLayerSpecInitProvider#customSetupRecipes
+   */
+  readonly customSetupRecipes?: string[];
+
+  /**
+   * @schema MySqlLayerSpecInitProvider#customShutdownRecipes
+   */
+  readonly customShutdownRecipes?: string[];
+
+  /**
+   * @schema MySqlLayerSpecInitProvider#customUndeployRecipes
+   */
+  readonly customUndeployRecipes?: string[];
+
+  /**
+   * Whether to enable Elastic Load Balancing connection draining.
+   *
+   * @schema MySqlLayerSpecInitProvider#drainElbOnShutdown
+   */
+  readonly drainElbOnShutdown?: boolean;
+
+  /**
+   * ebs_volume blocks, as described below, will each create an EBS volume and connect it to the layer's instances.
+   *
+   * @schema MySqlLayerSpecInitProvider#ebsVolume
+   */
+  readonly ebsVolume?: MySqlLayerSpecInitProviderEbsVolume[];
+
+  /**
+   * Name of an Elastic Load Balancer to attach to this layer
+   *
+   * @schema MySqlLayerSpecInitProvider#elasticLoadBalancer
+   */
+  readonly elasticLoadBalancer?: string;
+
+  /**
+   * Whether to install OS and package updates on each instance when it boots.
+   *
+   * @schema MySqlLayerSpecInitProvider#installUpdatesOnBoot
+   */
+  readonly installUpdatesOnBoot?: boolean;
+
+  /**
+   * The time, in seconds, that OpsWorks will wait for Chef to complete after triggering the Shutdown event.
+   *
+   * @schema MySqlLayerSpecInitProvider#instanceShutdownTimeout
+   */
+  readonly instanceShutdownTimeout?: number;
+
+  /**
+   * @schema MySqlLayerSpecInitProvider#loadBasedAutoScaling
+   */
+  readonly loadBasedAutoScaling?: MySqlLayerSpecInitProviderLoadBasedAutoScaling[];
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema MySqlLayerSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Root password to use for MySQL.
+   *
+   * @schema MySqlLayerSpecInitProvider#rootPassword
+   */
+  readonly rootPassword?: string;
+
+  /**
+   * Whether to set the root user password to all instances in the stack so they can access the instances in this layer.
+   *
+   * @schema MySqlLayerSpecInitProvider#rootPasswordOnAllInstances
+   */
+  readonly rootPasswordOnAllInstances?: boolean;
+
+  /**
+   * Names of a set of system packages to install on the layer's instances.
+   *
+   * @schema MySqlLayerSpecInitProvider#systemPackages
+   */
+  readonly systemPackages?: string[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema MySqlLayerSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Whether to use EBS-optimized instances.
+   *
+   * @schema MySqlLayerSpecInitProvider#useEbsOptimizedInstances
+   */
+  readonly useEbsOptimizedInstances?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'MySqlLayerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MySqlLayerSpecInitProvider(obj: MySqlLayerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoAssignElasticIps': obj.autoAssignElasticIps,
+    'autoAssignPublicIps': obj.autoAssignPublicIps,
+    'autoHealing': obj.autoHealing,
+    'cloudwatchConfiguration': obj.cloudwatchConfiguration?.map(y => toJson_MySqlLayerSpecInitProviderCloudwatchConfiguration(y)),
+    'customConfigureRecipes': obj.customConfigureRecipes?.map(y => y),
+    'customDeployRecipes': obj.customDeployRecipes?.map(y => y),
+    'customInstanceProfileArn': obj.customInstanceProfileArn,
+    'customJson': obj.customJson,
+    'customSetupRecipes': obj.customSetupRecipes?.map(y => y),
+    'customShutdownRecipes': obj.customShutdownRecipes?.map(y => y),
+    'customUndeployRecipes': obj.customUndeployRecipes?.map(y => y),
+    'drainElbOnShutdown': obj.drainElbOnShutdown,
+    'ebsVolume': obj.ebsVolume?.map(y => toJson_MySqlLayerSpecInitProviderEbsVolume(y)),
+    'elasticLoadBalancer': obj.elasticLoadBalancer,
+    'installUpdatesOnBoot': obj.installUpdatesOnBoot,
+    'instanceShutdownTimeout': obj.instanceShutdownTimeout,
+    'loadBasedAutoScaling': obj.loadBasedAutoScaling?.map(y => toJson_MySqlLayerSpecInitProviderLoadBasedAutoScaling(y)),
+    'name': obj.name,
+    'rootPassword': obj.rootPassword,
+    'rootPasswordOnAllInstances': obj.rootPasswordOnAllInstances,
+    'systemPackages': obj.systemPackages?.map(y => y),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'useEbsOptimizedInstances': obj.useEbsOptimizedInstances,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema MySqlLayerSpecManagementPolicies
+ */
+export enum MySqlLayerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -13622,43 +17101,6 @@ export function toJson_MySqlLayerSpecProviderConfigRef(obj: MySqlLayerSpecProvid
   const result = {
     'name': obj.name,
     'policy': toJson_MySqlLayerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema MySqlLayerSpecProviderRef
- */
-export interface MySqlLayerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema MySqlLayerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema MySqlLayerSpecProviderRef#policy
-   */
-  readonly policy?: MySqlLayerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'MySqlLayerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MySqlLayerSpecProviderRef(obj: MySqlLayerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_MySqlLayerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -13881,14 +17323,14 @@ export interface MySqlLayerSpecForProviderEbsVolume {
    *
    * @schema MySqlLayerSpecForProviderEbsVolume#mountPoint
    */
-  readonly mountPoint: string;
+  readonly mountPoint?: string;
 
   /**
    * The number of disks to use for the EBS volume.
    *
    * @schema MySqlLayerSpecForProviderEbsVolume#numberOfDisks
    */
-  readonly numberOfDisks: number;
+  readonly numberOfDisks?: number;
 
   /**
    * The RAID level to use for the volume.
@@ -13902,7 +17344,7 @@ export interface MySqlLayerSpecForProviderEbsVolume {
    *
    * @schema MySqlLayerSpecForProviderEbsVolume#size
    */
-  readonly size: number;
+  readonly size?: number;
 
   /**
    * The type of volume to create. This may be standard (the default), io1 or gp2.
@@ -14053,6 +17495,147 @@ export function toJson_MySqlLayerSpecForProviderStackIdSelector(obj: MySqlLayerS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema MySqlLayerSpecInitProviderCloudwatchConfiguration
+ */
+export interface MySqlLayerSpecInitProviderCloudwatchConfiguration {
+  /**
+   * @schema MySqlLayerSpecInitProviderCloudwatchConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderCloudwatchConfiguration#logStreams
+   */
+  readonly logStreams?: MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams[];
+
+}
+
+/**
+ * Converts an object of type 'MySqlLayerSpecInitProviderCloudwatchConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MySqlLayerSpecInitProviderCloudwatchConfiguration(obj: MySqlLayerSpecInitProviderCloudwatchConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logStreams': obj.logStreams?.map(y => toJson_MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MySqlLayerSpecInitProviderEbsVolume
+ */
+export interface MySqlLayerSpecInitProviderEbsVolume {
+  /**
+   * @schema MySqlLayerSpecInitProviderEbsVolume#encrypted
+   */
+  readonly encrypted?: boolean;
+
+  /**
+   * For PIOPS volumes, the IOPS per disk.
+   *
+   * @schema MySqlLayerSpecInitProviderEbsVolume#iops
+   */
+  readonly iops?: number;
+
+  /**
+   * The path to mount the EBS volume on the layer's instances.
+   *
+   * @schema MySqlLayerSpecInitProviderEbsVolume#mountPoint
+   */
+  readonly mountPoint?: string;
+
+  /**
+   * The number of disks to use for the EBS volume.
+   *
+   * @schema MySqlLayerSpecInitProviderEbsVolume#numberOfDisks
+   */
+  readonly numberOfDisks?: number;
+
+  /**
+   * The RAID level to use for the volume.
+   *
+   * @schema MySqlLayerSpecInitProviderEbsVolume#raidLevel
+   */
+  readonly raidLevel?: string;
+
+  /**
+   * The size of the volume in gigabytes.
+   *
+   * @schema MySqlLayerSpecInitProviderEbsVolume#size
+   */
+  readonly size?: number;
+
+  /**
+   * The type of volume to create. This may be standard (the default), io1 or gp2.
+   *
+   * @schema MySqlLayerSpecInitProviderEbsVolume#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'MySqlLayerSpecInitProviderEbsVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MySqlLayerSpecInitProviderEbsVolume(obj: MySqlLayerSpecInitProviderEbsVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'encrypted': obj.encrypted,
+    'iops': obj.iops,
+    'mountPoint': obj.mountPoint,
+    'numberOfDisks': obj.numberOfDisks,
+    'raidLevel': obj.raidLevel,
+    'size': obj.size,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MySqlLayerSpecInitProviderLoadBasedAutoScaling
+ */
+export interface MySqlLayerSpecInitProviderLoadBasedAutoScaling {
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScaling#downscaling
+   */
+  readonly downscaling?: MySqlLayerSpecInitProviderLoadBasedAutoScalingDownscaling[];
+
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScaling#enable
+   */
+  readonly enable?: boolean;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScaling#upscaling
+   */
+  readonly upscaling?: MySqlLayerSpecInitProviderLoadBasedAutoScalingUpscaling[];
+
+}
+
+/**
+ * Converts an object of type 'MySqlLayerSpecInitProviderLoadBasedAutoScaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MySqlLayerSpecInitProviderLoadBasedAutoScaling(obj: MySqlLayerSpecInitProviderLoadBasedAutoScaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'downscaling': obj.downscaling?.map(y => toJson_MySqlLayerSpecInitProviderLoadBasedAutoScalingDownscaling(y)),
+    'enable': obj.enable,
+    'upscaling': obj.upscaling?.map(y => toJson_MySqlLayerSpecInitProviderLoadBasedAutoScalingUpscaling(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema MySqlLayerSpecProviderConfigRefPolicy
@@ -14079,43 +17662,6 @@ export interface MySqlLayerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_MySqlLayerSpecProviderConfigRefPolicy(obj: MySqlLayerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema MySqlLayerSpecProviderRefPolicy
- */
-export interface MySqlLayerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema MySqlLayerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: MySqlLayerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema MySqlLayerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: MySqlLayerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'MySqlLayerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MySqlLayerSpecProviderRefPolicy(obj: MySqlLayerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -14240,7 +17786,7 @@ export interface MySqlLayerSpecForProviderCloudwatchConfigurationLogStreams {
   /**
    * @schema MySqlLayerSpecForProviderCloudwatchConfigurationLogStreams#file
    */
-  readonly file: string;
+  readonly file?: string;
 
   /**
    * @schema MySqlLayerSpecForProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
@@ -14257,7 +17803,7 @@ export interface MySqlLayerSpecForProviderCloudwatchConfigurationLogStreams {
    *
    * @schema MySqlLayerSpecForProviderCloudwatchConfigurationLogStreams#logGroupName
    */
-  readonly logGroupName: string;
+  readonly logGroupName?: string;
 
   /**
    * @schema MySqlLayerSpecForProviderCloudwatchConfigurationLogStreams#multilineStartPattern
@@ -14566,6 +18112,215 @@ export function toJson_MySqlLayerSpecForProviderStackIdSelectorPolicy(obj: MySql
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams
+ */
+export interface MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams {
+  /**
+   * @schema MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchCount
+   */
+  readonly batchCount?: number;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchSize
+   */
+  readonly batchSize?: number;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams#bufferDuration
+   */
+  readonly bufferDuration?: number;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams#datetimeFormat
+   */
+  readonly datetimeFormat?: string;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams#encoding
+   */
+  readonly encoding?: string;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams#file
+   */
+  readonly file?: string;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
+   */
+  readonly fileFingerprintLines?: string;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams#initialPosition
+   */
+  readonly initialPosition?: string;
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams#multilineStartPattern
+   */
+  readonly multilineStartPattern?: string;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams#timeZone
+   */
+  readonly timeZone?: string;
+
+}
+
+/**
+ * Converts an object of type 'MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams(obj: MySqlLayerSpecInitProviderCloudwatchConfigurationLogStreams | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'batchCount': obj.batchCount,
+    'batchSize': obj.batchSize,
+    'bufferDuration': obj.bufferDuration,
+    'datetimeFormat': obj.datetimeFormat,
+    'encoding': obj.encoding,
+    'file': obj.file,
+    'fileFingerprintLines': obj.fileFingerprintLines,
+    'initialPosition': obj.initialPosition,
+    'logGroupName': obj.logGroupName,
+    'multilineStartPattern': obj.multilineStartPattern,
+    'timeZone': obj.timeZone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MySqlLayerSpecInitProviderLoadBasedAutoScalingDownscaling
+ */
+export interface MySqlLayerSpecInitProviderLoadBasedAutoScalingDownscaling {
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScalingDownscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScalingDownscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScalingDownscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScalingDownscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScalingDownscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScalingDownscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScalingDownscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'MySqlLayerSpecInitProviderLoadBasedAutoScalingDownscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MySqlLayerSpecInitProviderLoadBasedAutoScalingDownscaling(obj: MySqlLayerSpecInitProviderLoadBasedAutoScalingDownscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MySqlLayerSpecInitProviderLoadBasedAutoScalingUpscaling
+ */
+export interface MySqlLayerSpecInitProviderLoadBasedAutoScalingUpscaling {
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScalingUpscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScalingUpscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScalingUpscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScalingUpscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScalingUpscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScalingUpscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema MySqlLayerSpecInitProviderLoadBasedAutoScalingUpscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'MySqlLayerSpecInitProviderLoadBasedAutoScalingUpscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MySqlLayerSpecInitProviderLoadBasedAutoScalingUpscaling(obj: MySqlLayerSpecInitProviderLoadBasedAutoScalingUpscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema MySqlLayerSpecProviderConfigRefPolicyResolution
@@ -14583,30 +18338,6 @@ export enum MySqlLayerSpecProviderConfigRefPolicyResolution {
  * @schema MySqlLayerSpecProviderConfigRefPolicyResolve
  */
 export enum MySqlLayerSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema MySqlLayerSpecProviderRefPolicyResolution
- */
-export enum MySqlLayerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema MySqlLayerSpecProviderRefPolicyResolve
- */
-export enum MySqlLayerSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -14867,7 +18598,7 @@ export function toJson_NodeJsAppLayerProps(obj: NodeJsAppLayerProps | undefined)
  */
 export interface NodeJsAppLayerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema NodeJsAppLayerSpec#deletionPolicy
    */
@@ -14879,11 +18610,18 @@ export interface NodeJsAppLayerSpec {
   readonly forProvider: NodeJsAppLayerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema NodeJsAppLayerSpec#managementPolicy
+   * @schema NodeJsAppLayerSpec#initProvider
    */
-  readonly managementPolicy?: NodeJsAppLayerSpecManagementPolicy;
+  readonly initProvider?: NodeJsAppLayerSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema NodeJsAppLayerSpec#managementPolicies
+   */
+  readonly managementPolicies?: NodeJsAppLayerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -14891,13 +18629,6 @@ export interface NodeJsAppLayerSpec {
    * @schema NodeJsAppLayerSpec#providerConfigRef
    */
   readonly providerConfigRef?: NodeJsAppLayerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema NodeJsAppLayerSpec#providerRef
-   */
-  readonly providerRef?: NodeJsAppLayerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -14924,9 +18655,9 @@ export function toJson_NodeJsAppLayerSpec(obj: NodeJsAppLayerSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_NodeJsAppLayerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_NodeJsAppLayerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_NodeJsAppLayerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_NodeJsAppLayerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_NodeJsAppLayerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_NodeJsAppLayerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -14936,7 +18667,7 @@ export function toJson_NodeJsAppLayerSpec(obj: NodeJsAppLayerSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema NodeJsAppLayerSpecDeletionPolicy
  */
@@ -15178,17 +18909,207 @@ export function toJson_NodeJsAppLayerSpecForProvider(obj: NodeJsAppLayerSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema NodeJsAppLayerSpecManagementPolicy
+ * @schema NodeJsAppLayerSpecInitProvider
  */
-export enum NodeJsAppLayerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface NodeJsAppLayerSpecInitProvider {
+  /**
+   * Whether to automatically assign an elastic IP address to the layer's instances.
+   *
+   * @schema NodeJsAppLayerSpecInitProvider#autoAssignElasticIps
+   */
+  readonly autoAssignElasticIps?: boolean;
+
+  /**
+   * For stacks belonging to a VPC, whether to automatically assign a public IP address to each of the layer's instances.
+   *
+   * @schema NodeJsAppLayerSpecInitProvider#autoAssignPublicIps
+   */
+  readonly autoAssignPublicIps?: boolean;
+
+  /**
+   * Whether to enable auto-healing for the layer.
+   *
+   * @schema NodeJsAppLayerSpecInitProvider#autoHealing
+   */
+  readonly autoHealing?: boolean;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProvider#cloudwatchConfiguration
+   */
+  readonly cloudwatchConfiguration?: NodeJsAppLayerSpecInitProviderCloudwatchConfiguration[];
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProvider#customConfigureRecipes
+   */
+  readonly customConfigureRecipes?: string[];
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProvider#customDeployRecipes
+   */
+  readonly customDeployRecipes?: string[];
+
+  /**
+   * The ARN of an IAM profile that will be used for the layer's instances.
+   *
+   * @schema NodeJsAppLayerSpecInitProvider#customInstanceProfileArn
+   */
+  readonly customInstanceProfileArn?: string;
+
+  /**
+   * Custom JSON attributes to apply to the layer.
+   *
+   * @schema NodeJsAppLayerSpecInitProvider#customJson
+   */
+  readonly customJson?: string;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProvider#customSetupRecipes
+   */
+  readonly customSetupRecipes?: string[];
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProvider#customShutdownRecipes
+   */
+  readonly customShutdownRecipes?: string[];
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProvider#customUndeployRecipes
+   */
+  readonly customUndeployRecipes?: string[];
+
+  /**
+   * Whether to enable Elastic Load Balancing connection draining.
+   *
+   * @schema NodeJsAppLayerSpecInitProvider#drainElbOnShutdown
+   */
+  readonly drainElbOnShutdown?: boolean;
+
+  /**
+   * ebs_volume blocks, as described below, will each create an EBS volume and connect it to the layer's instances.
+   *
+   * @schema NodeJsAppLayerSpecInitProvider#ebsVolume
+   */
+  readonly ebsVolume?: NodeJsAppLayerSpecInitProviderEbsVolume[];
+
+  /**
+   * Name of an Elastic Load Balancer to attach to this layer
+   *
+   * @schema NodeJsAppLayerSpecInitProvider#elasticLoadBalancer
+   */
+  readonly elasticLoadBalancer?: string;
+
+  /**
+   * Whether to install OS and package updates on each instance when it boots.
+   *
+   * @schema NodeJsAppLayerSpecInitProvider#installUpdatesOnBoot
+   */
+  readonly installUpdatesOnBoot?: boolean;
+
+  /**
+   * The time, in seconds, that OpsWorks will wait for Chef to complete after triggering the Shutdown event.
+   *
+   * @schema NodeJsAppLayerSpecInitProvider#instanceShutdownTimeout
+   */
+  readonly instanceShutdownTimeout?: number;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProvider#loadBasedAutoScaling
+   */
+  readonly loadBasedAutoScaling?: NodeJsAppLayerSpecInitProviderLoadBasedAutoScaling[];
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema NodeJsAppLayerSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The version of NodeJS to use. Defaults to "0.10.38".
+   *
+   * @default 0.10.38".
+   * @schema NodeJsAppLayerSpecInitProvider#nodejsVersion
+   */
+  readonly nodejsVersion?: string;
+
+  /**
+   * Names of a set of system packages to install on the layer's instances.
+   *
+   * @schema NodeJsAppLayerSpecInitProvider#systemPackages
+   */
+  readonly systemPackages?: string[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema NodeJsAppLayerSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Whether to use EBS-optimized instances.
+   *
+   * @schema NodeJsAppLayerSpecInitProvider#useEbsOptimizedInstances
+   */
+  readonly useEbsOptimizedInstances?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'NodeJsAppLayerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodeJsAppLayerSpecInitProvider(obj: NodeJsAppLayerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoAssignElasticIps': obj.autoAssignElasticIps,
+    'autoAssignPublicIps': obj.autoAssignPublicIps,
+    'autoHealing': obj.autoHealing,
+    'cloudwatchConfiguration': obj.cloudwatchConfiguration?.map(y => toJson_NodeJsAppLayerSpecInitProviderCloudwatchConfiguration(y)),
+    'customConfigureRecipes': obj.customConfigureRecipes?.map(y => y),
+    'customDeployRecipes': obj.customDeployRecipes?.map(y => y),
+    'customInstanceProfileArn': obj.customInstanceProfileArn,
+    'customJson': obj.customJson,
+    'customSetupRecipes': obj.customSetupRecipes?.map(y => y),
+    'customShutdownRecipes': obj.customShutdownRecipes?.map(y => y),
+    'customUndeployRecipes': obj.customUndeployRecipes?.map(y => y),
+    'drainElbOnShutdown': obj.drainElbOnShutdown,
+    'ebsVolume': obj.ebsVolume?.map(y => toJson_NodeJsAppLayerSpecInitProviderEbsVolume(y)),
+    'elasticLoadBalancer': obj.elasticLoadBalancer,
+    'installUpdatesOnBoot': obj.installUpdatesOnBoot,
+    'instanceShutdownTimeout': obj.instanceShutdownTimeout,
+    'loadBasedAutoScaling': obj.loadBasedAutoScaling?.map(y => toJson_NodeJsAppLayerSpecInitProviderLoadBasedAutoScaling(y)),
+    'name': obj.name,
+    'nodejsVersion': obj.nodejsVersion,
+    'systemPackages': obj.systemPackages?.map(y => y),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'useEbsOptimizedInstances': obj.useEbsOptimizedInstances,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema NodeJsAppLayerSpecManagementPolicies
+ */
+export enum NodeJsAppLayerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -15222,43 +19143,6 @@ export function toJson_NodeJsAppLayerSpecProviderConfigRef(obj: NodeJsAppLayerSp
   const result = {
     'name': obj.name,
     'policy': toJson_NodeJsAppLayerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema NodeJsAppLayerSpecProviderRef
- */
-export interface NodeJsAppLayerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema NodeJsAppLayerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema NodeJsAppLayerSpecProviderRef#policy
-   */
-  readonly policy?: NodeJsAppLayerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'NodeJsAppLayerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_NodeJsAppLayerSpecProviderRef(obj: NodeJsAppLayerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_NodeJsAppLayerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -15481,14 +19365,14 @@ export interface NodeJsAppLayerSpecForProviderEbsVolume {
    *
    * @schema NodeJsAppLayerSpecForProviderEbsVolume#mountPoint
    */
-  readonly mountPoint: string;
+  readonly mountPoint?: string;
 
   /**
    * The number of disks to use for the EBS volume.
    *
    * @schema NodeJsAppLayerSpecForProviderEbsVolume#numberOfDisks
    */
-  readonly numberOfDisks: number;
+  readonly numberOfDisks?: number;
 
   /**
    * The RAID level to use for the volume.
@@ -15502,7 +19386,7 @@ export interface NodeJsAppLayerSpecForProviderEbsVolume {
    *
    * @schema NodeJsAppLayerSpecForProviderEbsVolume#size
    */
-  readonly size: number;
+  readonly size?: number;
 
   /**
    * The type of volume to create. This may be standard (the default), io1 or gp2.
@@ -15653,6 +19537,147 @@ export function toJson_NodeJsAppLayerSpecForProviderStackIdSelector(obj: NodeJsA
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema NodeJsAppLayerSpecInitProviderCloudwatchConfiguration
+ */
+export interface NodeJsAppLayerSpecInitProviderCloudwatchConfiguration {
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderCloudwatchConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderCloudwatchConfiguration#logStreams
+   */
+  readonly logStreams?: NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams[];
+
+}
+
+/**
+ * Converts an object of type 'NodeJsAppLayerSpecInitProviderCloudwatchConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodeJsAppLayerSpecInitProviderCloudwatchConfiguration(obj: NodeJsAppLayerSpecInitProviderCloudwatchConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logStreams': obj.logStreams?.map(y => toJson_NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodeJsAppLayerSpecInitProviderEbsVolume
+ */
+export interface NodeJsAppLayerSpecInitProviderEbsVolume {
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderEbsVolume#encrypted
+   */
+  readonly encrypted?: boolean;
+
+  /**
+   * For PIOPS volumes, the IOPS per disk.
+   *
+   * @schema NodeJsAppLayerSpecInitProviderEbsVolume#iops
+   */
+  readonly iops?: number;
+
+  /**
+   * The path to mount the EBS volume on the layer's instances.
+   *
+   * @schema NodeJsAppLayerSpecInitProviderEbsVolume#mountPoint
+   */
+  readonly mountPoint?: string;
+
+  /**
+   * The number of disks to use for the EBS volume.
+   *
+   * @schema NodeJsAppLayerSpecInitProviderEbsVolume#numberOfDisks
+   */
+  readonly numberOfDisks?: number;
+
+  /**
+   * The RAID level to use for the volume.
+   *
+   * @schema NodeJsAppLayerSpecInitProviderEbsVolume#raidLevel
+   */
+  readonly raidLevel?: string;
+
+  /**
+   * The size of the volume in gigabytes.
+   *
+   * @schema NodeJsAppLayerSpecInitProviderEbsVolume#size
+   */
+  readonly size?: number;
+
+  /**
+   * The type of volume to create. This may be standard (the default), io1 or gp2.
+   *
+   * @schema NodeJsAppLayerSpecInitProviderEbsVolume#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodeJsAppLayerSpecInitProviderEbsVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodeJsAppLayerSpecInitProviderEbsVolume(obj: NodeJsAppLayerSpecInitProviderEbsVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'encrypted': obj.encrypted,
+    'iops': obj.iops,
+    'mountPoint': obj.mountPoint,
+    'numberOfDisks': obj.numberOfDisks,
+    'raidLevel': obj.raidLevel,
+    'size': obj.size,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScaling
+ */
+export interface NodeJsAppLayerSpecInitProviderLoadBasedAutoScaling {
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScaling#downscaling
+   */
+  readonly downscaling?: NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling[];
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScaling#enable
+   */
+  readonly enable?: boolean;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScaling#upscaling
+   */
+  readonly upscaling?: NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling[];
+
+}
+
+/**
+ * Converts an object of type 'NodeJsAppLayerSpecInitProviderLoadBasedAutoScaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodeJsAppLayerSpecInitProviderLoadBasedAutoScaling(obj: NodeJsAppLayerSpecInitProviderLoadBasedAutoScaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'downscaling': obj.downscaling?.map(y => toJson_NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling(y)),
+    'enable': obj.enable,
+    'upscaling': obj.upscaling?.map(y => toJson_NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema NodeJsAppLayerSpecProviderConfigRefPolicy
@@ -15679,43 +19704,6 @@ export interface NodeJsAppLayerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_NodeJsAppLayerSpecProviderConfigRefPolicy(obj: NodeJsAppLayerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema NodeJsAppLayerSpecProviderRefPolicy
- */
-export interface NodeJsAppLayerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema NodeJsAppLayerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: NodeJsAppLayerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema NodeJsAppLayerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: NodeJsAppLayerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'NodeJsAppLayerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_NodeJsAppLayerSpecProviderRefPolicy(obj: NodeJsAppLayerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -15840,7 +19828,7 @@ export interface NodeJsAppLayerSpecForProviderCloudwatchConfigurationLogStreams 
   /**
    * @schema NodeJsAppLayerSpecForProviderCloudwatchConfigurationLogStreams#file
    */
-  readonly file: string;
+  readonly file?: string;
 
   /**
    * @schema NodeJsAppLayerSpecForProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
@@ -15857,7 +19845,7 @@ export interface NodeJsAppLayerSpecForProviderCloudwatchConfigurationLogStreams 
    *
    * @schema NodeJsAppLayerSpecForProviderCloudwatchConfigurationLogStreams#logGroupName
    */
-  readonly logGroupName: string;
+  readonly logGroupName?: string;
 
   /**
    * @schema NodeJsAppLayerSpecForProviderCloudwatchConfigurationLogStreams#multilineStartPattern
@@ -16166,6 +20154,215 @@ export function toJson_NodeJsAppLayerSpecForProviderStackIdSelectorPolicy(obj: N
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams
+ */
+export interface NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams {
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchCount
+   */
+  readonly batchCount?: number;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchSize
+   */
+  readonly batchSize?: number;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#bufferDuration
+   */
+  readonly bufferDuration?: number;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#datetimeFormat
+   */
+  readonly datetimeFormat?: string;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#encoding
+   */
+  readonly encoding?: string;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#file
+   */
+  readonly file?: string;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
+   */
+  readonly fileFingerprintLines?: string;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#initialPosition
+   */
+  readonly initialPosition?: string;
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#multilineStartPattern
+   */
+  readonly multilineStartPattern?: string;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#timeZone
+   */
+  readonly timeZone?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams(obj: NodeJsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'batchCount': obj.batchCount,
+    'batchSize': obj.batchSize,
+    'bufferDuration': obj.bufferDuration,
+    'datetimeFormat': obj.datetimeFormat,
+    'encoding': obj.encoding,
+    'file': obj.file,
+    'fileFingerprintLines': obj.fileFingerprintLines,
+    'initialPosition': obj.initialPosition,
+    'logGroupName': obj.logGroupName,
+    'multilineStartPattern': obj.multilineStartPattern,
+    'timeZone': obj.timeZone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling
+ */
+export interface NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling {
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling(obj: NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling
+ */
+export interface NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling {
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling(obj: NodeJsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema NodeJsAppLayerSpecProviderConfigRefPolicyResolution
@@ -16183,30 +20380,6 @@ export enum NodeJsAppLayerSpecProviderConfigRefPolicyResolution {
  * @schema NodeJsAppLayerSpecProviderConfigRefPolicyResolve
  */
 export enum NodeJsAppLayerSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema NodeJsAppLayerSpecProviderRefPolicyResolution
- */
-export enum NodeJsAppLayerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema NodeJsAppLayerSpecProviderRefPolicyResolve
- */
-export enum NodeJsAppLayerSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -16467,7 +20640,7 @@ export function toJson_PermissionProps(obj: PermissionProps | undefined): Record
  */
 export interface PermissionSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PermissionSpec#deletionPolicy
    */
@@ -16479,11 +20652,18 @@ export interface PermissionSpec {
   readonly forProvider: PermissionSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema PermissionSpec#managementPolicy
+   * @schema PermissionSpec#initProvider
    */
-  readonly managementPolicy?: PermissionSpecManagementPolicy;
+  readonly initProvider?: PermissionSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema PermissionSpec#managementPolicies
+   */
+  readonly managementPolicies?: PermissionSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -16491,13 +20671,6 @@ export interface PermissionSpec {
    * @schema PermissionSpec#providerConfigRef
    */
   readonly providerConfigRef?: PermissionSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema PermissionSpec#providerRef
-   */
-  readonly providerRef?: PermissionSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -16524,9 +20697,9 @@ export function toJson_PermissionSpec(obj: PermissionSpec | undefined): Record<s
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PermissionSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_PermissionSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_PermissionSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_PermissionSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PermissionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_PermissionSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -16536,7 +20709,7 @@ export function toJson_PermissionSpec(obj: PermissionSpec | undefined): Record<s
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PermissionSpecDeletionPolicy
  */
@@ -16639,17 +20812,68 @@ export function toJson_PermissionSpecForProvider(obj: PermissionSpecForProvider 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema PermissionSpecManagementPolicy
+ * @schema PermissionSpecInitProvider
  */
-export enum PermissionSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface PermissionSpecInitProvider {
+  /**
+   * Whether the user is allowed to use SSH to communicate with the instance
+   *
+   * @schema PermissionSpecInitProvider#allowSsh
+   */
+  readonly allowSsh?: boolean;
+
+  /**
+   * Whether the user is allowed to use sudo to elevate privileges
+   *
+   * @schema PermissionSpecInitProvider#allowSudo
+   */
+  readonly allowSudo?: boolean;
+
+  /**
+   * The users permission level. Mus be one of deny, show, deploy, manage, iam_only
+   *
+   * @schema PermissionSpecInitProvider#level
+   */
+  readonly level?: string;
+
+}
+
+/**
+ * Converts an object of type 'PermissionSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PermissionSpecInitProvider(obj: PermissionSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowSsh': obj.allowSsh,
+    'allowSudo': obj.allowSudo,
+    'level': obj.level,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema PermissionSpecManagementPolicies
+ */
+export enum PermissionSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -16683,43 +20907,6 @@ export function toJson_PermissionSpecProviderConfigRef(obj: PermissionSpecProvid
   const result = {
     'name': obj.name,
     'policy': toJson_PermissionSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema PermissionSpecProviderRef
- */
-export interface PermissionSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema PermissionSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema PermissionSpecProviderRef#policy
-   */
-  readonly policy?: PermissionSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'PermissionSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PermissionSpecProviderRef(obj: PermissionSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_PermissionSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -17010,43 +21197,6 @@ export function toJson_PermissionSpecProviderConfigRefPolicy(obj: PermissionSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema PermissionSpecProviderRefPolicy
- */
-export interface PermissionSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema PermissionSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: PermissionSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema PermissionSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: PermissionSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'PermissionSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PermissionSpecProviderRefPolicy(obj: PermissionSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema PermissionSpecPublishConnectionDetailsToConfigRef
@@ -17294,30 +21444,6 @@ export enum PermissionSpecProviderConfigRefPolicyResolution {
  * @schema PermissionSpecProviderConfigRefPolicyResolve
  */
 export enum PermissionSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema PermissionSpecProviderRefPolicyResolution
- */
-export enum PermissionSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema PermissionSpecProviderRefPolicyResolve
- */
-export enum PermissionSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -17578,7 +21704,7 @@ export function toJson_PhpAppLayerProps(obj: PhpAppLayerProps | undefined): Reco
  */
 export interface PhpAppLayerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PhpAppLayerSpec#deletionPolicy
    */
@@ -17590,11 +21716,18 @@ export interface PhpAppLayerSpec {
   readonly forProvider: PhpAppLayerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema PhpAppLayerSpec#managementPolicy
+   * @schema PhpAppLayerSpec#initProvider
    */
-  readonly managementPolicy?: PhpAppLayerSpecManagementPolicy;
+  readonly initProvider?: PhpAppLayerSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema PhpAppLayerSpec#managementPolicies
+   */
+  readonly managementPolicies?: PhpAppLayerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -17602,13 +21735,6 @@ export interface PhpAppLayerSpec {
    * @schema PhpAppLayerSpec#providerConfigRef
    */
   readonly providerConfigRef?: PhpAppLayerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema PhpAppLayerSpec#providerRef
-   */
-  readonly providerRef?: PhpAppLayerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -17635,9 +21761,9 @@ export function toJson_PhpAppLayerSpec(obj: PhpAppLayerSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PhpAppLayerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_PhpAppLayerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_PhpAppLayerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_PhpAppLayerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PhpAppLayerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_PhpAppLayerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -17647,7 +21773,7 @@ export function toJson_PhpAppLayerSpec(obj: PhpAppLayerSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PhpAppLayerSpecDeletionPolicy
  */
@@ -17880,17 +22006,198 @@ export function toJson_PhpAppLayerSpecForProvider(obj: PhpAppLayerSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema PhpAppLayerSpecManagementPolicy
+ * @schema PhpAppLayerSpecInitProvider
  */
-export enum PhpAppLayerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface PhpAppLayerSpecInitProvider {
+  /**
+   * Whether to automatically assign an elastic IP address to the layer's instances.
+   *
+   * @schema PhpAppLayerSpecInitProvider#autoAssignElasticIps
+   */
+  readonly autoAssignElasticIps?: boolean;
+
+  /**
+   * For stacks belonging to a VPC, whether to automatically assign a public IP address to each of the layer's instances.
+   *
+   * @schema PhpAppLayerSpecInitProvider#autoAssignPublicIps
+   */
+  readonly autoAssignPublicIps?: boolean;
+
+  /**
+   * Whether to enable auto-healing for the layer.
+   *
+   * @schema PhpAppLayerSpecInitProvider#autoHealing
+   */
+  readonly autoHealing?: boolean;
+
+  /**
+   * @schema PhpAppLayerSpecInitProvider#cloudwatchConfiguration
+   */
+  readonly cloudwatchConfiguration?: PhpAppLayerSpecInitProviderCloudwatchConfiguration[];
+
+  /**
+   * @schema PhpAppLayerSpecInitProvider#customConfigureRecipes
+   */
+  readonly customConfigureRecipes?: string[];
+
+  /**
+   * @schema PhpAppLayerSpecInitProvider#customDeployRecipes
+   */
+  readonly customDeployRecipes?: string[];
+
+  /**
+   * The ARN of an IAM profile that will be used for the layer's instances.
+   *
+   * @schema PhpAppLayerSpecInitProvider#customInstanceProfileArn
+   */
+  readonly customInstanceProfileArn?: string;
+
+  /**
+   * Custom JSON attributes to apply to the layer.
+   *
+   * @schema PhpAppLayerSpecInitProvider#customJson
+   */
+  readonly customJson?: string;
+
+  /**
+   * @schema PhpAppLayerSpecInitProvider#customSetupRecipes
+   */
+  readonly customSetupRecipes?: string[];
+
+  /**
+   * @schema PhpAppLayerSpecInitProvider#customShutdownRecipes
+   */
+  readonly customShutdownRecipes?: string[];
+
+  /**
+   * @schema PhpAppLayerSpecInitProvider#customUndeployRecipes
+   */
+  readonly customUndeployRecipes?: string[];
+
+  /**
+   * Whether to enable Elastic Load Balancing connection draining.
+   *
+   * @schema PhpAppLayerSpecInitProvider#drainElbOnShutdown
+   */
+  readonly drainElbOnShutdown?: boolean;
+
+  /**
+   * ebs_volume blocks, as described below, will each create an EBS volume and connect it to the layer's instances.
+   *
+   * @schema PhpAppLayerSpecInitProvider#ebsVolume
+   */
+  readonly ebsVolume?: PhpAppLayerSpecInitProviderEbsVolume[];
+
+  /**
+   * Name of an Elastic Load Balancer to attach to this layer
+   *
+   * @schema PhpAppLayerSpecInitProvider#elasticLoadBalancer
+   */
+  readonly elasticLoadBalancer?: string;
+
+  /**
+   * Whether to install OS and package updates on each instance when it boots.
+   *
+   * @schema PhpAppLayerSpecInitProvider#installUpdatesOnBoot
+   */
+  readonly installUpdatesOnBoot?: boolean;
+
+  /**
+   * The time, in seconds, that OpsWorks will wait for Chef to complete after triggering the Shutdown event.
+   *
+   * @schema PhpAppLayerSpecInitProvider#instanceShutdownTimeout
+   */
+  readonly instanceShutdownTimeout?: number;
+
+  /**
+   * @schema PhpAppLayerSpecInitProvider#loadBasedAutoScaling
+   */
+  readonly loadBasedAutoScaling?: PhpAppLayerSpecInitProviderLoadBasedAutoScaling[];
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema PhpAppLayerSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Names of a set of system packages to install on the layer's instances.
+   *
+   * @schema PhpAppLayerSpecInitProvider#systemPackages
+   */
+  readonly systemPackages?: string[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema PhpAppLayerSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Whether to use EBS-optimized instances.
+   *
+   * @schema PhpAppLayerSpecInitProvider#useEbsOptimizedInstances
+   */
+  readonly useEbsOptimizedInstances?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'PhpAppLayerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PhpAppLayerSpecInitProvider(obj: PhpAppLayerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoAssignElasticIps': obj.autoAssignElasticIps,
+    'autoAssignPublicIps': obj.autoAssignPublicIps,
+    'autoHealing': obj.autoHealing,
+    'cloudwatchConfiguration': obj.cloudwatchConfiguration?.map(y => toJson_PhpAppLayerSpecInitProviderCloudwatchConfiguration(y)),
+    'customConfigureRecipes': obj.customConfigureRecipes?.map(y => y),
+    'customDeployRecipes': obj.customDeployRecipes?.map(y => y),
+    'customInstanceProfileArn': obj.customInstanceProfileArn,
+    'customJson': obj.customJson,
+    'customSetupRecipes': obj.customSetupRecipes?.map(y => y),
+    'customShutdownRecipes': obj.customShutdownRecipes?.map(y => y),
+    'customUndeployRecipes': obj.customUndeployRecipes?.map(y => y),
+    'drainElbOnShutdown': obj.drainElbOnShutdown,
+    'ebsVolume': obj.ebsVolume?.map(y => toJson_PhpAppLayerSpecInitProviderEbsVolume(y)),
+    'elasticLoadBalancer': obj.elasticLoadBalancer,
+    'installUpdatesOnBoot': obj.installUpdatesOnBoot,
+    'instanceShutdownTimeout': obj.instanceShutdownTimeout,
+    'loadBasedAutoScaling': obj.loadBasedAutoScaling?.map(y => toJson_PhpAppLayerSpecInitProviderLoadBasedAutoScaling(y)),
+    'name': obj.name,
+    'systemPackages': obj.systemPackages?.map(y => y),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'useEbsOptimizedInstances': obj.useEbsOptimizedInstances,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema PhpAppLayerSpecManagementPolicies
+ */
+export enum PhpAppLayerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -17924,43 +22231,6 @@ export function toJson_PhpAppLayerSpecProviderConfigRef(obj: PhpAppLayerSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_PhpAppLayerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema PhpAppLayerSpecProviderRef
- */
-export interface PhpAppLayerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema PhpAppLayerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema PhpAppLayerSpecProviderRef#policy
-   */
-  readonly policy?: PhpAppLayerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'PhpAppLayerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PhpAppLayerSpecProviderRef(obj: PhpAppLayerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_PhpAppLayerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -18183,14 +22453,14 @@ export interface PhpAppLayerSpecForProviderEbsVolume {
    *
    * @schema PhpAppLayerSpecForProviderEbsVolume#mountPoint
    */
-  readonly mountPoint: string;
+  readonly mountPoint?: string;
 
   /**
    * The number of disks to use for the EBS volume.
    *
    * @schema PhpAppLayerSpecForProviderEbsVolume#numberOfDisks
    */
-  readonly numberOfDisks: number;
+  readonly numberOfDisks?: number;
 
   /**
    * The RAID level to use for the volume.
@@ -18204,7 +22474,7 @@ export interface PhpAppLayerSpecForProviderEbsVolume {
    *
    * @schema PhpAppLayerSpecForProviderEbsVolume#size
    */
-  readonly size: number;
+  readonly size?: number;
 
   /**
    * The type of volume to create. This may be standard (the default), io1 or gp2.
@@ -18355,6 +22625,147 @@ export function toJson_PhpAppLayerSpecForProviderStackIdSelector(obj: PhpAppLaye
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema PhpAppLayerSpecInitProviderCloudwatchConfiguration
+ */
+export interface PhpAppLayerSpecInitProviderCloudwatchConfiguration {
+  /**
+   * @schema PhpAppLayerSpecInitProviderCloudwatchConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderCloudwatchConfiguration#logStreams
+   */
+  readonly logStreams?: PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams[];
+
+}
+
+/**
+ * Converts an object of type 'PhpAppLayerSpecInitProviderCloudwatchConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PhpAppLayerSpecInitProviderCloudwatchConfiguration(obj: PhpAppLayerSpecInitProviderCloudwatchConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logStreams': obj.logStreams?.map(y => toJson_PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PhpAppLayerSpecInitProviderEbsVolume
+ */
+export interface PhpAppLayerSpecInitProviderEbsVolume {
+  /**
+   * @schema PhpAppLayerSpecInitProviderEbsVolume#encrypted
+   */
+  readonly encrypted?: boolean;
+
+  /**
+   * For PIOPS volumes, the IOPS per disk.
+   *
+   * @schema PhpAppLayerSpecInitProviderEbsVolume#iops
+   */
+  readonly iops?: number;
+
+  /**
+   * The path to mount the EBS volume on the layer's instances.
+   *
+   * @schema PhpAppLayerSpecInitProviderEbsVolume#mountPoint
+   */
+  readonly mountPoint?: string;
+
+  /**
+   * The number of disks to use for the EBS volume.
+   *
+   * @schema PhpAppLayerSpecInitProviderEbsVolume#numberOfDisks
+   */
+  readonly numberOfDisks?: number;
+
+  /**
+   * The RAID level to use for the volume.
+   *
+   * @schema PhpAppLayerSpecInitProviderEbsVolume#raidLevel
+   */
+  readonly raidLevel?: string;
+
+  /**
+   * The size of the volume in gigabytes.
+   *
+   * @schema PhpAppLayerSpecInitProviderEbsVolume#size
+   */
+  readonly size?: number;
+
+  /**
+   * The type of volume to create. This may be standard (the default), io1 or gp2.
+   *
+   * @schema PhpAppLayerSpecInitProviderEbsVolume#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'PhpAppLayerSpecInitProviderEbsVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PhpAppLayerSpecInitProviderEbsVolume(obj: PhpAppLayerSpecInitProviderEbsVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'encrypted': obj.encrypted,
+    'iops': obj.iops,
+    'mountPoint': obj.mountPoint,
+    'numberOfDisks': obj.numberOfDisks,
+    'raidLevel': obj.raidLevel,
+    'size': obj.size,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScaling
+ */
+export interface PhpAppLayerSpecInitProviderLoadBasedAutoScaling {
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScaling#downscaling
+   */
+  readonly downscaling?: PhpAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling[];
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScaling#enable
+   */
+  readonly enable?: boolean;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScaling#upscaling
+   */
+  readonly upscaling?: PhpAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling[];
+
+}
+
+/**
+ * Converts an object of type 'PhpAppLayerSpecInitProviderLoadBasedAutoScaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PhpAppLayerSpecInitProviderLoadBasedAutoScaling(obj: PhpAppLayerSpecInitProviderLoadBasedAutoScaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'downscaling': obj.downscaling?.map(y => toJson_PhpAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling(y)),
+    'enable': obj.enable,
+    'upscaling': obj.upscaling?.map(y => toJson_PhpAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema PhpAppLayerSpecProviderConfigRefPolicy
@@ -18381,43 +22792,6 @@ export interface PhpAppLayerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_PhpAppLayerSpecProviderConfigRefPolicy(obj: PhpAppLayerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema PhpAppLayerSpecProviderRefPolicy
- */
-export interface PhpAppLayerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema PhpAppLayerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: PhpAppLayerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema PhpAppLayerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: PhpAppLayerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'PhpAppLayerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PhpAppLayerSpecProviderRefPolicy(obj: PhpAppLayerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -18542,7 +22916,7 @@ export interface PhpAppLayerSpecForProviderCloudwatchConfigurationLogStreams {
   /**
    * @schema PhpAppLayerSpecForProviderCloudwatchConfigurationLogStreams#file
    */
-  readonly file: string;
+  readonly file?: string;
 
   /**
    * @schema PhpAppLayerSpecForProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
@@ -18559,7 +22933,7 @@ export interface PhpAppLayerSpecForProviderCloudwatchConfigurationLogStreams {
    *
    * @schema PhpAppLayerSpecForProviderCloudwatchConfigurationLogStreams#logGroupName
    */
-  readonly logGroupName: string;
+  readonly logGroupName?: string;
 
   /**
    * @schema PhpAppLayerSpecForProviderCloudwatchConfigurationLogStreams#multilineStartPattern
@@ -18868,6 +23242,215 @@ export function toJson_PhpAppLayerSpecForProviderStackIdSelectorPolicy(obj: PhpA
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams
+ */
+export interface PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams {
+  /**
+   * @schema PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchCount
+   */
+  readonly batchCount?: number;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchSize
+   */
+  readonly batchSize?: number;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#bufferDuration
+   */
+  readonly bufferDuration?: number;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#datetimeFormat
+   */
+  readonly datetimeFormat?: string;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#encoding
+   */
+  readonly encoding?: string;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#file
+   */
+  readonly file?: string;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
+   */
+  readonly fileFingerprintLines?: string;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#initialPosition
+   */
+  readonly initialPosition?: string;
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#multilineStartPattern
+   */
+  readonly multilineStartPattern?: string;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#timeZone
+   */
+  readonly timeZone?: string;
+
+}
+
+/**
+ * Converts an object of type 'PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams(obj: PhpAppLayerSpecInitProviderCloudwatchConfigurationLogStreams | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'batchCount': obj.batchCount,
+    'batchSize': obj.batchSize,
+    'bufferDuration': obj.bufferDuration,
+    'datetimeFormat': obj.datetimeFormat,
+    'encoding': obj.encoding,
+    'file': obj.file,
+    'fileFingerprintLines': obj.fileFingerprintLines,
+    'initialPosition': obj.initialPosition,
+    'logGroupName': obj.logGroupName,
+    'multilineStartPattern': obj.multilineStartPattern,
+    'timeZone': obj.timeZone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling
+ */
+export interface PhpAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling {
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'PhpAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PhpAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling(obj: PhpAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling
+ */
+export interface PhpAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling {
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema PhpAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'PhpAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PhpAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling(obj: PhpAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema PhpAppLayerSpecProviderConfigRefPolicyResolution
@@ -18885,30 +23468,6 @@ export enum PhpAppLayerSpecProviderConfigRefPolicyResolution {
  * @schema PhpAppLayerSpecProviderConfigRefPolicyResolve
  */
 export enum PhpAppLayerSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema PhpAppLayerSpecProviderRefPolicyResolution
- */
-export enum PhpAppLayerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema PhpAppLayerSpecProviderRefPolicyResolve
- */
-export enum PhpAppLayerSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -19169,7 +23728,7 @@ export function toJson_RailsAppLayerProps(obj: RailsAppLayerProps | undefined): 
  */
 export interface RailsAppLayerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RailsAppLayerSpec#deletionPolicy
    */
@@ -19181,11 +23740,18 @@ export interface RailsAppLayerSpec {
   readonly forProvider: RailsAppLayerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema RailsAppLayerSpec#managementPolicy
+   * @schema RailsAppLayerSpec#initProvider
    */
-  readonly managementPolicy?: RailsAppLayerSpecManagementPolicy;
+  readonly initProvider?: RailsAppLayerSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema RailsAppLayerSpec#managementPolicies
+   */
+  readonly managementPolicies?: RailsAppLayerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -19193,13 +23759,6 @@ export interface RailsAppLayerSpec {
    * @schema RailsAppLayerSpec#providerConfigRef
    */
   readonly providerConfigRef?: RailsAppLayerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema RailsAppLayerSpec#providerRef
-   */
-  readonly providerRef?: RailsAppLayerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -19226,9 +23785,9 @@ export function toJson_RailsAppLayerSpec(obj: RailsAppLayerSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RailsAppLayerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_RailsAppLayerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_RailsAppLayerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_RailsAppLayerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RailsAppLayerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_RailsAppLayerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -19238,7 +23797,7 @@ export function toJson_RailsAppLayerSpec(obj: RailsAppLayerSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RailsAppLayerSpecDeletionPolicy
  */
@@ -19524,17 +24083,251 @@ export function toJson_RailsAppLayerSpecForProvider(obj: RailsAppLayerSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema RailsAppLayerSpecManagementPolicy
+ * @schema RailsAppLayerSpecInitProvider
  */
-export enum RailsAppLayerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface RailsAppLayerSpecInitProvider {
+  /**
+   * Keyword for the app server to use. Defaults to "apache_passenger".
+   *
+   * @default apache_passenger".
+   * @schema RailsAppLayerSpecInitProvider#appServer
+   */
+  readonly appServer?: string;
+
+  /**
+   * Whether to automatically assign an elastic IP address to the layer's instances.
+   *
+   * @schema RailsAppLayerSpecInitProvider#autoAssignElasticIps
+   */
+  readonly autoAssignElasticIps?: boolean;
+
+  /**
+   * For stacks belonging to a VPC, whether to automatically assign a public IP address to each of the layer's instances.
+   *
+   * @schema RailsAppLayerSpecInitProvider#autoAssignPublicIps
+   */
+  readonly autoAssignPublicIps?: boolean;
+
+  /**
+   * Whether to enable auto-healing for the layer.
+   *
+   * @schema RailsAppLayerSpecInitProvider#autoHealing
+   */
+  readonly autoHealing?: boolean;
+
+  /**
+   * When OpsWorks is managing Bundler, which version to use. Defaults to "1.5.3".
+   *
+   * @default 1.5.3".
+   * @schema RailsAppLayerSpecInitProvider#bundlerVersion
+   */
+  readonly bundlerVersion?: string;
+
+  /**
+   * @schema RailsAppLayerSpecInitProvider#cloudwatchConfiguration
+   */
+  readonly cloudwatchConfiguration?: RailsAppLayerSpecInitProviderCloudwatchConfiguration[];
+
+  /**
+   * @schema RailsAppLayerSpecInitProvider#customConfigureRecipes
+   */
+  readonly customConfigureRecipes?: string[];
+
+  /**
+   * @schema RailsAppLayerSpecInitProvider#customDeployRecipes
+   */
+  readonly customDeployRecipes?: string[];
+
+  /**
+   * The ARN of an IAM profile that will be used for the layer's instances.
+   *
+   * @schema RailsAppLayerSpecInitProvider#customInstanceProfileArn
+   */
+  readonly customInstanceProfileArn?: string;
+
+  /**
+   * Custom JSON attributes to apply to the layer.
+   *
+   * @schema RailsAppLayerSpecInitProvider#customJson
+   */
+  readonly customJson?: string;
+
+  /**
+   * @schema RailsAppLayerSpecInitProvider#customSetupRecipes
+   */
+  readonly customSetupRecipes?: string[];
+
+  /**
+   * @schema RailsAppLayerSpecInitProvider#customShutdownRecipes
+   */
+  readonly customShutdownRecipes?: string[];
+
+  /**
+   * @schema RailsAppLayerSpecInitProvider#customUndeployRecipes
+   */
+  readonly customUndeployRecipes?: string[];
+
+  /**
+   * Whether to enable Elastic Load Balancing connection draining.
+   *
+   * @schema RailsAppLayerSpecInitProvider#drainElbOnShutdown
+   */
+  readonly drainElbOnShutdown?: boolean;
+
+  /**
+   * ebs_volume blocks, as described below, will each create an EBS volume and connect it to the layer's instances.
+   *
+   * @schema RailsAppLayerSpecInitProvider#ebsVolume
+   */
+  readonly ebsVolume?: RailsAppLayerSpecInitProviderEbsVolume[];
+
+  /**
+   * Name of an Elastic Load Balancer to attach to this layer
+   *
+   * @schema RailsAppLayerSpecInitProvider#elasticLoadBalancer
+   */
+  readonly elasticLoadBalancer?: string;
+
+  /**
+   * Whether to install OS and package updates on each instance when it boots.
+   *
+   * @schema RailsAppLayerSpecInitProvider#installUpdatesOnBoot
+   */
+  readonly installUpdatesOnBoot?: boolean;
+
+  /**
+   * The time, in seconds, that OpsWorks will wait for Chef to complete after triggering the Shutdown event.
+   *
+   * @schema RailsAppLayerSpecInitProvider#instanceShutdownTimeout
+   */
+  readonly instanceShutdownTimeout?: number;
+
+  /**
+   * @schema RailsAppLayerSpecInitProvider#loadBasedAutoScaling
+   */
+  readonly loadBasedAutoScaling?: RailsAppLayerSpecInitProviderLoadBasedAutoScaling[];
+
+  /**
+   * Whether OpsWorks should manage bundler. On by default.
+   *
+   * @schema RailsAppLayerSpecInitProvider#manageBundler
+   */
+  readonly manageBundler?: boolean;
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema RailsAppLayerSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The version of Passenger to use. Defaults to "4.0.46".
+   *
+   * @default 4.0.46".
+   * @schema RailsAppLayerSpecInitProvider#passengerVersion
+   */
+  readonly passengerVersion?: string;
+
+  /**
+   * The version of Ruby to use. Defaults to "2.0.0".
+   *
+   * @default 2.0.0".
+   * @schema RailsAppLayerSpecInitProvider#rubyVersion
+   */
+  readonly rubyVersion?: string;
+
+  /**
+   * The version of RubyGems to use. Defaults to "2.2.2".
+   *
+   * @default 2.2.2".
+   * @schema RailsAppLayerSpecInitProvider#rubygemsVersion
+   */
+  readonly rubygemsVersion?: string;
+
+  /**
+   * Names of a set of system packages to install on the layer's instances.
+   *
+   * @schema RailsAppLayerSpecInitProvider#systemPackages
+   */
+  readonly systemPackages?: string[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema RailsAppLayerSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Whether to use EBS-optimized instances.
+   *
+   * @schema RailsAppLayerSpecInitProvider#useEbsOptimizedInstances
+   */
+  readonly useEbsOptimizedInstances?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'RailsAppLayerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RailsAppLayerSpecInitProvider(obj: RailsAppLayerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'appServer': obj.appServer,
+    'autoAssignElasticIps': obj.autoAssignElasticIps,
+    'autoAssignPublicIps': obj.autoAssignPublicIps,
+    'autoHealing': obj.autoHealing,
+    'bundlerVersion': obj.bundlerVersion,
+    'cloudwatchConfiguration': obj.cloudwatchConfiguration?.map(y => toJson_RailsAppLayerSpecInitProviderCloudwatchConfiguration(y)),
+    'customConfigureRecipes': obj.customConfigureRecipes?.map(y => y),
+    'customDeployRecipes': obj.customDeployRecipes?.map(y => y),
+    'customInstanceProfileArn': obj.customInstanceProfileArn,
+    'customJson': obj.customJson,
+    'customSetupRecipes': obj.customSetupRecipes?.map(y => y),
+    'customShutdownRecipes': obj.customShutdownRecipes?.map(y => y),
+    'customUndeployRecipes': obj.customUndeployRecipes?.map(y => y),
+    'drainElbOnShutdown': obj.drainElbOnShutdown,
+    'ebsVolume': obj.ebsVolume?.map(y => toJson_RailsAppLayerSpecInitProviderEbsVolume(y)),
+    'elasticLoadBalancer': obj.elasticLoadBalancer,
+    'installUpdatesOnBoot': obj.installUpdatesOnBoot,
+    'instanceShutdownTimeout': obj.instanceShutdownTimeout,
+    'loadBasedAutoScaling': obj.loadBasedAutoScaling?.map(y => toJson_RailsAppLayerSpecInitProviderLoadBasedAutoScaling(y)),
+    'manageBundler': obj.manageBundler,
+    'name': obj.name,
+    'passengerVersion': obj.passengerVersion,
+    'rubyVersion': obj.rubyVersion,
+    'rubygemsVersion': obj.rubygemsVersion,
+    'systemPackages': obj.systemPackages?.map(y => y),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'useEbsOptimizedInstances': obj.useEbsOptimizedInstances,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema RailsAppLayerSpecManagementPolicies
+ */
+export enum RailsAppLayerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -19568,43 +24361,6 @@ export function toJson_RailsAppLayerSpecProviderConfigRef(obj: RailsAppLayerSpec
   const result = {
     'name': obj.name,
     'policy': toJson_RailsAppLayerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema RailsAppLayerSpecProviderRef
- */
-export interface RailsAppLayerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema RailsAppLayerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema RailsAppLayerSpecProviderRef#policy
-   */
-  readonly policy?: RailsAppLayerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'RailsAppLayerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RailsAppLayerSpecProviderRef(obj: RailsAppLayerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_RailsAppLayerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -19827,14 +24583,14 @@ export interface RailsAppLayerSpecForProviderEbsVolume {
    *
    * @schema RailsAppLayerSpecForProviderEbsVolume#mountPoint
    */
-  readonly mountPoint: string;
+  readonly mountPoint?: string;
 
   /**
    * The number of disks to use for the EBS volume.
    *
    * @schema RailsAppLayerSpecForProviderEbsVolume#numberOfDisks
    */
-  readonly numberOfDisks: number;
+  readonly numberOfDisks?: number;
 
   /**
    * The RAID level to use for the volume.
@@ -19848,7 +24604,7 @@ export interface RailsAppLayerSpecForProviderEbsVolume {
    *
    * @schema RailsAppLayerSpecForProviderEbsVolume#size
    */
-  readonly size: number;
+  readonly size?: number;
 
   /**
    * The type of volume to create. This may be standard (the default), io1 or gp2.
@@ -19999,6 +24755,147 @@ export function toJson_RailsAppLayerSpecForProviderStackIdSelector(obj: RailsApp
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RailsAppLayerSpecInitProviderCloudwatchConfiguration
+ */
+export interface RailsAppLayerSpecInitProviderCloudwatchConfiguration {
+  /**
+   * @schema RailsAppLayerSpecInitProviderCloudwatchConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderCloudwatchConfiguration#logStreams
+   */
+  readonly logStreams?: RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams[];
+
+}
+
+/**
+ * Converts an object of type 'RailsAppLayerSpecInitProviderCloudwatchConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RailsAppLayerSpecInitProviderCloudwatchConfiguration(obj: RailsAppLayerSpecInitProviderCloudwatchConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logStreams': obj.logStreams?.map(y => toJson_RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RailsAppLayerSpecInitProviderEbsVolume
+ */
+export interface RailsAppLayerSpecInitProviderEbsVolume {
+  /**
+   * @schema RailsAppLayerSpecInitProviderEbsVolume#encrypted
+   */
+  readonly encrypted?: boolean;
+
+  /**
+   * For PIOPS volumes, the IOPS per disk.
+   *
+   * @schema RailsAppLayerSpecInitProviderEbsVolume#iops
+   */
+  readonly iops?: number;
+
+  /**
+   * The path to mount the EBS volume on the layer's instances.
+   *
+   * @schema RailsAppLayerSpecInitProviderEbsVolume#mountPoint
+   */
+  readonly mountPoint?: string;
+
+  /**
+   * The number of disks to use for the EBS volume.
+   *
+   * @schema RailsAppLayerSpecInitProviderEbsVolume#numberOfDisks
+   */
+  readonly numberOfDisks?: number;
+
+  /**
+   * The RAID level to use for the volume.
+   *
+   * @schema RailsAppLayerSpecInitProviderEbsVolume#raidLevel
+   */
+  readonly raidLevel?: string;
+
+  /**
+   * The size of the volume in gigabytes.
+   *
+   * @schema RailsAppLayerSpecInitProviderEbsVolume#size
+   */
+  readonly size?: number;
+
+  /**
+   * The type of volume to create. This may be standard (the default), io1 or gp2.
+   *
+   * @schema RailsAppLayerSpecInitProviderEbsVolume#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'RailsAppLayerSpecInitProviderEbsVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RailsAppLayerSpecInitProviderEbsVolume(obj: RailsAppLayerSpecInitProviderEbsVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'encrypted': obj.encrypted,
+    'iops': obj.iops,
+    'mountPoint': obj.mountPoint,
+    'numberOfDisks': obj.numberOfDisks,
+    'raidLevel': obj.raidLevel,
+    'size': obj.size,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScaling
+ */
+export interface RailsAppLayerSpecInitProviderLoadBasedAutoScaling {
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScaling#downscaling
+   */
+  readonly downscaling?: RailsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling[];
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScaling#enable
+   */
+  readonly enable?: boolean;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScaling#upscaling
+   */
+  readonly upscaling?: RailsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling[];
+
+}
+
+/**
+ * Converts an object of type 'RailsAppLayerSpecInitProviderLoadBasedAutoScaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RailsAppLayerSpecInitProviderLoadBasedAutoScaling(obj: RailsAppLayerSpecInitProviderLoadBasedAutoScaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'downscaling': obj.downscaling?.map(y => toJson_RailsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling(y)),
+    'enable': obj.enable,
+    'upscaling': obj.upscaling?.map(y => toJson_RailsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema RailsAppLayerSpecProviderConfigRefPolicy
@@ -20025,43 +24922,6 @@ export interface RailsAppLayerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_RailsAppLayerSpecProviderConfigRefPolicy(obj: RailsAppLayerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema RailsAppLayerSpecProviderRefPolicy
- */
-export interface RailsAppLayerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema RailsAppLayerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: RailsAppLayerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema RailsAppLayerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: RailsAppLayerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'RailsAppLayerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RailsAppLayerSpecProviderRefPolicy(obj: RailsAppLayerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -20186,7 +25046,7 @@ export interface RailsAppLayerSpecForProviderCloudwatchConfigurationLogStreams {
   /**
    * @schema RailsAppLayerSpecForProviderCloudwatchConfigurationLogStreams#file
    */
-  readonly file: string;
+  readonly file?: string;
 
   /**
    * @schema RailsAppLayerSpecForProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
@@ -20203,7 +25063,7 @@ export interface RailsAppLayerSpecForProviderCloudwatchConfigurationLogStreams {
    *
    * @schema RailsAppLayerSpecForProviderCloudwatchConfigurationLogStreams#logGroupName
    */
-  readonly logGroupName: string;
+  readonly logGroupName?: string;
 
   /**
    * @schema RailsAppLayerSpecForProviderCloudwatchConfigurationLogStreams#multilineStartPattern
@@ -20512,6 +25372,215 @@ export function toJson_RailsAppLayerSpecForProviderStackIdSelectorPolicy(obj: Ra
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams
+ */
+export interface RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams {
+  /**
+   * @schema RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchCount
+   */
+  readonly batchCount?: number;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchSize
+   */
+  readonly batchSize?: number;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#bufferDuration
+   */
+  readonly bufferDuration?: number;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#datetimeFormat
+   */
+  readonly datetimeFormat?: string;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#encoding
+   */
+  readonly encoding?: string;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#file
+   */
+  readonly file?: string;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
+   */
+  readonly fileFingerprintLines?: string;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#initialPosition
+   */
+  readonly initialPosition?: string;
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#multilineStartPattern
+   */
+  readonly multilineStartPattern?: string;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams#timeZone
+   */
+  readonly timeZone?: string;
+
+}
+
+/**
+ * Converts an object of type 'RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams(obj: RailsAppLayerSpecInitProviderCloudwatchConfigurationLogStreams | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'batchCount': obj.batchCount,
+    'batchSize': obj.batchSize,
+    'bufferDuration': obj.bufferDuration,
+    'datetimeFormat': obj.datetimeFormat,
+    'encoding': obj.encoding,
+    'file': obj.file,
+    'fileFingerprintLines': obj.fileFingerprintLines,
+    'initialPosition': obj.initialPosition,
+    'logGroupName': obj.logGroupName,
+    'multilineStartPattern': obj.multilineStartPattern,
+    'timeZone': obj.timeZone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling
+ */
+export interface RailsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling {
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'RailsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RailsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling(obj: RailsAppLayerSpecInitProviderLoadBasedAutoScalingDownscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling
+ */
+export interface RailsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling {
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema RailsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'RailsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RailsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling(obj: RailsAppLayerSpecInitProviderLoadBasedAutoScalingUpscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema RailsAppLayerSpecProviderConfigRefPolicyResolution
@@ -20529,30 +25598,6 @@ export enum RailsAppLayerSpecProviderConfigRefPolicyResolution {
  * @schema RailsAppLayerSpecProviderConfigRefPolicyResolve
  */
 export enum RailsAppLayerSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema RailsAppLayerSpecProviderRefPolicyResolution
- */
-export enum RailsAppLayerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema RailsAppLayerSpecProviderRefPolicyResolve
- */
-export enum RailsAppLayerSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -20813,7 +25858,7 @@ export function toJson_RdsdbInstanceProps(obj: RdsdbInstanceProps | undefined): 
  */
 export interface RdsdbInstanceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RdsdbInstanceSpec#deletionPolicy
    */
@@ -20825,11 +25870,18 @@ export interface RdsdbInstanceSpec {
   readonly forProvider: RdsdbInstanceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema RdsdbInstanceSpec#managementPolicy
+   * @schema RdsdbInstanceSpec#initProvider
    */
-  readonly managementPolicy?: RdsdbInstanceSpecManagementPolicy;
+  readonly initProvider?: RdsdbInstanceSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema RdsdbInstanceSpec#managementPolicies
+   */
+  readonly managementPolicies?: RdsdbInstanceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -20837,13 +25889,6 @@ export interface RdsdbInstanceSpec {
    * @schema RdsdbInstanceSpec#providerConfigRef
    */
   readonly providerConfigRef?: RdsdbInstanceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema RdsdbInstanceSpec#providerRef
-   */
-  readonly providerRef?: RdsdbInstanceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -20870,9 +25915,9 @@ export function toJson_RdsdbInstanceSpec(obj: RdsdbInstanceSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RdsdbInstanceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_RdsdbInstanceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_RdsdbInstanceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_RdsdbInstanceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RdsdbInstanceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_RdsdbInstanceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -20882,7 +25927,7 @@ export function toJson_RdsdbInstanceSpec(obj: RdsdbInstanceSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RdsdbInstanceSpecDeletionPolicy
  */
@@ -20977,17 +26022,52 @@ export function toJson_RdsdbInstanceSpecForProvider(obj: RdsdbInstanceSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema RdsdbInstanceSpecManagementPolicy
+ * @schema RdsdbInstanceSpecInitProvider
  */
-export enum RdsdbInstanceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface RdsdbInstanceSpecInitProvider {
+  /**
+   * A db username
+   *
+   * @schema RdsdbInstanceSpecInitProvider#dbUser
+   */
+  readonly dbUser?: string;
+
+}
+
+/**
+ * Converts an object of type 'RdsdbInstanceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RdsdbInstanceSpecInitProvider(obj: RdsdbInstanceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dbUser': obj.dbUser,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema RdsdbInstanceSpecManagementPolicies
+ */
+export enum RdsdbInstanceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -21021,43 +26101,6 @@ export function toJson_RdsdbInstanceSpecProviderConfigRef(obj: RdsdbInstanceSpec
   const result = {
     'name': obj.name,
     'policy': toJson_RdsdbInstanceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema RdsdbInstanceSpecProviderRef
- */
-export interface RdsdbInstanceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema RdsdbInstanceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema RdsdbInstanceSpecProviderRef#policy
-   */
-  readonly policy?: RdsdbInstanceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'RdsdbInstanceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RdsdbInstanceSpecProviderRef(obj: RdsdbInstanceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_RdsdbInstanceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -21393,43 +26436,6 @@ export function toJson_RdsdbInstanceSpecProviderConfigRefPolicy(obj: RdsdbInstan
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema RdsdbInstanceSpecProviderRefPolicy
- */
-export interface RdsdbInstanceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema RdsdbInstanceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: RdsdbInstanceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema RdsdbInstanceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: RdsdbInstanceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'RdsdbInstanceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RdsdbInstanceSpecProviderRefPolicy(obj: RdsdbInstanceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema RdsdbInstanceSpecPublishConnectionDetailsToConfigRef
@@ -21677,30 +26683,6 @@ export enum RdsdbInstanceSpecProviderConfigRefPolicyResolution {
  * @schema RdsdbInstanceSpecProviderConfigRefPolicyResolve
  */
 export enum RdsdbInstanceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema RdsdbInstanceSpecProviderRefPolicyResolution
- */
-export enum RdsdbInstanceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema RdsdbInstanceSpecProviderRefPolicyResolve
- */
-export enum RdsdbInstanceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -21961,7 +26943,7 @@ export function toJson_StackProps(obj: StackProps | undefined): Record<string, a
  */
 export interface StackSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema StackSpec#deletionPolicy
    */
@@ -21973,11 +26955,18 @@ export interface StackSpec {
   readonly forProvider: StackSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema StackSpec#managementPolicy
+   * @schema StackSpec#initProvider
    */
-  readonly managementPolicy?: StackSpecManagementPolicy;
+  readonly initProvider?: StackSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema StackSpec#managementPolicies
+   */
+  readonly managementPolicies?: StackSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -21985,13 +26974,6 @@ export interface StackSpec {
    * @schema StackSpec#providerConfigRef
    */
   readonly providerConfigRef?: StackSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema StackSpec#providerRef
-   */
-  readonly providerRef?: StackSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -22018,9 +27000,9 @@ export function toJson_StackSpec(obj: StackSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_StackSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_StackSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_StackSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_StackSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_StackSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_StackSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -22030,7 +27012,7 @@ export function toJson_StackSpec(obj: StackSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema StackSpecDeletionPolicy
  */
@@ -22304,17 +27286,182 @@ export function toJson_StackSpecForProvider(obj: StackSpecForProvider | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema StackSpecManagementPolicy
+ * @schema StackSpecInitProvider
  */
-export enum StackSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface StackSpecInitProvider {
+  /**
+   * If set to "LATEST", OpsWorks will automatically install the latest version.
+   *
+   * @schema StackSpecInitProvider#agentVersion
+   */
+  readonly agentVersion?: string;
+
+  /**
+   * If manage_berkshelf is enabled, the version of Berkshelf to use.
+   *
+   * @schema StackSpecInitProvider#berkshelfVersion
+   */
+  readonly berkshelfVersion?: string;
+
+  /**
+   * Color to paint next to the stack's resources in the OpsWorks console.
+   *
+   * @schema StackSpecInitProvider#color
+   */
+  readonly color?: string;
+
+  /**
+   * Name of the configuration manager to use. Defaults to "Chef".
+   *
+   * @default Chef".
+   * @schema StackSpecInitProvider#configurationManagerName
+   */
+  readonly configurationManagerName?: string;
+
+  /**
+   * Version of the configuration manager to use. Defaults to "11.4".
+   *
+   * @default 11.4".
+   * @schema StackSpecInitProvider#configurationManagerVersion
+   */
+  readonly configurationManagerVersion?: string;
+
+  /**
+   * When use_custom_cookbooks is set, provide this sub-object as described below.
+   *
+   * @schema StackSpecInitProvider#customCookbooksSource
+   */
+  readonly customCookbooksSource?: StackSpecInitProviderCustomCookbooksSource[];
+
+  /**
+   * User defined JSON passed to "Chef". Use a "here doc" for multiline JSON.
+   *
+   * @schema StackSpecInitProvider#customJson
+   */
+  readonly customJson?: string;
+
+  /**
+   * Name of the availability zone where instances will be created by default. Cannot be set when vpc_id is set.
+   *
+   * @schema StackSpecInitProvider#defaultAvailabilityZone
+   */
+  readonly defaultAvailabilityZone?: string;
+
+  /**
+   * Name of OS that will be installed on instances by default.
+   *
+   * @schema StackSpecInitProvider#defaultOs
+   */
+  readonly defaultOs?: string;
+
+  /**
+   * Name of the type of root device instances will have by default.
+   *
+   * @schema StackSpecInitProvider#defaultRootDeviceType
+   */
+  readonly defaultRootDeviceType?: string;
+
+  /**
+   * Name of the SSH keypair that instances will have by default.
+   *
+   * @schema StackSpecInitProvider#defaultSshKeyName
+   */
+  readonly defaultSshKeyName?: string;
+
+  /**
+   * Keyword representing the naming scheme that will be used for instance hostnames within this stack.
+   *
+   * @schema StackSpecInitProvider#hostnameTheme
+   */
+  readonly hostnameTheme?: string;
+
+  /**
+   * Boolean value controlling whether Opsworks will run Berkshelf for this stack.
+   *
+   * @schema StackSpecInitProvider#manageBerkshelf
+   */
+  readonly manageBerkshelf?: boolean;
+
+  /**
+   * The name of the stack.
+   *
+   * @schema StackSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema StackSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Boolean value controlling whether the custom cookbook settings are enabled.
+   *
+   * @schema StackSpecInitProvider#useCustomCookbooks
+   */
+  readonly useCustomCookbooks?: boolean;
+
+  /**
+   * Boolean value controlling whether the standard OpsWorks security groups apply to created instances.
+   *
+   * @schema StackSpecInitProvider#useOpsworksSecurityGroups
+   */
+  readonly useOpsworksSecurityGroups?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'StackSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StackSpecInitProvider(obj: StackSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'agentVersion': obj.agentVersion,
+    'berkshelfVersion': obj.berkshelfVersion,
+    'color': obj.color,
+    'configurationManagerName': obj.configurationManagerName,
+    'configurationManagerVersion': obj.configurationManagerVersion,
+    'customCookbooksSource': obj.customCookbooksSource?.map(y => toJson_StackSpecInitProviderCustomCookbooksSource(y)),
+    'customJson': obj.customJson,
+    'defaultAvailabilityZone': obj.defaultAvailabilityZone,
+    'defaultOs': obj.defaultOs,
+    'defaultRootDeviceType': obj.defaultRootDeviceType,
+    'defaultSshKeyName': obj.defaultSshKeyName,
+    'hostnameTheme': obj.hostnameTheme,
+    'manageBerkshelf': obj.manageBerkshelf,
+    'name': obj.name,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'useCustomCookbooks': obj.useCustomCookbooks,
+    'useOpsworksSecurityGroups': obj.useOpsworksSecurityGroups,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema StackSpecManagementPolicies
+ */
+export enum StackSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -22348,43 +27495,6 @@ export function toJson_StackSpecProviderConfigRef(obj: StackSpecProviderConfigRe
   const result = {
     'name': obj.name,
     'policy': toJson_StackSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema StackSpecProviderRef
- */
-export interface StackSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema StackSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema StackSpecProviderRef#policy
-   */
-  readonly policy?: StackSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'StackSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StackSpecProviderRef(obj: StackSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_StackSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -22503,14 +27613,14 @@ export interface StackSpecForProviderCustomCookbooksSource {
    *
    * @schema StackSpecForProviderCustomCookbooksSource#type
    */
-  readonly type: string;
+  readonly type?: string;
 
   /**
    * The URL where the cookbooks resource can be found.
    *
    * @schema StackSpecForProviderCustomCookbooksSource#url
    */
-  readonly url: string;
+  readonly url?: string;
 
   /**
    * Username to use when authenticating to the source.
@@ -22869,6 +27979,57 @@ export function toJson_StackSpecForProviderVpcIdSelector(obj: StackSpecForProvid
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema StackSpecInitProviderCustomCookbooksSource
+ */
+export interface StackSpecInitProviderCustomCookbooksSource {
+  /**
+   * For sources that are version-aware, the revision to use.
+   *
+   * @schema StackSpecInitProviderCustomCookbooksSource#revision
+   */
+  readonly revision?: string;
+
+  /**
+   * The type of source to use. For example, "archive".
+   *
+   * @schema StackSpecInitProviderCustomCookbooksSource#type
+   */
+  readonly type?: string;
+
+  /**
+   * The URL where the cookbooks resource can be found.
+   *
+   * @schema StackSpecInitProviderCustomCookbooksSource#url
+   */
+  readonly url?: string;
+
+  /**
+   * Username to use when authenticating to the source.
+   *
+   * @schema StackSpecInitProviderCustomCookbooksSource#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'StackSpecInitProviderCustomCookbooksSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StackSpecInitProviderCustomCookbooksSource(obj: StackSpecInitProviderCustomCookbooksSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'revision': obj.revision,
+    'type': obj.type,
+    'url': obj.url,
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema StackSpecProviderConfigRefPolicy
@@ -22895,43 +28056,6 @@ export interface StackSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_StackSpecProviderConfigRefPolicy(obj: StackSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema StackSpecProviderRefPolicy
- */
-export interface StackSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema StackSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: StackSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema StackSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: StackSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'StackSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StackSpecProviderRefPolicy(obj: StackSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -23435,30 +28559,6 @@ export enum StackSpecProviderConfigRefPolicyResolve {
 }
 
 /**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema StackSpecProviderRefPolicyResolution
- */
-export enum StackSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema StackSpecProviderRefPolicyResolve
- */
-export enum StackSpecProviderRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
  * Policies for referencing.
  *
  * @schema StackSpecPublishConnectionDetailsToConfigRefPolicy
@@ -23808,7 +28908,7 @@ export function toJson_StaticWebLayerProps(obj: StaticWebLayerProps | undefined)
  */
 export interface StaticWebLayerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema StaticWebLayerSpec#deletionPolicy
    */
@@ -23820,11 +28920,18 @@ export interface StaticWebLayerSpec {
   readonly forProvider: StaticWebLayerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema StaticWebLayerSpec#managementPolicy
+   * @schema StaticWebLayerSpec#initProvider
    */
-  readonly managementPolicy?: StaticWebLayerSpecManagementPolicy;
+  readonly initProvider?: StaticWebLayerSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema StaticWebLayerSpec#managementPolicies
+   */
+  readonly managementPolicies?: StaticWebLayerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -23832,13 +28939,6 @@ export interface StaticWebLayerSpec {
    * @schema StaticWebLayerSpec#providerConfigRef
    */
   readonly providerConfigRef?: StaticWebLayerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema StaticWebLayerSpec#providerRef
-   */
-  readonly providerRef?: StaticWebLayerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -23865,9 +28965,9 @@ export function toJson_StaticWebLayerSpec(obj: StaticWebLayerSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_StaticWebLayerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_StaticWebLayerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_StaticWebLayerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_StaticWebLayerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_StaticWebLayerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_StaticWebLayerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -23877,7 +28977,7 @@ export function toJson_StaticWebLayerSpec(obj: StaticWebLayerSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema StaticWebLayerSpecDeletionPolicy
  */
@@ -24108,17 +29208,196 @@ export function toJson_StaticWebLayerSpecForProvider(obj: StaticWebLayerSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema StaticWebLayerSpecManagementPolicy
+ * @schema StaticWebLayerSpecInitProvider
  */
-export enum StaticWebLayerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface StaticWebLayerSpecInitProvider {
+  /**
+   * Whether to automatically assign an elastic IP address to the layer's instances.
+   *
+   * @schema StaticWebLayerSpecInitProvider#autoAssignElasticIps
+   */
+  readonly autoAssignElasticIps?: boolean;
+
+  /**
+   * For stacks belonging to a VPC, whether to automatically assign a public IP address to each of the layer's instances.
+   *
+   * @schema StaticWebLayerSpecInitProvider#autoAssignPublicIps
+   */
+  readonly autoAssignPublicIps?: boolean;
+
+  /**
+   * Whether to enable auto-healing for the layer.
+   *
+   * @schema StaticWebLayerSpecInitProvider#autoHealing
+   */
+  readonly autoHealing?: boolean;
+
+  /**
+   * @schema StaticWebLayerSpecInitProvider#cloudwatchConfiguration
+   */
+  readonly cloudwatchConfiguration?: StaticWebLayerSpecInitProviderCloudwatchConfiguration[];
+
+  /**
+   * @schema StaticWebLayerSpecInitProvider#customConfigureRecipes
+   */
+  readonly customConfigureRecipes?: string[];
+
+  /**
+   * @schema StaticWebLayerSpecInitProvider#customDeployRecipes
+   */
+  readonly customDeployRecipes?: string[];
+
+  /**
+   * The ARN of an IAM profile that will be used for the layer's instances.
+   *
+   * @schema StaticWebLayerSpecInitProvider#customInstanceProfileArn
+   */
+  readonly customInstanceProfileArn?: string;
+
+  /**
+   * @schema StaticWebLayerSpecInitProvider#customJson
+   */
+  readonly customJson?: string;
+
+  /**
+   * @schema StaticWebLayerSpecInitProvider#customSetupRecipes
+   */
+  readonly customSetupRecipes?: string[];
+
+  /**
+   * @schema StaticWebLayerSpecInitProvider#customShutdownRecipes
+   */
+  readonly customShutdownRecipes?: string[];
+
+  /**
+   * @schema StaticWebLayerSpecInitProvider#customUndeployRecipes
+   */
+  readonly customUndeployRecipes?: string[];
+
+  /**
+   * Whether to enable Elastic Load Balancing connection draining.
+   *
+   * @schema StaticWebLayerSpecInitProvider#drainElbOnShutdown
+   */
+  readonly drainElbOnShutdown?: boolean;
+
+  /**
+   * ebs_volume blocks, as described below, will each create an EBS volume and connect it to the layer's instances.
+   *
+   * @schema StaticWebLayerSpecInitProvider#ebsVolume
+   */
+  readonly ebsVolume?: StaticWebLayerSpecInitProviderEbsVolume[];
+
+  /**
+   * Name of an Elastic Load Balancer to attach to this layer
+   *
+   * @schema StaticWebLayerSpecInitProvider#elasticLoadBalancer
+   */
+  readonly elasticLoadBalancer?: string;
+
+  /**
+   * Whether to install OS and package updates on each instance when it boots.
+   *
+   * @schema StaticWebLayerSpecInitProvider#installUpdatesOnBoot
+   */
+  readonly installUpdatesOnBoot?: boolean;
+
+  /**
+   * The time, in seconds, that OpsWorks will wait for Chef to complete after triggering the Shutdown event.
+   *
+   * @schema StaticWebLayerSpecInitProvider#instanceShutdownTimeout
+   */
+  readonly instanceShutdownTimeout?: number;
+
+  /**
+   * @schema StaticWebLayerSpecInitProvider#loadBasedAutoScaling
+   */
+  readonly loadBasedAutoScaling?: StaticWebLayerSpecInitProviderLoadBasedAutoScaling[];
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema StaticWebLayerSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Names of a set of system packages to install on the layer's instances.
+   *
+   * @schema StaticWebLayerSpecInitProvider#systemPackages
+   */
+  readonly systemPackages?: string[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema StaticWebLayerSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Whether to use EBS-optimized instances.
+   *
+   * @schema StaticWebLayerSpecInitProvider#useEbsOptimizedInstances
+   */
+  readonly useEbsOptimizedInstances?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'StaticWebLayerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StaticWebLayerSpecInitProvider(obj: StaticWebLayerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoAssignElasticIps': obj.autoAssignElasticIps,
+    'autoAssignPublicIps': obj.autoAssignPublicIps,
+    'autoHealing': obj.autoHealing,
+    'cloudwatchConfiguration': obj.cloudwatchConfiguration?.map(y => toJson_StaticWebLayerSpecInitProviderCloudwatchConfiguration(y)),
+    'customConfigureRecipes': obj.customConfigureRecipes?.map(y => y),
+    'customDeployRecipes': obj.customDeployRecipes?.map(y => y),
+    'customInstanceProfileArn': obj.customInstanceProfileArn,
+    'customJson': obj.customJson,
+    'customSetupRecipes': obj.customSetupRecipes?.map(y => y),
+    'customShutdownRecipes': obj.customShutdownRecipes?.map(y => y),
+    'customUndeployRecipes': obj.customUndeployRecipes?.map(y => y),
+    'drainElbOnShutdown': obj.drainElbOnShutdown,
+    'ebsVolume': obj.ebsVolume?.map(y => toJson_StaticWebLayerSpecInitProviderEbsVolume(y)),
+    'elasticLoadBalancer': obj.elasticLoadBalancer,
+    'installUpdatesOnBoot': obj.installUpdatesOnBoot,
+    'instanceShutdownTimeout': obj.instanceShutdownTimeout,
+    'loadBasedAutoScaling': obj.loadBasedAutoScaling?.map(y => toJson_StaticWebLayerSpecInitProviderLoadBasedAutoScaling(y)),
+    'name': obj.name,
+    'systemPackages': obj.systemPackages?.map(y => y),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'useEbsOptimizedInstances': obj.useEbsOptimizedInstances,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema StaticWebLayerSpecManagementPolicies
+ */
+export enum StaticWebLayerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -24152,43 +29431,6 @@ export function toJson_StaticWebLayerSpecProviderConfigRef(obj: StaticWebLayerSp
   const result = {
     'name': obj.name,
     'policy': toJson_StaticWebLayerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema StaticWebLayerSpecProviderRef
- */
-export interface StaticWebLayerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema StaticWebLayerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema StaticWebLayerSpecProviderRef#policy
-   */
-  readonly policy?: StaticWebLayerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'StaticWebLayerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StaticWebLayerSpecProviderRef(obj: StaticWebLayerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_StaticWebLayerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -24411,14 +29653,14 @@ export interface StaticWebLayerSpecForProviderEbsVolume {
    *
    * @schema StaticWebLayerSpecForProviderEbsVolume#mountPoint
    */
-  readonly mountPoint: string;
+  readonly mountPoint?: string;
 
   /**
    * The number of disks to use for the EBS volume.
    *
    * @schema StaticWebLayerSpecForProviderEbsVolume#numberOfDisks
    */
-  readonly numberOfDisks: number;
+  readonly numberOfDisks?: number;
 
   /**
    * The RAID level to use for the volume.
@@ -24432,7 +29674,7 @@ export interface StaticWebLayerSpecForProviderEbsVolume {
    *
    * @schema StaticWebLayerSpecForProviderEbsVolume#size
    */
-  readonly size: number;
+  readonly size?: number;
 
   /**
    * The type of volume to create. This may be standard (the default), io1 or gp2.
@@ -24583,6 +29825,147 @@ export function toJson_StaticWebLayerSpecForProviderStackIdSelector(obj: StaticW
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema StaticWebLayerSpecInitProviderCloudwatchConfiguration
+ */
+export interface StaticWebLayerSpecInitProviderCloudwatchConfiguration {
+  /**
+   * @schema StaticWebLayerSpecInitProviderCloudwatchConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderCloudwatchConfiguration#logStreams
+   */
+  readonly logStreams?: StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams[];
+
+}
+
+/**
+ * Converts an object of type 'StaticWebLayerSpecInitProviderCloudwatchConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StaticWebLayerSpecInitProviderCloudwatchConfiguration(obj: StaticWebLayerSpecInitProviderCloudwatchConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logStreams': obj.logStreams?.map(y => toJson_StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StaticWebLayerSpecInitProviderEbsVolume
+ */
+export interface StaticWebLayerSpecInitProviderEbsVolume {
+  /**
+   * @schema StaticWebLayerSpecInitProviderEbsVolume#encrypted
+   */
+  readonly encrypted?: boolean;
+
+  /**
+   * For PIOPS volumes, the IOPS per disk.
+   *
+   * @schema StaticWebLayerSpecInitProviderEbsVolume#iops
+   */
+  readonly iops?: number;
+
+  /**
+   * The path to mount the EBS volume on the layer's instances.
+   *
+   * @schema StaticWebLayerSpecInitProviderEbsVolume#mountPoint
+   */
+  readonly mountPoint?: string;
+
+  /**
+   * The number of disks to use for the EBS volume.
+   *
+   * @schema StaticWebLayerSpecInitProviderEbsVolume#numberOfDisks
+   */
+  readonly numberOfDisks?: number;
+
+  /**
+   * The RAID level to use for the volume.
+   *
+   * @schema StaticWebLayerSpecInitProviderEbsVolume#raidLevel
+   */
+  readonly raidLevel?: string;
+
+  /**
+   * The size of the volume in gigabytes.
+   *
+   * @schema StaticWebLayerSpecInitProviderEbsVolume#size
+   */
+  readonly size?: number;
+
+  /**
+   * The type of volume to create. This may be standard (the default), io1 or gp2.
+   *
+   * @schema StaticWebLayerSpecInitProviderEbsVolume#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'StaticWebLayerSpecInitProviderEbsVolume' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StaticWebLayerSpecInitProviderEbsVolume(obj: StaticWebLayerSpecInitProviderEbsVolume | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'encrypted': obj.encrypted,
+    'iops': obj.iops,
+    'mountPoint': obj.mountPoint,
+    'numberOfDisks': obj.numberOfDisks,
+    'raidLevel': obj.raidLevel,
+    'size': obj.size,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScaling
+ */
+export interface StaticWebLayerSpecInitProviderLoadBasedAutoScaling {
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScaling#downscaling
+   */
+  readonly downscaling?: StaticWebLayerSpecInitProviderLoadBasedAutoScalingDownscaling[];
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScaling#enable
+   */
+  readonly enable?: boolean;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScaling#upscaling
+   */
+  readonly upscaling?: StaticWebLayerSpecInitProviderLoadBasedAutoScalingUpscaling[];
+
+}
+
+/**
+ * Converts an object of type 'StaticWebLayerSpecInitProviderLoadBasedAutoScaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StaticWebLayerSpecInitProviderLoadBasedAutoScaling(obj: StaticWebLayerSpecInitProviderLoadBasedAutoScaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'downscaling': obj.downscaling?.map(y => toJson_StaticWebLayerSpecInitProviderLoadBasedAutoScalingDownscaling(y)),
+    'enable': obj.enable,
+    'upscaling': obj.upscaling?.map(y => toJson_StaticWebLayerSpecInitProviderLoadBasedAutoScalingUpscaling(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema StaticWebLayerSpecProviderConfigRefPolicy
@@ -24609,43 +29992,6 @@ export interface StaticWebLayerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_StaticWebLayerSpecProviderConfigRefPolicy(obj: StaticWebLayerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema StaticWebLayerSpecProviderRefPolicy
- */
-export interface StaticWebLayerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema StaticWebLayerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: StaticWebLayerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema StaticWebLayerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: StaticWebLayerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'StaticWebLayerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StaticWebLayerSpecProviderRefPolicy(obj: StaticWebLayerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -24770,7 +30116,7 @@ export interface StaticWebLayerSpecForProviderCloudwatchConfigurationLogStreams 
   /**
    * @schema StaticWebLayerSpecForProviderCloudwatchConfigurationLogStreams#file
    */
-  readonly file: string;
+  readonly file?: string;
 
   /**
    * @schema StaticWebLayerSpecForProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
@@ -24787,7 +30133,7 @@ export interface StaticWebLayerSpecForProviderCloudwatchConfigurationLogStreams 
    *
    * @schema StaticWebLayerSpecForProviderCloudwatchConfigurationLogStreams#logGroupName
    */
-  readonly logGroupName: string;
+  readonly logGroupName?: string;
 
   /**
    * @schema StaticWebLayerSpecForProviderCloudwatchConfigurationLogStreams#multilineStartPattern
@@ -25096,6 +30442,215 @@ export function toJson_StaticWebLayerSpecForProviderStackIdSelectorPolicy(obj: S
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams
+ */
+export interface StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams {
+  /**
+   * @schema StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchCount
+   */
+  readonly batchCount?: number;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams#batchSize
+   */
+  readonly batchSize?: number;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams#bufferDuration
+   */
+  readonly bufferDuration?: number;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams#datetimeFormat
+   */
+  readonly datetimeFormat?: string;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams#encoding
+   */
+  readonly encoding?: string;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams#file
+   */
+  readonly file?: string;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams#fileFingerprintLines
+   */
+  readonly fileFingerprintLines?: string;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams#initialPosition
+   */
+  readonly initialPosition?: string;
+
+  /**
+   * A human-readable name for the layer.
+   *
+   * @schema StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams#logGroupName
+   */
+  readonly logGroupName?: string;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams#multilineStartPattern
+   */
+  readonly multilineStartPattern?: string;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams#timeZone
+   */
+  readonly timeZone?: string;
+
+}
+
+/**
+ * Converts an object of type 'StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams(obj: StaticWebLayerSpecInitProviderCloudwatchConfigurationLogStreams | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'batchCount': obj.batchCount,
+    'batchSize': obj.batchSize,
+    'bufferDuration': obj.bufferDuration,
+    'datetimeFormat': obj.datetimeFormat,
+    'encoding': obj.encoding,
+    'file': obj.file,
+    'fileFingerprintLines': obj.fileFingerprintLines,
+    'initialPosition': obj.initialPosition,
+    'logGroupName': obj.logGroupName,
+    'multilineStartPattern': obj.multilineStartPattern,
+    'timeZone': obj.timeZone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScalingDownscaling
+ */
+export interface StaticWebLayerSpecInitProviderLoadBasedAutoScalingDownscaling {
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScalingDownscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScalingDownscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScalingDownscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScalingDownscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScalingDownscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScalingDownscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScalingDownscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'StaticWebLayerSpecInitProviderLoadBasedAutoScalingDownscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StaticWebLayerSpecInitProviderLoadBasedAutoScalingDownscaling(obj: StaticWebLayerSpecInitProviderLoadBasedAutoScalingDownscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScalingUpscaling
+ */
+export interface StaticWebLayerSpecInitProviderLoadBasedAutoScalingUpscaling {
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScalingUpscaling#alarms
+   */
+  readonly alarms?: string[];
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScalingUpscaling#cpuThreshold
+   */
+  readonly cpuThreshold?: number;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScalingUpscaling#ignoreMetricsTime
+   */
+  readonly ignoreMetricsTime?: number;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScalingUpscaling#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScalingUpscaling#loadThreshold
+   */
+  readonly loadThreshold?: number;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScalingUpscaling#memoryThreshold
+   */
+  readonly memoryThreshold?: number;
+
+  /**
+   * @schema StaticWebLayerSpecInitProviderLoadBasedAutoScalingUpscaling#thresholdsWaitTime
+   */
+  readonly thresholdsWaitTime?: number;
+
+}
+
+/**
+ * Converts an object of type 'StaticWebLayerSpecInitProviderLoadBasedAutoScalingUpscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StaticWebLayerSpecInitProviderLoadBasedAutoScalingUpscaling(obj: StaticWebLayerSpecInitProviderLoadBasedAutoScalingUpscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alarms': obj.alarms?.map(y => y),
+    'cpuThreshold': obj.cpuThreshold,
+    'ignoreMetricsTime': obj.ignoreMetricsTime,
+    'instanceCount': obj.instanceCount,
+    'loadThreshold': obj.loadThreshold,
+    'memoryThreshold': obj.memoryThreshold,
+    'thresholdsWaitTime': obj.thresholdsWaitTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema StaticWebLayerSpecProviderConfigRefPolicyResolution
@@ -25113,30 +30668,6 @@ export enum StaticWebLayerSpecProviderConfigRefPolicyResolution {
  * @schema StaticWebLayerSpecProviderConfigRefPolicyResolve
  */
 export enum StaticWebLayerSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema StaticWebLayerSpecProviderRefPolicyResolution
- */
-export enum StaticWebLayerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema StaticWebLayerSpecProviderRefPolicyResolve
- */
-export enum StaticWebLayerSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -25397,7 +30928,7 @@ export function toJson_UserProfileProps(obj: UserProfileProps | undefined): Reco
  */
 export interface UserProfileSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema UserProfileSpec#deletionPolicy
    */
@@ -25409,11 +30940,18 @@ export interface UserProfileSpec {
   readonly forProvider: UserProfileSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema UserProfileSpec#managementPolicy
+   * @schema UserProfileSpec#initProvider
    */
-  readonly managementPolicy?: UserProfileSpecManagementPolicy;
+  readonly initProvider?: UserProfileSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema UserProfileSpec#managementPolicies
+   */
+  readonly managementPolicies?: UserProfileSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -25421,13 +30959,6 @@ export interface UserProfileSpec {
    * @schema UserProfileSpec#providerConfigRef
    */
   readonly providerConfigRef?: UserProfileSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema UserProfileSpec#providerRef
-   */
-  readonly providerRef?: UserProfileSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -25454,9 +30985,9 @@ export function toJson_UserProfileSpec(obj: UserProfileSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_UserProfileSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_UserProfileSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_UserProfileSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_UserProfileSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_UserProfileSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_UserProfileSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -25466,7 +30997,7 @@ export function toJson_UserProfileSpec(obj: UserProfileSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema UserProfileSpecDeletionPolicy
  */
@@ -25545,17 +31076,68 @@ export function toJson_UserProfileSpecForProvider(obj: UserProfileSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema UserProfileSpecManagementPolicy
+ * @schema UserProfileSpecInitProvider
  */
-export enum UserProfileSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface UserProfileSpecInitProvider {
+  /**
+   * Whether users can specify their own SSH public key through the My Settings page
+   *
+   * @schema UserProfileSpecInitProvider#allowSelfManagement
+   */
+  readonly allowSelfManagement?: boolean;
+
+  /**
+   * The users public key
+   *
+   * @schema UserProfileSpecInitProvider#sshPublicKey
+   */
+  readonly sshPublicKey?: string;
+
+  /**
+   * The ssh username, with witch this user wants to log in
+   *
+   * @schema UserProfileSpecInitProvider#sshUsername
+   */
+  readonly sshUsername?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProvider(obj: UserProfileSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowSelfManagement': obj.allowSelfManagement,
+    'sshPublicKey': obj.sshPublicKey,
+    'sshUsername': obj.sshUsername,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema UserProfileSpecManagementPolicies
+ */
+export enum UserProfileSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -25589,43 +31171,6 @@ export function toJson_UserProfileSpecProviderConfigRef(obj: UserProfileSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_UserProfileSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema UserProfileSpecProviderRef
- */
-export interface UserProfileSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema UserProfileSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema UserProfileSpecProviderRef#policy
-   */
-  readonly policy?: UserProfileSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'UserProfileSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserProfileSpecProviderRef(obj: UserProfileSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_UserProfileSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -25834,43 +31379,6 @@ export function toJson_UserProfileSpecProviderConfigRefPolicy(obj: UserProfileSp
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema UserProfileSpecProviderRefPolicy
- */
-export interface UserProfileSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema UserProfileSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: UserProfileSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema UserProfileSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: UserProfileSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'UserProfileSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserProfileSpecProviderRefPolicy(obj: UserProfileSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema UserProfileSpecPublishConnectionDetailsToConfigRef
@@ -26044,30 +31552,6 @@ export enum UserProfileSpecProviderConfigRefPolicyResolution {
  * @schema UserProfileSpecProviderConfigRefPolicyResolve
  */
 export enum UserProfileSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema UserProfileSpecProviderRefPolicyResolution
- */
-export enum UserProfileSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema UserProfileSpecProviderRefPolicyResolve
- */
-export enum UserProfileSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

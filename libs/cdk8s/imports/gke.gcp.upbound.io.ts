@@ -99,7 +99,7 @@ export function toJson_BackupBackupPlanProps(obj: BackupBackupPlanProps | undefi
  */
 export interface BackupBackupPlanSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BackupBackupPlanSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface BackupBackupPlanSpec {
   readonly forProvider: BackupBackupPlanSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BackupBackupPlanSpec#managementPolicy
+   * @schema BackupBackupPlanSpec#initProvider
    */
-  readonly managementPolicy?: BackupBackupPlanSpecManagementPolicy;
+  readonly initProvider?: BackupBackupPlanSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BackupBackupPlanSpec#managementPolicies
+   */
+  readonly managementPolicies?: BackupBackupPlanSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface BackupBackupPlanSpec {
    * @schema BackupBackupPlanSpec#providerConfigRef
    */
   readonly providerConfigRef?: BackupBackupPlanSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BackupBackupPlanSpec#providerRef
-   */
-  readonly providerRef?: BackupBackupPlanSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_BackupBackupPlanSpec(obj: BackupBackupPlanSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BackupBackupPlanSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BackupBackupPlanSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BackupBackupPlanSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BackupBackupPlanSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BackupBackupPlanSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BackupBackupPlanSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_BackupBackupPlanSpec(obj: BackupBackupPlanSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BackupBackupPlanSpecDeletionPolicy
  */
@@ -287,17 +287,100 @@ export function toJson_BackupBackupPlanSpecForProvider(obj: BackupBackupPlanSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BackupBackupPlanSpecManagementPolicy
+ * @schema BackupBackupPlanSpecInitProvider
  */
-export enum BackupBackupPlanSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BackupBackupPlanSpecInitProvider {
+  /**
+   * Defines the configuration of Backups created via this BackupPlan. Structure is documented below.
+   *
+   * @schema BackupBackupPlanSpecInitProvider#backupConfig
+   */
+  readonly backupConfig?: BackupBackupPlanSpecInitProviderBackupConfig[];
+
+  /**
+   * Defines a schedule for automatic Backup creation via this BackupPlan. Structure is documented below.
+   *
+   * @schema BackupBackupPlanSpecInitProvider#backupSchedule
+   */
+  readonly backupSchedule?: BackupBackupPlanSpecInitProviderBackupSchedule[];
+
+  /**
+   * This flag indicates whether this BackupPlan has been deactivated. Setting this field to True locks the BackupPlan such that no further updates will be allowed (except deletes), including the deactivated field itself. It also prevents any new Backups from being created via this BackupPlan (including scheduled Backups).
+   *
+   * @schema BackupBackupPlanSpecInitProvider#deactivated
+   */
+  readonly deactivated?: boolean;
+
+  /**
+   * User specified descriptive string for this BackupPlan.
+   *
+   * @schema BackupBackupPlanSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Description: A set of custom labels supplied by the user. A list of key->value pairs. Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
+   *
+   * @schema BackupBackupPlanSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema BackupBackupPlanSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * RetentionPolicy governs lifecycle of Backups created under this plan. Structure is documented below.
+   *
+   * @schema BackupBackupPlanSpecInitProvider#retentionPolicy
+   */
+  readonly retentionPolicy?: BackupBackupPlanSpecInitProviderRetentionPolicy[];
+
+}
+
+/**
+ * Converts an object of type 'BackupBackupPlanSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BackupBackupPlanSpecInitProvider(obj: BackupBackupPlanSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'backupConfig': obj.backupConfig?.map(y => toJson_BackupBackupPlanSpecInitProviderBackupConfig(y)),
+    'backupSchedule': obj.backupSchedule?.map(y => toJson_BackupBackupPlanSpecInitProviderBackupSchedule(y)),
+    'deactivated': obj.deactivated,
+    'description': obj.description,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'project': obj.project,
+    'retentionPolicy': obj.retentionPolicy?.map(y => toJson_BackupBackupPlanSpecInitProviderRetentionPolicy(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BackupBackupPlanSpecManagementPolicies
+ */
+export enum BackupBackupPlanSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -331,43 +414,6 @@ export function toJson_BackupBackupPlanSpecProviderConfigRef(obj: BackupBackupPl
   const result = {
     'name': obj.name,
     'policy': toJson_BackupBackupPlanSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BackupBackupPlanSpecProviderRef
- */
-export interface BackupBackupPlanSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BackupBackupPlanSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BackupBackupPlanSpecProviderRef#policy
-   */
-  readonly policy?: BackupBackupPlanSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BackupBackupPlanSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BackupBackupPlanSpecProviderRef(obj: BackupBackupPlanSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BackupBackupPlanSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -684,6 +730,151 @@ export function toJson_BackupBackupPlanSpecForProviderRetentionPolicy(obj: Backu
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BackupBackupPlanSpecInitProviderBackupConfig
+ */
+export interface BackupBackupPlanSpecInitProviderBackupConfig {
+  /**
+   * If True, include all namespaced resources.
+   *
+   * @schema BackupBackupPlanSpecInitProviderBackupConfig#allNamespaces
+   */
+  readonly allNamespaces?: boolean;
+
+  /**
+   * This defines a customer managed encryption key that will be used to encrypt the "config" portion (the Kubernetes resources) of Backups created via this plan. Structure is documented below.
+   *
+   * @schema BackupBackupPlanSpecInitProviderBackupConfig#encryptionKey
+   */
+  readonly encryptionKey?: any[];
+
+  /**
+   * This flag specifies whether Kubernetes Secret resources should be included when they fall into the scope of Backups.
+   *
+   * @schema BackupBackupPlanSpecInitProviderBackupConfig#includeSecrets
+   */
+  readonly includeSecrets?: boolean;
+
+  /**
+   * This flag specifies whether volume data should be backed up when PVCs are included in the scope of a Backup.
+   *
+   * @schema BackupBackupPlanSpecInitProviderBackupConfig#includeVolumeData
+   */
+  readonly includeVolumeData?: boolean;
+
+  /**
+   * A list of namespaced Kubernetes Resources. Structure is documented below.
+   *
+   * @schema BackupBackupPlanSpecInitProviderBackupConfig#selectedApplications
+   */
+  readonly selectedApplications?: BackupBackupPlanSpecInitProviderBackupConfigSelectedApplications[];
+
+  /**
+   * If set, include just the resources in the listed namespaces. Structure is documented below.
+   *
+   * @schema BackupBackupPlanSpecInitProviderBackupConfig#selectedNamespaces
+   */
+  readonly selectedNamespaces?: BackupBackupPlanSpecInitProviderBackupConfigSelectedNamespaces[];
+
+}
+
+/**
+ * Converts an object of type 'BackupBackupPlanSpecInitProviderBackupConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BackupBackupPlanSpecInitProviderBackupConfig(obj: BackupBackupPlanSpecInitProviderBackupConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allNamespaces': obj.allNamespaces,
+    'encryptionKey': obj.encryptionKey?.map(y => y),
+    'includeSecrets': obj.includeSecrets,
+    'includeVolumeData': obj.includeVolumeData,
+    'selectedApplications': obj.selectedApplications?.map(y => toJson_BackupBackupPlanSpecInitProviderBackupConfigSelectedApplications(y)),
+    'selectedNamespaces': obj.selectedNamespaces?.map(y => toJson_BackupBackupPlanSpecInitProviderBackupConfigSelectedNamespaces(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BackupBackupPlanSpecInitProviderBackupSchedule
+ */
+export interface BackupBackupPlanSpecInitProviderBackupSchedule {
+  /**
+   * A standard cron string that defines a repeating schedule for creating Backups via this BackupPlan. If this is defined, then backupRetainDays must also be defined.
+   *
+   * @schema BackupBackupPlanSpecInitProviderBackupSchedule#cronSchedule
+   */
+  readonly cronSchedule?: string;
+
+  /**
+   * This flag denotes whether automatic Backup creation is paused for this BackupPlan.
+   *
+   * @schema BackupBackupPlanSpecInitProviderBackupSchedule#paused
+   */
+  readonly paused?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'BackupBackupPlanSpecInitProviderBackupSchedule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BackupBackupPlanSpecInitProviderBackupSchedule(obj: BackupBackupPlanSpecInitProviderBackupSchedule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cronSchedule': obj.cronSchedule,
+    'paused': obj.paused,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BackupBackupPlanSpecInitProviderRetentionPolicy
+ */
+export interface BackupBackupPlanSpecInitProviderRetentionPolicy {
+  /**
+   * Minimum age for a Backup created via this BackupPlan (in days). Must be an integer value between 0-90 (inclusive). A Backup created under this BackupPlan will not be deletable until it reaches Backup's (create time + backup_delete_lock_days). Updating this field of a BackupPlan does not affect existing Backups. Backups created after a successful update will inherit this new value.
+   *
+   * @schema BackupBackupPlanSpecInitProviderRetentionPolicy#backupDeleteLockDays
+   */
+  readonly backupDeleteLockDays?: number;
+
+  /**
+   * The default maximum age of a Backup created via this BackupPlan. This field MUST be an integer value >= 0 and <= 365. If specified, a Backup created under this BackupPlan will be automatically deleted after its age reaches (createTime + backupRetainDays). If not specified, Backups created under this BackupPlan will NOT be subject to automatic deletion. Updating this field does NOT affect existing Backups under it. Backups created AFTER a successful update will automatically pick up the new value. NOTE: backupRetainDays must be >= backupDeleteLockDays. If cronSchedule is defined, then this must be <= 360 * the creation interval.]
+   *
+   * @schema BackupBackupPlanSpecInitProviderRetentionPolicy#backupRetainDays
+   */
+  readonly backupRetainDays?: number;
+
+  /**
+   * This flag denotes whether the retention policy of this BackupPlan is locked. If set to True, no further update is allowed on this policy, including the locked field itself.
+   *
+   * @schema BackupBackupPlanSpecInitProviderRetentionPolicy#locked
+   */
+  readonly locked?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'BackupBackupPlanSpecInitProviderRetentionPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BackupBackupPlanSpecInitProviderRetentionPolicy(obj: BackupBackupPlanSpecInitProviderRetentionPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'backupDeleteLockDays': obj.backupDeleteLockDays,
+    'backupRetainDays': obj.backupRetainDays,
+    'locked': obj.locked,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema BackupBackupPlanSpecProviderConfigRefPolicy
@@ -710,43 +901,6 @@ export interface BackupBackupPlanSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BackupBackupPlanSpecProviderConfigRefPolicy(obj: BackupBackupPlanSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BackupBackupPlanSpecProviderRefPolicy
- */
-export interface BackupBackupPlanSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BackupBackupPlanSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BackupBackupPlanSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BackupBackupPlanSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BackupBackupPlanSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BackupBackupPlanSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BackupBackupPlanSpecProviderRefPolicy(obj: BackupBackupPlanSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -891,7 +1045,7 @@ export interface BackupBackupPlanSpecForProviderBackupConfigSelectedApplications
    *
    * @schema BackupBackupPlanSpecForProviderBackupConfigSelectedApplications#namespacedNames
    */
-  readonly namespacedNames: BackupBackupPlanSpecForProviderBackupConfigSelectedApplicationsNamespacedNames[];
+  readonly namespacedNames?: BackupBackupPlanSpecForProviderBackupConfigSelectedApplicationsNamespacedNames[];
 
 }
 
@@ -918,7 +1072,7 @@ export interface BackupBackupPlanSpecForProviderBackupConfigSelectedNamespaces {
    *
    * @schema BackupBackupPlanSpecForProviderBackupConfigSelectedNamespaces#namespaces
    */
-  readonly namespaces: string[];
+  readonly namespaces?: string[];
 
 }
 
@@ -1011,6 +1165,60 @@ export function toJson_BackupBackupPlanSpecForProviderClusterSelectorPolicy(obj:
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BackupBackupPlanSpecInitProviderBackupConfigSelectedApplications
+ */
+export interface BackupBackupPlanSpecInitProviderBackupConfigSelectedApplications {
+  /**
+   * A list of namespaced Kubernetes resources. Structure is documented below.
+   *
+   * @schema BackupBackupPlanSpecInitProviderBackupConfigSelectedApplications#namespacedNames
+   */
+  readonly namespacedNames?: BackupBackupPlanSpecInitProviderBackupConfigSelectedApplicationsNamespacedNames[];
+
+}
+
+/**
+ * Converts an object of type 'BackupBackupPlanSpecInitProviderBackupConfigSelectedApplications' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BackupBackupPlanSpecInitProviderBackupConfigSelectedApplications(obj: BackupBackupPlanSpecInitProviderBackupConfigSelectedApplications | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'namespacedNames': obj.namespacedNames?.map(y => toJson_BackupBackupPlanSpecInitProviderBackupConfigSelectedApplicationsNamespacedNames(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BackupBackupPlanSpecInitProviderBackupConfigSelectedNamespaces
+ */
+export interface BackupBackupPlanSpecInitProviderBackupConfigSelectedNamespaces {
+  /**
+   * A list of Kubernetes Namespaces.
+   *
+   * @schema BackupBackupPlanSpecInitProviderBackupConfigSelectedNamespaces#namespaces
+   */
+  readonly namespaces?: string[];
+
+}
+
+/**
+ * Converts an object of type 'BackupBackupPlanSpecInitProviderBackupConfigSelectedNamespaces' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BackupBackupPlanSpecInitProviderBackupConfigSelectedNamespaces(obj: BackupBackupPlanSpecInitProviderBackupConfigSelectedNamespaces | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'namespaces': obj.namespaces?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema BackupBackupPlanSpecProviderConfigRefPolicyResolution
@@ -1028,30 +1236,6 @@ export enum BackupBackupPlanSpecProviderConfigRefPolicyResolution {
  * @schema BackupBackupPlanSpecProviderConfigRefPolicyResolve
  */
 export enum BackupBackupPlanSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BackupBackupPlanSpecProviderRefPolicyResolution
- */
-export enum BackupBackupPlanSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BackupBackupPlanSpecProviderRefPolicyResolve
- */
-export enum BackupBackupPlanSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1186,14 +1370,14 @@ export interface BackupBackupPlanSpecForProviderBackupConfigSelectedApplications
    *
    * @schema BackupBackupPlanSpecForProviderBackupConfigSelectedApplicationsNamespacedNames#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The namespace of a Kubernetes Resource.
    *
    * @schema BackupBackupPlanSpecForProviderBackupConfigSelectedApplicationsNamespacedNames#namespace
    */
-  readonly namespace: string;
+  readonly namespace?: string;
 
 }
 
@@ -1259,6 +1443,41 @@ export enum BackupBackupPlanSpecForProviderClusterSelectorPolicyResolve {
   /** IfNotPresent */
   IF_NOT_PRESENT = "IfNotPresent",
 }
+
+/**
+ * @schema BackupBackupPlanSpecInitProviderBackupConfigSelectedApplicationsNamespacedNames
+ */
+export interface BackupBackupPlanSpecInitProviderBackupConfigSelectedApplicationsNamespacedNames {
+  /**
+   * The name of a Kubernetes Resource.
+   *
+   * @schema BackupBackupPlanSpecInitProviderBackupConfigSelectedApplicationsNamespacedNames#name
+   */
+  readonly name?: string;
+
+  /**
+   * The namespace of a Kubernetes Resource.
+   *
+   * @schema BackupBackupPlanSpecInitProviderBackupConfigSelectedApplicationsNamespacedNames#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'BackupBackupPlanSpecInitProviderBackupConfigSelectedApplicationsNamespacedNames' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BackupBackupPlanSpecInitProviderBackupConfigSelectedApplicationsNamespacedNames(obj: BackupBackupPlanSpecInitProviderBackupConfigSelectedApplicationsNamespacedNames | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.

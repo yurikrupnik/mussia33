@@ -99,7 +99,7 @@ export function toJson_CodepipelineProps(obj: CodepipelineProps | undefined): Re
  */
 export interface CodepipelineSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CodepipelineSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface CodepipelineSpec {
   readonly forProvider: CodepipelineSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema CodepipelineSpec#managementPolicy
+   * @schema CodepipelineSpec#initProvider
    */
-  readonly managementPolicy?: CodepipelineSpecManagementPolicy;
+  readonly initProvider?: CodepipelineSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema CodepipelineSpec#managementPolicies
+   */
+  readonly managementPolicies?: CodepipelineSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface CodepipelineSpec {
    * @schema CodepipelineSpec#providerConfigRef
    */
   readonly providerConfigRef?: CodepipelineSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema CodepipelineSpec#providerRef
-   */
-  readonly providerRef?: CodepipelineSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_CodepipelineSpec(obj: CodepipelineSpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CodepipelineSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_CodepipelineSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_CodepipelineSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_CodepipelineSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CodepipelineSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_CodepipelineSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_CodepipelineSpec(obj: CodepipelineSpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CodepipelineSpecDeletionPolicy
  */
@@ -255,17 +255,68 @@ export function toJson_CodepipelineSpecForProvider(obj: CodepipelineSpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema CodepipelineSpecManagementPolicy
+ * @schema CodepipelineSpecInitProvider
  */
-export enum CodepipelineSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface CodepipelineSpecInitProvider {
+  /**
+   * One or more artifact_store blocks. Artifact stores are documented below.
+   *
+   * @schema CodepipelineSpecInitProvider#artifactStore
+   */
+  readonly artifactStore?: CodepipelineSpecInitProviderArtifactStore[];
+
+  /**
+   * (Minimum of at least two stage blocks is required) A stage block. Stages are documented below.
+   *
+   * @schema CodepipelineSpecInitProvider#stage
+   */
+  readonly stage?: CodepipelineSpecInitProviderStage[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema CodepipelineSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'CodepipelineSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CodepipelineSpecInitProvider(obj: CodepipelineSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'artifactStore': obj.artifactStore?.map(y => toJson_CodepipelineSpecInitProviderArtifactStore(y)),
+    'stage': obj.stage?.map(y => toJson_CodepipelineSpecInitProviderStage(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema CodepipelineSpecManagementPolicies
+ */
+export enum CodepipelineSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -299,43 +350,6 @@ export function toJson_CodepipelineSpecProviderConfigRef(obj: CodepipelineSpecPr
   const result = {
     'name': obj.name,
     'policy': toJson_CodepipelineSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema CodepipelineSpecProviderRef
- */
-export interface CodepipelineSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema CodepipelineSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema CodepipelineSpecProviderRef#policy
-   */
-  readonly policy?: CodepipelineSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'CodepipelineSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CodepipelineSpecProviderRef(obj: CodepipelineSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_CodepipelineSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -468,7 +482,7 @@ export interface CodepipelineSpecForProviderArtifactStore {
    *
    * @schema CodepipelineSpecForProviderArtifactStore#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -582,14 +596,14 @@ export interface CodepipelineSpecForProviderStage {
    *
    * @schema CodepipelineSpecForProviderStage#action
    */
-  readonly action: CodepipelineSpecForProviderStageAction[];
+  readonly action?: CodepipelineSpecForProviderStageAction[];
 
   /**
    * The name of the stage.
    *
    * @schema CodepipelineSpecForProviderStage#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -601,6 +615,76 @@ export function toJson_CodepipelineSpecForProviderStage(obj: CodepipelineSpecFor
   if (obj === undefined) { return undefined; }
   const result = {
     'action': obj.action?.map(y => toJson_CodepipelineSpecForProviderStageAction(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CodepipelineSpecInitProviderArtifactStore
+ */
+export interface CodepipelineSpecInitProviderArtifactStore {
+  /**
+   * The encryption key block AWS CodePipeline uses to encrypt the data in the artifact store, such as an AWS Key Management Service (AWS KMS) key. If you don't specify a key, AWS CodePipeline uses the default key for Amazon Simple Storage Service (Amazon S3). An encryption_key block is documented below.
+   *
+   * @schema CodepipelineSpecInitProviderArtifactStore#encryptionKey
+   */
+  readonly encryptionKey?: CodepipelineSpecInitProviderArtifactStoreEncryptionKey[];
+
+  /**
+   * The type of the artifact store, such as Amazon S3
+   *
+   * @schema CodepipelineSpecInitProviderArtifactStore#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'CodepipelineSpecInitProviderArtifactStore' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CodepipelineSpecInitProviderArtifactStore(obj: CodepipelineSpecInitProviderArtifactStore | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'encryptionKey': obj.encryptionKey?.map(y => toJson_CodepipelineSpecInitProviderArtifactStoreEncryptionKey(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CodepipelineSpecInitProviderStage
+ */
+export interface CodepipelineSpecInitProviderStage {
+  /**
+   * The action(s) to include in the stage. Defined as an action block below
+   *
+   * @schema CodepipelineSpecInitProviderStage#action
+   */
+  readonly action?: CodepipelineSpecInitProviderStageAction[];
+
+  /**
+   * The name of the stage.
+   *
+   * @schema CodepipelineSpecInitProviderStage#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'CodepipelineSpecInitProviderStage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CodepipelineSpecInitProviderStage(obj: CodepipelineSpecInitProviderStage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action?.map(y => toJson_CodepipelineSpecInitProviderStageAction(y)),
     'name': obj.name,
   };
   // filter undefined values
@@ -635,43 +719,6 @@ export interface CodepipelineSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CodepipelineSpecProviderConfigRefPolicy(obj: CodepipelineSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema CodepipelineSpecProviderRefPolicy
- */
-export interface CodepipelineSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema CodepipelineSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: CodepipelineSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema CodepipelineSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: CodepipelineSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'CodepipelineSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CodepipelineSpecProviderRefPolicy(obj: CodepipelineSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -773,14 +820,14 @@ export interface CodepipelineSpecForProviderArtifactStoreEncryptionKey {
    *
    * @schema CodepipelineSpecForProviderArtifactStoreEncryptionKey#id
    */
-  readonly id: string;
+  readonly id?: string;
 
   /**
    * The type of key; currently only KMS is supported
    *
    * @schema CodepipelineSpecForProviderArtifactStoreEncryptionKey#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -964,7 +1011,7 @@ export interface CodepipelineSpecForProviderStageAction {
    *
    * @schema CodepipelineSpecForProviderStageAction#category
    */
-  readonly category: string;
+  readonly category?: string;
 
   /**
    * A map of the action declaration's configuration. Configurations options for action types and providers can be found in the Pipeline Structure Reference and Action Structure Reference documentation.
@@ -985,7 +1032,7 @@ export interface CodepipelineSpecForProviderStageAction {
    *
    * @schema CodepipelineSpecForProviderStageAction#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The namespace all output variables will be accessed from.
@@ -1006,14 +1053,14 @@ export interface CodepipelineSpecForProviderStageAction {
    *
    * @schema CodepipelineSpecForProviderStageAction#owner
    */
-  readonly owner: string;
+  readonly owner?: string;
 
   /**
    * The provider of the service being called by the action. Valid providers are determined by the action category. Provider names are listed in the Action Structure Reference documentation.
    *
    * @schema CodepipelineSpecForProviderStageAction#provider
    */
-  readonly provider: string;
+  readonly provider?: string;
 
   /**
    * The region in which to run the action.
@@ -1041,7 +1088,7 @@ export interface CodepipelineSpecForProviderStageAction {
    *
    * @schema CodepipelineSpecForProviderStageAction#version
    */
-  readonly version: string;
+  readonly version?: string;
 
 }
 
@@ -1071,6 +1118,148 @@ export function toJson_CodepipelineSpecForProviderStageAction(obj: CodepipelineS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema CodepipelineSpecInitProviderArtifactStoreEncryptionKey
+ */
+export interface CodepipelineSpecInitProviderArtifactStoreEncryptionKey {
+  /**
+   * The KMS key ARN or ID
+   *
+   * @schema CodepipelineSpecInitProviderArtifactStoreEncryptionKey#id
+   */
+  readonly id?: string;
+
+  /**
+   * The type of key; currently only KMS is supported
+   *
+   * @schema CodepipelineSpecInitProviderArtifactStoreEncryptionKey#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'CodepipelineSpecInitProviderArtifactStoreEncryptionKey' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CodepipelineSpecInitProviderArtifactStoreEncryptionKey(obj: CodepipelineSpecInitProviderArtifactStoreEncryptionKey | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'id': obj.id,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CodepipelineSpecInitProviderStageAction
+ */
+export interface CodepipelineSpecInitProviderStageAction {
+  /**
+   * A category defines what kind of action can be taken in the stage, and constrains the provider type for the action. Possible values are Approval, Build, Deploy, Invoke, Source and Test.
+   *
+   * @schema CodepipelineSpecInitProviderStageAction#category
+   */
+  readonly category?: string;
+
+  /**
+   * A map of the action declaration's configuration. Configurations options for action types and providers can be found in the Pipeline Structure Reference and Action Structure Reference documentation.
+   *
+   * @schema CodepipelineSpecInitProviderStageAction#configuration
+   */
+  readonly configuration?: { [key: string]: string };
+
+  /**
+   * A list of artifact names to be worked on.
+   *
+   * @schema CodepipelineSpecInitProviderStageAction#inputArtifacts
+   */
+  readonly inputArtifacts?: string[];
+
+  /**
+   * The action declaration's name.
+   *
+   * @schema CodepipelineSpecInitProviderStageAction#name
+   */
+  readonly name?: string;
+
+  /**
+   * The namespace all output variables will be accessed from.
+   *
+   * @schema CodepipelineSpecInitProviderStageAction#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * A list of artifact names to output. Output artifact names must be unique within a pipeline.
+   *
+   * @schema CodepipelineSpecInitProviderStageAction#outputArtifacts
+   */
+  readonly outputArtifacts?: string[];
+
+  /**
+   * The creator of the action being called. Possible values are AWS, Custom and ThirdParty.
+   *
+   * @schema CodepipelineSpecInitProviderStageAction#owner
+   */
+  readonly owner?: string;
+
+  /**
+   * The provider of the service being called by the action. Valid providers are determined by the action category. Provider names are listed in the Action Structure Reference documentation.
+   *
+   * @schema CodepipelineSpecInitProviderStageAction#provider
+   */
+  readonly provider?: string;
+
+  /**
+   * The ARN of the IAM service role that will perform the declared action. This is assumed through the roleArn for the pipeline.
+   *
+   * @schema CodepipelineSpecInitProviderStageAction#roleArn
+   */
+  readonly roleArn?: string;
+
+  /**
+   * The order in which actions are run.
+   *
+   * @schema CodepipelineSpecInitProviderStageAction#runOrder
+   */
+  readonly runOrder?: number;
+
+  /**
+   * A string that identifies the action type.
+   *
+   * @schema CodepipelineSpecInitProviderStageAction#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'CodepipelineSpecInitProviderStageAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CodepipelineSpecInitProviderStageAction(obj: CodepipelineSpecInitProviderStageAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'category': obj.category,
+    'configuration': ((obj.configuration) === undefined) ? undefined : (Object.entries(obj.configuration).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'inputArtifacts': obj.inputArtifacts?.map(y => y),
+    'name': obj.name,
+    'namespace': obj.namespace,
+    'outputArtifacts': obj.outputArtifacts?.map(y => y),
+    'owner': obj.owner,
+    'provider': obj.provider,
+    'roleArn': obj.roleArn,
+    'runOrder': obj.runOrder,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema CodepipelineSpecProviderConfigRefPolicyResolution
@@ -1088,30 +1277,6 @@ export enum CodepipelineSpecProviderConfigRefPolicyResolution {
  * @schema CodepipelineSpecProviderConfigRefPolicyResolve
  */
 export enum CodepipelineSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema CodepipelineSpecProviderRefPolicyResolution
- */
-export enum CodepipelineSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema CodepipelineSpecProviderRefPolicyResolve
- */
-export enum CodepipelineSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1446,7 +1611,7 @@ export function toJson_CustomActionTypeProps(obj: CustomActionTypeProps | undefi
  */
 export interface CustomActionTypeSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CustomActionTypeSpec#deletionPolicy
    */
@@ -1458,11 +1623,18 @@ export interface CustomActionTypeSpec {
   readonly forProvider: CustomActionTypeSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema CustomActionTypeSpec#managementPolicy
+   * @schema CustomActionTypeSpec#initProvider
    */
-  readonly managementPolicy?: CustomActionTypeSpecManagementPolicy;
+  readonly initProvider?: CustomActionTypeSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema CustomActionTypeSpec#managementPolicies
+   */
+  readonly managementPolicies?: CustomActionTypeSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1470,13 +1642,6 @@ export interface CustomActionTypeSpec {
    * @schema CustomActionTypeSpec#providerConfigRef
    */
   readonly providerConfigRef?: CustomActionTypeSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema CustomActionTypeSpec#providerRef
-   */
-  readonly providerRef?: CustomActionTypeSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1503,9 +1668,9 @@ export function toJson_CustomActionTypeSpec(obj: CustomActionTypeSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CustomActionTypeSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_CustomActionTypeSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_CustomActionTypeSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_CustomActionTypeSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CustomActionTypeSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_CustomActionTypeSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1515,7 +1680,7 @@ export function toJson_CustomActionTypeSpec(obj: CustomActionTypeSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CustomActionTypeSpecDeletionPolicy
  */
@@ -1618,17 +1783,108 @@ export function toJson_CustomActionTypeSpecForProvider(obj: CustomActionTypeSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema CustomActionTypeSpecManagementPolicy
+ * @schema CustomActionTypeSpecInitProvider
  */
-export enum CustomActionTypeSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface CustomActionTypeSpecInitProvider {
+  /**
+   * The category of the custom action. Valid values: Source, Build, Deploy, Test, Invoke, Approval
+   *
+   * @schema CustomActionTypeSpecInitProvider#category
+   */
+  readonly category?: string;
+
+  /**
+   * The configuration properties for the custom action. Max 10 items.
+   *
+   * @schema CustomActionTypeSpecInitProvider#configurationProperty
+   */
+  readonly configurationProperty?: CustomActionTypeSpecInitProviderConfigurationProperty[];
+
+  /**
+   * The details of the input artifact for the action.
+   *
+   * @schema CustomActionTypeSpecInitProvider#inputArtifactDetails
+   */
+  readonly inputArtifactDetails?: CustomActionTypeSpecInitProviderInputArtifactDetails[];
+
+  /**
+   * The details of the output artifact of the action.
+   *
+   * @schema CustomActionTypeSpecInitProvider#outputArtifactDetails
+   */
+  readonly outputArtifactDetails?: CustomActionTypeSpecInitProviderOutputArtifactDetails[];
+
+  /**
+   * The provider of the service used in the custom action
+   *
+   * @schema CustomActionTypeSpecInitProvider#providerName
+   */
+  readonly providerName?: string;
+
+  /**
+   * The settings for an action type.
+   *
+   * @schema CustomActionTypeSpecInitProvider#settings
+   */
+  readonly settings?: CustomActionTypeSpecInitProviderSettings[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema CustomActionTypeSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * The version identifier of the custom action.
+   *
+   * @schema CustomActionTypeSpecInitProvider#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'CustomActionTypeSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CustomActionTypeSpecInitProvider(obj: CustomActionTypeSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'category': obj.category,
+    'configurationProperty': obj.configurationProperty?.map(y => toJson_CustomActionTypeSpecInitProviderConfigurationProperty(y)),
+    'inputArtifactDetails': obj.inputArtifactDetails?.map(y => toJson_CustomActionTypeSpecInitProviderInputArtifactDetails(y)),
+    'outputArtifactDetails': obj.outputArtifactDetails?.map(y => toJson_CustomActionTypeSpecInitProviderOutputArtifactDetails(y)),
+    'providerName': obj.providerName,
+    'settings': obj.settings?.map(y => toJson_CustomActionTypeSpecInitProviderSettings(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema CustomActionTypeSpecManagementPolicies
+ */
+export enum CustomActionTypeSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1662,43 +1918,6 @@ export function toJson_CustomActionTypeSpecProviderConfigRef(obj: CustomActionTy
   const result = {
     'name': obj.name,
     'policy': toJson_CustomActionTypeSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema CustomActionTypeSpecProviderRef
- */
-export interface CustomActionTypeSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema CustomActionTypeSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema CustomActionTypeSpecProviderRef#policy
-   */
-  readonly policy?: CustomActionTypeSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'CustomActionTypeSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CustomActionTypeSpecProviderRef(obj: CustomActionTypeSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_CustomActionTypeSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1803,14 +2022,14 @@ export interface CustomActionTypeSpecForProviderConfigurationProperty {
    *
    * @schema CustomActionTypeSpecForProviderConfigurationProperty#key
    */
-  readonly key: boolean;
+  readonly key?: boolean;
 
   /**
    * The name of the action configuration property.
    *
    * @schema CustomActionTypeSpecForProviderConfigurationProperty#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Indicates that the property will be used in conjunction with PollForJobs.
@@ -1824,14 +2043,14 @@ export interface CustomActionTypeSpecForProviderConfigurationProperty {
    *
    * @schema CustomActionTypeSpecForProviderConfigurationProperty#required
    */
-  readonly required: boolean;
+  readonly required?: boolean;
 
   /**
    * Whether the configuration property is secret.
    *
    * @schema CustomActionTypeSpecForProviderConfigurationProperty#secret
    */
-  readonly secret: boolean;
+  readonly secret?: boolean;
 
   /**
    * The type of the configuration property. Valid values: String, Number, Boolean
@@ -1871,14 +2090,14 @@ export interface CustomActionTypeSpecForProviderInputArtifactDetails {
    *
    * @schema CustomActionTypeSpecForProviderInputArtifactDetails#maximumCount
    */
-  readonly maximumCount: number;
+  readonly maximumCount?: number;
 
   /**
    * The minimum number of artifacts allowed for the action type. Min: 0, Max: 5
    *
    * @schema CustomActionTypeSpecForProviderInputArtifactDetails#minimumCount
    */
-  readonly minimumCount: number;
+  readonly minimumCount?: number;
 
 }
 
@@ -1906,14 +2125,14 @@ export interface CustomActionTypeSpecForProviderOutputArtifactDetails {
    *
    * @schema CustomActionTypeSpecForProviderOutputArtifactDetails#maximumCount
    */
-  readonly maximumCount: number;
+  readonly maximumCount?: number;
 
   /**
    * The minimum number of artifacts allowed for the action type. Min: 0, Max: 5
    *
    * @schema CustomActionTypeSpecForProviderOutputArtifactDetails#minimumCount
    */
-  readonly minimumCount: number;
+  readonly minimumCount?: number;
 
 }
 
@@ -1984,6 +2203,202 @@ export function toJson_CustomActionTypeSpecForProviderSettings(obj: CustomAction
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema CustomActionTypeSpecInitProviderConfigurationProperty
+ */
+export interface CustomActionTypeSpecInitProviderConfigurationProperty {
+  /**
+   * The description of the action configuration property.
+   *
+   * @schema CustomActionTypeSpecInitProviderConfigurationProperty#description
+   */
+  readonly description?: string;
+
+  /**
+   * Whether the configuration property is a key.
+   *
+   * @schema CustomActionTypeSpecInitProviderConfigurationProperty#key
+   */
+  readonly key?: boolean;
+
+  /**
+   * The name of the action configuration property.
+   *
+   * @schema CustomActionTypeSpecInitProviderConfigurationProperty#name
+   */
+  readonly name?: string;
+
+  /**
+   * Indicates that the property will be used in conjunction with PollForJobs.
+   *
+   * @schema CustomActionTypeSpecInitProviderConfigurationProperty#queryable
+   */
+  readonly queryable?: boolean;
+
+  /**
+   * Whether the configuration property is a required value.
+   *
+   * @schema CustomActionTypeSpecInitProviderConfigurationProperty#required
+   */
+  readonly required?: boolean;
+
+  /**
+   * Whether the configuration property is secret.
+   *
+   * @schema CustomActionTypeSpecInitProviderConfigurationProperty#secret
+   */
+  readonly secret?: boolean;
+
+  /**
+   * The type of the configuration property. Valid values: String, Number, Boolean
+   *
+   * @schema CustomActionTypeSpecInitProviderConfigurationProperty#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'CustomActionTypeSpecInitProviderConfigurationProperty' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CustomActionTypeSpecInitProviderConfigurationProperty(obj: CustomActionTypeSpecInitProviderConfigurationProperty | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'key': obj.key,
+    'name': obj.name,
+    'queryable': obj.queryable,
+    'required': obj.required,
+    'secret': obj.secret,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CustomActionTypeSpecInitProviderInputArtifactDetails
+ */
+export interface CustomActionTypeSpecInitProviderInputArtifactDetails {
+  /**
+   * The maximum number of artifacts allowed for the action type. Min: 0, Max: 5
+   *
+   * @schema CustomActionTypeSpecInitProviderInputArtifactDetails#maximumCount
+   */
+  readonly maximumCount?: number;
+
+  /**
+   * The minimum number of artifacts allowed for the action type. Min: 0, Max: 5
+   *
+   * @schema CustomActionTypeSpecInitProviderInputArtifactDetails#minimumCount
+   */
+  readonly minimumCount?: number;
+
+}
+
+/**
+ * Converts an object of type 'CustomActionTypeSpecInitProviderInputArtifactDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CustomActionTypeSpecInitProviderInputArtifactDetails(obj: CustomActionTypeSpecInitProviderInputArtifactDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maximumCount': obj.maximumCount,
+    'minimumCount': obj.minimumCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CustomActionTypeSpecInitProviderOutputArtifactDetails
+ */
+export interface CustomActionTypeSpecInitProviderOutputArtifactDetails {
+  /**
+   * The maximum number of artifacts allowed for the action type. Min: 0, Max: 5
+   *
+   * @schema CustomActionTypeSpecInitProviderOutputArtifactDetails#maximumCount
+   */
+  readonly maximumCount?: number;
+
+  /**
+   * The minimum number of artifacts allowed for the action type. Min: 0, Max: 5
+   *
+   * @schema CustomActionTypeSpecInitProviderOutputArtifactDetails#minimumCount
+   */
+  readonly minimumCount?: number;
+
+}
+
+/**
+ * Converts an object of type 'CustomActionTypeSpecInitProviderOutputArtifactDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CustomActionTypeSpecInitProviderOutputArtifactDetails(obj: CustomActionTypeSpecInitProviderOutputArtifactDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maximumCount': obj.maximumCount,
+    'minimumCount': obj.minimumCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CustomActionTypeSpecInitProviderSettings
+ */
+export interface CustomActionTypeSpecInitProviderSettings {
+  /**
+   * The URL returned to the AWS CodePipeline console that provides a deep link to the resources of the external system.
+   *
+   * @schema CustomActionTypeSpecInitProviderSettings#entityUrlTemplate
+   */
+  readonly entityUrlTemplate?: string;
+
+  /**
+   * The URL returned to the AWS CodePipeline console that contains a link to the top-level landing page for the external system.
+   *
+   * @schema CustomActionTypeSpecInitProviderSettings#executionUrlTemplate
+   */
+  readonly executionUrlTemplate?: string;
+
+  /**
+   * The URL returned to the AWS CodePipeline console that contains a link to the page where customers can update or change the configuration of the external action.
+   *
+   * @schema CustomActionTypeSpecInitProviderSettings#revisionUrlTemplate
+   */
+  readonly revisionUrlTemplate?: string;
+
+  /**
+   * The URL of a sign-up page where users can sign up for an external service and perform initial configuration of the action provided by that service.
+   *
+   * @schema CustomActionTypeSpecInitProviderSettings#thirdPartyConfigurationUrl
+   */
+  readonly thirdPartyConfigurationUrl?: string;
+
+}
+
+/**
+ * Converts an object of type 'CustomActionTypeSpecInitProviderSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CustomActionTypeSpecInitProviderSettings(obj: CustomActionTypeSpecInitProviderSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'entityUrlTemplate': obj.entityUrlTemplate,
+    'executionUrlTemplate': obj.executionUrlTemplate,
+    'revisionUrlTemplate': obj.revisionUrlTemplate,
+    'thirdPartyConfigurationUrl': obj.thirdPartyConfigurationUrl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema CustomActionTypeSpecProviderConfigRefPolicy
@@ -2010,43 +2425,6 @@ export interface CustomActionTypeSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CustomActionTypeSpecProviderConfigRefPolicy(obj: CustomActionTypeSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema CustomActionTypeSpecProviderRefPolicy
- */
-export interface CustomActionTypeSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema CustomActionTypeSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: CustomActionTypeSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema CustomActionTypeSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: CustomActionTypeSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'CustomActionTypeSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CustomActionTypeSpecProviderRefPolicy(obj: CustomActionTypeSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2157,30 +2535,6 @@ export enum CustomActionTypeSpecProviderConfigRefPolicyResolution {
  * @schema CustomActionTypeSpecProviderConfigRefPolicyResolve
  */
 export enum CustomActionTypeSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema CustomActionTypeSpecProviderRefPolicyResolution
- */
-export enum CustomActionTypeSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema CustomActionTypeSpecProviderRefPolicyResolve
- */
-export enum CustomActionTypeSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2345,7 +2699,7 @@ export function toJson_WebhookProps(obj: WebhookProps | undefined): Record<strin
  */
 export interface WebhookSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema WebhookSpec#deletionPolicy
    */
@@ -2357,11 +2711,18 @@ export interface WebhookSpec {
   readonly forProvider: WebhookSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema WebhookSpec#managementPolicy
+   * @schema WebhookSpec#initProvider
    */
-  readonly managementPolicy?: WebhookSpecManagementPolicy;
+  readonly initProvider?: WebhookSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema WebhookSpec#managementPolicies
+   */
+  readonly managementPolicies?: WebhookSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2369,13 +2730,6 @@ export interface WebhookSpec {
    * @schema WebhookSpec#providerConfigRef
    */
   readonly providerConfigRef?: WebhookSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema WebhookSpec#providerRef
-   */
-  readonly providerRef?: WebhookSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2402,9 +2756,9 @@ export function toJson_WebhookSpec(obj: WebhookSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_WebhookSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_WebhookSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_WebhookSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_WebhookSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_WebhookSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_WebhookSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2414,7 +2768,7 @@ export function toJson_WebhookSpec(obj: WebhookSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema WebhookSpecDeletionPolicy
  */
@@ -2517,17 +2871,84 @@ export function toJson_WebhookSpecForProvider(obj: WebhookSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema WebhookSpecManagementPolicy
+ * @schema WebhookSpecInitProvider
  */
-export enum WebhookSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface WebhookSpecInitProvider {
+  /**
+   * The type of authentication  to use. One of IP, GITHUB_HMAC, or UNAUTHENTICATED.
+   *
+   * @schema WebhookSpecInitProvider#authentication
+   */
+  readonly authentication?: string;
+
+  /**
+   * An auth block. Required for IP and GITHUB_HMAC. Auth blocks are documented below.
+   *
+   * @schema WebhookSpecInitProvider#authenticationConfiguration
+   */
+  readonly authenticationConfiguration?: WebhookSpecInitProviderAuthenticationConfiguration[];
+
+  /**
+   * One or more filter blocks. Filter blocks are documented below.
+   *
+   * @schema WebhookSpecInitProvider#filter
+   */
+  readonly filter?: WebhookSpecInitProviderFilter[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema WebhookSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * The name of the action in a pipeline you want to connect to the webhook. The action must be from the source (first) stage of the pipeline.
+   *
+   * @schema WebhookSpecInitProvider#targetAction
+   */
+  readonly targetAction?: string;
+
+}
+
+/**
+ * Converts an object of type 'WebhookSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WebhookSpecInitProvider(obj: WebhookSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'authentication': obj.authentication,
+    'authenticationConfiguration': obj.authenticationConfiguration?.map(y => toJson_WebhookSpecInitProviderAuthenticationConfiguration(y)),
+    'filter': obj.filter?.map(y => toJson_WebhookSpecInitProviderFilter(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'targetAction': obj.targetAction,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema WebhookSpecManagementPolicies
+ */
+export enum WebhookSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2561,43 +2982,6 @@ export function toJson_WebhookSpecProviderConfigRef(obj: WebhookSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_WebhookSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema WebhookSpecProviderRef
- */
-export interface WebhookSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema WebhookSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema WebhookSpecProviderRef#policy
-   */
-  readonly policy?: WebhookSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'WebhookSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_WebhookSpecProviderRef(obj: WebhookSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_WebhookSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2730,14 +3114,14 @@ export interface WebhookSpecForProviderFilter {
    *
    * @schema WebhookSpecForProviderFilter#jsonPath
    */
-  readonly jsonPath: string;
+  readonly jsonPath?: string;
 
   /**
    * The value to match on (e.g., refs/heads/{Branch}). See AWS docs for details.
    *
    * @schema WebhookSpecForProviderFilter#matchEquals
    */
-  readonly matchEquals: string;
+  readonly matchEquals?: string;
 
 }
 
@@ -2839,6 +3223,68 @@ export function toJson_WebhookSpecForProviderTargetPipelineSelector(obj: Webhook
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema WebhookSpecInitProviderAuthenticationConfiguration
+ */
+export interface WebhookSpecInitProviderAuthenticationConfiguration {
+  /**
+   * A valid CIDR block for IP filtering. Required for IP.
+   *
+   * @schema WebhookSpecInitProviderAuthenticationConfiguration#allowedIpRange
+   */
+  readonly allowedIpRange?: string;
+
+}
+
+/**
+ * Converts an object of type 'WebhookSpecInitProviderAuthenticationConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WebhookSpecInitProviderAuthenticationConfiguration(obj: WebhookSpecInitProviderAuthenticationConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowedIpRange': obj.allowedIpRange,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WebhookSpecInitProviderFilter
+ */
+export interface WebhookSpecInitProviderFilter {
+  /**
+   * The JSON path to filter on.
+   *
+   * @schema WebhookSpecInitProviderFilter#jsonPath
+   */
+  readonly jsonPath?: string;
+
+  /**
+   * The value to match on (e.g., refs/heads/{Branch}). See AWS docs for details.
+   *
+   * @schema WebhookSpecInitProviderFilter#matchEquals
+   */
+  readonly matchEquals?: string;
+
+}
+
+/**
+ * Converts an object of type 'WebhookSpecInitProviderFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WebhookSpecInitProviderFilter(obj: WebhookSpecInitProviderFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'jsonPath': obj.jsonPath,
+    'matchEquals': obj.matchEquals,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema WebhookSpecProviderConfigRefPolicy
@@ -2865,43 +3311,6 @@ export interface WebhookSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_WebhookSpecProviderConfigRefPolicy(obj: WebhookSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema WebhookSpecProviderRefPolicy
- */
-export interface WebhookSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema WebhookSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: WebhookSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema WebhookSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: WebhookSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'WebhookSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_WebhookSpecProviderRefPolicy(obj: WebhookSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3131,30 +3540,6 @@ export enum WebhookSpecProviderConfigRefPolicyResolution {
  * @schema WebhookSpecProviderConfigRefPolicyResolve
  */
 export enum WebhookSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema WebhookSpecProviderRefPolicyResolution
- */
-export enum WebhookSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema WebhookSpecProviderRefPolicyResolve
- */
-export enum WebhookSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

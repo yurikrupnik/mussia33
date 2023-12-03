@@ -99,7 +99,7 @@ export function toJson_EnvironmentProps(obj: EnvironmentProps | undefined): Reco
  */
 export interface EnvironmentSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema EnvironmentSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface EnvironmentSpec {
   readonly forProvider: EnvironmentSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema EnvironmentSpec#managementPolicy
+   * @schema EnvironmentSpec#initProvider
    */
-  readonly managementPolicy?: EnvironmentSpecManagementPolicy;
+  readonly initProvider?: EnvironmentSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema EnvironmentSpec#managementPolicies
+   */
+  readonly managementPolicies?: EnvironmentSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface EnvironmentSpec {
    * @schema EnvironmentSpec#providerConfigRef
    */
   readonly providerConfigRef?: EnvironmentSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema EnvironmentSpec#providerRef
-   */
-  readonly providerRef?: EnvironmentSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_EnvironmentSpec(obj: EnvironmentSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_EnvironmentSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_EnvironmentSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_EnvironmentSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_EnvironmentSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_EnvironmentSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_EnvironmentSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_EnvironmentSpec(obj: EnvironmentSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema EnvironmentSpecDeletionPolicy
  */
@@ -247,17 +247,60 @@ export function toJson_EnvironmentSpecForProvider(obj: EnvironmentSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema EnvironmentSpecManagementPolicy
+ * @schema EnvironmentSpecInitProvider
  */
-export enum EnvironmentSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface EnvironmentSpecInitProvider {
+  /**
+   * Configuration parameters for this environment  Structure is documented below.
+   *
+   * @schema EnvironmentSpecInitProvider#config
+   */
+  readonly config?: EnvironmentSpecInitProviderConfig[];
+
+  /**
+   * User-defined labels for this environment. The labels map can contain no more than 64 entries. Entries of the labels map are UTF8 strings that comply with the following restrictions: Label keys must be between 1 and 63 characters long and must conform to the following regular expression: [a-z]([-a-z0-9]*[a-z0-9])?. Label values must be between 0 and 63 characters long and must conform to the regular expression ([a-z]([-a-z0-9]*[a-z0-9])?)?. No more than 64 labels can be associated with a given environment. Both keys and values must be <= 128 bytes in size.
+   *
+   * @schema EnvironmentSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProvider(obj: EnvironmentSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'config': obj.config?.map(y => toJson_EnvironmentSpecInitProviderConfig(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema EnvironmentSpecManagementPolicies
+ */
+export enum EnvironmentSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -291,43 +334,6 @@ export function toJson_EnvironmentSpecProviderConfigRef(obj: EnvironmentSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_EnvironmentSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema EnvironmentSpecProviderRef
- */
-export interface EnvironmentSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema EnvironmentSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema EnvironmentSpecProviderRef#policy
-   */
-  readonly policy?: EnvironmentSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'EnvironmentSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_EnvironmentSpecProviderRef(obj: EnvironmentSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_EnvironmentSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -484,6 +490,13 @@ export interface EnvironmentSpecForProviderConfig {
   readonly recoveryConfig?: EnvironmentSpecForProviderConfigRecoveryConfig[];
 
   /**
+   * The resilience mode states whether high resilience is enabled for the environment or not. Values for resilience mode are HIGH_RESILIENCE for high resilience and STANDARD_RESILIENCE for standard resilience.
+   *
+   * @schema EnvironmentSpecForProviderConfig#resilienceMode
+   */
+  readonly resilienceMode?: string;
+
+  /**
    * The configuration settings for software inside the environment.  Structure is documented below.
    *
    * @schema EnvironmentSpecForProviderConfig#softwareConfig
@@ -529,6 +542,7 @@ export function toJson_EnvironmentSpecForProviderConfig(obj: EnvironmentSpecForP
     'nodeCount': obj.nodeCount,
     'privateEnvironmentConfig': obj.privateEnvironmentConfig?.map(y => toJson_EnvironmentSpecForProviderConfigPrivateEnvironmentConfig(y)),
     'recoveryConfig': obj.recoveryConfig?.map(y => toJson_EnvironmentSpecForProviderConfigRecoveryConfig(y)),
+    'resilienceMode': obj.resilienceMode,
     'softwareConfig': obj.softwareConfig?.map(y => toJson_EnvironmentSpecForProviderConfigSoftwareConfig(y)),
     'webServerConfig': obj.webServerConfig?.map(y => toJson_EnvironmentSpecForProviderConfigWebServerConfig(y)),
     'webServerNetworkAccessControl': obj.webServerNetworkAccessControl?.map(y => toJson_EnvironmentSpecForProviderConfigWebServerNetworkAccessControl(y)),
@@ -622,6 +636,137 @@ export function toJson_EnvironmentSpecForProviderProjectSelector(obj: Environmen
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema EnvironmentSpecInitProviderConfig
+ */
+export interface EnvironmentSpecInitProviderConfig {
+  /**
+   * The configuration settings for Cloud SQL instance used internally by Apache Airflow software.
+   *
+   * @schema EnvironmentSpecInitProviderConfig#databaseConfig
+   */
+  readonly databaseConfig?: EnvironmentSpecInitProviderConfigDatabaseConfig[];
+
+  /**
+   * The encryption options for the Cloud Composer environment and its dependencies.
+   *
+   * @schema EnvironmentSpecInitProviderConfig#encryptionConfig
+   */
+  readonly encryptionConfig?: EnvironmentSpecInitProviderConfigEncryptionConfig[];
+
+  /**
+   * The environment size controls the performance parameters of the managed Cloud Composer infrastructure that includes the Airflow database. Values for environment size are ENVIRONMENT_SIZE_SMALL, ENVIRONMENT_SIZE_MEDIUM, and ENVIRONMENT_SIZE_LARGE.
+   *
+   * @schema EnvironmentSpecInitProviderConfig#environmentSize
+   */
+  readonly environmentSize?: string;
+
+  /**
+   * The configuration settings for Cloud Composer maintenance windows.
+   *
+   * @schema EnvironmentSpecInitProviderConfig#maintenanceWindow
+   */
+  readonly maintenanceWindow?: EnvironmentSpecInitProviderConfigMaintenanceWindow[];
+
+  /**
+   * Configuration options for the master authorized networks feature. Enabled master authorized networks will disallow all external traffic to access Kubernetes master through HTTPS except traffic from the given CIDR blocks, Google Compute Engine Public IPs and Google Prod IPs. Structure is documented below.
+   *
+   * @schema EnvironmentSpecInitProviderConfig#masterAuthorizedNetworksConfig
+   */
+  readonly masterAuthorizedNetworksConfig?: EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfig[];
+
+  /**
+   * The configuration used for the Kubernetes Engine cluster.  Structure is documented below.
+   *
+   * @schema EnvironmentSpecInitProviderConfig#nodeConfig
+   */
+  readonly nodeConfig?: EnvironmentSpecInitProviderConfigNodeConfig[];
+
+  /**
+   * The number of nodes in the Kubernetes Engine cluster of the environment.
+   *
+   * @schema EnvironmentSpecInitProviderConfig#nodeCount
+   */
+  readonly nodeCount?: number;
+
+  /**
+   * The configuration used for the Private IP Cloud Composer environment. Structure is documented below.
+   *
+   * @schema EnvironmentSpecInitProviderConfig#privateEnvironmentConfig
+   */
+  readonly privateEnvironmentConfig?: EnvironmentSpecInitProviderConfigPrivateEnvironmentConfig[];
+
+  /**
+   * The configuration settings for recovery. Structure is documented below.
+   *
+   * @schema EnvironmentSpecInitProviderConfig#recoveryConfig
+   */
+  readonly recoveryConfig?: EnvironmentSpecInitProviderConfigRecoveryConfig[];
+
+  /**
+   * The resilience mode states whether high resilience is enabled for the environment or not. Values for resilience mode are HIGH_RESILIENCE for high resilience and STANDARD_RESILIENCE for standard resilience.
+   *
+   * @schema EnvironmentSpecInitProviderConfig#resilienceMode
+   */
+  readonly resilienceMode?: string;
+
+  /**
+   * The configuration settings for software inside the environment.  Structure is documented below.
+   *
+   * @schema EnvironmentSpecInitProviderConfig#softwareConfig
+   */
+  readonly softwareConfig?: EnvironmentSpecInitProviderConfigSoftwareConfig[];
+
+  /**
+   * The configuration settings for the Airflow web server App Engine instance.
+   *
+   * @schema EnvironmentSpecInitProviderConfig#webServerConfig
+   */
+  readonly webServerConfig?: EnvironmentSpecInitProviderConfigWebServerConfig[];
+
+  /**
+   * The network-level access control policy for the Airflow web server. If unspecified, no network-level access restrictions are applied.
+   *
+   * @schema EnvironmentSpecInitProviderConfig#webServerNetworkAccessControl
+   */
+  readonly webServerNetworkAccessControl?: EnvironmentSpecInitProviderConfigWebServerNetworkAccessControl[];
+
+  /**
+   * The Kubernetes workloads configuration for GKE cluster associated with the Cloud Composer environment.
+   *
+   * @schema EnvironmentSpecInitProviderConfig#workloadsConfig
+   */
+  readonly workloadsConfig?: EnvironmentSpecInitProviderConfigWorkloadsConfig[];
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfig(obj: EnvironmentSpecInitProviderConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'databaseConfig': obj.databaseConfig?.map(y => toJson_EnvironmentSpecInitProviderConfigDatabaseConfig(y)),
+    'encryptionConfig': obj.encryptionConfig?.map(y => toJson_EnvironmentSpecInitProviderConfigEncryptionConfig(y)),
+    'environmentSize': obj.environmentSize,
+    'maintenanceWindow': obj.maintenanceWindow?.map(y => toJson_EnvironmentSpecInitProviderConfigMaintenanceWindow(y)),
+    'masterAuthorizedNetworksConfig': obj.masterAuthorizedNetworksConfig?.map(y => toJson_EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfig(y)),
+    'nodeConfig': obj.nodeConfig?.map(y => toJson_EnvironmentSpecInitProviderConfigNodeConfig(y)),
+    'nodeCount': obj.nodeCount,
+    'privateEnvironmentConfig': obj.privateEnvironmentConfig?.map(y => toJson_EnvironmentSpecInitProviderConfigPrivateEnvironmentConfig(y)),
+    'recoveryConfig': obj.recoveryConfig?.map(y => toJson_EnvironmentSpecInitProviderConfigRecoveryConfig(y)),
+    'resilienceMode': obj.resilienceMode,
+    'softwareConfig': obj.softwareConfig?.map(y => toJson_EnvironmentSpecInitProviderConfigSoftwareConfig(y)),
+    'webServerConfig': obj.webServerConfig?.map(y => toJson_EnvironmentSpecInitProviderConfigWebServerConfig(y)),
+    'webServerNetworkAccessControl': obj.webServerNetworkAccessControl?.map(y => toJson_EnvironmentSpecInitProviderConfigWebServerNetworkAccessControl(y)),
+    'workloadsConfig': obj.workloadsConfig?.map(y => toJson_EnvironmentSpecInitProviderConfigWorkloadsConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema EnvironmentSpecProviderConfigRefPolicy
@@ -648,43 +793,6 @@ export interface EnvironmentSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_EnvironmentSpecProviderConfigRefPolicy(obj: EnvironmentSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema EnvironmentSpecProviderRefPolicy
- */
-export interface EnvironmentSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema EnvironmentSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: EnvironmentSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema EnvironmentSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: EnvironmentSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'EnvironmentSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_EnvironmentSpecProviderRefPolicy(obj: EnvironmentSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -786,7 +894,7 @@ export interface EnvironmentSpecForProviderConfigDatabaseConfig {
    *
    * @schema EnvironmentSpecForProviderConfigDatabaseConfig#machineType
    */
-  readonly machineType: string;
+  readonly machineType?: string;
 
 }
 
@@ -813,7 +921,7 @@ export interface EnvironmentSpecForProviderConfigEncryptionConfig {
    *
    * @schema EnvironmentSpecForProviderConfigEncryptionConfig#kmsKeyName
    */
-  readonly kmsKeyName: string;
+  readonly kmsKeyName?: string;
 
 }
 
@@ -840,21 +948,21 @@ export interface EnvironmentSpecForProviderConfigMaintenanceWindow {
    *
    * @schema EnvironmentSpecForProviderConfigMaintenanceWindow#endTime
    */
-  readonly endTime: string;
+  readonly endTime?: string;
 
   /**
    * Maintenance window recurrence. Format is a subset of RFC-5545 (https://tools.ietf.org/html/rfc5545) 'RRULE'. The only allowed values for 'FREQ' field are 'FREQ=DAILY' and 'FREQ=WEEKLY;BYDAY=...'. Example values: 'FREQ=WEEKLY;BYDAY=TU,WE', 'FREQ=DAILY'.
    *
    * @schema EnvironmentSpecForProviderConfigMaintenanceWindow#recurrence
    */
-  readonly recurrence: string;
+  readonly recurrence?: string;
 
   /**
    * Start time of the first recurrence of the maintenance window.
    *
    * @schema EnvironmentSpecForProviderConfigMaintenanceWindow#startTime
    */
-  readonly startTime: string;
+  readonly startTime?: string;
 
 }
 
@@ -890,7 +998,7 @@ export interface EnvironmentSpecForProviderConfigMasterAuthorizedNetworksConfig 
    *
    * @schema EnvironmentSpecForProviderConfigMasterAuthorizedNetworksConfig#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -1230,7 +1338,7 @@ export interface EnvironmentSpecForProviderConfigWebServerConfig {
    *
    * @schema EnvironmentSpecForProviderConfigWebServerConfig#machineType
    */
-  readonly machineType: string;
+  readonly machineType?: string;
 
 }
 
@@ -1393,6 +1501,475 @@ export function toJson_EnvironmentSpecForProviderProjectSelectorPolicy(obj: Envi
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema EnvironmentSpecInitProviderConfigDatabaseConfig
+ */
+export interface EnvironmentSpecInitProviderConfigDatabaseConfig {
+  /**
+   * Machine type on which Airflow web server is running. It has to be one of: composer-n1-webserver-2, composer-n1-webserver-4 or composer-n1-webserver-8. Value custom is returned only in response, if Airflow web server parameters were manually changed to a non-standard values.
+   *
+   * @schema EnvironmentSpecInitProviderConfigDatabaseConfig#machineType
+   */
+  readonly machineType?: string;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigDatabaseConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigDatabaseConfig(obj: EnvironmentSpecInitProviderConfigDatabaseConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'machineType': obj.machineType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigEncryptionConfig
+ */
+export interface EnvironmentSpecInitProviderConfigEncryptionConfig {
+  /**
+   * Customer-managed Encryption Key available through Google's Key Management Service. It must be the fully qualified resource name, i.e. projects/project-id/locations/location/keyRings/keyring/cryptoKeys/key. Cannot be updated.
+   *
+   * @schema EnvironmentSpecInitProviderConfigEncryptionConfig#kmsKeyName
+   */
+  readonly kmsKeyName?: string;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigEncryptionConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigEncryptionConfig(obj: EnvironmentSpecInitProviderConfigEncryptionConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kmsKeyName': obj.kmsKeyName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigMaintenanceWindow
+ */
+export interface EnvironmentSpecInitProviderConfigMaintenanceWindow {
+  /**
+   * Maintenance window end time. It is used only to calculate the duration of the maintenance window. The value for end-time must be in the future, relative to 'start_time'.
+   *
+   * @schema EnvironmentSpecInitProviderConfigMaintenanceWindow#endTime
+   */
+  readonly endTime?: string;
+
+  /**
+   * Maintenance window recurrence. Format is a subset of RFC-5545 (https://tools.ietf.org/html/rfc5545) 'RRULE'. The only allowed values for 'FREQ' field are 'FREQ=DAILY' and 'FREQ=WEEKLY;BYDAY=...'. Example values: 'FREQ=WEEKLY;BYDAY=TU,WE', 'FREQ=DAILY'.
+   *
+   * @schema EnvironmentSpecInitProviderConfigMaintenanceWindow#recurrence
+   */
+  readonly recurrence?: string;
+
+  /**
+   * Start time of the first recurrence of the maintenance window.
+   *
+   * @schema EnvironmentSpecInitProviderConfigMaintenanceWindow#startTime
+   */
+  readonly startTime?: string;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigMaintenanceWindow' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigMaintenanceWindow(obj: EnvironmentSpecInitProviderConfigMaintenanceWindow | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'endTime': obj.endTime,
+    'recurrence': obj.recurrence,
+    'startTime': obj.startTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfig
+ */
+export interface EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfig {
+  /**
+   * cidr_blocks define up to 50 external networks that could access Kubernetes master through HTTPS. Structure is documented below.
+   *
+   * @schema EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfig#cidrBlocks
+   */
+  readonly cidrBlocks?: EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfigCidrBlocks[];
+
+  /**
+   * When enabled, Cloud Composer periodically saves snapshots of your environment to a Cloud Storage bucket.
+   *
+   * @schema EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfig#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfig(obj: EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cidrBlocks': obj.cidrBlocks?.map(y => toJson_EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfigCidrBlocks(y)),
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigNodeConfig
+ */
+export interface EnvironmentSpecInitProviderConfigNodeConfig {
+  /**
+   * The disk size in GB used for node VMs. Minimum size is 20GB. If unspecified, defaults to 100GB. Cannot be updated.
+   *
+   * @schema EnvironmentSpecInitProviderConfigNodeConfig#diskSizeGb
+   */
+  readonly diskSizeGb?: number;
+
+  /**
+   * Deploys 'ip-masq-agent' daemon set in the GKE cluster and defines nonMasqueradeCIDRs equals to pod IP range so IP masquerading is used for all destination addresses, except between pods traffic. See the documentation.
+   *
+   * @schema EnvironmentSpecInitProviderConfigNodeConfig#enableIpMasqAgent
+   */
+  readonly enableIpMasqAgent?: boolean;
+
+  /**
+   * Configuration for controlling how IPs are allocated in the GKE cluster. Structure is documented below. Cannot be updated.
+   *
+   * @schema EnvironmentSpecInitProviderConfigNodeConfig#ipAllocationPolicy
+   */
+  readonly ipAllocationPolicy?: EnvironmentSpecInitProviderConfigNodeConfigIpAllocationPolicy[];
+
+  /**
+   * Machine type on which Airflow web server is running. It has to be one of: composer-n1-webserver-2, composer-n1-webserver-4 or composer-n1-webserver-8. Value custom is returned only in response, if Airflow web server parameters were manually changed to a non-standard values.
+   *
+   * @schema EnvironmentSpecInitProviderConfigNodeConfig#machineType
+   */
+  readonly machineType?: string;
+
+  /**
+   * The set of Google API scopes to be made available on all node VMs. Cannot be updated. If empty, defaults to ["https://www.googleapis.com/auth/cloud-platform"].
+   *
+   * @schema EnvironmentSpecInitProviderConfigNodeConfig#oauthScopes
+   */
+  readonly oauthScopes?: string[];
+
+  /**
+   * The list of instance tags applied to all node VMs. Tags are used to identify valid sources or targets for network firewalls. Each tag within the list must comply with RFC1035. Cannot be updated.
+   *
+   * @schema EnvironmentSpecInitProviderConfigNodeConfig#tags
+   */
+  readonly tags?: string[];
+
+  /**
+   * The Compute Engine zone in which to deploy the VMs running the Apache Airflow software, specified as the zone name or relative resource name (e.g. "projects/{project}/zones/{zone}"). Must belong to the enclosing environment's project and region.
+   *
+   * @schema EnvironmentSpecInitProviderConfigNodeConfig#zone
+   */
+  readonly zone?: string;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigNodeConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigNodeConfig(obj: EnvironmentSpecInitProviderConfigNodeConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'diskSizeGb': obj.diskSizeGb,
+    'enableIpMasqAgent': obj.enableIpMasqAgent,
+    'ipAllocationPolicy': obj.ipAllocationPolicy?.map(y => toJson_EnvironmentSpecInitProviderConfigNodeConfigIpAllocationPolicy(y)),
+    'machineType': obj.machineType,
+    'oauthScopes': obj.oauthScopes?.map(y => y),
+    'tags': obj.tags?.map(y => y),
+    'zone': obj.zone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigPrivateEnvironmentConfig
+ */
+export interface EnvironmentSpecInitProviderConfigPrivateEnvironmentConfig {
+  /**
+   * When specified, the environment will use Private Service Connect instead of VPC peerings to connect to Cloud SQL in the Tenant Project, and the PSC endpoint in the Customer Project will use an IP address from this subnetwork. This field is supported for Cloud Composer environments in versions composer-2.*.*-airflow-*.*.* and newer.
+   *
+   * @schema EnvironmentSpecInitProviderConfigPrivateEnvironmentConfig#cloudComposerConnectionSubnetwork
+   */
+  readonly cloudComposerConnectionSubnetwork?: string;
+
+  /**
+   * @schema EnvironmentSpecInitProviderConfigPrivateEnvironmentConfig#cloudComposerNetworkIpv4CidrBlock
+   */
+  readonly cloudComposerNetworkIpv4CidrBlock?: string;
+
+  /**
+   * The CIDR block from which IP range in tenant project will be reserved for Cloud SQL. Needs to be disjoint from web_server_ipv4_cidr_block
+   *
+   * @schema EnvironmentSpecInitProviderConfigPrivateEnvironmentConfig#cloudSqlIpv4CidrBlock
+   */
+  readonly cloudSqlIpv4CidrBlock?: string;
+
+  /**
+   * If true, access to the public endpoint of the GKE cluster is denied. If this field is set to true, the ip_allocation_policy.use_ip_aliases field must also be set to true for Cloud Composer 1 environments.
+   *
+   * @schema EnvironmentSpecInitProviderConfigPrivateEnvironmentConfig#enablePrivateEndpoint
+   */
+  readonly enablePrivateEndpoint?: boolean;
+
+  /**
+   * When enabled, IPs from public (non-RFC1918) ranges can be used for ip_allocation_policy.cluster_ipv4_cidr_block and ip_allocation_policy.service_ipv4_cidr_block.
+   *
+   * @schema EnvironmentSpecInitProviderConfigPrivateEnvironmentConfig#enablePrivatelyUsedPublicIps
+   */
+  readonly enablePrivatelyUsedPublicIps?: boolean;
+
+  /**
+   * The IP range in CIDR notation to use for the hosted master network. This range is used for assigning internal IP addresses to the cluster master or set of masters and to the internal load balancer virtual IP. This range must not overlap with any other ranges in use within the cluster's network. If left blank, the default value of is used. See documentation for default values per region.
+   *
+   * @schema EnvironmentSpecInitProviderConfigPrivateEnvironmentConfig#masterIpv4CidrBlock
+   */
+  readonly masterIpv4CidrBlock?: string;
+
+  /**
+   * The CIDR block from which IP range for web server will be reserved. Needs to be disjoint from master_ipv4_cidr_block and cloud_sql_ipv4_cidr_block.
+   *
+   * @schema EnvironmentSpecInitProviderConfigPrivateEnvironmentConfig#webServerIpv4CidrBlock
+   */
+  readonly webServerIpv4CidrBlock?: string;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigPrivateEnvironmentConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigPrivateEnvironmentConfig(obj: EnvironmentSpecInitProviderConfigPrivateEnvironmentConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cloudComposerConnectionSubnetwork': obj.cloudComposerConnectionSubnetwork,
+    'cloudComposerNetworkIpv4CidrBlock': obj.cloudComposerNetworkIpv4CidrBlock,
+    'cloudSqlIpv4CidrBlock': obj.cloudSqlIpv4CidrBlock,
+    'enablePrivateEndpoint': obj.enablePrivateEndpoint,
+    'enablePrivatelyUsedPublicIps': obj.enablePrivatelyUsedPublicIps,
+    'masterIpv4CidrBlock': obj.masterIpv4CidrBlock,
+    'webServerIpv4CidrBlock': obj.webServerIpv4CidrBlock,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigRecoveryConfig
+ */
+export interface EnvironmentSpecInitProviderConfigRecoveryConfig {
+  /**
+   * The recovery configuration settings for the Cloud Composer environment.
+   *
+   * @schema EnvironmentSpecInitProviderConfigRecoveryConfig#scheduledSnapshotsConfig
+   */
+  readonly scheduledSnapshotsConfig?: EnvironmentSpecInitProviderConfigRecoveryConfigScheduledSnapshotsConfig[];
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigRecoveryConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigRecoveryConfig(obj: EnvironmentSpecInitProviderConfigRecoveryConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'scheduledSnapshotsConfig': obj.scheduledSnapshotsConfig?.map(y => toJson_EnvironmentSpecInitProviderConfigRecoveryConfigScheduledSnapshotsConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigSoftwareConfig
+ */
+export interface EnvironmentSpecInitProviderConfigSoftwareConfig {
+  /**
+   * Apache Airflow configuration properties to override. Property keys contain the section and property names, separated by a hyphen, for example "core-dags_are_paused_at_creation".
+   *
+   * @schema EnvironmentSpecInitProviderConfigSoftwareConfig#airflowConfigOverrides
+   */
+  readonly airflowConfigOverrides?: { [key: string]: string };
+
+  /**
+   * Additional environment variables to provide to the Apache Airflow scheduler, worker, and webserver processes. Environment variable names must match the regular expression [a-zA-Z_][a-zA-Z0-9_]*. They cannot specify Apache Airflow software configuration overrides (they cannot match the regular expression AIRFLOW__[A-Z0-9_]+__[A-Z0-9_]+), and they cannot match any of the following reserved names:
+   *
+   * @schema EnvironmentSpecInitProviderConfigSoftwareConfig#envVariables
+   */
+  readonly envVariables?: { [key: string]: string };
+
+  /**
+   * @schema EnvironmentSpecInitProviderConfigSoftwareConfig#imageVersion
+   */
+  readonly imageVersion?: string;
+
+  /**
+   * Custom Python Package Index (PyPI) packages to be installed in the environment. Keys refer to the lowercase package name (e.g. "numpy"). Values are the lowercase extras and version specifier (e.g. "==1.12.0", "[devel,gcp_api]", "[devel]>=1.8.2, <1.9.2"). To specify a package without pinning it to a version specifier, use the empty string as the value.
+   *
+   * @schema EnvironmentSpecInitProviderConfigSoftwareConfig#pypiPackages
+   */
+  readonly pypiPackages?: { [key: string]: string };
+
+  /**
+   * The major version of Python used to run the Apache Airflow scheduler, worker, and webserver processes. Can be set to '2' or '3'. If not specified, the default is '3'.
+   *
+   * @schema EnvironmentSpecInitProviderConfigSoftwareConfig#pythonVersion
+   */
+  readonly pythonVersion?: string;
+
+  /**
+   * The number of schedulers for Airflow.
+   *
+   * @schema EnvironmentSpecInitProviderConfigSoftwareConfig#schedulerCount
+   */
+  readonly schedulerCount?: number;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigSoftwareConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigSoftwareConfig(obj: EnvironmentSpecInitProviderConfigSoftwareConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'airflowConfigOverrides': ((obj.airflowConfigOverrides) === undefined) ? undefined : (Object.entries(obj.airflowConfigOverrides).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'envVariables': ((obj.envVariables) === undefined) ? undefined : (Object.entries(obj.envVariables).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'imageVersion': obj.imageVersion,
+    'pypiPackages': ((obj.pypiPackages) === undefined) ? undefined : (Object.entries(obj.pypiPackages).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'pythonVersion': obj.pythonVersion,
+    'schedulerCount': obj.schedulerCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigWebServerConfig
+ */
+export interface EnvironmentSpecInitProviderConfigWebServerConfig {
+  /**
+   * Machine type on which Airflow web server is running. It has to be one of: composer-n1-webserver-2, composer-n1-webserver-4 or composer-n1-webserver-8. Value custom is returned only in response, if Airflow web server parameters were manually changed to a non-standard values.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWebServerConfig#machineType
+   */
+  readonly machineType?: string;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigWebServerConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigWebServerConfig(obj: EnvironmentSpecInitProviderConfigWebServerConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'machineType': obj.machineType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigWebServerNetworkAccessControl
+ */
+export interface EnvironmentSpecInitProviderConfigWebServerNetworkAccessControl {
+  /**
+   * A collection of allowed IP ranges with descriptions. Structure is documented below.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWebServerNetworkAccessControl#allowedIpRange
+   */
+  readonly allowedIpRange?: EnvironmentSpecInitProviderConfigWebServerNetworkAccessControlAllowedIpRange[];
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigWebServerNetworkAccessControl' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigWebServerNetworkAccessControl(obj: EnvironmentSpecInitProviderConfigWebServerNetworkAccessControl | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowedIpRange': obj.allowedIpRange?.map(y => toJson_EnvironmentSpecInitProviderConfigWebServerNetworkAccessControlAllowedIpRange(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigWorkloadsConfig
+ */
+export interface EnvironmentSpecInitProviderConfigWorkloadsConfig {
+  /**
+   * Configuration for resources used by Airflow schedulers.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWorkloadsConfig#scheduler
+   */
+  readonly scheduler?: EnvironmentSpecInitProviderConfigWorkloadsConfigScheduler[];
+
+  /**
+   * Configuration for resources used by Airflow web server.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWorkloadsConfig#webServer
+   */
+  readonly webServer?: EnvironmentSpecInitProviderConfigWorkloadsConfigWebServer[];
+
+  /**
+   * Configuration for resources used by Airflow workers.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWorkloadsConfig#worker
+   */
+  readonly worker?: EnvironmentSpecInitProviderConfigWorkloadsConfigWorker[];
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigWorkloadsConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigWorkloadsConfig(obj: EnvironmentSpecInitProviderConfigWorkloadsConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'scheduler': obj.scheduler?.map(y => toJson_EnvironmentSpecInitProviderConfigWorkloadsConfigScheduler(y)),
+    'webServer': obj.webServer?.map(y => toJson_EnvironmentSpecInitProviderConfigWorkloadsConfigWebServer(y)),
+    'worker': obj.worker?.map(y => toJson_EnvironmentSpecInitProviderConfigWorkloadsConfigWorker(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema EnvironmentSpecProviderConfigRefPolicyResolution
@@ -1410,30 +1987,6 @@ export enum EnvironmentSpecProviderConfigRefPolicyResolution {
  * @schema EnvironmentSpecProviderConfigRefPolicyResolve
  */
 export enum EnvironmentSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema EnvironmentSpecProviderRefPolicyResolution
- */
-export enum EnvironmentSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema EnvironmentSpecProviderRefPolicyResolve
- */
-export enum EnvironmentSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1486,7 +2039,7 @@ export interface EnvironmentSpecForProviderConfigMasterAuthorizedNetworksConfigC
    *
    * @schema EnvironmentSpecForProviderConfigMasterAuthorizedNetworksConfigCidrBlocks#cidrBlock
    */
-  readonly cidrBlock: string;
+  readonly cidrBlock?: string;
 
   /**
    * display_name is a field for users to identify CIDR blocks.
@@ -1827,7 +2380,7 @@ export interface EnvironmentSpecForProviderConfigRecoveryConfigScheduledSnapshot
    *
    * @schema EnvironmentSpecForProviderConfigRecoveryConfigScheduledSnapshotsConfig#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
   /**
    * Snapshot schedule, in the unix-cron format.
@@ -1885,7 +2438,7 @@ export interface EnvironmentSpecForProviderConfigWebServerNetworkAccessControlAl
    *
    * @schema EnvironmentSpecForProviderConfigWebServerNetworkAccessControlAllowedIpRange#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -2104,6 +2657,340 @@ export enum EnvironmentSpecForProviderProjectSelectorPolicyResolve {
   /** IfNotPresent */
   IF_NOT_PRESENT = "IfNotPresent",
 }
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfigCidrBlocks
+ */
+export interface EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfigCidrBlocks {
+  /**
+   * `cidr_block< must be specified in CIDR notation.
+   *
+   * @schema EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfigCidrBlocks#cidrBlock
+   */
+  readonly cidrBlock?: string;
+
+  /**
+   * display_name is a field for users to identify CIDR blocks.
+   *
+   * @schema EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfigCidrBlocks#displayName
+   */
+  readonly displayName?: string;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfigCidrBlocks' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfigCidrBlocks(obj: EnvironmentSpecInitProviderConfigMasterAuthorizedNetworksConfigCidrBlocks | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cidrBlock': obj.cidrBlock,
+    'displayName': obj.displayName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigNodeConfigIpAllocationPolicy
+ */
+export interface EnvironmentSpecInitProviderConfigNodeConfigIpAllocationPolicy {
+  /**
+   * The IP address range used to allocate IP addresses to pods in the cluster. For Cloud Composer 1 environments, this field is applicable only when use_ip_aliases is true. Set to blank to have GKE choose a range with the default size. Set to /netmask (e.g. /14) to have GKE choose a range with a specific netmask. Set to a CIDR notation (e.g. 10.96.0.0/14) from the RFC-1918 private networks (e.g. 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) to pick a specific range to use. Specify either cluster_secondary_range_name or cluster_ipv4_cidr_block but not both.
+   *
+   * @schema EnvironmentSpecInitProviderConfigNodeConfigIpAllocationPolicy#clusterIpv4CidrBlock
+   */
+  readonly clusterIpv4CidrBlock?: string;
+
+  /**
+   * The name of the cluster's secondary range used to allocate IP addresses to pods. Specify either cluster_secondary_range_name or cluster_ipv4_cidr_block but not both. For Cloud Composer 1 environments, this field is applicable only when use_ip_aliases is true.
+   *
+   * @schema EnvironmentSpecInitProviderConfigNodeConfigIpAllocationPolicy#clusterSecondaryRangeName
+   */
+  readonly clusterSecondaryRangeName?: string;
+
+  /**
+   * The IP address range used to allocate IP addresses in this cluster. For Cloud Composer 1 environments, this field is applicable only when use_ip_aliases is true. Set to blank to have GKE choose a range with the default size. Set to /netmask (e.g. /14) to have GKE choose a range with a specific netmask. Set to a CIDR notation (e.g. 10.96.0.0/14) from the RFC-1918 private networks (e.g. 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) to pick a specific range to use. Specify either services_secondary_range_name or services_ipv4_cidr_block but not both.
+   *
+   * @schema EnvironmentSpecInitProviderConfigNodeConfigIpAllocationPolicy#servicesIpv4CidrBlock
+   */
+  readonly servicesIpv4CidrBlock?: string;
+
+  /**
+   * The name of the services' secondary range used to allocate IP addresses to the cluster. Specify either services_secondary_range_name or services_ipv4_cidr_block but not both. For Cloud Composer 1 environments, this field is applicable only when use_ip_aliases is true.
+   *
+   * @schema EnvironmentSpecInitProviderConfigNodeConfigIpAllocationPolicy#servicesSecondaryRangeName
+   */
+  readonly servicesSecondaryRangeName?: string;
+
+  /**
+   * Whether or not to enable Alias IPs in the GKE cluster. If true, a VPC-native cluster is created. Defaults to true if the ip_allocation_policy block is present in config.
+   *
+   * @default true if the ip_allocation_policy block is present in config.
+   * @schema EnvironmentSpecInitProviderConfigNodeConfigIpAllocationPolicy#useIpAliases
+   */
+  readonly useIpAliases?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigNodeConfigIpAllocationPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigNodeConfigIpAllocationPolicy(obj: EnvironmentSpecInitProviderConfigNodeConfigIpAllocationPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clusterIpv4CidrBlock': obj.clusterIpv4CidrBlock,
+    'clusterSecondaryRangeName': obj.clusterSecondaryRangeName,
+    'servicesIpv4CidrBlock': obj.servicesIpv4CidrBlock,
+    'servicesSecondaryRangeName': obj.servicesSecondaryRangeName,
+    'useIpAliases': obj.useIpAliases,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigRecoveryConfigScheduledSnapshotsConfig
+ */
+export interface EnvironmentSpecInitProviderConfigRecoveryConfigScheduledSnapshotsConfig {
+  /**
+   * When enabled, Cloud Composer periodically saves snapshots of your environment to a Cloud Storage bucket.
+   *
+   * @schema EnvironmentSpecInitProviderConfigRecoveryConfigScheduledSnapshotsConfig#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Snapshot schedule, in the unix-cron format.
+   *
+   * @schema EnvironmentSpecInitProviderConfigRecoveryConfigScheduledSnapshotsConfig#snapshotCreationSchedule
+   */
+  readonly snapshotCreationSchedule?: string;
+
+  /**
+   * The URI of a bucket folder where to save the snapshot.
+   *
+   * @schema EnvironmentSpecInitProviderConfigRecoveryConfigScheduledSnapshotsConfig#snapshotLocation
+   */
+  readonly snapshotLocation?: string;
+
+  /**
+   * A time zone for the schedule. This value is a time offset and does not take into account daylight saving time changes. Valid values are from UTC-12 to UTC+12. Examples: UTC, UTC-01, UTC+03.
+   *
+   * @schema EnvironmentSpecInitProviderConfigRecoveryConfigScheduledSnapshotsConfig#timeZone
+   */
+  readonly timeZone?: string;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigRecoveryConfigScheduledSnapshotsConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigRecoveryConfigScheduledSnapshotsConfig(obj: EnvironmentSpecInitProviderConfigRecoveryConfigScheduledSnapshotsConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'snapshotCreationSchedule': obj.snapshotCreationSchedule,
+    'snapshotLocation': obj.snapshotLocation,
+    'timeZone': obj.timeZone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigWebServerNetworkAccessControlAllowedIpRange
+ */
+export interface EnvironmentSpecInitProviderConfigWebServerNetworkAccessControlAllowedIpRange {
+  /**
+   * A description of this ip range.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWebServerNetworkAccessControlAllowedIpRange#description
+   */
+  readonly description?: string;
+
+  /**
+   * IP address or range, defined using CIDR notation, of requests that this rule applies to. Examples: 192.168.1.1 or 192.168.0.0/16 or 2001:db8::/32 or 2001:0db8:0000:0042:0000:8a2e:0370:7334. IP range prefixes should be properly truncated. For example, 1.2.3.4/24 should be truncated to 1.2.3.0/24. Similarly, for IPv6, 2001:db8::1/32 should be truncated to 2001:db8::/32.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWebServerNetworkAccessControlAllowedIpRange#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigWebServerNetworkAccessControlAllowedIpRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigWebServerNetworkAccessControlAllowedIpRange(obj: EnvironmentSpecInitProviderConfigWebServerNetworkAccessControlAllowedIpRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigWorkloadsConfigScheduler
+ */
+export interface EnvironmentSpecInitProviderConfigWorkloadsConfigScheduler {
+  /**
+   * The number of Airflow triggerers.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWorkloadsConfigScheduler#count
+   */
+  readonly count?: number;
+
+  /**
+   * The number of CPUs for a single Airflow worker.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWorkloadsConfigScheduler#cpu
+   */
+  readonly cpu?: number;
+
+  /**
+   * The amount of memory (GB) for a single Airflow worker.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWorkloadsConfigScheduler#memoryGb
+   */
+  readonly memoryGb?: number;
+
+  /**
+   * The amount of storage (GB) for the Airflow web server.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWorkloadsConfigScheduler#storageGb
+   */
+  readonly storageGb?: number;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigWorkloadsConfigScheduler' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigWorkloadsConfigScheduler(obj: EnvironmentSpecInitProviderConfigWorkloadsConfigScheduler | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count,
+    'cpu': obj.cpu,
+    'memoryGb': obj.memoryGb,
+    'storageGb': obj.storageGb,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigWorkloadsConfigWebServer
+ */
+export interface EnvironmentSpecInitProviderConfigWorkloadsConfigWebServer {
+  /**
+   * The number of CPUs for a single Airflow worker.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWorkloadsConfigWebServer#cpu
+   */
+  readonly cpu?: number;
+
+  /**
+   * The amount of memory (GB) for a single Airflow worker.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWorkloadsConfigWebServer#memoryGb
+   */
+  readonly memoryGb?: number;
+
+  /**
+   * The amount of storage (GB) for the Airflow web server.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWorkloadsConfigWebServer#storageGb
+   */
+  readonly storageGb?: number;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigWorkloadsConfigWebServer' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigWorkloadsConfigWebServer(obj: EnvironmentSpecInitProviderConfigWorkloadsConfigWebServer | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cpu': obj.cpu,
+    'memoryGb': obj.memoryGb,
+    'storageGb': obj.storageGb,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EnvironmentSpecInitProviderConfigWorkloadsConfigWorker
+ */
+export interface EnvironmentSpecInitProviderConfigWorkloadsConfigWorker {
+  /**
+   * The number of CPUs for a single Airflow worker.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWorkloadsConfigWorker#cpu
+   */
+  readonly cpu?: number;
+
+  /**
+   * The maximum number of Airflow workers that the environment can run. The number of workers in the environment does not go above this number, even if a higher number of workers is required to handle the load.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWorkloadsConfigWorker#maxCount
+   */
+  readonly maxCount?: number;
+
+  /**
+   * The amount of memory (GB) for a single Airflow worker.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWorkloadsConfigWorker#memoryGb
+   */
+  readonly memoryGb?: number;
+
+  /**
+   * The minimum number of Airflow workers that the environment can run. The number of workers in the environment does not go above this number, even if a lower number of workers can handle the load.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWorkloadsConfigWorker#minCount
+   */
+  readonly minCount?: number;
+
+  /**
+   * The amount of storage (GB) for the Airflow web server.
+   *
+   * @schema EnvironmentSpecInitProviderConfigWorkloadsConfigWorker#storageGb
+   */
+  readonly storageGb?: number;
+
+}
+
+/**
+ * Converts an object of type 'EnvironmentSpecInitProviderConfigWorkloadsConfigWorker' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EnvironmentSpecInitProviderConfigWorkloadsConfigWorker(obj: EnvironmentSpecInitProviderConfigWorkloadsConfigWorker | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cpu': obj.cpu,
+    'maxCount': obj.maxCount,
+    'memoryGb': obj.memoryGb,
+    'minCount': obj.minCount,
+    'storageGb': obj.storageGb,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
